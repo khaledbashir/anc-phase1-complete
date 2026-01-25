@@ -86,6 +86,10 @@ const ProposalForm = () => {
                             </WizardStep>
 
                             <WizardStep>
+                                <Screens />
+                            </WizardStep>
+
+                            <WizardStep>
                                 <Items />
                             </WizardStep>
 

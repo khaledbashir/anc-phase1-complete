@@ -49,6 +49,19 @@
                 "addNewItem": "Add a new item",
                 "removeItem": "Remove item"
             },
+            "screens": {
+                "heading": "Screens",
+                "name": "Screen Name",
+                "productType": "Product Type",
+                "width": "Width (ft)",
+                "height": "Height (ft)",
+                "quantity": "Quantity",
+                "pitch": "Pixel Pitch (mm)",
+                "costPerSqFt": "Cost / Sq Ft",
+                "desiredMargin": "Desired Margin (0 - 1)",
+                "addNewScreen": "Add a new screen",
+                "removeScreen": "Remove screen"
+            },
             "paymentInfo": {
                 "heading": "Payment Information",
                 "bankName": "Bank Name",

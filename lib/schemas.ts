@@ -156,6 +156,17 @@ const InvoiceDetailsSchema = z.object({
     currency: fieldValidators.string,
     language: fieldValidators.string,
     items: z.array(ItemSchema),
+    // Screens (ANC-specific estimator inputs)
+    screens: z.array(z.object({
+        name: fieldValidators.stringMin1,
+        productType: fieldValidators.string.optional(),
+        widthFt: z.coerce.number().nonnegative().optional(),
+        heightFt: z.coerce.number().nonnegative().optional(),
+        quantity: z.coerce.number().nonnegative().optional(),
+        pitchMm: z.coerce.number().nonnegative().optional(),
+        costPerSqFt: z.coerce.number().nonnegative().optional(),
+        desiredMargin: z.coerce.number().min(0).max(1).optional(),
+    })).optional(),
     paymentInformation: PaymentInformationSchema.optional(),
     taxDetails: TaxDetailsSchema.optional(),
     discountDetails: DiscountDetailsSchema.optional(),
