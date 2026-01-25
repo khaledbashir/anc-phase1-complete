@@ -26,7 +26,7 @@ export default function FinalPdf() {
         previewPdfInTab,
         downloadPdf,
         printPdf,
-        saveProposal,
+        saveProposalData,
         sendPdfToMail,
     } = useProposalContext();
 
@@ -77,7 +77,7 @@ export default function FinalPdf() {
 
                 <BaseButton
                     tooltipLabel="Save invoice in website"
-                    onClick={saveProposal}
+                    onClick={saveProposalData}
                     size="sm"
                     variant={"outline"}
                 >
