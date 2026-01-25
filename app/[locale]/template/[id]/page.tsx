@@ -1,6 +1,6 @@
 "use client";
 // Types
-import { InvoiceType } from "@/types";
+import { ProposalType } from "@/types";
 // Next
 import dynamic from "next/dynamic";
 import { use } from "react";
@@ -15,10 +15,10 @@ const ViewTemplate = (props: ViewTemplatePageProps) => {
     const params = use(props.params);
     const templateNumber = params.id;
 
-    const DynamicComponent = dynamic<InvoiceType>(
+    const DynamicComponent = dynamic<ProposalType>(
         () =>
             import(
-                `@/app/components/templates/proposal-pdf/InvoiceTemplate${templateNumber}`
+                `@/app/components/templates/proposal-pdf/ProposalTemplate${templateNumber}`
             )
     );
 
