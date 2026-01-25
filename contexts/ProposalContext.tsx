@@ -27,6 +27,7 @@ import {
   SEND_PDF_API,
   SHORT_DATE_OPTIONS,
   LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,
+  LOCAL_STORAGE_INVOICE_DRAFT_KEY,
 } from "@/lib/variables";
 
 // Types
@@ -48,6 +49,8 @@ const defaultProposalContext = {
   deleteProposalData: (index: number) => {},
   sendPdfToMail: (email: string): Promise<void> => Promise.resolve(),
   exportProposalDataAs: (exportAs: ExportTypes) => {},
+  // Backwards-compatible alias
+  exportProposalAs: (exportAs: ExportTypes) => {},
   importProposalData: (file: File) => {},
 };
 
@@ -102,7 +105,7 @@ export const ProposalContextProvider = ({
   // Persist full form state with debounce
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const subscription = watch((value) => {
+    const subscription = watch((value: any) => {
       try {
         window.localStorage.setItem(
           LOCAL_STORAGE_INVOICE_DRAFT_KEY,
@@ -162,7 +165,7 @@ export const ProposalContextProvider = ({
    * @throws {Error} - If an error occurs during the PDF generation process.
    */
   const generatePdf = useCallback(async (data: ProposalType) => {
-    setInvoicePdfLoading(true);
+    setProposalPdfLoading(true);
 
     try {
       const response = await fetch(GENERATE_PDF_API, {
@@ -171,7 +174,7 @@ export const ProposalContextProvider = ({
       });
 
       const result = await response.blob();
-      setInvoicePdf(result);
+      setProposalPdf(result);
 
       if (result.size > 0) {
         // Toast
@@ -180,7 +183,7 @@ export const ProposalContextProvider = ({
     } catch (err) {
       console.log(err);
     } finally {
-      setInvoicePdfLoading(false);
+      setProposalPdfLoading(false);
     }
   }, []);
 
@@ -188,7 +191,7 @@ export const ProposalContextProvider = ({
    * Removes the final PDF file and switches to Live Preview
    */
   const removeFinalPdf = () => {
-    setInvoicePdf(new Blob());
+    setProposalPdf(new Blob());
   };
 
   /**
@@ -285,7 +288,7 @@ export const ProposalContextProvider = ({
 
         localStorage.setItem("savedProposals", JSON.stringify(savedProposals));
 
-        setSavedInvoices(savedProposals);
+        setSavedProposals(savedProposals);
       }
     }
   };
@@ -300,7 +303,7 @@ export const ProposalContextProvider = ({
     if (index >= 0 && index < savedProposals.length) {
       const updatedInvoices = [...savedProposals];
       updatedInvoices.splice(index, 1);
-      setSavedInvoices(updatedInvoices);
+      setSavedProposals(updatedInvoices);
 
       const updatedInvoicesJSON = JSON.stringify(updatedInvoices);
 
@@ -408,6 +411,8 @@ export const ProposalContextProvider = ({
         deleteProposalData,
         sendPdfToMail,
         exportProposalDataAs,
+        // Backwards-compatible alias
+        exportProposalAs: exportProposalDataAs,
         importProposalData,
       }}
     >
