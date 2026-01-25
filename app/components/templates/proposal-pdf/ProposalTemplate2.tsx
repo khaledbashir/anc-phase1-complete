@@ -1,7 +1,7 @@
 import React from "react";
 
 // Components
-import { InvoiceLayout } from "@/app/components";
+import { ProposalLayout } from "@/app/components";
 
 // Helpers
 import { formatNumberWithCommas, isDataUrl } from "@/lib/helpers";
@@ -12,10 +12,10 @@ import { DATE_OPTIONS } from "@/lib/variables";
 // Types
 import { InvoiceType } from "@/types";
 
-const InvoiceTemplate2 = (data: InvoiceType) => {
+const ProposalTemplate2 = (data: InvoiceType) => {
     const { sender, receiver, details } = data;
     return (
-        <InvoiceLayout data={data}>
+        <ProposalLayout data={data}>
             <div className="flex justify-between">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-semibold text-gray-800">
@@ -300,8 +300,8 @@ const InvoiceTemplate2 = (data: InvoiceType) => {
                     </p>
                 </div>
             ) : null}
-        </InvoiceLayout>
+        </ProposalLayout>
     );
 };
 
-export default InvoiceTemplate2;
+export default ProposalTemplate2;

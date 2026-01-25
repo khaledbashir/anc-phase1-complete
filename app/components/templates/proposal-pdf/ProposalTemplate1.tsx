@@ -1,7 +1,7 @@
 import React from "react";
 
 // Components
-import { InvoiceLayout } from "@/app/components";
+import { ProposalLayout } from "@/app/components";
 
 // Helpers
 import { formatNumberWithCommas, isDataUrl } from "@/lib/helpers";
@@ -16,7 +16,7 @@ const InvoiceTemplate = (data: InvoiceType) => {
 	const { sender, receiver, details } = data;
 
 	return (
-		<InvoiceLayout data={data}>
+		<ProposalLayout data={data}>
 			<div className='flex justify-between'>
 				<div>
 					{details.invoiceLogo && (
@@ -224,7 +224,7 @@ const InvoiceTemplate = (data: InvoiceType) => {
 					</p>
 				</div>
 			) : null}
-		</InvoiceLayout>
+		</ProposalLayout>
 	);
 };
 

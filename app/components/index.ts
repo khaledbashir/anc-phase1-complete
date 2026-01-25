@@ -85,10 +85,10 @@ import NewProposalAlert from "./modals/alerts/NewProposalAlert";
    * Templates
    ========================= */
 // Invoice templates
-import DynamicInvoiceTemplate from "./templates/invoice-pdf/DynamicInvoiceTemplate";
-import InvoiceLayout from "./templates/invoice-pdf/InvoiceLayout";
-import InvoiceTemplate1 from "./templates/invoice-pdf/InvoiceTemplate1";
-import InvoiceTemplate2 from "./templates/invoice-pdf/InvoiceTemplate2";
+import DynamicProposalTemplate from "./templates/proposal-pdf/DynamicProposalTemplate";
+import ProposalLayout from "./templates/proposal-pdf/ProposalLayout";
+import ProposalTemplate1 from "./templates/proposal-pdf/ProposalTemplate1";
+import ProposalTemplate2 from "./templates/proposal-pdf/ProposalTemplate2";
 
 // Email templates
 import SendPdfEmail from "./templates/email/SendPdfEmail";
@@ -137,9 +137,9 @@ export {
     SignatureColorSelector,
     SignatureFontSelector,
     NewProposalAlert,
-    DynamicInvoiceTemplate,
-    InvoiceLayout,
-    InvoiceTemplate1,
-    InvoiceTemplate2,
+    DynamicProposalTemplate,
+    ProposalLayout,
+    ProposalTemplate1,
+    ProposalTemplate2,
     SendPdfEmail,
 };

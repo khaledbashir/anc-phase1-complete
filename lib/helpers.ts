@@ -170,13 +170,13 @@ const isDataUrl = (str: string) => str.startsWith("data:");
  * @returns {Promise<React.ComponentType<any> | null>} A promise that resolves to the invoice template component or null if not found.
  * @throws {Error} Throws an error if there is an issue with the dynamic import or if a default template is not available.
  */
-const getInvoiceTemplate = async (templateId: number) => {
+const getProposalTemplate = async (templateId: number) => {
     // Dynamic template component name
-    const componentName = `InvoiceTemplate${templateId}`;
+    const componentName = `ProposalTemplate${templateId}`;
 
     try {
         const module = await import(
-            `@/app/components/templates/invoice-pdf/${componentName}`
+            `@/app/components/templates/proposal-pdf/${componentName}`
         );
         return module.default;
     } catch (err) {
@@ -208,6 +208,6 @@ export {
     flattenObject,
     isValidEmail,
     isDataUrl,
-    getInvoiceTemplate,
+    getProposalTemplate,
     fileToBuffer,
 };

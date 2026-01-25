@@ -18,7 +18,7 @@ const ViewTemplate = (props: ViewTemplatePageProps) => {
     const DynamicComponent = dynamic<InvoiceType>(
         () =>
             import(
-                `@/app/components/templates/invoice-pdf/InvoiceTemplate${templateNumber}`
+                `@/app/components/templates/proposal-pdf/InvoiceTemplate${templateNumber}`
             )
     );
 

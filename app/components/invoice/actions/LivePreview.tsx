@@ -1,5 +1,5 @@
 // Components
-import { DynamicInvoiceTemplate, Subheading } from "@/app/components";
+import { DynamicProposalTemplate, Subheading } from "@/app/components";
 
 // Types
 import { InvoiceType } from "@/types";
@@ -13,7 +13,7 @@ export default function LivePreview({ data }: LivePreviewProps) {
         <>
             <Subheading>Live Preview:</Subheading>
             <div className="border dark:border-gray-600 rounded-xl my-1">
-                <DynamicInvoiceTemplate {...data} />
+                <DynamicProposalTemplate {...data} />
             </div>
         </>
     );

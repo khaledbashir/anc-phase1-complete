@@ -3,12 +3,12 @@ import { ReactNode } from "react";
 // Types
 import { InvoiceType } from "@/types";
 
-type InvoiceLayoutProps = {
+type ProposalLayoutProps = {
     data: InvoiceType;
     children: ReactNode;
 };
 
-export default function InvoiceLayout({ data, children }: InvoiceLayoutProps) {
+export default function ProposalLayout({ data, children }: ProposalLayoutProps) {
     const { sender, receiver, details } = data;
 
     // Instead of fetching all signature fonts, get the specific one user selected.

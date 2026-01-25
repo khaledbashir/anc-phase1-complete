@@ -4,13 +4,13 @@ import { NextRequest, NextResponse } from "next/server";
 import chromium from "@sparticuz/chromium";
 
 // Helpers
-import { getInvoiceTemplate } from "@/lib/helpers";
+import { getProposalTemplate } from "@/lib/helpers";
 
 // Variables
 import { ENV, TAILWIND_CDN } from "@/lib/variables";
 
 // Types
-import { InvoiceType } from "@/types";
+import { ProposalType } from "@/types";
 
 /**
  * Generate a PDF document of an invoice based on the provided data.
@@ -20,17 +20,17 @@ import { InvoiceType } from "@/types";
  * @throws {Error} If there is an error during the PDF generation process.
  * @returns {Promise<NextResponse>} A promise that resolves to a NextResponse object containing the generated PDF.
  */
-export async function generatePdfService(req: NextRequest) {
-    const body: InvoiceType = await req.json();
+export async function generateProposalPdfService(req: NextRequest) {
+    const body: ProposalType = await req.json();
     let browser;
     let page;
 
     try {
         const ReactDOMServer = (await import("react-dom/server")).default;
         const templateId = body.details.pdfTemplate;
-        const InvoiceTemplate = await getInvoiceTemplate(templateId);
+        const ProposalTemplate = await getProposalTemplate(templateId);
         const htmlTemplate = ReactDOMServer.renderToStaticMarkup(
-            InvoiceTemplate(body)
+            ProposalTemplate(body)
         );
 
 		if (ENV === "production") {

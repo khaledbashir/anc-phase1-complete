@@ -36,7 +36,7 @@ const isEmailConfigured = () => {
  * @returns {Promise<boolean>} A Promise that resolves to a boolean, indicating whether the email was sent successfully.
  * @throws {Error} Throws an error if there is an issue with sending the email.
  */
-export async function sendPdfToEmailService(
+export async function sendProposalPdfToEmailService(
     req: NextRequest
 ): Promise<boolean> {
     // Check if email service is configured

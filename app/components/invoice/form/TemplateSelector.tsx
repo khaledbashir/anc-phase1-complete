@@ -17,8 +17,8 @@ import { Label } from "@/components/ui/label";
 // Components
 import {
     BaseButton,
-    InvoiceTemplate1,
-    InvoiceTemplate2,
+    ProposalTemplate1,
+    ProposalTemplate2,
 } from "@/app/components";
 
 // Template images
@@ -40,14 +40,14 @@ const TemplateSelector = () => {
             name: "Template 1",
             description: "Template 1 description",
             img: template1,
-            component: <InvoiceTemplate1 {...formValues} />,
+            component: <ProposalTemplate1 {...formValues} />,
         },
         {
             id: 2,
             name: "Template 2",
             description: "Second template",
             img: template2,
-            component: <InvoiceTemplate2 {...formValues} />,
+            component: <ProposalTemplate2 {...formValues} />,
         },
     ];
     return (
