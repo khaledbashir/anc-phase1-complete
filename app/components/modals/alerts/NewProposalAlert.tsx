@@ -6,7 +6,7 @@ import React, { useState } from "react";
 import { useFormContext } from "react-hook-form";
 
 // Context
-import { useInvoiceContext } from "@/contexts/ProposalContext";
+import { useProposalContext } from "@/contexts/ProposalContext";
 
 // ShadCn
 import {
@@ -36,7 +36,7 @@ const NewProposalAlert = ({
   onConfirm,
 }: NewProposalAlertProps) => {
   // Invoice context
-  const { newInvoice } = useInvoiceContext();
+  const { newProposal } = useProposalContext();
 
   const {
     formState: { isDirty },
@@ -49,8 +49,8 @@ const NewProposalAlert = ({
       // If the form is dirty, show the alert dialog
       setOpen(true);
     } else {
-      // If the form is not dirty, call the newInvoice function from context
-      (onConfirm ?? newInvoice)();
+      // If the form is not dirty, call the newProposal function from context
+      (onConfirm ?? newProposal)();
     }
   };
 
@@ -59,7 +59,7 @@ const NewProposalAlert = ({
   };
 
   const handleConfirm = () => {
-    (onConfirm ?? newInvoice)();
+    (onConfirm ?? newProposal)();
     setOpen(false);
   };
 

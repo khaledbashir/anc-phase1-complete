@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 
 // Services
-import { exportInvoiceService } from "@/services/invoice/server/exportInvoiceService";
+import { exportProposalService } from "@/services/invoice/server/exportProposalService";
 
 export async function POST(req: NextRequest) {
-    const result = await exportInvoiceService(req);
+    const result = await exportProposalService(req);
     return result;
 }

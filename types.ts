@@ -5,13 +5,13 @@ import z from "zod";
 import { FieldPath, UseFormReturn } from "react-hook-form";
 
 // Zod schemas
-import { InvoiceSchema, ItemSchema } from "@/lib/schemas";
+import { ProposalSchema, ItemSchema } from "@/lib/schemas";
 
 // Form types
-export type InvoiceType = z.infer<typeof InvoiceSchema>;
+export type ProposalType = z.infer<typeof ProposalSchema>;
 export type ItemType = z.infer<typeof ItemSchema>;
-export type FormType = UseFormReturn<InvoiceType>;
-export type NameType = FieldPath<InvoiceType>;
+export type FormType = UseFormReturn<ProposalType>;
+export type NameType = FieldPath<ProposalType>;
 export type CurrencyType = {
     [currencyCode: string]: string;
 };

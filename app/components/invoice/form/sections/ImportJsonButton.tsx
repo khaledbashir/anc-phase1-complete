@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import { BaseButton } from '@/app/components';
-import { useInvoiceContext } from '@/contexts/ProposalContext';
+import { useProposalContext } from '@/contexts/ProposalContext';
 import { Import } from 'lucide-react';
 
 type ImportJsonButtonType = {
@@ -11,7 +11,7 @@ type ImportJsonButtonType = {
 
 const ImportJsonButton = ({ setOpen }: ImportJsonButtonType) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const { importInvoice, invoicePdfLoading } = useInvoiceContext();
+    const { importProposal, proposalPdfLoading } = useProposalContext();
 
     const handleClick = () => {
         fileInputRef.current?.click();
@@ -20,7 +20,7 @@ const ImportJsonButton = ({ setOpen }: ImportJsonButtonType) => {
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file && file.type === 'application/json') {
-            importInvoice(file);
+            importProposal(file);
             setOpen(false);
         }
         // Reset input value to allow selecting the same file again
@@ -41,7 +41,7 @@ const ImportJsonButton = ({ setOpen }: ImportJsonButtonType) => {
             <BaseButton
                 variant="outline"
                 tooltipLabel="Import JSON invoice"
-                disabled={invoicePdfLoading}
+                disabled={proposalPdfLoading}
                 onClick={handleClick}
             >
                 <Import />

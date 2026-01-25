@@ -12,7 +12,7 @@ import { ExportTypes, InvoiceType } from "@/types";
  * @throws {Error} If there is an error during the export process.
  * @returns {Promise<void>} A promise that resolves when the export is completed.
  */
-export const exportInvoice = async (
+export const exportProposal = async (
     exportAs: ExportTypes,
     formValues: InvoiceType
 ) => {

@@ -139,9 +139,9 @@ export const FORM_DEFAULT_VALUES = {
     customInputs: [],
   },
   details: {
-    invoiceLogo: "",
-    invoiceNumber: "",
-    invoiceDate: "",
+    proposalLogo: "",
+    proposalId: "",
+    proposalDate: "",
     dueDate: "",
     items: [
       {
@@ -203,9 +203,9 @@ export const FORM_FILL_VALUES = {
     phone: "987-654-3210",
   },
   details: {
-    invoiceLogo: "",
-    invoiceNumber: "INV0001",
-    invoiceDate: new Date(),
+    proposalLogo: "",
+    proposalId: "INV0001",
+    proposalDate: new Date(),
     dueDate: new Date(),
     items: [
       {

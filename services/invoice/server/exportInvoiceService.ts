@@ -21,7 +21,7 @@ import { ExportTypes } from "@/types";
  * @param {NextRequest} req - The Next.js request object.
  * @returns {NextResponse} A response object containing the exported data in the requested format.
  */
-export async function exportInvoiceService(req: NextRequest) {
+export async function exportProposalService(req: NextRequest) {
     const body = await req.json();
     const format = req.nextUrl.searchParams.get("format");
 

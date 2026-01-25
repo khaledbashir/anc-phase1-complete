@@ -18,7 +18,7 @@ import { useFormContext } from "react-hook-form";
 import useToasts from "@/hooks/useToasts";
 
 // Services
-import { exportInvoice } from "@/services/invoice/client/exportInvoice";
+import { exportProposal } from "@/services/invoice/client/exportProposal";
 
 // Variables
 import {
@@ -26,11 +26,11 @@ import {
   GENERATE_PDF_API,
   SEND_PDF_API,
   SHORT_DATE_OPTIONS,
-  LOCAL_STORAGE_INVOICE_DRAFT_KEY,
+  LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,
 } from "@/lib/variables";
 
 // Types
-import { ExportTypes, InvoiceType } from "@/types";
+import { ExportTypes, ProposalType } from "@/types";
 
 const defaultProposalContext = {
   proposalPdf: new Blob(),
@@ -70,15 +70,15 @@ export const ProposalContextProvider = ({
   const {
     newProposalSuccess,
     pdfGenerationSuccess,
-    saveProposalDataSuccess,
+    saveProposalSuccess,
     modifiedProposalSuccess,
     sendPdfSuccess,
     sendPdfError,
-    importProposalDataError,
+    importProposalError,
   } = useToasts();
 
   // Get form values and methods from form context
-  const { getValues, reset, watch } = useFormContext<InvoiceType>();
+  const { getValues, reset, watch } = useFormContext<ProposalType>();
 
   // Variables
   const [proposalPdf, setProposalPdf] = useState<Blob>(new Blob());
@@ -157,11 +157,11 @@ export const ProposalContextProvider = ({
   /**
    * Generate a PDF document based on the provided data.
    *
-   * @param {InvoiceType} data - The data used to generate the PDF.
+   * @param {ProposalType} data - The data used to generate the PDF.
    * @returns {Promise<void>} - A promise that resolves when the PDF is successfully generated.
    * @throws {Error} - If an error occurs during the PDF generation process.
    */
-  const generatePdf = useCallback(async (data: InvoiceType) => {
+  const generatePdf = useCallback(async (data: ProposalType) => {
     setInvoicePdfLoading(true);
 
     try {
@@ -262,7 +262,7 @@ export const ProposalContextProvider = ({
         formValues.details.updatedAt = updatedDate;
 
         const existingInvoiceIndex = savedProposals.findIndex(
-          (invoice: InvoiceType) => {
+          (invoice: ProposalType) => {
             return (
               invoice.details.invoiceNumber === formValues.details.invoiceNumber
             );
@@ -280,7 +280,7 @@ export const ProposalContextProvider = ({
           savedProposals.push(formValues);
 
           // Toast
-          saveProposalDataSuccess();
+          saveProposalSuccess();
         }
 
         localStorage.setItem("savedProposals", JSON.stringify(savedProposals));
@@ -352,7 +352,7 @@ export const ProposalContextProvider = ({
     const formValues = getValues();
 
     // Service to export invoice with given parameters
-    exportInvoice(exportAs, formValues);
+    exportProposal(exportAs, formValues);
   };
 
   /**
@@ -384,7 +384,7 @@ export const ProposalContextProvider = ({
         reset(importedData);
       } catch (error) {
         console.error("Error parsing JSON file:", error);
-        importProposalDataError();
+        importProposalError();
       }
     };
     reader.readAsText(file);

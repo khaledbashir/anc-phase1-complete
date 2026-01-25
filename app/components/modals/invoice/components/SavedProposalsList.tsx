@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BaseButton } from "@/app/components";
 
 // Contexts
-import { useInvoiceContext } from "@/contexts/ProposalContext";
+import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Helpers
 import { formatNumberWithCommas } from "@/lib/helpers";
@@ -28,7 +28,7 @@ type SavedProposalsListProps = {
 };
 
 const SavedProposalsList = ({ setModalState }: SavedProposalsListProps) => {
-    const { savedInvoices, onFormSubmit, deleteInvoice } = useInvoiceContext();
+    const { savedProposals, onFormSubmit, deleteProposal } = useProposalContext();
 
     const { reset } = useFormContext<InvoiceType>();
 
@@ -93,7 +93,7 @@ const SavedProposalsList = ({ setModalState }: SavedProposalsListProps) => {
     return (
         <>
             <div className="flex flex-col gap-5 overflow-y-auto max-h-72">
-                {savedInvoices.map((invoice, idx) => (
+                {savedProposals.map((invoice, idx) => (
                     <Card
                         key={idx}
                         className="p-2 border rounded-sm hover:border-blue-500 hover:shadow-lg cursor-pointer"
@@ -150,7 +150,7 @@ const SavedProposalsList = ({ setModalState }: SavedProposalsListProps) => {
                                     size="sm"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        deleteInvoice(idx);
+                                        deleteProposal(idx);
                                     }}
                                 >
                                     Delete
@@ -160,7 +160,7 @@ const SavedProposalsList = ({ setModalState }: SavedProposalsListProps) => {
                     </Card>
                 ))}
 
-                {savedInvoices.length == 0 && (
+                {savedProposals.length == 0 && (
                     <div>
                         <p>No saved invoices</p>
                     </div>

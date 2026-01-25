@@ -7,7 +7,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { BaseButton, SendPdfToEmailModal, Subheading } from "@/app/components";
 
 // Contexts
-import { useInvoiceContext } from "@/contexts/ProposalContext";
+import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Icons
 import {
@@ -26,9 +26,9 @@ export default function FinalPdf() {
         previewPdfInTab,
         downloadPdf,
         printPdf,
-        saveInvoice,
+        saveProposal,
         sendPdfToMail,
-    } = useInvoiceContext();
+    } = useProposalContext();
 
     return (
         <>
@@ -77,7 +77,7 @@ export default function FinalPdf() {
 
                 <BaseButton
                     tooltipLabel="Save invoice in website"
-                    onClick={saveInvoice}
+                    onClick={saveProposal}
                     size="sm"
                     variant={"outline"}
                 >

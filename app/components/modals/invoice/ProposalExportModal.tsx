@@ -16,7 +16,7 @@ import {
 import { BaseButton } from "@/app/components";
 
 // Context
-import { useInvoiceContext } from "@/contexts/ProposalContext";
+import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Types
 import { ExportTypes } from "@/types";
@@ -28,7 +28,7 @@ type ProposalExportModalType = {
 const ProposalExportModal = ({ children }: ProposalExportModalType) => {
     const [open, setOpen] = useState(false);
 
-    const { invoicePdfLoading, exportInvoiceAs } = useInvoiceContext();
+    const { proposalPdfLoading, exportProposalAs } = useProposalContext();
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{children}</DialogTrigger>
@@ -47,16 +47,16 @@ const ProposalExportModal = ({ children }: ProposalExportModalType) => {
                     <BaseButton
                         tooltipLabel="Export Invoice as JSON"
                         variant="outline"
-                        disabled={invoicePdfLoading}
-                        onClick={() => exportInvoiceAs(ExportTypes.JSON)}
+                        disabled={proposalPdfLoading}
+                        onClick={() => exportProposalAs(ExportTypes.JSON)}
                     >
                         Export as JSON
                     </BaseButton>
                     <BaseButton
                         tooltipLabel="Export Invoice as CSV"
                         variant="outline"
-                        disabled={invoicePdfLoading}
-                        onClick={() => exportInvoiceAs(ExportTypes.CSV)}
+                        disabled={proposalPdfLoading}
+                        onClick={() => exportProposalAs(ExportTypes.CSV)}
                     >
                         Export as CSV
                     </BaseButton>
@@ -64,8 +64,8 @@ const ProposalExportModal = ({ children }: ProposalExportModalType) => {
                     <BaseButton
                         tooltipLabel="Export Invoice as XML"
                         variant="outline"
-                        disabled={invoicePdfLoading}
-                        onClick={() => exportInvoiceAs(ExportTypes.XML)}
+                        disabled={proposalPdfLoading}
+                        onClick={() => exportProposalAs(ExportTypes.XML)}
                     >
                         Export as XML
                     </BaseButton>
@@ -73,8 +73,8 @@ const ProposalExportModal = ({ children }: ProposalExportModalType) => {
                     <BaseButton
                         tooltipLabel="Export Invoice as XLSX"
                         variant="outline"
-                        disabled={invoicePdfLoading}
-                        onClick={() => exportInvoiceAs(ExportTypes.XLSX)}
+                        disabled={proposalPdfLoading}
+                        onClick={() => exportProposalAs(ExportTypes.XLSX)}
                     >
                         Export as XLSX
                     </BaseButton>

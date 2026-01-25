@@ -166,10 +166,10 @@ const InvoiceDetailsSchema = z.object({
     pdfTemplate: z.number(),
 });
 
-const InvoiceSchema = z.object({
+const ProposalSchema = z.object({
     sender: InvoiceSenderSchema,
     receiver: InvoiceReceiverSchema,
     details: InvoiceDetailsSchema,
 });
 
-export { InvoiceSchema, ItemSchema };
+export { ProposalSchema, ItemSchema };

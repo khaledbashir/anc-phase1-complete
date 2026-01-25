@@ -10,13 +10,13 @@ import { useFormContext } from "react-hook-form";
 import { FinalPdf, LivePreview } from "@/app/components";
 
 // Contexts
-import { useInvoiceContext } from "@/contexts/ProposalContext";
+import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Types
 import { InvoiceType } from "@/types";
 
 const PdfViewer = () => {
-    const { invoicePdf } = useInvoiceContext();
+    const { proposalPdf } = useProposalContext();
 
     const { watch } = useFormContext<InvoiceType>();
 
@@ -25,7 +25,7 @@ const PdfViewer = () => {
 
     return (
         <div className="my-3">
-            {invoicePdf.size == 0 ? (
+            {proposalPdf.size == 0 ? (
                 <LivePreview data={formValues} />
             ) : (
                 <FinalPdf />

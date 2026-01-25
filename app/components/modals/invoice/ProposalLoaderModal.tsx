@@ -17,7 +17,7 @@ import { SavedProposalsList } from "@/app/components";
 import { ImportJsonButton } from "@/app/components";
 
 // Context
-import { useInvoiceContext } from "@/contexts/ProposalContext";
+import { useProposalContext } from "@/contexts/ProposalContext";
 
 type ProposalLoaderModalType = {
   children: React.ReactNode;
@@ -26,7 +26,7 @@ type ProposalLoaderModalType = {
 const ProposalLoaderModal = ({ children }: ProposalLoaderModalType) => {
   const [open, setOpen] = useState(false);
 
-  const { savedInvoices } = useInvoiceContext();
+  const { savedProposals } = useProposalContext();
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -37,7 +37,7 @@ const ProposalLoaderModal = ({ children }: ProposalLoaderModalType) => {
           <DialogTitle>Saved Invoices</DialogTitle>
           <DialogDescription>
             <div className="space-y-2">
-              <p>You have {savedInvoices.length} saved invoices</p>
+              <p>You have {savedProposals.length} saved invoices</p>
               <ImportJsonButton setOpen={setOpen}/>
             </div>
           </DialogDescription>

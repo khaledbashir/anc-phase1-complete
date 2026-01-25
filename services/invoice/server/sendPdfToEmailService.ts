@@ -53,14 +53,14 @@ export async function sendPdfToEmailService(
 
     // Get form data values
     const email = fd.get("email") as string;
-    const invoicePdf = fd.get("invoicePdf") as File;
+    const proposalPdf = fd.get("proposalPdf") as File;
     const invoiceNumber = fd.get("invoiceNumber") as string;
 
     // Get email html content
     const emailHTML = render(SendPdfEmail({ invoiceNumber }));
 
     // Convert file to buffer
-    const invoiceBuffer = await fileToBuffer(invoicePdf);
+    const invoiceBuffer = await fileToBuffer(proposalPdf);
 
     try {
         const mailOptions: SendMailOptions = {
