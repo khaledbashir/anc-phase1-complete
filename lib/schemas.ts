@@ -145,6 +145,10 @@ const SignatureSchema = z.object({
 
 const InvoiceDetailsSchema = z.object({
     invoiceLogo: fieldValidators.stringOptional,
+    // Proposal-specific aliases (backwards compatible with invoice fields)
+    proposalLogo: fieldValidators.stringOptional,
+    proposalId: fieldValidators.stringOptional,
+    proposalDate: fieldValidators.date.optional(),
     invoiceNumber: fieldValidators.stringMin1,
     invoiceDate: fieldValidators.date,
     dueDate: fieldValidators.date,
