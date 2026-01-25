@@ -15,7 +15,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { formatPriceToString } from "@/lib/helpers";
 
 // Types
-import { InvoiceType, ItemType } from "@/types";
+import { ProposalType, ItemType } from "@/types";
 
 const defaultChargesContext = {
     discountSwitch: false,
@@ -49,7 +49,7 @@ type ChargesContextProps = {
 };
 
 export const ChargesContextProvider = ({ children }: ChargesContextProps) => {
-    const { control, setValue, getValues } = useFormContext<InvoiceType>();
+    const { control, setValue, getValues } = useFormContext<ProposalType>();
 
     // Form Fields
     const itemsArray = useWatch({

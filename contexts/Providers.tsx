@@ -18,7 +18,7 @@ import { ProposalContextProvider } from "@/contexts/ProposalContext";
 import { ChargesContextProvider } from "@/contexts/ChargesContext";
 
 // Types
-import { InvoiceType } from "@/types";
+import { ProposalType } from "@/types";
 
 // Variables
 import {
@@ -27,7 +27,7 @@ import {
 } from "@/lib/variables";
 
 // Helpers
-const readDraftFromLocalStorage = (): InvoiceType | null => {
+const readDraftFromLocalStorage = (): ProposalType | null => {
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(LOCAL_STORAGE_INVOICE_DRAFT_KEY);
@@ -51,7 +51,7 @@ type ProvidersProps = {
 };
 
 const Providers = ({ children }: ProvidersProps) => {
-  const form = useForm<InvoiceType>({
+  const form = useForm<ProposalType>({
     resolver: zodResolver(ProposalSchema),
     defaultValues: FORM_DEFAULT_VALUES,
   });

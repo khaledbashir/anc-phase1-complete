@@ -32,10 +32,10 @@ import { useTranslationContext } from "@/contexts/TranslationContext";
 import { Plus } from "lucide-react";
 
 // Types
-import { InvoiceType } from "@/types";
+import { ProposalType } from "@/types";
 
 const Items = () => {
-    const { control, setValue } = useFormContext<InvoiceType>();
+    const { control, setValue } = useFormContext<ProposalType>();
 
     const { _t } = useTranslationContext();
 

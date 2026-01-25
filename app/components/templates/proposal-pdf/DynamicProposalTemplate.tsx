@@ -3,7 +3,7 @@
 // ShadCn
 import { Skeleton } from "@/components/ui/skeleton";
 // Types
-import { InvoiceType } from "@/types";
+import { ProposalType } from "@/types";
 import dynamic from "next/dynamic";
 import React, { useMemo } from "react";
 
@@ -11,13 +11,13 @@ const DynamicProposalTemplateSkeleton = () => {
     return <Skeleton className="min-h-[60rem]" />;
 };
 
-const DynamicProposalTemplate = (props: InvoiceType) => {
+const DynamicProposalTemplate = (props: ProposalType) => {
     // Dynamic template component name
     const templateName = `InvoiceTemplate${props.details.pdfTemplate}`;
 
     const DynamicInvoice = useMemo(
         () =>
-            dynamic<InvoiceType>(
+            dynamic<ProposalType>(
                 () =>
                     import(
                         `@/app/components/templates/proposal-pdf/${templateName}`

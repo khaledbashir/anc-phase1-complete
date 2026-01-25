@@ -10,9 +10,9 @@ import { formatNumberWithCommas, isDataUrl } from "@/lib/helpers";
 import { DATE_OPTIONS } from "@/lib/variables";
 
 // Types
-import { InvoiceType } from "@/types";
+import { ProposalType } from "@/types";
 
-const ProposalTemplate2 = (data: InvoiceType) => {
+const ProposalTemplate2 = (data: ProposalType) => {
     const { sender, receiver, details } = data;
     return (
         <ProposalLayout data={data}>
