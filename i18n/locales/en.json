@@ -1,115 +1,49 @@
 {
-    "form": {
-        "title": "Proposal",
-        "description": "Generate Proposal",
-        "newInvBadge": "New Proposal",
-        "wizard": {
-            "fromAndTo": "Client & Estimator",
-            "invoiceDetails": "Proposal Details",
-            "lineItems": "Screen Configuration",
-            "paymentInfo": "Terms",
-            "summary": "Summary",
-            "next": "Next",
-            "back": "Back"
+  "actions": {
+    "loadProposal": "Load Proposal",
+    "exportProposal": "Export JSON",
+    "newProposal": "New Project",
+    "generatePDF": "Generate PDF",
+    "reset": "Reset Form"
+  },
+  "form": {
+    "steps": {
+      "proposalDetails": {
+        "heading": "Proposal Details",
+        "proposalLogo": {
+          "label": "Client Logo",
+          "placeholder": "Upload Logo"
         },
-        "steps": {
-            "fromAndTo": {
-                "billFrom": "From",
-                "billTo": "To",
-                "name": "Name",
-                "address": "Address",
-                "zipCode": "Zip",
-                "city": "City",
-                "country": "Country",
-                "email": "Email",
-                "phone": "Phone",
-                "addCustomInput": "Add Custom Input",
-                "sender": "Sender",
-                "receiver": "Receiver"
-            },
-            "invoiceDetails": {
-                "heading": "Proposal Details",
-                "invoiceLogo": {
-                    "label": "Proposal Logo",
-                    "placeholder": "Click to upload image"
-                },
-                "invoiceNumber": "Proposal Number",
-                "issuedDate": "Issue Date",
-                "dueDate": "Due Date",
-                "currency": "Currency"
-            },
-            "lineItems": {
-                "heading": "Items",
-                "item": "Item",
-                "name": "Name",
-                "quantity": "Quantity",
-                "rate": "Rate",
-                "total": "Total",
-                "description": "Description",
-                "addNewItem": "Add a new item",
-                "removeItem": "Remove item"
-            },
-            "screens": {
-                "heading": "Screens",
-                "name": "Screen Name",
-                "productType": "Product Type",
-                "width": "Width (ft)",
-                "height": "Height (ft)",
-                "quantity": "Quantity",
-                "pitch": "Pixel Pitch (mm)",
-                "costPerSqFt": "Cost / Sq Ft",
-                "desiredMargin": "Desired Margin (0 - 1)",
-                "addNewScreen": "Add a new screen",
-                "removeScreen": "Remove screen"
-            },
-            "paymentInfo": {
-                "heading": "Payment Information",
-                "bankName": "Bank Name",
-                "accountName": "Account Name",
-                "accountNumber": "Account Number"
-            },
-            "summary": {
-                "heading": "Summary",
-                "signature": {
-                    "heading": "Signature",
-                    "placeholder": "Click to add signature",
-                    "description": "Choose a method to add your signature to the proposal",
-                    "draw": "Draw",
-                    "type": "Type",
-                    "upload": "Upload"
-                },
-                "additionalNotes": "Additional Notes",
-                "paymentTerms": "Payment Terms",
-                "discount": "Discount",
-                "tax": "Tax",
-                "shipping": "Shipping",
-                "subTotal": "Subtotal",
-                "totalAmount": "Total Amount",
-                "includeTotalInWords": "Include Total in Words?",
-                "yes": "Yes",
-                "no": "No"
-            }
-        }
+        "proposalId": "Proposal ID",
+        "issuedDate": "Issued Date",
+        "dueDate": "Valid Until",
+        "currency": "Currency"
+      },
+      "clientEstimator": {
+        "heading": "Client & Estimator"
+      },
+      "screenConfig": {
+        "heading": "Screen Configuration"
+      },
+      "terms": {
+        "heading": "Terms & Conditions"
+      },
+      "summary": {
+        "heading": "Summary"
+      }
     },
-    "actions": {
-        "title": "Actions",
-        "description": "Operations and preview",
-        "loadInvoice": "Load Proposal",
-        "loadProposal": "Load Proposal",
-        "exportInvoice": "Export Proposal",
-        "exportProposal": "Export JSON",
-        "newInvoice": "New Proposal",
-        "newProposal": "New Project",
-        "generatePdf": "Generate PDF",
-        "generatePDF": "Generate PDF",
-        "pdfView": "PDF View"
-    },
-    "footer": {
-        "developedBy": "Developed by"
-    },
-    "formNewPropBadge": "Draft",
-    "fromTo": "Client & Estimator",
-    "lineItems": "Screen Configuration",
-    "paymentInfo": "Terms",
-    "summary": "Summary"
+    "newPropBadge": "DRAFT"
+  },
+  "invoice": "Proposal",
+  "billTo": "Prepared For",
+  "invoiceDate": "Date Issued",
+  "dueDate": "Valid Until",
+  "item": "Screen Description",
+  "quantity": "Qty",
+  "rate": "Unit Price",
+  "amount": "Total",
+  "subTotal": "Subtotal",
+  "total": "Grand Total",
+  "additionalNotes": "Notes",
+  "paymentTerms": "Payment Terms"
 }
