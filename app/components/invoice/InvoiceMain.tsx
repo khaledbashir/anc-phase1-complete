@@ -29,9 +29,13 @@ const InvoiceMain = () => {
                         console.log(err);
                     })}
                 >
-                    <div className="flex flex-wrap">
-                        <InvoiceForm />
-                        <InvoiceActions />
+                    <div className="flex flex-wrap gap-6">
+                        <div className="flex-1 min-w-[300px]">
+                            <InvoiceForm />
+                        </div>
+                        <div className="w-full xl:w-auto">
+                            <InvoiceActions />
+                        </div>
                     </div>
                 </form>
             </Form>

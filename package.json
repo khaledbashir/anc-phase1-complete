@@ -1,6 +1,6 @@
 {
-    "name": "invoify",
-    "version": "0.1.0",
+    "name": "anc-proposal-engine",
+    "version": "1.0.0",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -15,6 +15,7 @@
         "@dnd-kit/utilities": "^3.2.2",
         "@hookform/resolvers": "^3.3.2",
         "@json2csv/node": "^7.0.3",
+        "@prisma/client": "^5.22.0",
         "@radix-ui/react-alert-dialog": "^1.1.15",
         "@radix-ui/react-aspect-ratio": "^1.1.7",
         "@radix-ui/react-dialog": "^1.1.15",
@@ -72,6 +73,7 @@
         "@types/xml2js": "^0.4.13",
         "cross-env": "^7.0.3",
         "ignore-loader": "^0.1.2",
+        "prisma": "^5.22.0",
         "puppeteer": "^24.10.0"
     }
 }

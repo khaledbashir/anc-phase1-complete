@@ -30,20 +30,21 @@ const InvoiceActions = () => {
   const { _t } = useTranslationContext();
   return (
     <div className={`xl:w-[45%]`}>
-      <Card className="h-auto sticky top-0 px-2">
-        <CardHeader>
+      <Card className="h-auto sticky top-0 px-2 rounded-lg shadow-sm">
+        <CardHeader className="pb-4">
           <CardTitle>{_t("actions.title")}</CardTitle>
           <CardDescription>{_t("actions.description")}</CardDescription>
         </CardHeader>
 
-        <div className="flex flex-col flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col flex-wrap items-center gap-3 px-2 pb-6">
+          <div className="flex flex-wrap gap-3 w-full">
             {/* Load modal button */}
             <InvoiceLoaderModal>
               <BaseButton
                 variant="outline"
-                tooltipLabel="Open load invoice menu"
+                tooltipLabel="Open load proposal menu"
                 disabled={invoicePdfLoading}
+                className="flex-1 min-w-[140px]"
               >
                 <FolderUp />
                 {_t("actions.loadInvoice")}
@@ -54,8 +55,9 @@ const InvoiceActions = () => {
             <InvoiceExportModal>
               <BaseButton
                 variant="outline"
-                tooltipLabel="Open load invoice menu"
+                tooltipLabel="Open export proposal menu"
                 disabled={invoicePdfLoading}
+                className="flex-1 min-w-[140px]"
               >
                 <Import />
                 {_t("actions.exportInvoice")}
@@ -63,13 +65,14 @@ const InvoiceActions = () => {
             </InvoiceExportModal>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 w-full">
             {/* New invoice button */}
             <NewInvoiceAlert>
               <BaseButton
                 variant="outline"
-                tooltipLabel="Get a new invoice form"
+                tooltipLabel="Get a new proposal form"
                 disabled={invoicePdfLoading}
+                className="flex-1 min-w-[140px]"
               >
                 <Plus />
                 {_t("actions.newInvoice")}
@@ -87,6 +90,7 @@ const InvoiceActions = () => {
                 variant="destructive"
                 tooltipLabel="Reset entire form"
                 disabled={invoicePdfLoading}
+                className="flex-1 min-w-[140px]"
               >
                 <RotateCcw />
                 Reset Form
@@ -96,16 +100,17 @@ const InvoiceActions = () => {
             {/* Generate pdf button */}
             <BaseButton
               type="submit"
-              tooltipLabel="Generate your invoice"
+              tooltipLabel="Generate your proposal"
               loading={invoicePdfLoading}
-              loadingText="Generating your invoice"
+              loadingText="Generating your proposal"
+              className="flex-1 min-w-[140px]"
             >
               <FileInput />
               {_t("actions.generatePdf")}
             </BaseButton>
           </div>
 
-          <div className="w-full">
+          <div className="w-full mt-4">
             {/* Live preview and Final pdf */}
             <PdfViewer />
           </div>

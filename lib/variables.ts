@@ -9,16 +9,15 @@ export const ENV = process.env.NODE_ENV;
 /**
  * Websites
  */
-export const BASE_URL = "https://invoify.vercel.app";
-export const AUTHOR_WEBSITE = "https://aliabb.vercel.app";
-export const AUTHOR_GITHUB = "https://github.com/al1abb";
+export const BASE_URL = "https://anc-sports.vercel.app";
+export const ANC_WEBSITE = "https://ancsports.com";
 
 /**
  * API endpoints
  */
-export const GENERATE_PDF_API = "/api/invoice/generate";
-export const SEND_PDF_API = "/api/invoice/send";
-export const EXPORT_INVOICE_API = "/api/invoice/export";
+export const GENERATE_PDF_API = "/api/proposals/generate";
+export const SEND_PDF_API = "/api/proposals/send";
+export const EXPORT_INVOICE_API = "/api/proposals/export";
 
 /**
  * External API endpoints
@@ -29,7 +28,9 @@ export const CURRENCIES_API =
 /**
  * Local storage
  */
-export const LOCAL_STORAGE_INVOICE_DRAFT_KEY = "invoify:invoiceDraft";
+export const LOCAL_STORAGE_PROPOSAL_DRAFT_KEY = "anc:proposalDraft";
+// Legacy alias for backward compatibility
+export const LOCAL_STORAGE_INVOICE_DRAFT_KEY = LOCAL_STORAGE_PROPOSAL_DRAFT_KEY;
 
 /**
  * Tailwind

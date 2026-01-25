@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  users     User[]
+  proposals Proposal[]
+}
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+}
+model Proposal {
+  id           String         @id @default(cuid())
+  workspaceId  String
+  clientName   String
+  status       String         @default("DRAFT")
+  screens      ScreenConfig[]
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id])
+}
+model ScreenConfig {
+  id         String         @id @default(cuid())
+  proposalId String
+  name       String
+  pixelPitch Float
+  width      Float
+  height     Float
+  lineItems  CostLineItem[]
+  proposal   Proposal       @relation(fields: [proposalId], references: [id])
+}
+model CostLineItem {
+  id             String       @id @default(cuid())
+  screenConfigId String
+  category       String
+  cost           Float
+  margin         Float
+  price          Float
+  screenConfig   ScreenConfig @relation(fields: [screenConfigId], references: [id])
+}

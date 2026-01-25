@@ -1,8 +1,8 @@
 {
     "form": {
-        "title": "Invoice",
-        "description": "Generate Invoice",
-        "newInvBadge": "New Invoice",
+        "title": "Proposal",
+        "description": "Generate Proposal",
+        "newInvBadge": "New Proposal",
         "wizard": {
             "fromAndTo": "From & To",
             "invoiceDetails": "Invoice Details",
@@ -14,8 +14,8 @@
         },
         "steps": {
             "fromAndTo": {
-                "billFrom": "Bill From",
-                "billTo": "Bill To",
+                "billFrom": "From",
+                "billTo": "To",
                 "name": "Name",
                 "address": "Address",
                 "zipCode": "Zip",
@@ -28,12 +28,12 @@
                 "receiver": "Receiver"
             },
             "invoiceDetails": {
-                "heading": "Invoice Details",
+                "heading": "Proposal Details",
                 "invoiceLogo": {
-                    "label": "Invoice Logo",
+                    "label": "Proposal Logo",
                     "placeholder": "Click to upload image"
                 },
-                "invoiceNumber": "Invoice Number",
+                "invoiceNumber": "Proposal Number",
                 "issuedDate": "Issue Date",
                 "dueDate": "Due Date",
                 "currency": "Currency"
@@ -60,7 +60,7 @@
                 "signature": {
                     "heading": "Signature",
                     "placeholder": "Click to add signature",
-                    "description": "Choose a method to add your signature to the invoice",
+                    "description": "Choose a method to add your signature to the proposal",
                     "draw": "Draw",
                     "type": "Type",
                     "upload": "Upload"
@@ -81,9 +81,9 @@
     "actions": {
         "title": "Actions",
         "description": "Operations and preview",
-        "loadInvoice": "Load Invoice",
-        "exportInvoice": "Export Invoice",
-        "newInvoice": "New Invoice",
+        "loadInvoice": "Load Proposal",
+        "exportInvoice": "Export Proposal",
+        "newInvoice": "New Proposal",
         "generatePdf": "Generate PDF",
         "pdfView": "PDF View"
     },
