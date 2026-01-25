@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { calculateScreenPrice } from "@/lib/estimator";
+import { calculateANCProject, ScreenInput } from "@/lib/estimator";
 
 export interface CreateProposalRequest {
   workspaceId: string;
   clientName: string;
-  screens: Array<{
+  // accept screens in the same shape as ScreenInput but allow legacy names
+  screens: Array<Partial<ScreenInput> & {
     name: string;
-    pixelPitch: number;
-    width: number;
-    height: number;
+    // legacy fields still accepted:
+    pixelPitch?: number; // mm
+    width?: number; // ft
+    height?: number; // ft
     isOutdoor?: boolean;
   }>;
 }
@@ -42,7 +44,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the proposal with all related data
+    // Convert incoming screens to the estimator's ScreenInput shape
+    const screenInputs: ScreenInput[] = body.screens.map((s) => ({
+      name: s.name,
+      productType: s.productType ?? "Unknown",
+      heightFt: (s.height ?? s.heightFt) ?? 0,
+      widthFt: (s.width ?? s.widthFt) ?? 0,
+      quantity: s.quantity ?? 1,
+      pitchMm: (s.pixelPitch ?? s.pitchMm) ?? undefined,
+      costPerSqFt: s.costPerSqFt,
+      desiredMargin: s.desiredMargin,
+    }));
+
+    // Run estimator for all screens
+    const estimatorResult = calculateANCProject(screenInputs);
+
+    // Create the proposal with nested screens and line items based on estimator
     const proposal = await prisma.proposal.create({
       data: {
         workspaceId: body.workspaceId,
@@ -50,50 +67,31 @@ export async function POST(request: NextRequest) {
         status: "DRAFT",
         screens: {
           create: await Promise.all(
-            body.screens.map(async (screen) => {
-              // Calculate costs for this screen
-              const priceBreakdown = calculateScreenPrice(
-                screen.width,
-                screen.height,
-                screen.pixelPitch,
-                screen.isOutdoor || false
-              );
+            estimatorResult.items.map(async (item, idx) => {
+              const input = screenInputs[idx];
+              const desiredMargin = input.desiredMargin ?? 0.25;
 
-              // Create screen config with cost line items
-              const margin = 0.25; // 25% margin
+              // Build line items
+              const lineItemsData = [
+                { category: "Hardware", cost: roundToCents(item.hardware), margin: desiredMargin, price: roundToCents(item.hardware * (1 + desiredMargin)) },
+                { category: "Shipping", cost: roundToCents(item.shipping), margin: desiredMargin, price: roundToCents(item.shipping * (1 + desiredMargin)) },
+                { category: "Labor", cost: roundToCents(item.labor), margin: desiredMargin, price: roundToCents(item.labor * (1 + desiredMargin)) },
+                { category: "PM", cost: roundToCents(item.pm), margin: desiredMargin, price: roundToCents(item.pm * (1 + desiredMargin)) },
+                { category: "Bond", cost: roundToCents(item.bond), margin: 0, price: roundToCents(item.bond) },
+              ];
 
               return {
-                name: screen.name,
-                pixelPitch: screen.pixelPitch,
-                width: screen.width,
-                height: screen.height,
+                name: item.name,
+                pixelPitch: input.pitchMm ?? 0,
+                width: input.widthFt ?? 0,
+                height: input.heightFt ?? 0,
                 lineItems: {
-                  create: [
-                    {
-                      category: "LED",
-                      cost: priceBreakdown.led,
-                      margin: margin,
-                      price: Math.round(priceBreakdown.led * (1 + margin)),
-                    },
-                    {
-                      category: "Structure",
-                      cost: priceBreakdown.structure,
-                      margin: margin,
-                      price: Math.round(priceBreakdown.structure * (1 + margin)),
-                    },
-                    {
-                      category: "Installation",
-                      cost: priceBreakdown.install,
-                      margin: margin,
-                      price: Math.round(priceBreakdown.install * (1 + margin)),
-                    },
-                    {
-                      category: "Power",
-                      cost: priceBreakdown.power,
-                      margin: margin,
-                      price: Math.round(priceBreakdown.power * (1 + margin)),
-                    },
-                  ],
+                  create: lineItemsData.map(li => ({
+                    category: li.category,
+                    cost: li.cost,
+                    margin: li.margin,
+                    price: li.price,
+                  })),
                 },
               };
             })
@@ -123,4 +121,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function roundToCents(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
