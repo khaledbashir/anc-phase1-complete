@@ -1,5 +1,4 @@
-import fs from "fs";
-import path from "path";
+// Node imports moved inside functions to avoid client-side build issues
 
 export type CatalogEntry = {
   product_id: string;
@@ -52,31 +51,68 @@ function parseCsv(content: string) {
   return rows;
 }
 
-export function loadCatalog() {
+export async function loadCatalog(): Promise<CatalogEntry[]> {
   if (catalog) return catalog;
-  const p = path.join(process.cwd(), "public", "assets", "data", "anc_catalog.csv");
+
+  const isBrowser = typeof window !== "undefined";
+
+  if (isBrowser) {
+    try {
+      const response = await fetch("/assets/data/anc_catalog.csv");
+      const content = await response.text();
+      catalog = parseCsv(content);
+      return catalog;
+    } catch (e) {
+      console.error("Failed to fetch catalog in browser:", e);
+      return [];
+    }
+  }
+
+  // Server-side
   try {
+    const fs = require("fs");
+    const path = require("path");
+    const p = path.join(process.cwd(), "public", "assets", "data", "anc_catalog.csv");
     const c = fs.readFileSync(p, "utf-8");
     catalog = parseCsv(c);
     return catalog;
   } catch (e) {
-    console.error("Failed to load catalog:", e);
+    console.error("Failed to load catalog on server:", e);
     catalog = [];
     return catalog;
   }
 }
 
-export function findByProductId(id: string) {
-  const c = loadCatalog();
-  return c.find((r) => r.product_id === id || r.product_name === id || r.product_name?.toLowerCase() === id.toLowerCase()) || null;
+// Synchronous version for legacy support if needed (will be empty on first call in browser if not preloaded)
+export function loadCatalogSync() {
+  if (catalog) return catalog;
+
+  if (typeof window === "undefined") {
+    try {
+      const fs = require("fs");
+      const path = require("path");
+      const p = path.join(process.cwd(), "public", "assets", "data", "anc_catalog.csv");
+      const c = fs.readFileSync(p, "utf-8");
+      catalog = parseCsv(c);
+      return catalog;
+    } catch (e) {
+      return [];
+    }
+  }
+  return [];
 }
 
-export function searchByName(q: string) {
-  const c = loadCatalog();
+export function findByProductId(id: string): CatalogEntry | null {
+  const c = loadCatalogSync();
+  return c.find((r: CatalogEntry) => r.product_id === id || r.product_name === id || r.product_name?.toLowerCase() === id.toLowerCase()) || null;
+}
+
+export function searchByName(q: string): CatalogEntry[] {
+  const c = loadCatalogSync();
   const lower = q.toLowerCase();
   return c
-    .map((r) => ({ r, score: (r.product_name || "").toLowerCase().includes(lower) ? 0.95 : 0.0 }))
-    .filter((s) => s.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map((s) => s.r);
+    .map((r: CatalogEntry) => ({ r, score: (r.product_name || "").toLowerCase().includes(lower) ? 0.95 : 0.0 }))
+    .filter((s: { score: number }) => s.score > 0)
+    .sort((a: { score: number }, b: { score: number }) => b.score - a.score)
+    .map((s: { r: CatalogEntry }) => s.r);
 }

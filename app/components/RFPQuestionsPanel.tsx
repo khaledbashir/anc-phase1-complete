@@ -161,7 +161,6 @@ export function RFPQuestionsPanel() {
               style={{ width: `${progress}%` }}
             />
           </div>
-        </div>
           <span className="text-sm text-gray-500">{progress}%</span>
         </div>
       </div>

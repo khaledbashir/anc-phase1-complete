@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const proposalId = params.id;
+    const { id: proposalId } = await params;
 
     // Get all questions
     const allQuestions = await prisma.rfpQuestion.findMany({

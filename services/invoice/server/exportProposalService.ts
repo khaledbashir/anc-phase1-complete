@@ -6,14 +6,18 @@ import { AsyncParser } from "@json2csv/node";
 // XML2JS
 import { Builder } from "xml2js";
 
-// XLSX
+// XLSX (legacy - kept for fallback)
 import XLSX from "xlsx";
+
+// ExcelJS Formulaic Export
+import { generateFormulaicExcelBuffer, FormulaicExcelOptions } from "./exportFormulaicExcel";
 
 // Helpers
 import { flattenObject } from "@/lib/helpers";
 
 // Types
 import { ExportTypes } from "@/types";
+import { ScreenInput } from "@/lib/estimator";
 
 /**
  * Export an invoice in selected format.
@@ -59,31 +63,38 @@ export async function exportProposalService(req: NextRequest) {
                             "attachment; filename=invoice.xml",
                     },
                 });
-            // case ExportTypes.XLSX:
-            //     const flattenedData = flattenObject(body);
+            case ExportTypes.XLSX:
+                // Formulaic Excel Export - uses ExcelJS with live formulas
+                // Senior estimators can modify inputs and see recalculations
+                try {
+                    // Extract screens from proposal body
+                    const screens: ScreenInput[] = body.details?.screens || [];
 
-            //     // Create a new worksheet and add the data
-            //     const worksheet = XLSX.utils.json_to_sheet([flattenedData]);
-            //     const workbook = XLSX.utils.book_new();
-            //     XLSX.utils.book_append_sheet(
-            //         workbook,
-            //         worksheet,
-            //         "invoice-worksheet"
-            //     );
-            //     // Generate the XLSX file as a buffer
-            //     const buffer = XLSX.write(workbook, {
-            //         bookType: "xlsx",
-            //         type: "buffer",
-            //     });
+                    // Build options from proposal data
+                    const excelOptions: FormulaicExcelOptions = {
+                        proposalName: body.details?.proposalId || body.details?.invoiceNumber || 'Proposal',
+                        clientName: body.receiver?.name || 'Client',
+                        proposalDate: body.details?.invoiceDate || new Date().toLocaleDateString(),
+                        status: body.details?.status || 'DRAFT',
+                    };
 
-            //     return new NextResponse(buffer, {
-            //         headers: {
-            //             "Content-Type":
-            //                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            //             "Content-Disposition":
-            //                 "attachment; filename=invoice.xlsx",
-            //         },
-            //     });
+                    // Generate the formulaic Excel buffer
+                    const xlsxBuffer = await generateFormulaicExcelBuffer(screens, excelOptions);
+
+                    return new NextResponse(new Uint8Array(xlsxBuffer), {
+                        headers: {
+                            "Content-Type":
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            "Content-Disposition":
+                                `attachment; filename=ANC_Audit_${excelOptions.proposalName}.xlsx`,
+                        },
+                    });
+                } catch (xlsxError) {
+                    console.error("XLSX Export Error:", xlsxError);
+                    return new Response(`Error generating XLSX: ${xlsxError}`, {
+                        status: 500,
+                    });
+                }
         }
     } catch (error) {
         console.error(error);

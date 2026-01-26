@@ -37,7 +37,7 @@ const SingleScreen = ({
     moveFieldDown,
     removeField,
 }: SingleScreenProps) => {
-    const { control, setValue } = useFormContext();
+    const { control, setValue, register } = useFormContext();
     const { _t } = useTranslationContext();
 
     const screenName = useWatch({ name: `${name}[${index}].name`, control });
@@ -93,11 +93,35 @@ const SingleScreen = ({
 
                 <FormInput name={`${name}[${index}].quantity`} label={_t("form.steps.screens.quantity")} type="number" className="w-[8rem]" vertical />
 
-                <FormInput name={`${name}[${index}].pitchMm`} label={_t("form.steps.screens.pitch")} type="number" className="w-[10rem]" vertical />
+                <FormInput name={`${name}[${index}].pitchMm`} label={_t("form.steps.screens.pitch")} type="number" className="w-[8rem]" vertical />
 
-                <FormInput name={`${name}[${index}].costPerSqFt`} label={_t("form.steps.screens.costPerSqFt")} type="number" className="w-[10rem]" vertical />
+                <FormInput name={`${name}[${index}].costPerSqFt`} label={_t("form.steps.screens.costPerSqFt")} type="number" className="w-[8rem]" vertical />
 
-                <FormInput name={`${name}[${index}].desiredMargin`} label={_t("form.steps.screens.desiredMargin")} type="number" className="w-[10rem]" vertical />
+                <FormInput name={`${name}[${index}].desiredMargin`} label={_t("form.steps.screens.desiredMargin")} type="number" className="w-[8rem]" vertical />
+
+                <div className="flex flex-col gap-1">
+                    <Label>Service Type</Label>
+                    <select
+                        {...register(`${name}[${index}].serviceType`)}
+                        className="h-9 px-3 text-sm border border-input rounded-md bg-transparent w-[8rem]"
+                    >
+                        <option value="Front/Rear">Front/Rear</option>
+                        <option value="Top">Top (Ribbons)</option>
+                    </select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                    <Label>Form Factor</Label>
+                    <select
+                        {...register(`${name}[${index}].formFactor`)}
+                        className="h-9 px-3 text-sm border border-input rounded-md bg-transparent w-[8rem]"
+                    >
+                        <option value="Straight">Straight</option>
+                        <option value="Curved">Curved</option>
+                    </select>
+                </div>
+
+                <FormInput name={`${name}[${index}].outletDistance`} label="Outlet Distance (ft)" type="number" className="w-[10rem]" vertical />
 
                 <div className="flex gap-3 items-center">
                     <div>

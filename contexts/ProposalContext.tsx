@@ -42,30 +42,30 @@ const defaultProposalContext = {
   savedProposals: [] as ProposalType[],
   pdfUrl: null as string | null,
   activeTab: "client",
-  setActiveTab: (tab: string) => {},
-  onFormSubmit: (values: ProposalType) => {},
-  newProposal: () => {},
-  generatePdf: async (data: ProposalType) => {},
-  removeFinalPdf: () => {},
-  downloadPdf: () => {},
-  printPdf: () => {},
-  previewPdfInTab: () => {},
-  saveProposalData: () => {},
-  deleteProposalData: (index: number) => {},
+  setActiveTab: (tab: string) => { },
+  onFormSubmit: (values: ProposalType) => { },
+  newProposal: () => { },
+  generatePdf: async (data: ProposalType) => { },
+  removeFinalPdf: () => { },
+  downloadPdf: () => { },
+  printPdf: () => { },
+  previewPdfInTab: () => { },
+  saveProposalData: () => { },
+  deleteProposalData: (index: number) => { },
   // Backwards-compatible alias
-  deleteProposal: (index: number) => {},
+  deleteProposal: (index: number) => { },
   sendPdfToMail: (email: string): Promise<void> => Promise.resolve(),
-  exportProposalDataAs: (exportAs: ExportTypes) => {},
+  exportProposalDataAs: (exportAs: ExportTypes) => { },
   // Backwards-compatible alias
-  exportProposalAs: (exportAs: ExportTypes) => {},
+  exportProposalAs: (exportAs: ExportTypes) => { },
   exportAudit: () => Promise.resolve(),
-  importProposalData: (file: File) => {},
+  importProposalData: (file: File) => { },
   // Diagnostic functions
   diagnosticOpen: false,
   diagnosticPayload: null,
-  openDiagnostic: (payload: any) => {},
-  closeDiagnostic: () => {},
-  submitDiagnostic: (answers: any) => {},
+  openDiagnostic: (payload: any) => { },
+  closeDiagnostic: () => { },
+  submitDiagnostic: (answers: any) => { },
   lowMarginAlerts: [] as any[],
   // RFP functions
   rfpDocumentUrl: null as string | null,
@@ -73,7 +73,8 @@ const defaultProposalContext = {
   uploadRfpDocument: (file: File) => Promise.resolve(),
   answerRfpQuestion: (questionId: string, answer: string) => Promise.resolve(),
   // Command execution
-  applyCommand: (command: any) => {},
+  applyCommand: (command: any) => { },
+  proposal: null as any,
 };
 
 export const ProposalContext = createContext(defaultProposalContext);
@@ -141,7 +142,7 @@ export const ProposalContextProvider = ({
           LOCAL_STORAGE_INVOICE_DRAFT_KEY,
           JSON.stringify(value)
         );
-      } catch {}
+      } catch { }
     });
     return () => subscription.unsubscribe();
   }, [watch]);
@@ -178,7 +179,7 @@ export const ProposalContextProvider = ({
     if (typeof window !== "undefined") {
       try {
         window.localStorage.removeItem(LOCAL_STORAGE_INVOICE_DRAFT_KEY);
-      } catch {}
+      } catch { }
     }
 
     router.refresh();
@@ -528,11 +529,11 @@ export const ProposalContextProvider = ({
               const threshold = parseFloat(process.env.NATALIA_MARGIN_THRESHOLD || "0.2");
               const alerts: Array<{ name: string; marginPct: number }> = [];
               for (const s of internalAudit.perScreen) {
-                const marginAmount = s.breakdown.marginAmount;
-                const price = s.breakdown.totalPrice || 1;
-                const marginPct = price ? marginAmount / price : 0;
+                const ancMargin = s.breakdown.ancMargin;
+                const finalClientTotal = s.breakdown.finalClientTotal || 1;
+                const marginPct = finalClientTotal ? ancMargin / finalClientTotal : 0;
                 if (marginPct < threshold) {
-                  console.warn(`Low margin detected for screen ${s.name}: ${Number((marginPct*100).toFixed(2))}% (< ${(threshold*100)}%)`);
+                  console.warn(`Low margin detected for screen ${s.name}: ${Number((marginPct * 100).toFixed(2))}% (< ${(threshold * 100)}%)`);
                   alerts.push({ name: s.name, marginPct });
                 }
               }
@@ -540,7 +541,7 @@ export const ProposalContextProvider = ({
               if (alerts.length > 0) {
                 setLowMarginAlerts(alerts);
               }
-            } catch (e) {}
+            } catch (e) { }
 
 
 
@@ -736,8 +737,44 @@ export const ProposalContextProvider = ({
         submitDiagnostic,
         // Alerts
         lowMarginAlerts,
+        // RFP functions
+        rfpDocumentUrl,
+        rfpQuestions,
+        uploadRfpDocument: async (file: File) => {
+          const formData = new FormData();
+          formData.append("file", file);
+          if (getValues().details.proposalId) {
+            formData.append("proposalId", getValues().details.proposalId as string);
+          }
+          try {
+            const res = await fetch("/api/rfp/upload", { method: "POST", body: formData });
+            const data = await res.json();
+            if (data.ok) setRfpDocumentUrl(data.url);
+          } catch (e) {
+            console.error("RFP upload error", e);
+          }
+        },
+        answerRfpQuestion: async (questionId: string, answer: string) => {
+          const proposalId = getValues().details.proposalId;
+          try {
+            const res = await fetch("/api/rfp/answer", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ proposalId, questionId, answer }),
+            });
+            const data = await res.json();
+            if (data.ok) {
+              setRfpQuestions((prev) =>
+                prev.map((q) => (q.id === questionId ? { ...q, answer, answered: true } : q))
+              );
+            }
+          } catch (e) {
+            console.error("RFP answer error", e);
+          }
+        },
         // command execution
         applyCommand,
+        proposal: watch(),
       }}
     >
       {children}

@@ -91,14 +91,14 @@ export function extractRFPRequirements(rfpText: string): ParsedRFP {
   for (const match of locationMatches) {
     const locationNumber = match[1];
     const locationName = match[2].trim();
-    
+
     // Get the text following this location (until next location or section)
     const locationStartIndex = match.index!;
     const nextLocationMatch = rfpText.slice(locationStartIndex + match[0].length).match(/\(\d+\)\s+/);
-    const locationEndIndex = nextLocationMatch 
+    const locationEndIndex = nextLocationMatch
       ? locationStartIndex + match[0].length + nextLocationMatch.index!
       : rfpText.length;
-    
+
     const locationText = rfpText.slice(locationStartIndex, locationEndIndex);
 
     // Extract requirements for this location
@@ -130,12 +130,31 @@ function parseLocationRequirements(locationName: string, locationText: string): 
   const location: RFPDisplayLocation = {
     locationName,
     quantity: 1,
+    technicalRequirements: {
+      minimumNits: null,
+      minimumRefreshRate: null,
+      viewingAngleHorizontal: null,
+      viewingAngleVertical: null,
+      ipRating: null,
+      colorTemperature: {
+        min: null,
+        max: null,
+        uniformityKelvin: null,
+        uniformityPercent: null,
+      },
+      ledLifetime: null,
+    },
+    structural: {
+      transparentDisplayRequired: false,
+      useExistingInfrastructure: null,
+      currentWeight: null,
+    },
   };
 
   // Extract dimensions - patterns like "280.31' x 9.45'" or "90' x 18'"
   const dimensionPattern = /(\d+(?:\.\d+)?)'\s*[x×]\s*(\d+(?:\.\d+)?)'/gi;
   const dimensionMatches = [...locationText.matchAll(dimensionPattern)];
-  
+
   if (dimensionMatches.length > 0) {
     const firstMatch = dimensionMatches[0];
     location.dimensions = {
@@ -158,63 +177,45 @@ function parseLocationRequirements(locationName: string, locationText: string): 
 
   // Extract minimum nits
   const nitsMatch = locationText.match(/Minimum Nits\s*[\r\n\s]*[:=]\s*(\d+)/i);
-  if (nitsMatch) {
-    location.technicalRequirements = {
-      ...location.technicalRequirements,
-      minimumNits: parseInt(nitsMatch[1]),
-    };
+  if (nitsMatch && location.technicalRequirements) {
+    location.technicalRequirements.minimumNits = parseInt(nitsMatch[1]);
   }
 
   // Extract refresh rate
   const refreshMatch = locationText.match(/Minimum Refresh Rate\s*[:>\s]*([\d,]+)\s*Hz/i);
-  if (refreshMatch) {
-    location.technicalRequirements = {
-      ...location.technicalRequirements,
-      minimumRefreshRate: parseInt(refreshMatch[1].replace(/,/g, '')),
-    };
+  if (refreshMatch && location.technicalRequirements) {
+    location.technicalRequirements.minimumRefreshRate = parseInt(refreshMatch[1].replace(/,/g, ''));
   }
 
   // Extract viewing angles
   const angleMatch = locationText.match(/(?:Horizontal|Vertical)\s*Angle\s*:?\s*(\d+)°/gi);
-  if (angleMatch) {
-    location.technicalRequirements = {
-      ...location.technicalRequirements,
-      viewingAngleHorizontal: 140, // Default from RFP
-      viewingAngleVertical: 140,
-    };
+  if (angleMatch && location.technicalRequirements) {
+    location.technicalRequirements.viewingAngleHorizontal = 140; // Default from RFP
+    location.technicalRequirements.viewingAngleVertical = 140;
   }
 
   // Extract IP rating
   const ipMatch = locationText.match(/Preferred IP Rating\s*:?\s*(\d+)/i);
-  if (ipMatch) {
-    location.technicalRequirements = {
-      ...location.technicalRequirements,
-      ipRating: ipMatch[1],
-    };
+  if (ipMatch && location.technicalRequirements) {
+    location.technicalRequirements.ipRating = ipMatch[1];
   }
 
   // Extract color temperature
   const colorTempMatch = locationText.match(/Color Temperature\s*:?\s*(\d+[,-]\d+)º?\s*Kelvin/i);
-  if (colorTempMatch) {
+  if (colorTempMatch && location.technicalRequirements) {
     const [min, max] = colorTempMatch[1].split(/[-,]/).map(v => parseInt(v.trim()));
-    location.technicalRequirements = {
-      ...location.technicalRequirements,
-      colorTemperature: {
-        min: min || null,
-        max: max || null,
-        uniformityKelvin: 250,
-        uniformityPercent: 8,
-      },
+    location.technicalRequirements.colorTemperature = {
+      min: min || null,
+      max: max || null,
+      uniformityKelvin: 250,
+      uniformityPercent: 8,
     };
   }
 
   // Extract LED lifetime
   const lifetimeMatch = locationText.match(/Minimum LED Lifetime\s*:?\s*(\d+,\d+)\s*Hours/i);
-  if (lifetimeMatch) {
-    location.technicalRequirements = {
-      ...location.technicalRequirements,
-      ledLifetime: parseInt(lifetimeMatch[1].replace(/,/g, '')),
-    };
+  if (lifetimeMatch && location.technicalRequirements) {
+    location.technicalRequirements.ledLifetime = parseInt(lifetimeMatch[1].replace(/,/g, ''));
   }
 
   // Extract service requirements
@@ -230,23 +231,16 @@ function parseLocationRequirements(locationName: string, locationText: string): 
   location.specialNotes = [];
   if (locationText.toLowerCase().includes('transparent')) {
     location.specialNotes.push('Transparent display required');
-    location.structural = {
-      transparentDisplayRequired: true,
-    };
-  } else {
-    location.structural = {
-      transparentDisplayRequired: false,
-    };
+    if (location.structural) {
+      location.structural.transparentDisplayRequired = true;
+    }
   }
 
   // Extract weight information
   const weightMatch = locationText.match(/Current Weight\s*:?\s*(\d+,\d+)\s*lbs/i);
-  if (weightMatch) {
-    location.structural = {
-      ...location.structural,
-      currentWeight: parseInt(weightMatch[1].replace(/,/g, '')),
-      useExistingInfrastructure: true,
-    };
+  if (weightMatch && location.structural) {
+    location.structural.currentWeight = parseInt(weightMatch[1].replace(/,/g, ''));
+    location.structural.useExistingInfrastructure = true;
   }
 
   // Extract electrical requirements
@@ -304,7 +298,7 @@ function extractLocationsAlternative(rfpText: string): RFPDisplayLocation[] {
       const contextStart = Math.max(0, match.index! - 200);
       const contextEnd = match.index!;
       const context = rfpText.slice(contextStart, contextEnd);
-      
+
       // Extract potential location name (last few words before dimension)
       const potentialNameMatch = context.match(/([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)/g);
       const locationName = potentialNameMatch?.slice(-1)[0] || `Location ${index + 1}`;

@@ -54,6 +54,9 @@ export async function POST(request: NextRequest) {
       pitchMm: (s.pixelPitch ?? s.pitchMm) ?? undefined,
       costPerSqFt: s.costPerSqFt,
       desiredMargin: s.desiredMargin,
+      serviceType: s.serviceType,
+      formFactor: s.formFactor,
+      outletDistance: s.outletDistance,
     }));
 
     // Run deterministic audit for all screens (includes client summary + internal audit)
@@ -77,10 +80,20 @@ export async function POST(request: NextRequest) {
               const li = screenAudit.breakdown;
               const lineItemsData = [
                 { category: "Hardware", cost: String(li.hardware), margin: String(desiredMargin), price: String(roundToCents(li.hardware * (1 + desiredMargin))) },
+                { category: "Structure", cost: String(li.structure), margin: String(desiredMargin), price: String(roundToCents(li.structure * (1 + desiredMargin))) },
+                { category: "Install", cost: String(li.install), margin: String(desiredMargin), price: String(roundToCents(li.install * (1 + desiredMargin))) },
+                { category: "Power", cost: String(li.power), margin: String(desiredMargin), price: String(roundToCents(li.power * (1 + desiredMargin))) },
                 { category: "Shipping", cost: String(li.shipping), margin: String(desiredMargin), price: String(roundToCents(li.shipping * (1 + desiredMargin))) },
                 { category: "Labor", cost: String(li.labor), margin: String(desiredMargin), price: String(roundToCents(li.labor * (1 + desiredMargin))) },
                 { category: "PM", cost: String(li.pm), margin: String(desiredMargin), price: String(roundToCents(li.pm * (1 + desiredMargin))) },
-                { category: "Bond", cost: String(li.bond), margin: String(0), price: String(li.bond) },
+                { category: "General Conditions", cost: String(li.generalConditions), margin: String(desiredMargin), price: String(roundToCents(li.generalConditions * (1 + desiredMargin))) },
+                { category: "Travel", cost: String(li.travel), margin: String(desiredMargin), price: String(roundToCents(li.travel * (1 + desiredMargin))) },
+                { category: "Submittals", cost: String(li.submittals), margin: String(desiredMargin), price: String(roundToCents(li.submittals * (1 + desiredMargin))) },
+                { category: "Engineering", cost: String(li.engineering), margin: String(desiredMargin), price: String(roundToCents(li.engineering * (1 + desiredMargin))) },
+                { category: "Permits", cost: String(li.permits), margin: String(desiredMargin), price: String(roundToCents(li.permits * (1 + desiredMargin))) },
+                { category: "CMS", cost: String(li.cms), margin: String(desiredMargin), price: String(roundToCents(li.cms * (1 + desiredMargin))) },
+                { category: "Bond", cost: String(li.bondCost), margin: String(0), price: String(li.bondCost) },
+                { category: "ANC Margin", cost: String(0), margin: String(0), price: String(li.ancMargin) },
               ];
 
               return {

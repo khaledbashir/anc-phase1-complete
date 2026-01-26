@@ -91,10 +91,10 @@ export async function POST(req: NextRequest) {
         b.engineering,
         b.permits,
         b.cms,
-        b.bond,
-        b.marginAmount,
+        b.bondCost,
+        b.ancMargin,
         b.totalCost,
-        b.totalPrice,
+        b.finalClientTotal,
       ]);
     }
 

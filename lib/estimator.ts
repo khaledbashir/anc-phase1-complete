@@ -106,6 +106,9 @@ export type ScreenInput = {
   pitchMm?: number; // pixel pitch in mm
   costPerSqFt?: number; // override cost per sqft
   desiredMargin?: number; // e.g., 0.25 for 25%
+  serviceType?: string; // "Top" (Ribbons) or "Front/Rear" (Scoreboards)
+  formFactor?: string; // "Straight" or "Curved"
+  outletDistance?: number; // Distance from nearest outlet in feet
 };
 
 export type LineItemBreakdown = {
@@ -138,12 +141,19 @@ export type ANCProjectResult = {
   };
 };
 
+/**
+ * Screen Audit type (updated for ANC Master Logic)
+ * - Includes pixelMatrix and serviceType at screen level
+ * - Breakdown includes new margin-on-sell fields
+ */
 export type ScreenAudit = {
   name: string;
   productType: string;
   quantity: number;
   areaSqFt: number;
   pixelResolution: number;
+  pixelMatrix?: string; // e.g., "1920 x 1080 @ 4mm"
+  serviceType?: string; // "Top" or "Front/Rear"
   breakdown: {
     hardware: number; // Display cost / LED
     structure: number;
@@ -158,10 +168,13 @@ export type ScreenAudit = {
     engineering: number;
     permits: number;
     cms: number;
-    bond: number;
-    marginAmount: number;
-    totalCost: number; // sum of costs before margin
-    totalPrice: number; // after margin + bond
+    ancMargin: number; // Sell Price - Total Cost
+    sellPrice: number; // Total Cost / (1 - margin)
+    bondCost: number; // Sell Price * 1.5%
+    marginAmount: number; // Alias for ancMargin (backwards compatibility)
+    totalCost: number; // Sum of all costs EXCLUDING bond
+    finalClientTotal: number; // Sell Price + Bond Cost
+    sellingPricePerSqFt: number; // Final Client Total / Sq Ft
   };
 };
 
@@ -181,10 +194,13 @@ export type InternalAudit = {
     engineering: number;
     permits: number;
     cms: number;
-    bond: number;
-    margin: number;
-    totalCost: number;
-    totalPrice: number;
+    ancMargin: number; // ANC profit from screen audits
+    sellPrice: number; // Sell price before bond
+    bondCost: number; // Sell Price * 1.5%
+    margin: number;   // Alias for ancMargin
+    totalCost: number; // Sum of screen costs
+    finalClientTotal: number; // Total with Bond
+    sellingPricePerSqFt: number; // Weighted average
   };
 };
 
@@ -211,6 +227,16 @@ export type ClientSummary = {
  * - General Conditions / Travel / Submittals / Engineering / CMS: pct of hardware (defaults configurable)
  * - Permits: fixed fee (default $500)
  */
+/**
+ * ANC MASTER EXCEL LOGIC IMPLEMENTATION
+ * ========================================
+ * Calculates screen pricing using:
+ * - VLOOKUP pricing from catalog by pixel pitch
+ * - Service type branch (Top=10%, Front/Rear=20%)
+ * - Outlet distance surcharge (>50ft adds $2,500)
+ * - Curved screen multipliers (Structure×1.25, Labor×1.15)
+ * - Margin-on-Sell model: Total Cost → Sell Price → Bond → Final
+ */
 export function calculatePerScreenAudit(
   s: ScreenInput,
   options?: {
@@ -232,16 +258,21 @@ export function calculatePerScreenAudit(
     bondPct?: number;
   }
 ): ScreenAudit {
+  // Load catalog for VLOOKUP
+  const { loadCatalogSync } = require('./catalog');
+  const catalog = loadCatalogSync();
+
+  // Defaults
   const DEFAULT_COST_PER_SQFT = options?.defaultCostPerSqFt ?? 120;
   const DEFAULT_PITCH_MM = options?.defaultPitchMm ?? 10;
   const DEFAULT_MARGIN = options?.defaultDesiredMargin ?? 0.25;
+  const DEFAULT_SERVICE_TYPE = "Front/Rear"; // Scoreboards default
 
   const INSTALL_FLAT = options?.installFlatFee ?? 5000;
-  const STRUCTURE_PCT = options?.structurePct ?? 0.2;
   const LABOR_PCT = options?.laborPct ?? 0.15;
   const POWER_PCT = options?.powerPct ?? 0.15;
-  const SHIPPING_PER_SQFT = options?.shippingPerSqFt ?? 0.14; // preserved from legacy logic
-  const PM_PER_SQFT = options?.pmPerSqFt ?? 0.5; // preserved
+  const SHIPPING_PER_SQFT = options?.shippingPerSqFt ?? 0.14;
+  const PM_PER_SQFT = options?.pmPerSqFt ?? 0.5;
   const GENERAL_CONDITIONS_PCT = options?.generalConditionsPct ?? 0.03;
   const TRAVEL_PCT = options?.travelPct ?? 0.01;
   const SUBMITTALS_PCT = options?.submittalsPct ?? 0.01;
@@ -252,22 +283,44 @@ export function calculatePerScreenAudit(
 
   const qty = s.quantity ?? 1;
   const pitch = s.pitchMm ?? DEFAULT_PITCH_MM;
-  const costPerSqFt = s.costPerSqFt ?? DEFAULT_COST_PER_SQFT;
+  const serviceType = s.serviceType ?? DEFAULT_SERVICE_TYPE;
+  const formFactor = s.formFactor ?? "Straight";
+  const outletDistance = s.outletDistance ?? 0;
   const desiredMargin = s.desiredMargin ?? DEFAULT_MARGIN;
 
-  const area = s.heightFt * s.widthFt; // square feet per screen
+  // VLOOKUP: Find matching product by pixel pitch in catalog
+  const catalogEntry = catalog?.find(
+    (entry: any) => Math.abs(entry.pixel_pitch - pitch) < 0.1
+  ) ?? { cost_per_sqft: DEFAULT_COST_PER_SQFT, service_type: DEFAULT_SERVICE_TYPE };
+
+  const costPerSqFt = s.costPerSqFt ?? catalogEntry.cost_per_sqft ?? DEFAULT_COST_PER_SQFT;
+
+  // Service Type Branch: Top (Ribbons) = 10%, Front/Rear (Scoreboards) = 20%
+  const STRUCTURE_PCT = serviceType.toLowerCase() === "top" ? 0.10 : 0.20;
+
+  const area = s.heightFt * s.widthFt;
   const areaTotal = area * qty;
 
-  // pixels
-  const pitchFeet = pitch / 304.8;
-  const pixelsHeight = s.heightFt / pitchFeet;
-  const pixelsWidth = s.widthFt / pitchFeet;
-  const pixelResolution = Math.round(pixelsHeight * pixelsWidth);
+  // Pixel Matrix Math: (H_mm / Pitch) × (W_mm / Pitch)
+  const heightMm = s.heightFt * 304.8; // Convert feet to mm
+  const widthMm = s.widthFt * 304.8;
+  const pitchMeters = pitch / 1000;
+  const pixelsH = Math.round(heightMm / pitch);
+  const pixelsW = Math.round(widthMm / pitch);
+  const pixelResolution = pixelsH * pixelsW;
+  const pixelMatrix = `${pixelsH} x ${pixelsW} @ ${pitch}mm`;
 
+  // Base cost calculations
   const hardware = roundToCents(areaTotal * costPerSqFt);
-  const structure = roundToCents(hardware * STRUCTURE_PCT);
-  const install = roundToCents(INSTALL_FLAT);
-  const labor = roundToCents(hardware * LABOR_PCT);
+
+  // Curved Screen Multipliers
+  const isCurved = formFactor.toLowerCase() === "curved";
+  const structureMultiplier = isCurved ? 1.25 : 1.0;
+  const laborMultiplier = isCurved ? 1.15 : 1.0;
+
+  const structure = roundToCents(hardware * STRUCTURE_PCT * structureMultiplier);
+  const install = roundToCents(INSTALL_FLAT * laborMultiplier);
+  const labor = roundToCents(hardware * LABOR_PCT * laborMultiplier);
   const power = roundToCents(hardware * POWER_PCT);
   const shipping = roundToCents(areaTotal * SHIPPING_PER_SQFT);
   const pm = roundToCents(areaTotal * PM_PER_SQFT);
@@ -278,27 +331,42 @@ export function calculatePerScreenAudit(
   const permits = roundToCents(PERMITS_FIXED);
   const cms = roundToCents(hardware * CMS_PCT);
 
+  // Outlet Distance Surcharge: If > 50ft, add $2,500 to Power
+  const outletSurcharge = outletDistance > 50 ? 2500 : 0;
+  const adjustedPower = roundToCents(power + outletSurcharge);
+
+  // Total Cost (C): Sum of all line items EXCLUDING Bond
   const totalCost = roundToCents(
     hardware +
-      structure +
-      install +
-      labor +
-      power +
-      shipping +
-      pm +
-      generalConditions +
-      travel +
-      submittals +
-      engineering +
-      permits +
-      cms
+    structure +
+    install +
+    labor +
+    adjustedPower +
+    shipping +
+    pm +
+    generalConditions +
+    travel +
+    submittals +
+    engineering +
+    permits +
+    cms
   );
 
-  const marginAmount = roundToCents((totalCost / (1 - desiredMargin)) - totalCost);
+  // Sell Price (P): Total Cost / (1 - DesiredMargin)
+  // Example: Cost $1,000, Margin 10% → Price $1,111.11
+  const sellPrice = roundToCents(totalCost / (1 - desiredMargin));
 
-  const totalPriceBeforeBond = roundToCents(totalCost + marginAmount);
-  const bond = roundToCents(totalPriceBeforeBond * BOND_PCT);
-  const totalPrice = roundToCents(totalPriceBeforeBond + bond);
+  // ANC Margin (Profit): Sell Price - Total Cost
+  const ancMargin = roundToCents(sellPrice - totalCost);
+
+  // Bond Cost: Sell Price * 0.015 (1.5% flat rate)
+  const bondCost = roundToCents(sellPrice * BOND_PCT);
+
+  // Final Client Total: Sell Price + Bond Cost
+  const finalClientTotal = roundToCents(sellPrice + bondCost);
+
+  // Selling SqFt: Final Client Total / Total Sq Ft
+  const sellingPricePerSqFt = roundToCents(finalClientTotal / areaTotal);
 
   return {
     name: s.name,
@@ -306,12 +374,14 @@ export function calculatePerScreenAudit(
     quantity: qty,
     areaSqFt: roundToCents(areaTotal),
     pixelResolution,
+    pixelMatrix,
+    serviceType,
     breakdown: {
       hardware,
       structure,
       install,
       labor,
-      power,
+      power: adjustedPower,
       shipping,
       pm,
       generalConditions,
@@ -320,10 +390,13 @@ export function calculatePerScreenAudit(
       engineering,
       permits,
       cms,
-      bond,
-      marginAmount,
       totalCost,
-      totalPrice,
+      ancMargin,
+      sellPrice,
+      bondCost,
+      finalClientTotal,
+      sellingPricePerSqFt,
+      marginAmount: ancMargin, // Alias for backwards compatibility
     },
   };
 }
@@ -347,10 +420,10 @@ export function calculateANCProject(
     shipping: ps.breakdown.shipping,
     labor: ps.breakdown.labor,
     pm: ps.breakdown.pm,
-    bond: ps.breakdown.bond,
-    marginAmount: ps.breakdown.marginAmount,
+    bond: ps.breakdown.bondCost, // Corrected: only one bond field
+    marginAmount: ps.breakdown.ancMargin,
     totalCost: ps.breakdown.totalCost,
-    totalPrice: ps.breakdown.totalPrice,
+    totalPrice: ps.breakdown.finalClientTotal, // Corrected: only one totalPrice field
   }));
 
   const totals = {
@@ -406,11 +479,14 @@ export function calculateProposalAudit(
     engineering: 0,
     permits: 0,
     cms: 0,
-    bond: 0,
+    ancMargin: 0,
+    sellPrice: 0,
+    bondCost: 0,
     margin: 0,
     totalCost: 0,
-    totalPrice: 0,
-  } as InternalAudit['totals'];
+    finalClientTotal: 0,
+    sellingPricePerSqFt: 0,
+  };
 
   for (const ps of perScreen) {
     const b = ps.breakdown;
@@ -427,14 +503,27 @@ export function calculateProposalAudit(
     totals.engineering += b.engineering;
     totals.permits += b.permits;
     totals.cms += b.cms;
-    totals.bond += b.bond;
-    totals.margin += b.marginAmount;
+    totals.ancMargin += b.ancMargin;
+    totals.sellPrice += b.sellPrice;
+    totals.bondCost += b.bondCost;
     totals.totalCost += b.totalCost;
-    totals.totalPrice += b.totalPrice;
+    totals.finalClientTotal += b.finalClientTotal;
+    totals.sellingPricePerSqFt += b.sellingPricePerSqFt * ps.areaSqFt; // Weighted average later
+    totals.margin += b.ancMargin;
   }
 
   for (const k of Object.keys(totals) as Array<keyof typeof totals>) {
     totals[k] = roundToCents(totals[k]);
+  }
+
+  for (const k of Object.keys(totals) as Array<keyof typeof totals>) {
+    if (k === 'sellingPricePerSqFt') {
+      // Compute weighted average: divide accumulated weighted sum by total sqft
+      const totalSqFt = totals.totalCost > 0 ? perScreen.reduce((sum, ps) => sum + ps.areaSqFt, 0) : 1;
+      totals[k] = roundToCents(totals[k] / totalSqFt);
+    } else {
+      totals[k] = roundToCents(totals[k]);
+    }
   }
 
   const internalAudit: InternalAudit = {
@@ -443,7 +532,7 @@ export function calculateProposalAudit(
   };
 
   // Apply project tax (flat 9.5%) to the subtotal to compute grand total
-  const subtotal = roundToCents(totals.totalPrice);
+  const subtotal = roundToCents(totals.finalClientTotal);
   const taxAmount = roundToCents(subtotal * 0.095);
   const grandTotal = roundToCents(subtotal + taxAmount);
 
@@ -561,7 +650,7 @@ export function calculateExcelPricing(
     const quantity = screen.quantity ?? 1;
     const sqFt = screen.widthFeet * screen.heightFeet;
     const totalSqFt = sqFt * quantity;
-    
+
     // Calculate pixel dimensions
     const pitchFeet = screen.pitchMm / 304.8;
     const heightPixels = Math.round(screen.heightFeet / pitchFeet);
@@ -728,13 +817,14 @@ export function exportExcelPricingToCSV(pricing: ExcelPricingSheet): string {
     pricing.totals.totalAncMargin.toFixed(2),
     pricing.totals.totalBond.toFixed(2),
     pricing.totals.grandTotal.toFixed(2),
-    pricing.totals.grandTotal.toFixed(2) / pricing.totals.totalSqFt,
+    (pricing.totals.totalSqFt > 0 ? (pricing.totals.grandTotal / pricing.totals.totalSqFt).toFixed(2) : '0.00'),
     '',
   ]);
 
   return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
 }
 
-function roundToCents(value: number) {
+function roundToCents(value: any) {
+  if (typeof value !== 'number') return 0;
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }

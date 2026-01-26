@@ -17,8 +17,8 @@ export async function POST(req: NextRequest) {
     const systemPrompt = `You are the ANC Engine Controller. You have tools to modify the proposal. When the user asks for something, output a JSON object with the action. Available Actions: - { type: 'ADD_SCREEN', payload: { name, width, height, pitch, productType, quantity } } - { type: 'UPDATE_CLIENT', payload: { name, address } } - { type: 'SET_MARGIN', payload: { value } } If no action is needed, reply with plain text. When returning an action, output only the JSON object and nothing else.
 
 Proactive Recommendations: When you detect specific specs from an RFP or document, proactively suggest products from the ANC Catalog. For example: "I have detected 10mm pitch in the RFP. Based on our ANC Catalog, I recommend LG GPPA062 for this environment. Shall I proceed with the 20% structural math?"`;
-    // checkGaps: Analyze document and detect missing required fields for ADD_SCREEN action
-    const checkGaps = (docText: string | null | undefined) => {
+    // validateDocumentGaps: Analyze document and detect missing required fields for ADD_SCREEN action
+    const validateDocumentGaps = (docText: string | null | undefined) => {
       if (!docText) return { hasGaps: false, missingFields: [] };
 
       const missingFields: string[] = [];
@@ -29,7 +29,7 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
       if (!pitchMatch) missingFields.push('pitch');
 
       // Check for dimensions
-      const dimensionMatch = docLower.match(/(\d+[\s']?\s*[x×]\s*\d+[\s']?|height\s*:.*width|active\s*display/i);
+      const dimensionMatch = docLower.match(/\d+[\s']?\s*[x×]\s*\d+[\s']?|height\s*:.*width|active\s*display/i);
       if (!dimensionMatch) missingFields.push('dimensions');
 
       // Check for environment
@@ -76,7 +76,7 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
         }
       }
       // Use thread endpoint if threadSlug available, else fallback to simple chat
-      const endpoint = effectiveThreadSlug 
+      const endpoint = effectiveThreadSlug
         ? `${ANYTHING_LLM_BASE_URL}/workspace/${wsSlug}/thread/${effectiveThreadSlug}/chat`
         : `${ANYTHING_LLM_BASE_URL}/workspace/${wsSlug}/chat`;
       const r = await fetch(endpoint, {
@@ -131,11 +131,11 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
         { key: 'serviceType', label: 'Service Type (Front/Back)' },
         { key: 'productType', label: 'Product Type' },
       ];
-      
+
       const missingFields = requiredFields
         .filter(field => !detectedSpecs[field.key])
         .map(field => field.label);
-      
+
       // RFP compliance check (if RFP requirements provided)
       let rfpCompliance = undefined;
       if (rfpRequirements) {
@@ -177,7 +177,7 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
         if (rfpRequirements.serviceRequirements?.accessMethod && detectedSpecs.serviceType) {
           const requiredAccess = rfpRequirements.serviceRequirements.accessMethod.toLowerCase();
           const productAccess = detectedSpecs.serviceType.toLowerCase();
-          
+
           if (requiredAccess.includes('front') && productAccess.includes('rear')) {
             rfpGaps.push('RFP requires front serviceable display but product is rear serviceable');
           }
@@ -193,7 +193,7 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
           missingFields.push(...rfpGaps);
         }
       }
-      
+
       return { hasGaps: missingFields.length > 0, missingFields, rfpCompliance };
     };
 
@@ -245,9 +245,9 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
               isCurvy: product.is_curvy !== undefined ? true : false,
               serviceType: product.service_type ? true : false,
               productType: product.product_name ? true : false,
-              brightnessNits: product.brightness_nits,
-              ipRating: product.ip_rating,
-              isTransparent: product.transparent || false,
+              brightnessNits: product.max_nits, // Corrected field name
+              ipRating: (product as any).ip_rating, // Optional field might not exist
+              isTransparent: (product as any).transparent || false,
             };
 
             // Try to fetch RFP requirements from workspace if available
@@ -259,11 +259,11 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
               if (docsRes.ok) {
                 const docsData = await docsRes.json();
                 // Look for recent RFP documents
-                const rfpDocs = docsData.documents?.filter((d: any) => 
-                  d.title?.toLowerCase().includes('rfp') || 
+                const rfpDocs = docsData.documents?.filter((d: any) =>
+                  d.title?.toLowerCase().includes('rfp') ||
                   d.title?.toLowerCase().includes('requirements')
                 ) || [];
-                
+
                 if (rfpDocs.length > 0) {
                   // Get the most recent RFP document
                   const rfpDoc = rfpDocs[0];
@@ -281,7 +281,7 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
             if (gapAnalysis.hasGaps) {
               // Prohibited from completing ADD_SCREEN - must prompt user via DiagnosticOverlay
               const message = `I recommend ${product.product_name} but need to confirm: ${gapAnalysis.missingFields.join(', ')}`;
-              
+
               // Enhanced response with RFP compliance details
               const payload: any = {
                 missingFields: gapAnalysis.missingFields,
@@ -297,15 +297,15 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
                 }
               }
 
-              return NextResponse.json({ 
-                ok: true, 
-                data: { 
-                  type: "action", 
-                  action: { 
-                    type: "INCOMPLETE_SPECS", 
+              return NextResponse.json({
+                ok: true,
+                data: {
+                  type: "action",
+                  action: {
+                    type: "INCOMPLETE_SPECS",
                     payload,
-                  } 
-                } 
+                  }
+                }
               }, { status: 200 });
             }
 
@@ -338,7 +338,7 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
                   margins.push(m);
                 }
               }
-              const avgMargin = margins.length ? margins.reduce((a,b)=>a+b,0)/margins.length : null;
+              const avgMargin = margins.length ? margins.reduce((a, b) => a + b, 0) / margins.length : null;
 
               // Return action and contextual sql report
               return NextResponse.json({ ok: true, data: { type: "action", action: { type: "ADD_SCREEN", payload, meta: { avgMargin } } } }, { status: 200 });

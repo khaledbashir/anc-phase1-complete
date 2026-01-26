@@ -25,34 +25,46 @@ export default function AuditTable() {
         <thead>
           <tr>
             <th className="px-3 py-2">Screen</th>
+            <th className="px-3 py-2">Service</th>
             <th className="px-3 py-2">Qty</th>
             <th className="px-3 py-2">Area (sqft)</th>
+            <th className="px-3 py-2">Pixel Matrix</th>
             <th className="px-3 py-2">Hardware</th>
-            <th className="px-3 py-2">Structure (20%)</th>
+            <th className="px-3 py-2">Structure</th>
             <th className="px-3 py-2">Install</th>
-            <th className="px-3 py-2">Labor (15%)</th>
+            <th className="px-3 py-2">Labor</th>
+            <th className="px-3 py-2">Power</th>
             <th className="px-3 py-2">Shipping</th>
             <th className="px-3 py-2">PM</th>
-            <th className="px-3 py-2">Bond</th>
             <th className="px-3 py-2">Total Cost</th>
-            <th className="px-3 py-2">Total Price</th>
+            <th className="px-3 py-2">ANC Margin</th>
+            <th className="px-3 py-2">Sell Price</th>
+            <th className="px-3 py-2">Bond</th>
+            <th className="px-3 py-2">Final Total</th>
+            <th className="px-3 py-2">$/SqFt</th>
           </tr>
         </thead>
         <tbody>
           {audit.perScreen.map((s: any, idx: number) => (
             <tr key={idx} className="border-t border-zinc-800">
               <td className="px-3 py-2">{s.name}</td>
+              <td className="px-3 py-2">{s.serviceType || '-'}</td>
               <td className="px-3 py-2">{s.quantity}</td>
               <td className="px-3 py-2">{s.areaSqFt}</td>
+              <td className="px-3 py-2">{s.pixelMatrix || s.pixelResolution}</td>
               <td className="px-3 py-2">{s.breakdown.hardware}</td>
               <td className="px-3 py-2">{s.breakdown.structure}</td>
               <td className="px-3 py-2">{s.breakdown.install}</td>
               <td className="px-3 py-2">{s.breakdown.labor}</td>
+              <td className="px-3 py-2">{s.breakdown.power}</td>
               <td className="px-3 py-2">{s.breakdown.shipping}</td>
               <td className="px-3 py-2">{s.breakdown.pm}</td>
-              <td className="px-3 py-2">{s.breakdown.bond}</td>
               <td className="px-3 py-2">{s.breakdown.totalCost}</td>
-              <td className="px-3 py-2">{s.breakdown.totalPrice}</td>
+              <td className="px-3 py-2">{s.breakdown.ancMargin}</td>
+              <td className="px-3 py-2">{s.breakdown.sellPrice}</td>
+              <td className="px-3 py-2">{s.breakdown.bondCost}</td>
+              <td className="px-3 py-2">{s.breakdown.finalClientTotal}</td>
+              <td className="px-3 py-2">{s.breakdown.sellingPricePerSqFt}</td>
             </tr>
           ))}
         </tbody>

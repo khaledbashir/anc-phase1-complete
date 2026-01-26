@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
         const margins: number[] = [];
         for (const p of proposals) {
           const ia = (p as any).internalAudit as any;
-          if (ia && ia.totals && typeof ia.totals.margin === "number" && ia.totals.totalPrice) {
-            margins.push(ia.totals.margin / (ia.totals.totalPrice || 1));
+          if (ia && ia.totals && typeof ia.totals.margin === "number" && ia.totals.finalClientTotal) {
+            margins.push(ia.totals.margin / (ia.totals.finalClientTotal || 1));
           }
         }
         const avg = margins.length ? margins.reduce((a, b) => a + b, 0) / margins.length : null;

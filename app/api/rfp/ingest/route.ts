@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
     // Step 1: Parse RFP to extract requirements
     const parsedRFP = extractRFPRequirements(rfpText);
-    
+
     // Override client name if provided
     if (clientName) {
       parsedRFP.clientName = clientName;
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
 
     // Step 3: Upload to AnythingLLM
     const workspaceSlug = workspace || process.env.ANYTHING_LLM_WORKSPACE;
-    
+
     // First, upload the document as raw text
     const uploadRes = await fetch(
       `${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/document/raw-text`,
@@ -99,20 +99,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 5: Validate against ANC catalog products
-    const { searchProducts } = await import("@/lib/catalog");
+    const { searchByName } = await import("@/lib/catalog");
     const validationResults = [];
 
     for (const location of parsedRFP.locations) {
       // Search for products matching this location's requirements
       const searchQuery = [
+        location.locationName,
         location.pitchRequirement?.preferred || '',
         location.technicalRequirements?.minimumNits ? `${location.technicalRequirements.minimumNits} nits` : '',
-        location.serviceRequirements?.accessMethod || '',
-        location.structural?.transparentDisplayRequired ? 'transparent' : '',
       ].filter(Boolean).join(' ');
 
-      const products = searchProducts ? await searchProducts(searchQuery) : [];
-      
+      const products = searchByName ? searchByName(searchQuery) : [];
+
       const locationValidation = {
         location: location.locationName,
         requirements: location,
@@ -147,7 +146,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error('RFP ingestion error:', error);
     return NextResponse.json(
-      { 
+      {
         error: error.message || 'Failed to ingest RFP',
         details: error.stack,
       },

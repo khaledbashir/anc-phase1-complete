@@ -4,7 +4,7 @@ import { syncDocumentsToAnythingLLM } from "@/lib/rag-sync";
 
 export async function POST(req: NextRequest) {
   try {
-    const catalog = loadCatalog();
+    const catalog = await loadCatalog();
     const docs = catalog.map((c: any) => ({ name: c.product_id, content: JSON.stringify(c) }));
     const res = await syncDocumentsToAnythingLLM(docs);
     return NextResponse.json({ ok: true, result: res }, { status: 200 });

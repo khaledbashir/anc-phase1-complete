@@ -161,6 +161,8 @@ const ScreenAuditSchema = z.object({
     quantity: z.coerce.number().nonnegative().optional(),
     areaSqFt: z.coerce.number().nonnegative(),
     pixelResolution: z.coerce.number().nonnegative(),
+    pixelMatrix: z.string().optional(),
+    serviceType: z.string().optional(),
     breakdown: z.object({
         hardware: z.number(),
         structure: z.number(),
@@ -175,10 +177,13 @@ const ScreenAuditSchema = z.object({
         engineering: z.number(),
         permits: z.number(),
         cms: z.number(),
-        bond: z.number(),
+        ancMargin: z.number(),
+        sellPrice: z.number(),
+        bondCost: z.number(),
         marginAmount: z.number(),
         totalCost: z.number(),
-        totalPrice: z.number(),
+        finalClientTotal: z.number(),
+        sellingPricePerSqFt: z.number(),
     }),
 });
 
@@ -198,10 +203,13 @@ const InternalAuditSchema = z.object({
         engineering: z.number(),
         permits: z.number(),
         cms: z.number(),
-        bond: z.number(),
+        ancMargin: z.number(),
+        sellPrice: z.number(),
+        bondCost: z.number(),
         margin: z.number(),
         totalCost: z.number(),
-        totalPrice: z.number(),
+        finalClientTotal: z.number(),
+        sellingPricePerSqFt: z.number(),
     }),
 });
 
@@ -228,6 +236,9 @@ const InvoiceDetailsSchema = z.object({
         pitchMm: z.coerce.number().nonnegative().optional(),
         costPerSqFt: z.coerce.number().nonnegative().optional(),
         desiredMargin: z.coerce.number().min(0).max(1).optional(),
+        serviceType: z.string().optional(), // "Top" or "Front/Rear"
+        formFactor: z.string().optional(), // "Straight" or "Curved"
+        outletDistance: z.coerce.number().nonnegative().optional(), // Distance from outlet in feet
     })).optional(),
     // Audit snapshots
     internalAudit: InternalAuditSchema.optional(),
