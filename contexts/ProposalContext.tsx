@@ -54,6 +54,8 @@ const defaultProposalContext = {
   // Backwards-compatible alias
   exportProposalAs: (exportAs: ExportTypes) => {},
   importProposalData: (file: File) => {},
+  // Command execution
+  applyCommand: (command: any) => {},
 };
 
 export const ProposalContext = createContext(defaultProposalContext);
@@ -83,7 +85,7 @@ export const ProposalContextProvider = ({
   } = useToasts();
 
   // Get form values and methods from form context
-  const { getValues, reset, watch } = useFormContext<ProposalType>();
+  const { getValues, reset, watch, setValue } = useFormContext<ProposalType>();
 
   // Variables
   const [proposalPdf, setProposalPdf] = useState<Blob>(new Blob());
@@ -359,6 +361,60 @@ export const ProposalContextProvider = ({
   };
 
   /**
+   * Apply a JSON command returned by the controller LLM
+   * Supported command types: ADD_SCREEN, UPDATE_CLIENT, SET_MARGIN
+   */
+  const applyCommand = (command: any) => {
+    try {
+      const formValues = getValues();
+
+      if (!command || !command.type) return;
+
+      switch (command.type) {
+        case "ADD_SCREEN": {
+          const payload = command.payload || {};
+          const screens = formValues.details.screens ?? [];
+          const newScreen = {
+            name: payload.name ?? "New Screen",
+            productType: payload.type ?? payload.productType ?? "Unknown",
+            widthFt: payload.width ?? payload.widthFt ?? 0,
+            heightFt: payload.height ?? payload.heightFt ?? 0,
+            quantity: payload.quantity ?? payload.qty ?? 1,
+            pitchMm: payload.pitch ?? payload.pitchMm ?? 10,
+            costPerSqFt: payload.costPerSqFt ?? 120,
+            desiredMargin: payload.desiredMargin ?? undefined,
+          };
+
+          setValue("details.screens", [...screens, newScreen]);
+          break;
+        }
+        case "UPDATE_CLIENT": {
+          const payload = command.payload || {};
+          if (payload.name) setValue("receiver.name", payload.name);
+          if (payload.address) setValue("receiver.address", payload.address);
+          break;
+        }
+        case "SET_MARGIN": {
+          const payload = command.payload || {};
+          const value = Number(payload.value);
+          if (isFinite(value)) {
+            // Apply to all screens
+            const screens = formValues.details.screens ?? [];
+            const updated = screens.map((s: any) => ({ ...s, desiredMargin: value }));
+            setValue("details.screens", updated);
+          }
+          break;
+        }
+        default:
+          console.warn("Unknown command type:", command.type);
+      }
+    } catch (err) {
+      console.error("applyCommand error:", err);
+    }
+  };
+
+
+  /**
    * Export an invoice in the specified format using the provided form values.
    *
    * This function initiates the export process with the chosen export format and the form data.
@@ -438,6 +494,8 @@ export const ProposalContextProvider = ({
         // Backwards-compatible alias
         exportProposalAs: exportProposalDataAs,
         importProposalData,
+        // command execution
+        applyCommand,
       }}
     >
       {children}
