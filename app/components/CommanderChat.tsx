@@ -34,12 +34,18 @@ export function CommanderChat() {
 
     try {
       // Call the API route with history
+      // include workspace/thread context if available
+      const aiWorkspaceSlug = typeof window !== "undefined" ? localStorage.getItem("aiWorkspaceSlug") : null;
+      const aiThreadId = typeof window !== "undefined" ? localStorage.getItem("aiThreadId") : null;
+
       const res = await fetch("/api/command", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMsg,
           history: messages.map((m) => ({ role: m.role, content: m.content })),
+          workspace: aiWorkspaceSlug ?? undefined,
+          threadId: aiThreadId ?? undefined,
         }),
       })
       const data = await res.json()
