@@ -2,10 +2,8 @@ import { prisma } from '@/lib/prisma';
 import ProposalPage from '@/app/components/ProposalPage';
 import { notFound } from 'next/navigation';
 
-type Params = { id: string };
-
-export default async function ProposalRoute({ params }: { params: Params }) {
-  const id = params.id;
+export default async function ProposalRoute({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const proposal = await prisma.proposal.findUnique({ where: { id }, include: { workspace: true } });
   if (!proposal) return notFound();
 

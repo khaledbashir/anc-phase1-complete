@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 
 const ANYTHING_LLM_URL = process.env.ANYTHING_LLM_URL;
 const ANYTHING_LLM_KEY = process.env.ANYTHING_LLM_KEY;
@@ -124,12 +125,14 @@ export async function POST(req: NextRequest) {
             // Also run a quick DB benchmark to provide context (read-only)
             try {
               const { prisma } = await import("@/lib/prisma");
-              const proposals = await prisma.proposal.findMany({ where: { internalAudit: { not: null } }, take: 50 });
+              // FIX: Use Prisma.DbNull to filter nullable JSON fields properly
+              const proposals = await prisma.proposal.findMany({ where: { internalAudit: { not: Prisma.DbNull } }, take: 50 });
               const margins: number[] = [];
               for (const p of proposals) {
-                const ia = (p as any).internalAudit as any;
-                if (ia && ia.totals && ia.totals.margin !== undefined && ia.totals.totalPrice) {
-                  const m = (ia.totals.margin) / (ia.totals.totalPrice || 1);
+                const ia = p.internalAudit as Prisma.JsonObject;
+                const totals = ia.totals as Prisma.JsonObject | null;
+                if (totals && typeof totals.margin === 'number' && typeof totals.totalPrice === 'number') {
+                  const m = totals.margin / (totals.totalPrice || 1);
                   margins.push(m);
                 }
               }

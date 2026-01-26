@@ -8,10 +8,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useProposalContext } from "@/contexts/ProposalContext";
 
@@ -45,47 +45,67 @@ const DiagnosticOverlay = () => {
 
   return (
     <Dialog open={diagnosticOpen} onOpenChange={(open) => (open ? {} : closeDiagnostic())}>
-      <DialogContent className="max-w-2xl bg-zinc-950/50 backdrop-blur-xl border border-zinc-800">
+      <DialogContent className="max-w-2xl bg-zinc-950/90 backdrop-blur-2xl border-zinc-800 text-zinc-100">
         <DialogHeader>
-          <DialogTitle>Diagnostic: Missing screen specs</DialogTitle>
-          <DialogDescription>{diagnosticPayload?.payload?.message ?? diagnosticPayload?.payload?.message ?? "We need a few details to select the right product."}</DialogDescription>
+          <DialogTitle>Strategic Specs Required</DialogTitle>
+          <DialogDescription className="text-zinc-400">
+            {diagnosticPayload?.payload?.message ?? "To select the correct ANC product, I need to know the environment and serviceability requirements."}
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
-          <div>
-            <label className="block text-sm text-zinc-300 font-semibold">Environment</label>
-            <div className="mt-2">
-            <div className="flex gap-2">
-              <RadioGroup value={environment} onChange={(v) => setEnvironment(v)}>
-                <RadioGroupItem value="Indoor">Indoor</RadioGroupItem>
-                <RadioGroupItem value="Outdoor">Outdoor</RadioGroupItem>
-              </RadioGroup>
-            </div>
-          </div>
+        <div className="space-y-6 py-4">
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-zinc-300">Environment</Label>
+            <RadioGroup
+              value={environment}
+              onValueChange={(value) => setEnvironment(value)}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Indoor" id="env-indoor" className="border-zinc-700" />
+                <Label htmlFor="env-indoor" className="cursor-pointer">Indoor</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Outdoor" id="env-outdoor" className="border-zinc-700" />
+                <Label htmlFor="env-outdoor" className="cursor-pointer">Outdoor</Label>
+              </div>
+            </RadioGroup>
           </div>
 
-          <div>
-            <label className="block text-sm text-zinc-300 font-semibold">Serviceability</label>
-            <div className="mt-2">
-              <div className="flex gap-2">
-                <RadioGroup value={service} onChange={(v) => setService(v)}>
-                  <RadioGroupItem value="Front">Front</RadioGroupItem>
-                  <RadioGroupItem value="Back">Back</RadioGroupItem>
-                </RadioGroup>
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-zinc-300">Serviceability</Label>
+            <RadioGroup
+              value={service}
+              onValueChange={(value) => setService(value)}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Front" id="service-front" className="border-zinc-700" />
+                <Label htmlFor="service-front" className="cursor-pointer">Front Service</Label>
               </div>
-            </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Back" id="service-back" className="border-zinc-700" />
+                <Label htmlFor="service-back" className="cursor-pointer">Rear Service</Label>
+              </div>
+            </RadioGroup>
           </div>
 
-          <div>
-            <label className="block text-sm text-zinc-300 font-semibold">Form factor</label>
-            <div className="mt-2">
-              <div className="flex gap-2">
-                <RadioGroup value={formFactor} onChange={(v) => setFormFactor(v)}>
-                  <RadioGroupItem value="Straight">Straight</RadioGroupItem>
-                  <RadioGroupItem value="Curvy">Curvy</RadioGroupItem>
-                </RadioGroup>
+          <div className="space-y-3">
+            <Label className="text-sm font-medium text-zinc-300">Form Factor</Label>
+            <RadioGroup
+              value={formFactor}
+              onValueChange={(value) => setFormFactor(value)}
+              className="flex gap-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Straight" id="form-straight" className="border-zinc-700" />
+                <Label htmlFor="form-straight" className="cursor-pointer">Straight</Label>
               </div>
-            </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="Curvy" id="form-curvy" className="border-zinc-700" />
+                <Label htmlFor="form-curvy" className="cursor-pointer">Curved</Label>
+              </div>
+            </RadioGroup>
           </div>
         </div>
 

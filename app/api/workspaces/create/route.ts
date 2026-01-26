@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { Workspace, User } from "@prisma/client";
+
+// Define the intersection type that includes the users relation
+type WorkspaceWithUsers = Workspace & {
+  users: User[];
+};
 
 export interface CreateWorkspaceRequest {
   name: string;
   userEmail: string;
+  createInitialProposal?: boolean;
+  clientName?: string;
 }
 
 /**
@@ -23,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create workspace with first user
-    let workspace = await prisma.workspace.create({
+    let workspace: WorkspaceWithUsers = await prisma.workspace.create({
       data: {
         name: body.name,
         users: {
@@ -71,7 +79,11 @@ export async function POST(request: NextRequest) {
 
       if (slug) {
         // Update workspace with slug
-        workspace = await prisma.workspace.update({ where: { id: workspace.id }, data: { aiWorkspaceSlug: slug } });
+        workspace = await prisma.workspace.update({ 
+          where: { id: workspace.id }, 
+          data: { aiWorkspaceSlug: slug },
+          include: { users: true },
+        });
 
         // Upload master catalog if available
         const masterUrl = process.env.ANYTHING_LLM_MASTER_CATALOG_URL;
