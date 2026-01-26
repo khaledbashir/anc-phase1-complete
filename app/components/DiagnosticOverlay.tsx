@@ -58,7 +58,7 @@ const DiagnosticOverlay = () => {
             <Label className="text-sm font-medium text-zinc-300">Environment</Label>
             <RadioGroup
               value={environment}
-              onChange={(value) => setEnvironment(value)}
+              onValueChange={(value) => setEnvironment(value)}
               className="flex gap-4"
             >
               <div className="flex items-center space-x-2">
