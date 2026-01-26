@@ -89,6 +89,22 @@ const useToasts = () => {
         });
     };
 
+    const success = (title: string, description?: string) => {
+        toast({
+            variant: "default",
+            title,
+            description,
+        });
+    };
+
+    const error = (title: string, description?: string) => {
+        toast({
+            variant: "destructive",
+            title,
+            description,
+        });
+    };
+
     return {
         newProposalSuccess,
         pdfGenerationSuccess,
@@ -99,6 +115,8 @@ const useToasts = () => {
         importProposalError,
         aiExtractionSuccess,
         aiExtractionError,
+        success,
+        error,
     };
 };
 
