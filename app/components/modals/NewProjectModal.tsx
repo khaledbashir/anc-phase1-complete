@@ -48,9 +48,9 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
           if (json.ai?.threadId) localStorage.setItem("aiThreadId", json.ai.threadId);
         }
 
-        // redirect to root (the ProposalPage) and set client name into local state via history
+        // redirect to clean route for proposal
         setOpen(false);
-        router.push(`/?newProposalId=${json.proposal.id}&aiThreadId=${json.ai?.threadId || ""}&aiWorkspaceSlug=${json.ai?.slug || ""}`);
+        router.push(`/proposals/${json.proposal.id}`);
       } else if (resp.ok && json && json.workspace) {
         setOpen(false);
         router.push(`/`);
