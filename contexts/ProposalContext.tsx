@@ -33,6 +33,9 @@ import {
 // Types
 import { ExportTypes, ProposalType } from "@/types";
 
+// Estimator / Audit
+import { calculateProposalAudit } from "@/lib/estimator";
+
 const defaultProposalContext = {
   proposalPdf: new Blob(),
   proposalPdfLoading: false,
@@ -172,9 +175,18 @@ export const ProposalContextProvider = ({
     setProposalPdfLoading(true);
 
     try {
+      // Compute deterministic audit before generating PDF
+      const audit = calculateProposalAudit(data?.details?.screens || []);
+
+      const payload = {
+        ...data,
+        _audit: audit, // include both clientSummary and internalAudit for server-side rendering and archive
+      };
+
       const response = await fetch(GENERATE_PDF_API, {
         method: "POST",
-        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
       const result = await response.blob();
@@ -275,6 +287,16 @@ export const ProposalContextProvider = ({
 
         formValues.details.updatedAt = updatedDate;
 
+        // Attach deterministic audit snapshot for saved proposals (internal audit + client summary)
+        try {
+          const audit = calculateProposalAudit(formValues?.details?.screens || []);
+          // store under a non-typed key to avoid type mismatch with Zod/ProposalType
+          (formValues as any)._internalAudit = audit.internalAudit;
+          (formValues as any)._clientSummary = audit.clientSummary;
+        } catch (e) {
+          console.warn("Failed to calculate audit for saved proposal:", e);
+        }
+
         const existingInvoiceIndex = savedProposals.findIndex(
           (invoice: ProposalType) => {
             return (
@@ -301,6 +323,32 @@ export const ProposalContextProvider = ({
         localStorage.setItem("savedProposals", JSON.stringify(savedProposals));
 
         setSavedProposals(savedProposals);
+
+        // Attempt to persist to server if workspaceId is available
+        try {
+          const workspaceId = (formValues as any)?.details?.workspaceId;
+          if (workspaceId) {
+            // Prepare minimal payload expected by server
+            const screens = (formValues as any)?.details?.screens || [];
+            fetch("/api/proposals/create", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                workspaceId,
+                clientName: (formValues as any)?.receiver?.name || (formValues as any)?.details?.clientName || "",
+                screens,
+              }),
+            })
+              .then((res) => {
+                if (!res.ok) {
+                  console.warn("Server save failed for proposal", res.statusText);
+                }
+              })
+              .catch((err) => console.warn("Server save error:", err));
+          }
+        } catch (e) {
+          console.warn("Failed to sync proposal to server:", e);
+        }
       }
     }
   };

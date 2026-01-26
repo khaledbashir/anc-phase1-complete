@@ -143,6 +143,68 @@ const SignatureSchema = z.object({
     fontFamily: fieldValidators.string.optional(),
 });
 
+// Audit schemas
+const ClientSummarySchema = z.object({
+    subtotal: z.number(),
+    total: z.number(),
+    breakdown: z.object({
+        hardware: z.number(),
+        structure: z.number(),
+        install: z.number(),
+        others: z.number(),
+    }),
+});
+
+const ScreenAuditSchema = z.object({
+    name: fieldValidators.stringMin1,
+    productType: fieldValidators.string.optional(),
+    quantity: z.coerce.number().nonnegative().optional(),
+    areaSqFt: z.coerce.number().nonnegative(),
+    pixelResolution: z.coerce.number().nonnegative(),
+    breakdown: z.object({
+        hardware: z.number(),
+        structure: z.number(),
+        install: z.number(),
+        labor: z.number(),
+        power: z.number(),
+        shipping: z.number(),
+        pm: z.number(),
+        generalConditions: z.number(),
+        travel: z.number(),
+        submittals: z.number(),
+        engineering: z.number(),
+        permits: z.number(),
+        cms: z.number(),
+        bond: z.number(),
+        marginAmount: z.number(),
+        totalCost: z.number(),
+        totalPrice: z.number(),
+    }),
+});
+
+const InternalAuditSchema = z.object({
+    perScreen: z.array(ScreenAuditSchema),
+    totals: z.object({
+        hardware: z.number(),
+        structure: z.number(),
+        install: z.number(),
+        labor: z.number(),
+        power: z.number(),
+        shipping: z.number(),
+        pm: z.number(),
+        generalConditions: z.number(),
+        travel: z.number(),
+        submittals: z.number(),
+        engineering: z.number(),
+        permits: z.number(),
+        cms: z.number(),
+        bond: z.number(),
+        margin: z.number(),
+        totalCost: z.number(),
+        totalPrice: z.number(),
+    }),
+});
+
 const InvoiceDetailsSchema = z.object({
     invoiceLogo: fieldValidators.stringOptional,
     // Proposal-specific aliases (backwards compatible with invoice fields)
@@ -167,6 +229,9 @@ const InvoiceDetailsSchema = z.object({
         costPerSqFt: z.coerce.number().nonnegative().optional(),
         desiredMargin: z.coerce.number().min(0).max(1).optional(),
     })).optional(),
+    // Audit snapshots
+    internalAudit: InternalAuditSchema.optional(),
+    clientSummary: ClientSummarySchema.optional(),
     paymentInformation: PaymentInformationSchema.optional(),
     taxDetails: TaxDetailsSchema.optional(),
     discountDetails: DiscountDetailsSchema.optional(),

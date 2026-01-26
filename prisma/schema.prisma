@@ -25,6 +25,8 @@ model Proposal {
   clientName   String
   status       String         @default("DRAFT")
   screens      ScreenConfig[]
+  internalAudit Json?          // Detailed per-screen audit (internal use)
+  clientSummary Json?         // Clean summary shown on client PDF
   workspace    Workspace      @relation(fields: [workspaceId], references: [id])
 }
 model ScreenConfig {
@@ -41,8 +43,8 @@ model CostLineItem {
   id             String       @id @default(cuid())
   screenConfigId String
   category       String
-  cost           Float
-  margin         Float
-  price          Float
+  cost           Decimal      @db.Decimal(12, 2)
+  margin         Decimal      @db.Decimal(12, 4)
+  price          Decimal      @db.Decimal(12, 2)
   screenConfig   ScreenConfig @relation(fields: [screenConfigId], references: [id])
 }

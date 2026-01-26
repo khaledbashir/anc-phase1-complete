@@ -11,6 +11,7 @@ import {
     CardContent,
     CardDescription,
     CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 
@@ -38,87 +39,77 @@ const TemplateSelector = () => {
     const templates = [
         {
             id: 1,
-            name: "Template 1",
-            description: "Template 1 description",
+            name: "Standard Proposal",
+            description: "Professional format for most projects",
             img: template1,
             component: <ProposalTemplate1 {...formValues} />,
         },
         {
             id: 2,
-            name: "Template 2",
-            description: "Second template",
+            name: "Detailed Quote",
+            description: "Comprehensive breakdown for complex projects",
             img: template2,
             component: <ProposalTemplate2 {...formValues} />,
         },
         {
             id: 3,
             name: "ANC LOI",
-            description: "ANC Letter of Intent template",
+            description: "Letter of Intent for ANC-specific projects",
             img: template2,
             component: <ProposalTemplate3 {...formValues} />,
         },
     ];
     return (
         <>
-            <div>
-                <Label>Choose Invoice Template:</Label>
-
-                <div>
-                    <Card>
-                        <CardHeader>
-                            Templates
-                            <CardDescription>
-                                Select one of the predefined templates
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="">
-                            <div className="flex overflow-x-auto">
-                                {templates.map((template, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="flex flex-col flex-shrink-0 mr-4 gap-y-3"
-                                    >
-                                        <p>{template.name}</p>
-
-                                        <div className="relative">
-                                            {formValues.details.pdfTemplate ===
-                                                template.id && (
-                                                <div className="shadow-lg absolute right-2 top-2 rounded-full bg-blue-300 dark:bg-blue-600">
-                                                    <Check />
-                                                </div>
-                                            )}
-                                            <Image
-                                                src={template.img}
-                                                alt={template.name}
-                                                width={300}
-                                                height={700}
-                                                placeholder="blur"
-                                                className="cursor-pointer rounded-lg border-2 hover:border-blue-600"
-                                                onClick={() =>
-                                                    setValue(
-                                                        "details.pdfTemplate",
-                                                        template.id
-                                                    )
-                                                }
-                                            />
-                                            {/* {template.component} */}
-                                        </div>
-
-                                        <BaseButton
-                                            onClick={() =>
-                                                setValue(
-                                                    "details.pdfTemplate",
-                                                    template.id
-                                                )
-                                            }
-                                        >
-                                            Select
-                                        </BaseButton>
+            <div className="space-y-4">
+                <Label className="text-base font-medium">Choose Proposal Template:</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {templates.map((template, idx) => (
+                        <Card 
+                            key={idx} 
+                            className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg ${
+                                formValues.details.pdfTemplate === template.id 
+                                    ? 'border-blue-500 ring-2 ring-blue-500/20' 
+                                    : 'border-zinc-800 hover:border-zinc-700'
+                            }`}
+                        >
+                            {formValues.details.pdfTemplate === template.id && (
+                                <div className="absolute top-4 right-4 z-10">
+                                    <div className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                                        <Check className="w-4 h-4" />
+                                        Selected
                                     </div>
-                                ))}
-                            </div>
-                        </CardContent>
-                    </Card>
+                                </div>
+                            )}
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg">{template.name}</CardTitle>
+                                <CardDescription className="text-xs">
+                                    {template.description}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex flex-col items-center space-y-4">
+                                <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden border border-zinc-700">
+                                    <Image
+                                        src={template.img}
+                                        alt={template.name}
+                                        fill
+                                        className="object-cover cursor-pointer transition-transform duration-300 hover:scale-105"
+                                        onClick={() =>
+                                            setValue("details.pdfTemplate", template.id)
+                                        }
+                                    />
+                                </div>
+                                <BaseButton
+                                    onClick={() =>
+                                        setValue("details.pdfTemplate", template.id)
+                                    }
+                                    className="w-full"
+                                >
+                                    Select Template
+                                </BaseButton>
+                            </CardContent>
+                        </Card>
+                    ))}
                 </div>
             </div>
         </>

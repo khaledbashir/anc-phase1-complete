@@ -27,6 +27,8 @@ import {
     ProposalSummary,
 } from "@/app/components";
 
+import AuditTable from "@/app/components/invoice/AuditTable";
+
 // Contexts
 import { useTranslationContext } from "@/contexts/TranslationContext";
 
@@ -67,6 +69,7 @@ const ProposalForm = () => {
                     <TabsTrigger value="details" className="data-[state=active]:bg-zinc-800 text-zinc-300">Details</TabsTrigger>
                     <TabsTrigger value="screens" className="data-[state=active]:bg-zinc-800 text-zinc-300">Screens</TabsTrigger>
                     <TabsTrigger value="summary" className="data-[state=active]:bg-zinc-800 text-zinc-300">Summary</TabsTrigger>
+                    <TabsTrigger value="audit" className="data-[state=active]:bg-zinc-800 text-zinc-300">Audit</TabsTrigger>
                 </TabsList>
 
                 {/* Client Tab */}
@@ -182,6 +185,28 @@ const ProposalForm = () => {
                         </CardHeader>
                         <CardContent>
                             <ProposalSummary />
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Audit Tab (Estimator view) */}
+                <TabsContent value="audit" className="space-y-4">
+                    <Card className="bg-zinc-950/50 border border-zinc-800/40 backdrop-blur-lg">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-[#003366]/20">
+                                    <Calculator className="w-5 h-5 text-[#003366]" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-zinc-100 text-base">Internal Audit</CardTitle>
+                                    <CardDescription className="text-zinc-500 text-xs">Detailed per-screen math for estimators</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="overflow-x-auto">
+                                <AuditTable />
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

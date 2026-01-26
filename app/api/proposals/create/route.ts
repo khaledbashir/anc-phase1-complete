@@ -56,32 +56,35 @@ export async function POST(request: NextRequest) {
       desiredMargin: s.desiredMargin,
     }));
 
-    // Run estimator for all screens
-    const estimatorResult = calculateANCProject(screenInputs);
+    // Run deterministic audit for all screens (includes client summary + internal audit)
+    const audit = calculateProposalAudit(screenInputs);
 
-    // Create the proposal with nested screens and line items based on estimator
+    // Create the proposal with nested screens and line items based on audit (persisting audit JSON)
     const proposal = await prisma.proposal.create({
       data: {
         workspaceId: body.workspaceId,
         clientName: body.clientName,
         status: "DRAFT",
+        internalAudit: audit.internalAudit,
+        clientSummary: audit.clientSummary,
         screens: {
           create: await Promise.all(
-            estimatorResult.items.map(async (item, idx) => {
+            audit.internalAudit.perScreen.map(async (screenAudit, idx) => {
               const input = screenInputs[idx];
               const desiredMargin = input.desiredMargin ?? 0.25;
 
               // Build line items
+              const li = screenAudit.breakdown;
               const lineItemsData = [
-                { category: "Hardware", cost: roundToCents(item.hardware), margin: desiredMargin, price: roundToCents(item.hardware * (1 + desiredMargin)) },
-                { category: "Shipping", cost: roundToCents(item.shipping), margin: desiredMargin, price: roundToCents(item.shipping * (1 + desiredMargin)) },
-                { category: "Labor", cost: roundToCents(item.labor), margin: desiredMargin, price: roundToCents(item.labor * (1 + desiredMargin)) },
-                { category: "PM", cost: roundToCents(item.pm), margin: desiredMargin, price: roundToCents(item.pm * (1 + desiredMargin)) },
-                { category: "Bond", cost: roundToCents(item.bond), margin: 0, price: roundToCents(item.bond) },
+                { category: "Hardware", cost: String(li.hardware), margin: String(desiredMargin), price: String(roundToCents(li.hardware * (1 + desiredMargin))) },
+                { category: "Shipping", cost: String(li.shipping), margin: String(desiredMargin), price: String(roundToCents(li.shipping * (1 + desiredMargin))) },
+                { category: "Labor", cost: String(li.labor), margin: String(desiredMargin), price: String(roundToCents(li.labor * (1 + desiredMargin))) },
+                { category: "PM", cost: String(li.pm), margin: String(desiredMargin), price: String(roundToCents(li.pm * (1 + desiredMargin))) },
+                { category: "Bond", cost: String(li.bond), margin: String(0), price: String(li.bond) },
               ];
 
               return {
-                name: item.name,
+                name: screenAudit.name,
                 pixelPitch: input.pitchMm ?? 0,
                 width: input.widthFt ?? 0,
                 height: input.heightFt ?? 0,

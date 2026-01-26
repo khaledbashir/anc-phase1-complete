@@ -1,8 +1,8 @@
 {
   "actions": {
     "title": "Actions",
-    "loadProposal": "Load Proposal",
-    "exportProposal": "Export JSON",
+    "loadProposal": "Load Project",
+    "exportProposal": "Save Project File",
     "newProposal": "New Project",
     "reset": "Reset",
     "generatePDF": "Generate PDF",
