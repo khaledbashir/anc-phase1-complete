@@ -750,6 +750,7 @@ export const ProposalContextProvider = ({
         lowMarginAlerts,
         // RFP functions
         rfpDocumentUrl,
+        aiWorkspaceSlug,
         rfpQuestions,
         uploadRfpDocument: async (file: File) => {
           const formData = new FormData();
