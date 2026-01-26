@@ -484,11 +484,11 @@ export const ProposalContextProvider = ({
           const newScreen = {
             name: payload.name ?? "New Screen",
             productType: payload.productType ?? payload.type ?? "Unknown",
-            widthFt: payload.widthFt ?? payload.width ?? 0,
-            heightFt: payload.heightFt ?? payload.height ?? 0,
+            widthFt: Number(payload.widthFt ?? payload.width ?? 0),
+            heightFt: Number(payload.heightFt ?? payload.height ?? 0),
             quantity: payload.quantity ?? payload.qty ?? 1,
-            pitchMm: payload.pitch ?? payload.pitchMm ?? payload.pitchMm ?? 10,
-            costPerSqFt: payload.costPerSqFt ?? payload.cost_per_sqft ?? 120,
+            pitchMm: Number(payload.pitch ?? payload.pitchMm ?? payload.pitchMm ?? 10),
+            costPerSqFt: Number(payload.costPerSqFt ?? payload.cost_per_sqft ?? 120),
             desiredMargin: payload.desiredMargin ?? undefined,
           };
 
