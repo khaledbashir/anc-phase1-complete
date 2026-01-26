@@ -25,7 +25,7 @@ export default function SalesQuotation({ proposal }: Props) {
   const currency = "$";
 
   const screenSubtotal = (screen: (ScreenConfig & { lineItems: CostLineItem[] })) => {
-    return screen.lineItems?.reduce((acc, li) => acc + (li.price ?? 0), 0) ?? 0;
+    return screen.lineItems?.reduce((acc, li) => acc + (Number(li.price ?? 0)), 0) ?? 0;
   };
 
   const grandSubtotal = screens.reduce((acc, s) => acc + screenSubtotal(s), 0);
@@ -165,7 +165,7 @@ export default function SalesQuotation({ proposal }: Props) {
                       screen.lineItems.map((li, i) => (
                         <tr key={li.id} className={i % 2 === 1 ? "bg-[#f0f0f0]" : "bg-white"}>
                           <td className="py-1.5 pl-3 text-neutral-600">{li.category}</td>
-                          <td className="py-1.5 text-right text-neutral-600">{formatMoney(li.price ?? 0)}</td>
+                          <td className="py-1.5 text-right text-neutral-600">{formatMoney(Number(li.price ?? 0))}</td>
                         </tr>
                       ))
                     ) : (
