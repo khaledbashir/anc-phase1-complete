@@ -1,49 +1,92 @@
 {
   "actions": {
+    "title": "Actions",
     "loadProposal": "Load Proposal",
     "exportProposal": "Export JSON",
     "newProposal": "New Project",
+    "reset": "Reset",
     "generatePDF": "Generate PDF",
-    "reset": "Reset Form"
+    "save": "Save",
+    "description": "Manage your project proposal"
   },
   "form": {
+    "title": "Project Proposal",
+    "description": "Create and manage your ANC proposal",
+    "newPropBadge": "Draft Proposal",
     "steps": {
+      "fromAndTo": {
+        "heading": "Parties",
+        "billFrom": "Prepared By (ANC)",
+        "billTo": "Client (Purchaser)",
+        "name": "Name / Company",
+        "address": "Address",
+        "zipCode": "Zip Code",
+        "city": "City",
+        "country": "Country",
+        "email": "Email",
+        "phone": "Phone",
+        "addCustomInput": "+ Add Field"
+      },
       "proposalDetails": {
-        "heading": "Proposal Details",
+        "heading": "Project Details",
         "proposalLogo": {
           "label": "Client Logo",
-          "placeholder": "Upload Logo"
+          "placeholder": "Upload"
         },
         "proposalId": "Proposal ID",
-        "issuedDate": "Issued Date",
+        "issuedDate": "Date Issued",
         "dueDate": "Valid Until",
         "currency": "Currency"
       },
-      "clientEstimator": {
-        "heading": "Client & Estimator"
+      "screens": {
+        "heading": "Screens",
+        "removeScreen": "Remove",
+        "addNewScreen": "+ Add Screen",
+        "name": "Screen Name",
+        "productType": "Product Type",
+        "width": "Width (ft)",
+        "height": "Height (ft)",
+        "quantity": "Qty",
+        "pitch": "Pitch (mm)",
+        "costPerSqFt": "Cost / SqFt",
+        "desiredMargin": "Margin (0-1)"
       },
-      "screenConfig": {
-        "heading": "Screen Configuration"
+      "lineItems": {
+        "heading": "Additional Costs",
+        "addNewItem": "+ Add Cost Item",
+        "name": "Item Name",
+        "description": "Description",
+        "quantity": "Qty",
+        "rate": "Rate",
+        "total": "Total"
       },
-      "terms": {
-        "heading": "Terms & Conditions"
+      "paymentInfo": {
+        "heading": "Payment Terms",
+        "bankName": "Bank Name",
+        "accountName": "Account Name",
+        "accountNumber": "Account Number"
       },
       "summary": {
-        "heading": "Summary"
+        "heading": "Summary",
+        "subTotal": "Subtotal",
+        "tax": "Tax",
+        "shipping": "Shipping",
+        "totalAmount": "Total",
+        "includeTotalInWords": "Show total in words",
+        "additionalNotes": "Notes",
+        "paymentTerms": "Terms",
+        "signature": {
+          "heading": "Signatures",
+          "placeholder": "Signature block"
+        }
       }
     },
-    "newPropBadge": "DRAFT"
+    "wizard": {
+      "next": "Next Step",
+      "back": "Back",
+      "finish": "Finish"
+    }
   },
   "invoice": "Proposal",
-  "billTo": "Prepared For",
-  "invoiceDate": "Date Issued",
-  "dueDate": "Valid Until",
-  "item": "Screen Description",
-  "quantity": "Qty",
-  "rate": "Unit Price",
-  "amount": "Total",
-  "subTotal": "Subtotal",
-  "total": "Grand Total",
-  "additionalNotes": "Notes",
-  "paymentTerms": "Payment Terms"
+  "billTo": "Client"
 }
