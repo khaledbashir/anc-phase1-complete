@@ -9,6 +9,7 @@ import {
     FormCustomInput,
     FormInput,
     Subheading,
+    AiWand,
 } from "@/app/components";
 
 // Contexts
@@ -47,6 +48,12 @@ const BillToSection = () => {
                 name="receiver.name"
                 label={_t("form.steps.fromAndTo.name")}
                 placeholder="Receiver name"
+                rightElement={
+                    <AiWand
+                        fieldName="receiver.name"
+                        targetFields={["receiver.address", "receiver.zipCode", "receiver.city", "receiver.country"]}
+                    />
+                }
             />
             <FormInput
                 name="receiver.address"
