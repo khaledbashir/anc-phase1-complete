@@ -67,6 +67,11 @@ const defaultProposalContext = {
   closeDiagnostic: () => {},
   submitDiagnostic: (answers: any) => {},
   lowMarginAlerts: [] as any[],
+  // RFP functions
+  rfpDocumentUrl: null as string | null,
+  rfpQuestions: [] as Array<{ id: string; question: string; answer: string | null; answered: boolean; order: number }>,
+  uploadRfpDocument: (file: File) => Promise.resolve(),
+  answerRfpQuestion: (questionId: string, answer: string) => Promise.resolve(),
   // Command execution
   applyCommand: (command: any) => {},
 };
@@ -107,6 +112,10 @@ export const ProposalContextProvider = ({
 
   // Alerts
   const [lowMarginAlerts, setLowMarginAlerts] = useState<Array<{ name: string; marginPct: number }>>([]);
+
+  // RFP state
+  const [rfpDocumentUrl, setRfpDocumentUrl] = useState<string | null>(null);
+  const [rfpQuestions, setRfpQuestions] = useState<Array<{ id: string; question: string; answer: string | null; answered: boolean; order: number }>>([]);
 
   // Saved proposals
   const [savedProposals, setSavedProposals] = useState<ProposalType[]>([]);

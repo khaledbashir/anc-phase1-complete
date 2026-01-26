@@ -29,7 +29,19 @@ model Proposal {
   internalAudit Json?          // Detailed per-screen audit (internal use)
   clientSummary Json?         // Clean summary shown on client PDF
   aiThreadId   String?         // AnythingLLM thread id (optional)
+  rfpDocumentUrl String?       // URL to uploaded RFP document
+  rfpQuestions RfpQuestion[]    // Questions extracted from RFP
   workspace    Workspace      @relation(fields: [workspaceId], references: [id])
+}
+
+model RfpQuestion {
+  id          String       @id @default(cuid())
+  proposalId  String
+  question    String
+  answer      String?      // User's answer (nullable until answered)
+  answered    Boolean      @default(false)  // Tracks if question is answered
+  order       Int          // Display order
+  proposal    Proposal     @relation(fields: [proposalId], references: [id])
 }
 model ScreenConfig {
   id         String         @id @default(cuid())

@@ -7,15 +7,48 @@ const ANYTHING_LLM_WORKSPACE = process.env.ANYTHING_LLM_WORKSPACE;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { message, history, threadSlug, workspace } = body;
+    const { message, history, threadSlug, workspace, documentText } = body;
 
     if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) {
       return NextResponse.json({ error: "LLM not configured" }, { status: 500 });
     }
 
     // System prompt instructing the model to output JSON actions when appropriate
-    const systemPrompt = `You are the ANC Engine Controller. You have tools to modify the proposal. When the user asks for something, output a JSON object with the action. Available Actions: - { type: 'ADD_SCREEN', payload: { name, width, height, pitch, productType, quantity } } - { type: 'UPDATE_CLIENT', payload: { name, address } } - { type: 'SET_MARGIN', payload: { value } } If no action is needed, reply with plain text. When returning an action, output only the JSON object and nothing else.`;
+    const systemPrompt = `You are the ANC Engine Controller. You have tools to modify the proposal. When the user asks for something, output a JSON object with the action. Available Actions: - { type: 'ADD_SCREEN', payload: { name, width, height, pitch, productType, quantity } } - { type: 'UPDATE_CLIENT', payload: { name, address } } - { type: 'SET_MARGIN', payload: { value } } If no action is needed, reply with plain text. When returning an action, output only the JSON object and nothing else.
 
+Proactive Recommendations: When you detect specific specs from an RFP or document, proactively suggest products from the ANC Catalog. For example: "I have detected 10mm pitch in the RFP. Based on our ANC Catalog, I recommend LG GPPA062 for this environment. Shall I proceed with the 20% structural math?"`;
+    // checkGaps: Analyze document and detect missing required fields for ADD_SCREEN action
+    const checkGaps = (docText: string | null | undefined) => {
+      if (!docText) return { hasGaps: false, missingFields: [] };
+
+      const missingFields: string[] = [];
+      const docLower = docText.toLowerCase();
+
+      // Check for pitch specification
+      const pitchMatch = docLower.match(/(\d+)\s*mm|pitch\s*:\s*(\d+)/i);
+      if (!pitchMatch) missingFields.push('pitch');
+
+      // Check for dimensions
+      const dimensionMatch = docLower.match(/(\d+[\s']?\s*[x×]\s*\d+[\s']?|height\s*:.*width|active\s*display/i);
+      if (!dimensionMatch) missingFields.push('dimensions');
+
+      // Check for environment
+      const envMatch = docLower.match(/(indoor|outdoor)/i);
+      if (!envMatch) missingFields.push('environment');
+
+      // Check for quantity
+      const qtyMatch = docLower.match(/(qty|quantity|\d+\s*units?|\d+\s*displays)/i);
+      if (!qtyMatch) missingFields.push('quantity');
+
+      return {
+        hasGaps: missingFields.length > 0,
+        missingFields,
+        detectedSpecs: {
+          pitch: pitchMatch ? pitchMatch[1] || pitchMatch[2] : null,
+          environment: envMatch ? envMatch[1] : null,
+        }
+      };
+    };
     // We'll prefer workspace from request, else from env
     const workspaceSlug = workspace ?? ANYTHING_LLM_WORKSPACE;
     // Note: threadSlug is optional - if not provided, we'll create one
@@ -83,6 +116,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // checkGaps: Compare detected specs against required fields for ADD_SCREEN
+    const checkGaps = (detectedSpecs: any): { hasGaps: boolean; missingFields: string[] } => {
+      const requiredFields = [
+        { key: 'pixelPitch', label: 'Pixel Pitch (mm)' },
+        { key: 'widthFt', label: 'Width (ft)' },
+        { key: 'heightFt', label: 'Height (ft)' },
+        { key: 'isCurvy', label: 'Is Curved?' },
+        { key: 'serviceType', label: 'Service Type (Front/Back)' },
+        { key: 'productType', label: 'Product Type' },
+      ];
+      
+      const missingFields = requiredFields
+        .filter(field => !detectedSpecs[field.key])
+        .map(field => field.label);
+      
+      return { hasGaps: missingFields.length > 0, missingFields };
+    };
+
     // After chat, attempt to perform a vector-search to see if there's a product match
     try {
       const { vectorSearch } = await import("@/lib/rag-sync");
@@ -122,6 +173,38 @@ export async function POST(req: NextRequest) {
           const threshold = parseFloat(process.env.ANC_PRODUCT_CONFIDENCE_THRESHOLD || "0.85");
 
           if (product && (score >= threshold || score === 0)) {
+            // checkGaps: Validate we have all required specs before adding
+            const detectedSpecs: any = {
+              pixelPitch: product.pixel_pitch ? true : false,
+              widthFt: product.cabinet_width_mm ? true : false,
+              heightFt: product.cabinet_height_mm ? true : false,
+              isCurvy: product.is_curvy !== undefined ? true : false,
+              serviceType: product.service_type ? true : false,
+              productType: product.product_name ? true : false,
+            };
+            const gapAnalysis = checkGaps(detectedSpecs);
+
+            if (gapAnalysis.hasGaps) {
+              // Prohibited from completing ADD_SCREEN - must prompt user via DiagnosticOverlay
+              const message = `I recommend ${product.product_name} but need to confirm: ${gapAnalysis.missingFields.join(', ')}`;
+              return NextResponse.json({ 
+                ok: true, 
+                data: { 
+                  type: "action", 
+                  action: { 
+                    type: "INCOMPLETE_SPECS", 
+                    payload: { 
+                      missingFields: gapAnalysis.missingFields,
+                      message,
+                      recommendedProduct: product,
+                      score
+                    } 
+                  } 
+                } 
+              }, { status: 200 });
+            }
+
+            // All specs present - proceed with ADD_SCREEN
             // Map catalog to ADD_SCREEN payload
             const payload: any = {
               name: product.product_name,
