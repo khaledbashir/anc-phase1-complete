@@ -13,7 +13,6 @@ export default async function ProposalRoute({ params }: { params: Promise<{ id: 
       {/* Client-side initializer: set localStorage with ai metadata before rendering Commander */}
       <script dangerouslySetInnerHTML={{ __html: `localStorage.setItem('aiWorkspaceSlug','${proposal.workspace?.aiWorkspaceSlug ?? ''}'); localStorage.setItem('aiThreadId','${proposal.aiThreadId ?? ''}'); localStorage.setItem('loadingProposalId','${proposal.id}');` }} />
       {/* Render the standard ProposalPage which will pick up the loadingProposalId as needed */}
-      {/* @ts-expect-error Server Component rendering client component */}
       <ProposalPage />
     </div>
   );

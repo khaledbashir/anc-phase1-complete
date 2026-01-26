@@ -4,16 +4,20 @@ import React from "react";
 
 type RadioGroupProps = React.PropsWithChildren<{
   value?: string;
-  onValueChange?: (v: string) => void;
+  onChange?: (v: string) => void;
   className?: string;
 }>;
 
-export function RadioGroup({ value, onValueChange, children, className }: RadioGroupProps) {
+export function RadioGroup({ value, onChange, children, className }: RadioGroupProps) {
   return (
     <div role="radiogroup" aria-label="Radio group" className={className}>
       {React.Children.map(children, (child: any) => {
         if (!React.isValidElement(child)) return null;
-        return React.cloneElement(child, { name: "rg", checked: child.props.value === value, onChange: onValueChange });
+        const childProps = child.props as any;
+        return React.cloneElement(child, {
+          checked: childProps.value === value,
+          onChange
+        } as any);
       })}
     </div>
   );

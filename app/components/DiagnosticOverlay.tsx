@@ -58,7 +58,7 @@ const DiagnosticOverlay = () => {
             <Label className="text-sm font-medium text-zinc-300">Environment</Label>
             <RadioGroup
               value={environment}
-              onChange={(value) => setEnvironment(value)}
+              onValueChange={(value) => setEnvironment(value)}
               className="flex gap-4"
             >
               <div className="flex items-center space-x-2">
@@ -76,7 +76,7 @@ const DiagnosticOverlay = () => {
             <Label className="text-sm font-medium text-zinc-300">Serviceability</Label>
             <RadioGroup
               value={service}
-              onChange={(value) => setService(value)}
+              onValueChange={(value) => setService(value)}
               className="flex gap-4"
             >
               <div className="flex items-center space-x-2">
@@ -94,7 +94,7 @@ const DiagnosticOverlay = () => {
             <Label className="text-sm font-medium text-zinc-300">Form Factor</Label>
             <RadioGroup
               value={formFactor}
-              onChange={(value) => setFormFactor(value)}
+              onValueChange={(value) => setFormFactor(value)}
               className="flex gap-4"
             >
               <div className="flex items-center space-x-2">
