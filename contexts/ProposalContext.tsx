@@ -175,8 +175,20 @@ export const ProposalContextProvider = ({
     setProposalPdfLoading(true);
 
     try {
+      // Sanitize screens into the estimator's expected shape
+      const screens = (data?.details?.screens || []).map((s: any) => ({
+        name: s.name,
+        productType: s.productType ?? "",
+        heightFt: s.heightFt ?? s.height ?? 0,
+        widthFt: s.widthFt ?? s.width ?? 0,
+        quantity: s.quantity ?? 1,
+        pitchMm: s.pitchMm ?? s.pixelPitch ?? undefined,
+        costPerSqFt: s.costPerSqFt,
+        desiredMargin: s.desiredMargin,
+      }));
+
       // Compute deterministic audit before generating PDF
-      const audit = calculateProposalAudit(data?.details?.screens || []);
+      const audit = calculateProposalAudit(screens);
 
       const payload = {
         ...data,
