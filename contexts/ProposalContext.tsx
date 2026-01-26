@@ -119,6 +119,7 @@ export const ProposalContextProvider = ({
 
   // RFP state
   const [rfpDocumentUrl, setRfpDocumentUrl] = useState<string | null>(null);
+  const [aiWorkspaceSlug, setAiWorkspaceSlug] = useState<string | null>(null);
   const [rfpQuestions, setRfpQuestions] = useState<Array<{ id: string; question: string; answer: string | null; answered: boolean; order: number }>>([]);
 
   // Saved proposals

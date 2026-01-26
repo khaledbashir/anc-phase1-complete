@@ -46,18 +46,31 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Provision AnythingLLM workspace synchronously
+    // Provision AnythingLLM workspace with Natalia's EXPERT SETTINGS
     try {
       if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) throw new Error("AnythingLLM not configured");
 
+      const uniqueSuffix = Date.now().toString(36).slice(-4);
+      const wsName = `${body.name} - ANC Project Room (${uniqueSuffix})`;
+
       const payload = {
-        name: `${body.name} - ANC Project Room`,
-        similarityThreshold: 0.2,
-        openAiTemp: 0.3,
+        name: wsName,
+        similarityThreshold: 0.2, // Catch diverse RFP wording
+        openAiTemp: 0.1,         // Precision for spec extraction
+        openAiHistory: 10,
         chatMode: "chat",
-        topN: 5,
-        openAiPrompt:
-          "You are the ANC Strategic Estimator. Mission: Build high-stakes LED proposals for Natalia. 1. Use RAG for product specs (mm pitch, cabinet weight). 2. Formulas: Structure=20% of hardware, Labor=15%. 3. If specs are missing, trigger INCOMPLETE_SPECS. 4. Always emit JSON actions.",
+        topN: 10,                 // High transparency for dense RFP sections
+        openAiPrompt: `
+          YOU ARE THE ANC STRATEGIC ESTIMATOR (Master Protocol).
+          Your mission is to build high-stakes LED signatures.
+          
+          CORE RULES:
+          1. FORMULAS: Structure=20% (Ribbons/Top=10%), Labor=15%, Power=15%, PM=$0.50/sqft, Shipping=$0.14/sqft.
+          2. BOND: Final totals must include 1.5% Bond on Top of everything.
+          3. FERRARI LOGIC: Look for 'Spare Parts' (5% Hardware) and 'Existing Infrastructure' (Structure drops to 5%).
+          4. PRECISION: If an RFP section is ambiguous, ask for clarification.
+          5. FORMAT: Always prioritize technical accuracy over conversational filler.
+        `.trim(),
       };
 
       const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/new`, {
@@ -78,56 +91,45 @@ export async function POST(request: NextRequest) {
 
       if (slug) {
         // Update workspace with slug
-        workspace = await prisma.workspace.update({ 
-          where: { id: workspace.id }, 
+        workspace = await prisma.workspace.update({
+          where: { id: workspace.id },
           data: { aiWorkspaceSlug: slug },
           include: { users: true },
         });
 
-        // Upload master catalog if available
+        // Upload master catalog (Global Knowledge Base)
         const masterUrl = process.env.ANYTHING_LLM_MASTER_CATALOG_URL;
         if (masterUrl) {
           try {
             const { uploadLinkToWorkspace } = await import("@/lib/rag-sync");
             await uploadLinkToWorkspace(slug, masterUrl);
           } catch (e) {
-            console.warn("Failed to upload master catalog to workspace", e);
+            console.warn("Failed to upload master catalog", e);
           }
         }
 
         // If requested, create an initial proposal and thread
         if (body.createInitialProposal && body.clientName) {
-          try {
-            // Create thread
-            const threadRes = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${slug}/thread/new`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
-              body: JSON.stringify({ title: `${body.clientName} - Initial Proposal Thread` }),
-            });
-            const threadText = await threadRes.text();
-            let threadJson: any;
-            try {
-              threadJson = JSON.parse(threadText);
-            } catch (e) {
-              threadJson = null;
-            }
-            const threadId = threadJson?.thread?.id || threadJson?.id || null;
+          // Create dedicated thread
+          const threadRes = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${slug}/thread/new`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
+            body: JSON.stringify({ title: `Project Kickoff: ${body.clientName}` }),
+          });
+          const threadId = (await threadRes.json())?.thread?.slug || null;
 
-            // Create a minimal proposal row attached to the workspace
-            const proposal = await prisma.proposal.create({
-              data: {
-                workspaceId: workspace.id,
-                clientName: body.clientName,
-                status: "DRAFT",
-                aiThreadId: threadId ?? undefined,
-              },
-            });
+          // Create proposal
+          const proposal = await prisma.proposal.create({
+            data: {
+              workspaceId: workspace.id,
+              clientName: body.clientName,
+              proposalName: `${body.clientName} LED Project`,
+              status: "DRAFT",
+              aiThreadId: threadId,
+            },
+          });
 
-            return NextResponse.json({ success: true, workspace, proposal, ai: { slug, threadId } }, { status: 201 });
-          } catch (e) {
-            console.warn("Failed to create initial thread or proposal", e);
-            return NextResponse.json({ success: true, workspace, ai: { slug } }, { status: 201 });
-          }
+          return NextResponse.json({ success: true, workspace, proposal, ai: { slug, threadId } }, { status: 201 });
         }
       }
     } catch (e) {

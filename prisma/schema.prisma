@@ -29,6 +29,7 @@ model Proposal {
   screens      ScreenConfig[]
   internalAudit Json?          // Detailed per-screen audit (internal use)
   clientSummary Json?         // Clean summary shown on client PDF
+  aiWorkspaceSlug String?      // Dedicated AnythingLLM workspace for this project
   aiThreadId   String?         // AnythingLLM thread id (optional)
   rfpDocumentUrl String?       // URL to uploaded RFP document
   rfpQuestions RfpQuestion[]    // Questions extracted from RFP

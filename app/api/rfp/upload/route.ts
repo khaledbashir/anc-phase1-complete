@@ -45,9 +45,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Embed document into workspace
-    if (proposal.workspace?.aiWorkspaceSlug) {
+    // Prioritize proposal-level isolated slug, fallback to workspace level
+    const aiWorkspaceSlug = proposal.aiWorkspaceSlug || proposal.workspace?.aiWorkspaceSlug || "anc-estimator";
+
+    if (aiWorkspaceSlug) {
       const embedRes = await fetch(
-        `${ANYTHING_LLM_BASE_URL}/workspace/${proposal.workspace.aiWorkspaceSlug}/update-embeddings`,
+        `${ANYTHING_LLM_BASE_URL}/workspace/${aiWorkspaceSlug}/update-embeddings`,
         {
           method: "POST",
           headers: {
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     // Now ask AnythingLLM to extract questions from RFP
     const chatRes = await fetch(
-      `${ANYTHING_LLM_BASE_URL}/workspace/${proposal.workspace?.aiWorkspaceSlug || "anc-estimator"}/chat`,
+      `${ANYTHING_LLM_BASE_URL}/workspace/${aiWorkspaceSlug}/chat`,
       {
         method: "POST",
         headers: {
@@ -132,7 +135,6 @@ Do NOT answer the questions - just extract them. Focus on: budget, timeline, tec
 
     // Use RfpExtractionService to get structured proposal data
     const { RfpExtractionService } = await import("@/services/rfp/server/RfpExtractionService");
-    const aiWorkspaceSlug = proposal.workspace?.aiWorkspaceSlug || "anc-estimator";
 
     let extractedData = null;
     try {

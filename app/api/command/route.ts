@@ -7,10 +7,26 @@ const ANYTHING_LLM_WORKSPACE = process.env.ANYTHING_LLM_WORKSPACE;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { message, history, threadSlug, workspace, documentText } = body;
+    const { message, history, threadSlug, workspace, documentText, proposalId } = body;
 
     if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) {
       return NextResponse.json({ error: "LLM not configured" }, { status: 500 });
+    }
+
+    const { prisma } = await import("@/lib/prisma");
+
+    // Resolve Isolated Workspace Slug: 
+    // 1. Explicit slug passed in body
+    // 2. Proposal-level isolated slug from DB
+    // 3. Fallback to generic env/default workspace
+    let effectiveWorkspaceSlug = workspace ?? ANYTHING_LLM_WORKSPACE ?? "anc-estimator";
+
+    if (proposalId) {
+      const p = await prisma.proposal.findUnique({
+        where: { id: proposalId },
+        select: { aiWorkspaceSlug: true }
+      });
+      if (p?.aiWorkspaceSlug) effectiveWorkspaceSlug = p.aiWorkspaceSlug;
     }
 
     // System prompt instructing the model to output JSON actions when appropriate
@@ -50,7 +66,7 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
       };
     };
     // We'll prefer workspace from request, else from env
-    const workspaceSlug = workspace ?? ANYTHING_LLM_WORKSPACE;
+    const workspaceSlug = effectiveWorkspaceSlug;
     // Note: threadSlug is optional - if not provided, we'll create one
     // This allows initialization without forcing the user to create a project first
 
