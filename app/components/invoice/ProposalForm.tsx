@@ -52,7 +52,7 @@ const ProposalForm = () => {
         if (proposalId) {
             return `#${proposalId}`;
         } else {
-            return _t("formNewPropBadge");
+            return _t("form.newPropBadge");
         }
     }, [proposalId]);
 

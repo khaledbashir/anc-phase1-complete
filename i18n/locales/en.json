@@ -75,9 +75,15 @@
         "includeTotalInWords": "Show total in words",
         "additionalNotes": "Notes",
         "paymentTerms": "Terms",
+        "discount": "Discount",
+        "yes": "Yes",
         "signature": {
           "heading": "Signatures",
-          "placeholder": "Signature block"
+          "placeholder": "Signature block",
+          "description": "Sign here or upload a signature",
+          "draw": "Draw signature",
+          "type": "Type signature",
+          "upload": "Upload signature"
         }
       }
     },
