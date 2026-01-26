@@ -32,7 +32,7 @@ type ChatMessage = {
 const ProposalPage = () => {
   const { handleSubmit, setValue } = useFormContext<ProposalType>();
   const { _t } = useTranslationContext();
-  const { onFormSubmit, applyCommand } = useProposalContext();
+  const { onFormSubmit, applyCommand, activeTab, setActiveTab } = useProposalContext();
 
   const [projectName, setProjectName] = useState("Untitled Project");
   const [commandInput, setCommandInput] = useState("");
@@ -68,7 +68,16 @@ const ProposalPage = () => {
           responseText = resp.textResponse;
           try {
             const parsed = JSON.parse(responseText);
-            if (parsed && parsed.type) applyCommand(parsed);
+            if (parsed && parsed.type) {
+              applyCommand(parsed);
+              
+              // Switch tab based on command type
+              if (parsed.type === "ADD_SCREEN" || parsed.type === "SET_MARGIN") {
+                setActiveTab("audit");
+              } else if (parsed.type === "UPDATE_CLIENT") {
+                setActiveTab("client");
+              }
+            }
           } catch (e) {}
         }
       }

@@ -31,12 +31,14 @@ import AuditTable from "@/app/components/invoice/AuditTable";
 
 // Contexts
 import { useTranslationContext } from "@/contexts/TranslationContext";
+import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Icons
 import { Building2, User, LayoutGrid, Package, CreditCard, Calculator } from "lucide-react";
 
 const ProposalForm = () => {
     const { _t } = useTranslationContext();
+    const { activeTab, setActiveTab } = useProposalContext();
 
     const { control } = useFormContext();
 
@@ -63,7 +65,7 @@ const ProposalForm = () => {
                 </Badge>
             </div>
 
-            <Tabs defaultValue="client" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="bg-zinc-900/50 border border-zinc-800/50">
                     <TabsTrigger value="client" className="data-[state=active]:bg-zinc-800 text-zinc-300">Client</TabsTrigger>
                     <TabsTrigger value="details" className="data-[state=active]:bg-zinc-800 text-zinc-300">Details</TabsTrigger>

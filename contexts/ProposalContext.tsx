@@ -41,6 +41,8 @@ const defaultProposalContext = {
   proposalPdfLoading: false,
   savedProposals: [] as ProposalType[],
   pdfUrl: null as string | null,
+  activeTab: "client",
+  setActiveTab: (tab: string) => {},
   onFormSubmit: (values: ProposalType) => {},
   newProposal: () => {},
   generatePdf: async (data: ProposalType) => {},
@@ -93,6 +95,7 @@ export const ProposalContextProvider = ({
   // Variables
   const [proposalPdf, setProposalPdf] = useState<Blob>(new Blob());
   const [proposalPdfLoading, setProposalPdfLoading] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<string>("client");
 
   // Saved proposals
   const [savedProposals, setSavedProposals] = useState<ProposalType[]>([]);
@@ -433,7 +436,7 @@ export const ProposalContextProvider = ({
 
   /**
    * Apply a JSON command returned by the controller LLM
-   * Supported command types: ADD_SCREEN, UPDATE_CLIENT, SET_MARGIN
+   * Supported command types: ADD_SCREEN, UPDATE_CLIENT, SET_MARGIN, SYNC_CATALOG
    */
   const applyCommand = (command: any) => {
     try {
@@ -473,6 +476,22 @@ export const ProposalContextProvider = ({
             const screens = formValues.details.screens ?? [];
             const updated = screens.map((s: any) => ({ ...s, desiredMargin: value }));
             setValue("details.screens", updated);
+          }
+          break;
+        }
+        case "SYNC_CATALOG": {
+          const payload = command.payload || {};
+          const catalogFile = payload.file;
+          if (catalogFile) {
+            // Sync catalog with RAG
+            fetch("/api/command", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                command: "SYNC_CATALOG",
+                payload: { file: catalogFile },
+              }),
+            });
           }
           break;
         }
@@ -549,6 +568,8 @@ export const ProposalContextProvider = ({
         proposalPdfLoading,
         savedProposals,
         pdfUrl,
+        activeTab,
+        setActiveTab,
         onFormSubmit,
         newProposal,
         generatePdf,
