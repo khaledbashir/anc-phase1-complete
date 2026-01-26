@@ -442,9 +442,14 @@ export function calculateProposalAudit(
     totals,
   };
 
+  // Apply project tax (flat 9.5%) to the subtotal to compute grand total
+  const subtotal = roundToCents(totals.totalPrice);
+  const taxAmount = roundToCents(subtotal * 0.095);
+  const grandTotal = roundToCents(subtotal + taxAmount);
+
   const clientSummary: ClientSummary = {
-    subtotal: roundToCents(totals.totalPrice - totals.bond),
-    total: totals.totalPrice,
+    subtotal,
+    total: grandTotal,
     breakdown: {
       hardware: totals.hardware,
       structure: totals.structure,

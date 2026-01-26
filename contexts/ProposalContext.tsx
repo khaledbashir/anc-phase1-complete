@@ -97,6 +97,9 @@ export const ProposalContextProvider = ({
   const [proposalPdfLoading, setProposalPdfLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("client");
 
+  // Alerts
+  const [lowMarginAlerts, setLowMarginAlerts] = useState<Array<{ name: string; marginPct: number }>>([]);
+
   // Saved proposals
   const [savedProposals, setSavedProposals] = useState<ProposalType[]>([]);
 
@@ -438,6 +441,27 @@ export const ProposalContextProvider = ({
    * Apply a JSON command returned by the controller LLM
    * Supported command types: ADD_SCREEN, UPDATE_CLIENT, SET_MARGIN, SYNC_CATALOG
    */
+  // Diagnostic overlay state
+  const [diagnosticOpen, setDiagnosticOpen] = useState(false);
+  const [diagnosticPayload, setDiagnosticPayload] = useState<any>(null);
+
+  const openDiagnostic = (payload: any) => {
+    setDiagnosticPayload(payload);
+    setDiagnosticOpen(true);
+  };
+
+  const closeDiagnostic = () => {
+    setDiagnosticPayload(null);
+    setDiagnosticOpen(false);
+  };
+
+  const submitDiagnostic = (answers: any) => {
+    // Merge answers with original payload and dispatch as ADD_SCREEN
+    const merged = { ...(diagnosticPayload?.payload || {}), ...answers };
+    applyCommand({ type: "ADD_SCREEN", payload: merged });
+    closeDiagnostic();
+  };
+
   const applyCommand = (command: any) => {
     try {
       const formValues = getValues();
@@ -448,18 +472,55 @@ export const ProposalContextProvider = ({
         case "ADD_SCREEN": {
           const payload = command.payload || {};
           const screens = formValues.details.screens ?? [];
+
           const newScreen = {
             name: payload.name ?? "New Screen",
-            productType: payload.type ?? payload.productType ?? "Unknown",
-            widthFt: payload.width ?? payload.widthFt ?? 0,
-            heightFt: payload.height ?? payload.heightFt ?? 0,
+            productType: payload.productType ?? payload.type ?? "Unknown",
+            widthFt: payload.widthFt ?? payload.width ?? 0,
+            heightFt: payload.heightFt ?? payload.height ?? 0,
             quantity: payload.quantity ?? payload.qty ?? 1,
-            pitchMm: payload.pitch ?? payload.pitchMm ?? 10,
-            costPerSqFt: payload.costPerSqFt ?? 120,
+            pitchMm: payload.pitch ?? payload.pitchMm ?? payload.pitchMm ?? 10,
+            costPerSqFt: payload.costPerSqFt ?? payload.cost_per_sqft ?? 120,
             desiredMargin: payload.desiredMargin ?? undefined,
           };
 
-          setValue("details.screens", [...screens, newScreen]);
+          // Push new screen
+          const updatedScreens = [...screens, newScreen];
+          setValue("details.screens", updatedScreens);
+
+          // Recalculate audit and persist into form for live audit view
+          try {
+            const { clientSummary, internalAudit } = calculateProposalAudit(updatedScreens);
+            setValue("details.internalAudit", internalAudit);
+            setValue("details.clientSummary", clientSummary);
+
+            // Flag low margins if any per-screen margin below threshold
+            try {
+              const threshold = parseFloat(process.env.NATALIA_MARGIN_THRESHOLD || "0.2");
+              const alerts: Array<{ name: string; marginPct: number }> = [];
+              for (const s of internalAudit.perScreen) {
+                const marginAmount = s.breakdown.marginAmount;
+                const price = s.breakdown.totalPrice || 1;
+                const marginPct = price ? marginAmount / price : 0;
+                if (marginPct < threshold) {
+                  console.warn(`Low margin detected for screen ${s.name}: ${Number((marginPct*100).toFixed(2))}% (< ${(threshold*100)}%)`);
+                  alerts.push({ name: s.name, marginPct });
+                }
+              }
+
+              if (alerts.length > 0) {
+                setLowMarginAlerts(alerts);
+              }
+            } catch (e) {}
+
+
+
+            // Switch to audit tab so estimator changes are visible
+            setActiveTab("audit");
+          } catch (e) {
+            console.warn("Failed to calculate audit after ADD_SCREEN", e);
+          }
+
           break;
         }
         case "UPDATE_CLIENT": {
@@ -468,31 +529,47 @@ export const ProposalContextProvider = ({
           if (payload.address) setValue("receiver.address", payload.address);
           break;
         }
-        case "SET_MARGIN": {
+        case "SET_MARGIN":
+        case "UPDATE_MARGIN": {
           const payload = command.payload || {};
-          const value = Number(payload.value);
+          const value = Number(payload.value ?? payload.margin ?? payload.desiredMargin);
           if (isFinite(value)) {
             // Apply to all screens
             const screens = formValues.details.screens ?? [];
             const updated = screens.map((s: any) => ({ ...s, desiredMargin: value }));
             setValue("details.screens", updated);
+
+            // Recalculate audit
+            try {
+              const { clientSummary, internalAudit } = calculateProposalAudit(updated);
+              setValue("details.internalAudit", internalAudit);
+              setValue("details.clientSummary", clientSummary);
+
+              // Switch to audit tab because internal pricing changed
+              setActiveTab("audit");
+            } catch (e) {
+              console.warn("Failed to calculate audit after SET_MARGIN", e);
+            }
           }
           break;
         }
         case "SYNC_CATALOG": {
-          const payload = command.payload || {};
-          const catalogFile = payload.file;
-          if (catalogFile) {
-            // Sync catalog with RAG
-            fetch("/api/command", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                command: "SYNC_CATALOG",
-                payload: { file: catalogFile },
-              }),
-            });
-          }
+          // Ask server to sync the local catalog file with AnythingLLM
+          (async () => {
+            try {
+              const res = await fetch("/api/rag/sync", { method: "POST" });
+              const json = await res.json();
+              console.log("SYNC_CATALOG server response", json);
+            } catch (e) {
+              console.error("SYNC_CATALOG failed", e);
+            }
+          })();
+
+          break;
+        }
+        case "INCOMPLETE_SPECS": {
+          // Open Diagnostic overlay
+          openDiagnostic(command);
           break;
         }
         default:
@@ -519,6 +596,41 @@ export const ProposalContextProvider = ({
 
     // Service to export invoice with given parameters
     exportProposal(exportAs, formValues);
+  };
+
+  /**
+   * Export internal audit XLSX for the current proposal (if proposalId exists)
+   */
+  const exportAudit = async () => {
+    const formValues = getValues();
+    const id = formValues?.details?.proposalId ?? formValues?.details?.invoiceNumber ?? "";
+    if (!id) {
+      console.warn("No proposal id set for exportAudit");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/proposals/export/audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proposalId: id }),
+      });
+
+      if (!res.ok) {
+        console.error("Audit export failed", await res.text());
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `proposal-${id}-audit.xlsx`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("exportAudit error:", e);
+    }
   };
 
   /**
@@ -585,12 +697,28 @@ export const ProposalContextProvider = ({
         exportProposalDataAs,
         // Backwards-compatible alias
         exportProposalAs: exportProposalDataAs,
+        exportAudit,
         importProposalData,
+        // Diagnostic functions
+        diagnosticOpen,
+        diagnosticPayload,
+        openDiagnostic,
+        closeDiagnostic,
+        submitDiagnostic,
+        // Alerts
+        lowMarginAlerts,
         // command execution
         applyCommand,
       }}
     >
       {children}
+
+      {/* Diagnostic overlay placed in provider so it can block the whole app */}
+      {typeof window !== "undefined" ? (
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - dynamic require to avoid SSR issues
+        require("@/app/components/DiagnosticOverlay").default()
+      ) : null}
     </ProposalContext.Provider>
   );
 };

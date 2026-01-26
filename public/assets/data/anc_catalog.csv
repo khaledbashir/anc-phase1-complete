@@ -1,0 +1,5 @@
+product_id,product_name,category,pixel_pitch,cabinet_width_mm,cabinet_height_mm,weight_kg_per_cabinet,max_nits,service_type,is_curvy,uefa_certified,cost_per_sqft,description
+GPPA062,LG GPPA062,Outdoor,6.2,500,500,8.5,5000,Front/Rear,No,Yes,450,"High-brightness stadium unit used for scoreboards and ribbons."
+ANC-10-OUT,ANC 10mm Standard,Outdoor,10,1000,1000,22,6500,Rear,No,No,320,"Workhorse outdoor product for college stadiums."
+ANC-4-IN,ANC 4mm Elite,Indoor,4,500,250,5,1200,Front,Yes,No,550,"High-resolution indoor product for arenas; supports curved mounting."
+RISE-PRO,RISE WTC Special,Indoor,3.5,960,540,12,1500,Front,No,Yes,700,"Premium specification used for World Trade Center RISE projects."

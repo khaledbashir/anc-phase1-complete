@@ -78,6 +78,15 @@ const ProposalExportModal = ({ children }: ProposalExportModalType) => {
                     >
                         Export as XLSX
                     </BaseButton>
+
+                    <BaseButton
+                        tooltipLabel="Export Internal Audit (XLSX)"
+                        variant="outline"
+                        disabled={proposalPdfLoading}
+                        onClick={() => exportAudit()}
+                    >
+                        Export Internal Audit (XLSX)
+                    </BaseButton>
                 </div>
             </DialogContent>
         </Dialog>
