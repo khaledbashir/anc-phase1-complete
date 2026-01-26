@@ -26,6 +26,14 @@ export const CURRENCIES_API =
   "https://openexchangerates.org/api/currencies.json";
 
 /**
+ * AnythingLLM - The "Brain" API
+ * Centralized hardcoded base URL with strict /api/v1 versioning
+ * All AnythingLLM calls MUST use this constant - Lead Protocol
+ */
+export const ANYTHING_LLM_BASE_URL = `${process.env.ANYTHING_LLM_URL || 'https://basheer-anything-llm.c9tnyg.easypanel.host'}/api/v1`;
+export const ANYTHING_LLM_KEY = process.env.ANYTHING_LLM_KEY;
+
+/**
  * Local storage
  */
 export const LOCAL_STORAGE_PROPOSAL_DRAFT_KEY = "anc:proposalDraft";

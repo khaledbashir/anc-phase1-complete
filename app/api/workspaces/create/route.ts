@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import type { Workspace, User } from "@prisma/client";
 
 // Define the intersection type that includes the users relation
@@ -47,9 +48,7 @@ export async function POST(request: NextRequest) {
 
     // Provision AnythingLLM workspace synchronously
     try {
-      const base = (process.env.ANYTHING_LLM_URL || "").replace(/\/$/, "");
-      const key = process.env.ANYTHING_LLM_KEY;
-      if (!base || !key) throw new Error("AnythingLLM not configured");
+      if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) throw new Error("AnythingLLM not configured");
 
       const payload = {
         name: `${body.name} - ANC Project Room`,
@@ -61,9 +60,9 @@ export async function POST(request: NextRequest) {
           "You are the ANC Strategic Estimator. Mission: Build high-stakes LED proposals for Natalia. 1. Use RAG for product specs (mm pitch, cabinet weight). 2. Formulas: Structure=20% of hardware, Labor=15%. 3. If specs are missing, trigger INCOMPLETE_SPECS. 4. Always emit JSON actions.",
       };
 
-      const res = await fetch(`${base}/workspace/new`, {
+      const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/new`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
         body: JSON.stringify(payload),
       });
 
