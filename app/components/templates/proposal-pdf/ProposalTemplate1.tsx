@@ -1,10 +1,13 @@
 import React from "react";
 
 // Components
-import { ProposalLayout, LogoSelector } from "@/app/components";
+import ProposalLayout from './ProposalLayout';
+import LogoSelector from '@/app/components/reusables/LogoSelector';
 
 // Helpers
 import { formatNumberWithCommas, isDataUrl } from "@/lib/helpers";
+import { generateSOWContent } from '@/lib/sowTemplate';
+import { convertToLineItems, ScreenItem } from '@/lib/groupedPricing';
 
 // Variables
 import { DATE_OPTIONS } from "@/lib/variables";
@@ -23,21 +26,39 @@ const ProposalTemplate1 = (data: ProposalType) => {
 		: pricingType === "Hard Quoted"
 			? `ANC is pleased to present the following LED Display proposal to ${details.proposalName || 'your project'} per the specifications and pricing below.`
 			: `ANC is pleased to present the following LED Display budget to ${details.proposalName || 'your project'} per the specifications and pricing below.`;
+	// Group items if they have names that suggest they belong together
+	// This logic runs client-side to keep the PDF dynamic
+	const screensForGrouping: ScreenItem[] = (details.screens || []).map((s: any) => ({
+		id: s.id || Math.random().toString(),
+		name: s.name,
+		group: s.name.includes("-") ? s.name.split("-")[0].trim() : undefined,
+		sellPrice: s.sellPrice || 0,
+		specs: {
+			width: s.widthFt,
+			height: s.heightFt
+		}
+	}));
+
+	const displayLineItems = convertToLineItems(screensForGrouping);
+
+	// Fallback if no screens (e.g. manual items only)
+	const itemsToRender: any[] = displayLineItems.length > 0 ? displayLineItems : details.items;
 
 	return (
 		<ProposalLayout data={data}>
 			<div className='flex justify-between items-start'>
-				<div className="flex flex-col gap-2">
-					<LogoSelector theme="light" width={160} height={80} />
+				{/* Logo with Clear Space (2rem padding per ANC Guidelines) */}
+				<div className="flex flex-col gap-2 p-8">
+					<LogoSelector theme="light" width={180} height={90} />
 				</div>
 				<div className='text-right'>
-					<h2 className='text-3xl md:text-3xl font-bold text-[#0A52EF]' style={{ fontFamily: "Work Sans, sans-serif" }}>{docLabel}</h2>
-					<span className='mt-1 block text-zinc-500 font-medium tracking-tight'>#{details.proposalId ?? details.invoiceNumber}</span>
+					<h2 className='text-3xl font-bold text-[#0A52EF]' style={{ fontFamily: "'Work Sans', sans-serif", fontWeight: 700 }}>{docLabel}</h2>
+					<span className='mt-2 block text-zinc-500 font-medium tracking-tight text-sm'>#{details.proposalId ?? details.invoiceNumber}</span>
 				</div>
 			</div>
 
-			<div className='mt-8 pt-6 border-t border-zinc-100'>
-				<p className='text-zinc-800 leading-relaxed text-sm' style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>{headerText}</p>
+			<div className='mt-10 pt-6 border-t border-zinc-200'>
+				<p className='text-zinc-700 leading-relaxed text-sm max-w-3xl' style={{ fontFamily: "'Helvetica Condensed', 'Arial Narrow', Arial, sans-serif" }}>{headerText}</p>
 			</div>
 
 			<div className='mt-6 grid sm:grid-cols-2 gap-3'>
@@ -56,13 +77,13 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				<div className='sm:text-right space-y-2'>
 					<div className='grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-2'>
 						<dl className='grid sm:grid-cols-6 gap-x-3'>
-							<dt className='col-span-3 font-semibold text-gray-800'>Invoice date:</dt>
+							<dt className='col-span-3 font-semibold text-gray-800'>Proposal Date:</dt>
 							<dd className='col-span-3 text-gray-500'>
 								{new Date(details.proposalDate ?? details.invoiceDate).toLocaleDateString("en-US", DATE_OPTIONS)}
 							</dd>
 						</dl>
 						<dl className='grid sm:grid-cols-6 gap-x-3'>
-							<dt className='col-span-3 font-semibold text-gray-800'>Due date:</dt>
+							<dt className='col-span-3 font-semibold text-gray-800'>Valid Until:</dt>
 							<dd className='col-span-3 text-gray-500'>
 								{new Date(details.dueDate).toLocaleDateString("en-US", DATE_OPTIONS)}
 							</dd>
@@ -78,14 +99,14 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						<div className='text-right text-xs font-bold text-[#0A52EF] uppercase tracking-widest' style={{ fontFamily: "Work Sans, sans-serif" }}>Selling Price</div>
 					</div>
 					<div className='divide-y divide-zinc-200'>
-						{details.items.map((item, index) => (
-							<div key={index} className='grid grid-cols-4 p-3 hover:bg-zinc-50/50 transition-colors'>
+						{itemsToRender.map((item, index) => (
+							<div key={index} className={`grid grid-cols-4 p-3 hover:bg-zinc-50/50 transition-colors ${item.isGroup ? 'bg-blue-50/30' : ''}`}>
 								<div className='col-span-3'>
-									<p className='font-bold text-zinc-900 text-sm'>{item.name}</p>
+									<p className={`text-zinc-900 text-sm ${item.isGroup ? 'font-bold text-[#0A52EF]' : 'font-semibold'}`}>{item.name}</p>
 									<p className='text-xs text-zinc-600 mt-1 leading-relaxed' style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>{item.description}</p>
 								</div>
 								<div className='text-right flex flex-col justify-center'>
-									<p className='text-sm font-bold text-zinc-900'>
+									<p className={`text-sm text-zinc-900 ${item.isGroup ? 'font-bold' : 'font-medium'}`}>
 										{formatNumberWithCommas(item.total)} {details.currency}
 									</p>
 								</div>
@@ -137,89 +158,85 @@ const ProposalTemplate1 = (data: ProposalType) => {
 								{formatNumberWithCommas(Number(details.subTotal))} {details.currency}
 							</dd>
 						</dl>
-						{details.discountDetails?.amount != undefined &&
-							details.discountDetails?.amount > 0 && (
-								<dl className='grid sm:grid-cols-5 gap-x-3'>
-									<dt className='col-span-3 font-semibold text-gray-800'>Discount:</dt>
-									<dd className='col-span-2 text-gray-500'>
-										{details.discountDetails.amountType === "amount"
-											? `- ${details.discountDetails.amount} ${details.currency}`
-											: `- ${details.discountDetails.amount}%`}
-									</dd>
-								</dl>
-							)}
-						{details.taxDetails?.amount != undefined && details.taxDetails?.amount > 0 && (
-							<dl className='grid sm:grid-cols-5 gap-x-3'>
-								<dt className='col-span-3 font-semibold text-gray-800'>Tax:</dt>
-								<dd className='col-span-2 text-gray-500'>
-									{details.taxDetails.amountType === "amount"
-										? `+ ${details.taxDetails.amount} ${details.currency}`
-										: `+ ${details.taxDetails.amount}%`}
-								</dd>
-							</dl>
-						)}
-						{details.shippingDetails?.cost != undefined && details.shippingDetails?.cost > 0 && (
-							<dl className='grid sm:grid-cols-5 gap-x-3'>
-								<dt className='col-span-3 font-semibold text-gray-800'>Shipping:</dt>
-								<dd className='col-span-2 text-gray-500'>
-									{details.shippingDetails.costType === "amount"
-										? `+ ${details.shippingDetails.cost} ${details.currency}`
-										: `+ ${details.shippingDetails.cost}%`}
-								</dd>
-							</dl>
-						)}
+
 						<dl className='grid sm:grid-cols-5 gap-x-3'>
 							<dt className='col-span-3 font-semibold text-gray-800'>Total:</dt>
 							<dd className='col-span-2 text-gray-500'>
 								{formatNumberWithCommas(Number(details.totalAmount))} {details.currency}
 							</dd>
 						</dl>
-						{details.totalAmountInWords && (
-							<dl className='grid sm:grid-cols-5 gap-x-3'>
-								<dt className='col-span-3 font-semibold text-gray-800'>Total in words:</dt>
-								<dd className='col-span-2 text-gray-500'>
-									<em>
-										{details.totalAmountInWords} {details.currency}
-									</em>
-								</dd>
-							</dl>
-						)}
 					</div>
 				</div>
 			</div>
 
-			{isLOI && (
-				<div className='mt-12'>
-					<div className='p-6 bg-zinc-50 rounded-xl border border-zinc-100'>
-						<p className='text-[11px] text-zinc-600 leading-relaxed mb-6' style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
-							Please sign below to indicate Purchaser's agreement to purchase the Work as described herein.
-							<br /><br />
-							If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Additional sales tax will be included in ANC’s invoice. Payment is due within thirty (30) days of ANC’s invoice(s).
-						</p>
+			{/* SOW Page (Page 7) */}
+			<div className="break-before-page mt-12 pt-8 border-t border-zinc-200">
+				<h3 className="text-lg font-bold text-[#0A52EF] mb-6 uppercase tracking-widest" style={{ fontFamily: "Work Sans, sans-serif" }}>
+					Statement of Work & General Conditions
+				</h3>
+				<div className="whitespace-pre-wrap text-xs leading-relaxed text-zinc-700 space-y-4" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
+					{generateSOWContent({
+						includeUnionLabor: details.additionalNotes?.toLowerCase().includes("union"),
+						includeReplacement: details.additionalNotes?.toLowerCase().includes("replacement")
+					})}
+				</div>
+			</div>
 
-						<div className='grid grid-cols-2 gap-12 mt-10'>
-							<div className='space-y-6'>
-								<div>
-									<p className='text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1'>Provider</p>
-									<p className='text-sm font-bold text-zinc-900'>ANC Sports Enterprises, LLC</p>
-								</div>
-								<div className='border-b border-zinc-300 h-10 flex items-end pb-1 text-xs text-zinc-400 italic font-medium'>By:</div>
-								<div className='border-b border-zinc-300 h-10 flex items-end pb-1 text-xs text-zinc-400 italic'>Title:</div>
-								<div className='border-b border-zinc-300 h-10 flex items-end pb-1 text-xs text-zinc-400 italic'>Date:</div>
+			{/* Signature Block - 2 Column Layout */}
+			<div className='mt-16 break-before-avoid'>
+				<div className="grid grid-cols-2 gap-12">
+					{/* Left: ANC */}
+					<div>
+						<h4 className="text-sm font-bold text-[#0A52EF] mb-4 uppercase tracking-wider">ANC Sports Enterprises, LLC</h4>
+						<p className="text-[10px] text-zinc-500 mb-6">
+							2 Manhattanville Road, Suite 402<br />
+							Purchase, NY 10577
+						</p>
+						<div className="space-y-6">
+							<div className="border-b border-zinc-300 pb-1">
+								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">By:</span>
 							</div>
-							<div className='space-y-6'>
-								<div>
-									<p className='text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1'>Purchaser</p>
-									<p className='text-sm font-bold text-zinc-900'>{receiver.name}</p>
-								</div>
-								<div className='border-b border-zinc-300 h-10 flex items-end pb-1 text-xs text-zinc-400 italic font-medium'>By:</div>
-								<div className='border-b border-zinc-300 h-10 flex items-end pb-1 text-xs text-zinc-400 italic'>Title:</div>
-								<div className='border-b border-zinc-300 h-10 flex items-end pb-1 text-xs text-zinc-400 italic'>Date:</div>
+							<div className="border-b border-zinc-300 pb-1">
+								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Name:</span>
+							</div>
+							<div className="border-b border-zinc-300 pb-1">
+								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Title:</span>
+							</div>
+							<div className="border-b border-zinc-300 pb-1">
+								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Date:</span>
+							</div>
+						</div>
+					</div>
+
+					{/* Right: Purchaser */}
+					<div>
+						<h4 className="text-sm font-bold text-[#0A52EF] mb-4 uppercase tracking-wider">Purchaser: {receiver.name || '[Client Name]'}</h4>
+						<p className="text-[10px] text-zinc-500 mb-6">
+							{receiver.address || '[Client Address]'}
+						</p>
+						<div className="space-y-6">
+							<div className="border-b border-zinc-300 pb-1">
+								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">By:</span>
+							</div>
+							<div className="border-b border-zinc-300 pb-1">
+								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Name:</span>
+							</div>
+							<div className="border-b border-zinc-300 pb-1">
+								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Title:</span>
+							</div>
+							<div className="border-b border-zinc-300 pb-1">
+								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Date:</span>
 							</div>
 						</div>
 					</div>
 				</div>
-			)}
+
+				<div className="mt-8 text-center">
+					<p className="text-[10px] text-zinc-400 italic">
+						This document is confidential and proprietary to ANC Sports Enterprises, LLC.
+					</p>
+				</div>
+			</div>
 		</ProposalLayout>
 	);
 };

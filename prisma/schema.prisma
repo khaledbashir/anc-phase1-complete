@@ -14,26 +14,91 @@ model Workspace {
   proposals     Proposal[]
   aiWorkspaceSlug String? // AnythingLLM workspace slug (optional)
 }
+
 model User {
   id          String    @id @default(cuid())
   email       String    @unique
+  name        String?
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
 }
+
 model Proposal {
-  id           String         @id @default(cuid())
-  workspaceId  String
-  clientName   String
-  proposalName String?        // Professional name for client-facing exports
-  status       String         @default("DRAFT")
-  screens      ScreenConfig[]
-  internalAudit Json?          // Detailed per-screen audit (internal use)
-  clientSummary Json?         // Clean summary shown on client PDF
-  aiWorkspaceSlug String?      // Dedicated AnythingLLM workspace for this project
-  aiThreadId   String?         // AnythingLLM thread id (optional)
-  rfpDocumentUrl String?       // URL to uploaded RFP document
-  rfpQuestions RfpQuestion[]    // Questions extracted from RFP
-  workspace    Workspace      @relation(fields: [workspaceId], references: [id])
+  id              String             @id @default(cuid())
+  workspaceId     String
+  clientName      String
+  proposalName    String?            // Professional name for client-facing exports
+  status          String             @default("DRAFT") // DRAFT | PENDING_APPROVAL | FINALIZED
+  documentType    String             @default("First Round") // LOI | First Round
+  pricingType     String             @default("Budget") // Hard Quoted | Budget
+
+  // Timestamps for auto-save & history
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  lastSavedAt     DateTime?
+
+  // Core Data (Sender/Receiver only - Screens are in ScreenConfig)
+  senderData      Json?              // { name, address, email, phone }
+  receiverData    Json?              // { name, address, email, phone }
+  // NOTE: No detailsData here! ScreenConfig is the SINGLE SOURCE OF TRUTH.
+
+  // Formulas & Calculations (stored, not just results)
+  marginFormula   String?            @default("P = C / (1 - M)") // Divisor Model
+  bondFormula     String?            @default("B = P * 0.015")   // 1.5% Bond
+
+  // Internal Audit Snapshots (computed, not editable)
+  internalAudit   Json?              // Detailed per-screen audit (internal use)
+  clientSummary   Json?              // Clean summary shown on client PDF
+
+  // AI Integration
+  aiWorkspaceSlug String?            // Dedicated AnythingLLM workspace for this project
+  aiThreadId      String?            // AnythingLLM thread id (optional)
+  rfpDocumentUrl  String?            // URL to uploaded RFP document
+  isGodModeActive Boolean            @default(false) // Show French Blue glow on AI-extracted fields
+
+  // Relations
+  screens         ScreenConfig[]
+  revisions       ProposalRevision[]
+  auditLogs       AuditLog[]
+  rfpQuestions    RfpQuestion[]
+  workspace       Workspace          @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@index([clientName])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model ProposalRevision {
+  id              String   @id @default(cuid())
+  proposalId      String
+  version         Int      // v1, v2, v3...
+  createdAt       DateTime @default(now())
+  createdBy       String?  // userId
+
+  // Snapshot of the proposal state at this revision
+  snapshot        Json     // Full copy of senderData, receiverData, detailsData, screens
+
+  proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, version])
+  @@index([proposalId])
+}
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  proposalId      String
+  action          String   // CREATED | SAVED | MARGIN_CHANGED | SCREEN_ADDED | EXPORTED | FINALIZED
+  changeSource    String?  // AI_RAG | USER_OVERRIDE | EXCEL_IMPORT | SYSTEM
+  userId          String?
+  userName        String?  // Human-readable name for audit trail
+  timestamp       DateTime @default(now())
+  metadata        Json?    // { field: "margin", oldValue: 0.08, newValue: 0.10, aiConfidence: 0.85 }
+
+  proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId])
+  @@index([timestamp])
 }
 
 model RfpQuestion {
@@ -45,6 +110,7 @@ model RfpQuestion {
   order       Int          // Display order
   proposal    Proposal     @relation(fields: [proposalId], references: [id])
 }
+
 model ScreenConfig {
   id           String         @id @default(cuid())
   proposalId   String
@@ -61,6 +127,7 @@ model ScreenConfig {
   lineItems    CostLineItem[]
   proposal     Proposal       @relation(fields: [proposalId], references: [id])
 }
+
 model CostLineItem {
   id             String       @id @default(cuid())
   screenConfigId String
@@ -70,3 +137,4 @@ model CostLineItem {
   price          Decimal      @db.Decimal(12, 2)
   screenConfig   ScreenConfig @relation(fields: [screenConfigId], references: [id])
 }
+

@@ -3,13 +3,6 @@
 // RHF
 import { useFormContext } from "react-hook-form";
 
-// ShadCn
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-
-// Components
-import { ChargeInput } from "@/app/components";
-
 // Contexts
 import { useChargesContext } from "@/contexts/ChargesContext";
 import { useTranslationContext } from "@/contexts/TranslationContext";
@@ -20,6 +13,12 @@ import { formatNumberWithCommas } from "@/lib/helpers";
 // Types
 import { ProposalType } from "@/types";
 
+/**
+ * Charges (De-Shit-ified)
+ * 
+ * Removed: Discount, Tax, Shipping, Total in Words toggles.
+ * These are invoice-centric features that are antithetical to a $20M stadium bid tool.
+ */
 const Charges = () => {
     const {
         formState: { errors },
@@ -28,159 +27,36 @@ const Charges = () => {
     const { _t } = useTranslationContext();
 
     const {
-        discountSwitch,
-        setDiscountSwitch,
-        taxSwitch,
-        setTaxSwitch,
-        shippingSwitch,
-        setShippingSwitch,
-        discountType,
-        setDiscountType,
-        taxType,
-        setTaxType,
-        shippingType,
-        setShippingType,
-        totalInWordsSwitch,
-        setTotalInWordsSwitch,
         currency,
         subTotal,
         totalAmount,
     } = useChargesContext();
 
-    const switchAmountType = (
-        type: string,
-        setType: (type: string) => void
-    ) => {
-        if (type == "amount") {
-            setType("percentage");
-        } else {
-            setType("amount");
-        }
-    };
     return (
-        <>
-            {/* Charges */}
-            <div className="flex flex-col gap-3 min-w-[20rem]">
-                {/* Switches */}
-                <div className="flex justify-evenly pb-6">
-                    <div>
-                        <Label>{_t("form.steps.summary.discount")}</Label>
+        <div className="flex flex-col gap-4 min-w-[20rem] p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-200 dark:border-zinc-800">
+            <div className="flex justify-between items-center text-sm">
+                <span className="text-zinc-500 font-medium">Subtotal</span>
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                    {formatNumberWithCommas(subTotal)} {currency}
+                </span>
+            </div>
 
-                        <div>
-                            <div>
-                                <Switch
-                                    checked={discountSwitch}
-                                    onCheckedChange={(value) => {
-                                        setDiscountSwitch(value);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <Label>{_t("form.steps.summary.tax")}</Label>
-
-                        <div>
-                            <div>
-                                <Switch
-                                    checked={taxSwitch}
-                                    onCheckedChange={(value) => {
-                                        setTaxSwitch(value);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <Label>{_t("form.steps.summary.shipping")}</Label>
-
-                        <div>
-                            <div>
-                                <Switch
-                                    checked={shippingSwitch}
-                                    onCheckedChange={(value) => {
-                                        setShippingSwitch(value);
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex flex-col justify-center px-5 gap-y-3">
-                    <div className="flex justify-between items-center">
-                        <div>{_t("form.steps.summary.subTotal")}</div>
-
-                        <div>
-                            {formatNumberWithCommas(subTotal)} {currency}
-                        </div>
-                    </div>
-                    {discountSwitch && (
-                        <ChargeInput
-                            label={_t("form.steps.summary.discount")}
-                            name="details.discountDetails.amount"
-                            switchAmountType={switchAmountType}
-                            type={discountType}
-                            setType={setDiscountType}
-                            currency={currency}
-                        />
+            <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4 flex justify-between items-center">
+                <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-wide">
+                    Total Amount
+                </span>
+                <div className="text-right">
+                    <p className="text-xl font-bold text-blue-600">
+                        {formatNumberWithCommas(totalAmount)} {currency}
+                    </p>
+                    {errors.details?.totalAmount?.message && (
+                        <small className="text-sm font-medium text-destructive">
+                            {errors.details?.totalAmount?.message}
+                        </small>
                     )}
-
-                    {taxSwitch && (
-                        <ChargeInput
-                            label={_t("form.steps.summary.tax")}
-                            name="details.taxDetails.amount"
-                            switchAmountType={switchAmountType}
-                            type={taxType}
-                            setType={setTaxType}
-                            currency={currency}
-                        />
-                    )}
-
-                    {shippingSwitch && (
-                        <ChargeInput
-                            label={_t("form.steps.summary.shipping")}
-                            name="details.shippingDetails.cost"
-                            switchAmountType={switchAmountType}
-                            type={shippingType}
-                            setType={setShippingType}
-                            currency={currency}
-                        />
-                    )}
-
-                    <div className="flex justify-between items-center">
-                        <div>{_t("form.steps.summary.totalAmount")}</div>
-
-                        <div className="">
-                            <p>
-                                {formatNumberWithCommas(totalAmount)} {currency}
-                            </p>
-
-                            <small className="text-sm font-medium text-destructive">
-                                {errors.details?.totalAmount?.message}
-                            </small>
-                        </div>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                        <p>{_t("form.steps.summary.includeTotalInWords")}</p>{" "}
-                        <p>
-                            {totalInWordsSwitch
-                                ? _t("form.steps.summary.yes")
-                                : _t("form.steps.summary.no")}
-                        </p>
-                        <Switch
-                            checked={totalInWordsSwitch}
-                            onCheckedChange={(value) => {
-                                setTotalInWordsSwitch(value);
-                            }}
-                        />
-                    </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 
