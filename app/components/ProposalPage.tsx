@@ -11,6 +11,7 @@ import RfpSidebar from "@/app/components/invoice/RfpSidebar";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
 import SaveIndicator from "@/app/components/reusables/SaveIndicator";
 import WizardStepper from "@/app/components/invoice/form/wizard/WizardProgress";
+import ActionToolbar from "@/app/components/ActionToolbar";
 import { WizardStep } from "@/app/components";
 import {
   Step1Ingestion,
@@ -126,13 +127,12 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   const FormContent = (
     <Form {...useFormContext<ProposalType>()}>
       <form onSubmit={handleSubmit(onFormSubmit, (err) => console.log(err))}>
-        {/* WE DO NOT MAP HERE - The Wizard provider in ProposalPage will automatically 
-            render the current step if we pass individual WizardStep components as children.
-            BUT, since we are inside WizardWrapper which is ALREADY UNDER <Wizard>,
-            and using useWizard() hook, we should just render the children directly.
-            The current double-rendering is because ProposalPage wraps <Wizard> and WizardWrapper 
-            is where useWizard is used. We need to be careful.
-        */}
+        {/* Action Toolbar - Quick access to New, Reset, Load, Export */}
+        <div className="px-4 pt-4">
+          <ActionToolbar />
+        </div>
+        
+        {/* Wizard Steps */}
         <div className="p-0">
           <WizardStep>
             <Step1Ingestion />

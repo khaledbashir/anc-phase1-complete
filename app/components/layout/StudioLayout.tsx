@@ -44,8 +44,8 @@ export function StudioLayout({
                     {/* Form Content Area - Takes remaining space */}
                     <div 
                         className={cn(
-                            "flex-1 overflow-y-auto transition-all duration-300",
-                            isAiExpanded ? "max-h-[40%]" : "max-h-[calc(100%-48px)]"
+                            "overflow-y-auto transition-all duration-300",
+                            isAiExpanded ? "flex-[0.6]" : "flex-1"
                         )}
                     >
                         {formContent}
@@ -54,8 +54,8 @@ export function StudioLayout({
                     {/* AI Command Bar - Persistent with Gap Analysis */}
                     <div 
                         className={cn(
-                            "border-t border-zinc-800 bg-zinc-950 transition-all duration-300 flex flex-col shrink-0",
-                            isAiExpanded ? "flex-1 min-h-[300px]" : "h-auto"
+                            "border-t border-zinc-800 bg-zinc-950 transition-all duration-300 flex flex-col",
+                            isAiExpanded ? "flex-[0.4] min-h-[250px]" : "h-12 shrink-0"
                         )}
                     >
                         <AiCommandBar 
