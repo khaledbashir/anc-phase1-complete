@@ -162,12 +162,12 @@ const ProposalTemplate1 = (data: ProposalType) => {
 									</div>
 									<div className='flex justify-between text-xs'>
 										<span className='text-zinc-500'>Dimensions:</span>
-										<span className='font-bold text-zinc-800'>{heightFt}'h x {widthFt}'w</span>
+										<span className='font-bold text-zinc-800'>{screen.heightFt}'h x {screen.widthFt}'w</span>
 									</div>
 									{(() => {
 										// If explicit pixels are missing, try to compute them for the preview
-										const h = screen.pixelsH || Math.round((heightFt * 304.8) / (screen.pitchMm || 10));
-										const w = screen.pixelsW || Math.round((widthFt * 304.8) / (screen.pitchMm || 10));
+										const h = screen.pixelsH || Math.round((screen.heightFt * 304.8) / (screen.pitchMm || 10));
+										const w = screen.pixelsW || Math.round((screen.widthFt * 304.8) / (screen.pitchMm || 10));
 
 										if (h > 0 && w > 0) {
 											return (
