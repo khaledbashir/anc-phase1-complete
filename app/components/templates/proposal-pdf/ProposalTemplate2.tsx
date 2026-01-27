@@ -32,103 +32,111 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
     // Helper for Header
     const SectionHeader = ({ title }: { title: string }) => (
-        <div style={{ color: PDF_COLORS.FRENCH_BLUE }} className="text-center mb-4 mt-8">
-            <h2 className="text-xl font-bold uppercase tracking-widest">{title}</h2>
+        <div className="text-center mb-8 mt-4">
+            <h2 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="text-xl font-normal uppercase tracking-[0.2em]">{title}</h2>
         </div>
     );
 
-    // Helper for Spec Table
+    // Helper for Spec Table - Updated to match ABCDE style
     const SpecTable = ({ screen }: { screen: any }) => (
-        <div className="mb-6 break-inside-avoid">
-            <div className="flex justify-between items-end mb-1 border-b-2 border-black pb-1">
-                <h3 className="font-bold text-lg uppercase text-gray-900">{screen.name}</h3>
+        <div className="mb-8 break-inside-avoid">
+            {/* Gray Header Bar */}
+            <div className="flex justify-between items-center bg-gray-200 px-2 py-1 border-b border-gray-300">
+                <h3 className="font-bold text-sm uppercase text-gray-900">{screen.name}</h3>
                 <span className="font-bold text-sm uppercase text-gray-900">SPECIFICATIONS</span>
             </div>
             <table className="w-full text-xs">
                 <tbody>
-                    <tr className="bg-gray-100">
-                        <td className="p-1 font-bold pl-2">MM Pitch</td>
-                        <td className="p-1 text-right pr-2">{screen.pitchMm ?? screen.pixelPitch}mm</td>
+                    <tr className="bg-white border-b border-gray-100">
+                        <td className="p-1 pl-2 text-gray-600">MM Pitch</td>
+                        <td className="p-1 text-right pr-2 font-medium text-gray-900">{screen.pitchMm ?? screen.pixelPitch} mm</td>
                     </tr>
-                    <tr>
-                        <td className="p-1 font-bold pl-2">Quantity</td>
-                        <td className="p-1 text-right pr-2">{screen.quantity}</td>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                        <td className="p-1 pl-2 text-gray-600">Quantity</td>
+                        <td className="p-1 text-right pr-2 font-medium text-gray-900">{screen.quantity}</td>
                     </tr>
-                    <tr className="bg-gray-100">
-                        <td className="p-1 font-bold pl-2">Active Display Height (ft.)</td>
-                        <td className="p-1 text-right pr-2">{screen.heightFt ?? screen.height}'</td>
+                    <tr className="bg-white border-b border-gray-100">
+                        <td className="p-1 pl-2 text-gray-600">Active Display Height (ft.)</td>
+                        <td className="p-1 text-right pr-2 font-medium text-gray-900">{screen.heightFt ?? screen.height}'</td>
                     </tr>
-                    <tr>
-                        <td className="p-1 font-bold pl-2">Active Display Width (ft.)</td>
-                        <td className="p-1 text-right pr-2">{screen.widthFt ?? screen.width}'</td>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                        <td className="p-1 pl-2 text-gray-600">Active Display Width (ft.)</td>
+                        <td className="p-1 text-right pr-2 font-medium text-gray-900">{screen.widthFt ?? screen.width}'</td>
                     </tr>
-                    <tr className="bg-gray-100">
-                        <td className="p-1 font-bold pl-2">Pixel Resolution (H)</td>
-                        <td className="p-1 text-right pr-2">{screen.resolutionH ?? ((screen.heightFt ?? screen.height) * 12 * 25.4 / (screen.pitchMm ?? screen.pixelPitch)).toFixed(0)} p</td>
+                    <tr className="bg-white border-b border-gray-100">
+                        <td className="p-1 pl-2 text-gray-600">Pixel Resolution (H)</td>
+                        <td className="p-1 text-right pr-2 font-medium text-gray-900">{screen.resolutionH ?? ((screen.heightFt ?? screen.height) * 12 * 25.4 / (screen.pitchMm ?? screen.pixelPitch)).toFixed(0)} p</td>
                     </tr>
-                    <tr>
-                        <td className="p-1 font-bold pl-2">Pixel Resolution (W)</td>
-                        <td className="p-1 text-right pr-2">{screen.resolutionW ?? ((screen.widthFt ?? screen.width) * 12 * 25.4 / (screen.pitchMm ?? screen.pixelPitch)).toFixed(0)} p</td>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                        <td className="p-1 pl-2 text-gray-600">Pixel Resolution (W)</td>
+                        <td className="p-1 text-right pr-2 font-medium text-gray-900">{screen.resolutionW ?? ((screen.widthFt ?? screen.width) * 12 * 25.4 / (screen.pitchMm ?? screen.pixelPitch)).toFixed(0)} p</td>
                     </tr>
                 </tbody>
             </table>
         </div>
     );
 
-    // Helper for Pricing Table
+    // Helper for Pricing Table - Updated to match ABCDE style
     const PricingTable = ({ screen }: { screen: any }) => {
-        // If we have internal audit breakdown, use it. Else fallback.
         const auditRow = internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
         const b = auditRow?.breakdown;
-
-        // Mock rows if real data missing (fallback to legacy items?)
-        // Assuming Enterprise flow always has audit.
         if (!auditRow) return null;
 
         return (
-            <div className="mb-6 break-inside-avoid">
-                <div className="flex justify-between items-end mb-1 border-b-2 border-black pb-1">
-                    <h3 className="font-bold text-lg uppercase text-gray-900">{screen.name}</h3>
+            <div className="mb-8 break-inside-avoid">
+                {/* Gray Header Bar */}
+                <div className="flex justify-between items-center bg-gray-200 px-2 py-1 border-b border-gray-300">
+                    <h3 className="font-bold text-sm uppercase text-gray-900">{screen.name}</h3>
                     <span className="font-bold text-sm uppercase text-gray-900">PRICING</span>
                 </div>
-                <table className="w-full text-xs">
+
+                <table className="w-full text-xs box-border">
                     <tbody>
-                        {/* Base Hardware (Sell Price) */}
-                        <tr className="border-b border-gray-200">
-                            <td className="p-2 text-gray-700">Base LED Display Hardware - {screen.pitchMm}mm SMD</td>
-                            <td className="p-2 text-right font-medium">{formatCurrency(b?.hardware * 1.3)}</td>
-                            {/* Note: logic above is illustrative, usually 'Sell Price' is the line item. 
-                                In 'AuditTable', we have 'b.sellPrice'. 
-                                We probably want to break it down.
-                                Let's assume 'b.sellPrice' is the total line for this screen.
-                            */}
+                        {/* Zebra Striping logic if needed, but screenshot shows mostly white with clean lines */}
+                        <tr className="border-b border-gray-100">
+                            {/* Make sure we have a description */}
+                            <td className="p-2 text-gray-700 w-3/4">{screen.name} - {screen.pitchMm}mm (Qty {screen.quantity})</td>
+                            <td className="p-2 text-right font-medium text-gray-900 w-1/4">{formatCurrency(b?.hardware * 1.3)}</td>
                         </tr>
-                        {/* Services Bundle */}
-                        <tr className="bg-gray-100 border-b border-gray-200">
-                            <td className="p-2 text-gray-700">LED Mounts and Secondary Support</td>
-                            <td className="p-2 text-right font-medium">{formatCurrency(b?.structure)}</td>
+                        <tr className="bg-gray-50 border-b border-gray-100">
+                            <td className="p-2 text-gray-700">Structural Materials</td>
+                            <td className="p-2 text-right font-medium text-gray-900">{formatCurrency(b?.structure)}</td>
                         </tr>
-                        <tr className="border-b border-gray-200">
-                            <td className="p-2 text-gray-700">LED and Material Installation</td>
-                            <td className="p-2 text-right font-medium">{formatCurrency(b?.install)}</td>
+                        <tr className="border-b border-gray-100">
+                            <td className="p-2 text-gray-700">Structural Labor and LED Installation</td>
+                            <td className="p-2 text-right font-medium text-gray-900">{formatCurrency(b?.install)}</td>
                         </tr>
-                        <tr className="bg-gray-100 border-b border-gray-200">
-                            <td className="p-2 text-gray-700">Project Management, Power & Data</td>
-                            <td className="p-2 text-right font-medium">{formatCurrency(b?.pm + b?.power)}</td>
+                        <tr className="bg-gray-50 border-b border-gray-100">
+                            <td className="p-2 text-gray-700">Electrical and Data - Materials and Subcontracting</td>
+                            <td className="p-2 text-right font-medium text-gray-900">{formatCurrency(b?.power)}</td>
                         </tr>
-                        <tr className="border-b border-gray-200">
-                            <td className="p-2 text-gray-700">Engineering and Permits</td>
-                            <td className="p-2 text-right font-medium">{formatCurrency(b?.engineering)}</td>
+                        <tr className="border-b border-gray-100">
+                            <td className="p-2 text-gray-700">Project Management, General Conditions, Travel & Expenses</td>
+                            <td className="p-2 text-right font-medium text-gray-900">{formatCurrency(b?.pm + b?.travel + b?.generalConditions)}</td>
                         </tr>
-                        <tr className="bg-gray-100 border-b border-gray-200">
-                            <td className="p-2 text-gray-700">Warranty (2 Years Parts)</td>
-                            <td className="p-2 text-right font-medium">Included</td>
+                        <tr className="bg-gray-50 border-b border-gray-100">
+                            <td className="p-2 text-gray-700">Submittals, Engineering, and Permits</td>
+                            <td className="p-2 text-right font-medium text-gray-900">{formatCurrency(b?.engineering + b?.permits + b?.submittals)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-100">
+                            <td className="p-2 text-gray-700">Content Management System Equipment, Installation, and Commissioning</td>
+                            <td className="p-2 text-right font-medium text-gray-900">{formatCurrency(b?.cms)}</td>
                         </tr>
 
-                        {/* Subtotal */}
-                        <tr className="border-t-2 border-black">
-                            <td className="p-2 font-bold text-right uppercase">Subtotal:</td>
-                            <td className="p-2 text-right font-bold text-black text-sm">{formatCurrency(b?.finalClientTotal)}</td>
+                        {/* Subtotal Row - darker bar */}
+                        <tr className="bg-gray-100 font-bold border-t border-gray-300">
+                            <td className="p-2 text-right uppercase text-gray-900">SUBTOTAL:</td>
+                            <td className="p-2 text-right text-black">{formatCurrency(b?.finalClientTotal)}</td>
+                        </tr>
+                        {/* Tax Row */}
+                        <tr className="border-b border-gray-300">
+                            <td className="p-1 text-right text-[10px] text-gray-500 uppercase">Tax (EST):</td>
+                            <td className="p-1 text-right text-[10px] text-gray-500">$0.00</td>
+                        </tr>
+                        {/* Final Total Row */}
+                        <tr className="font-bold border-b-2 border-black">
+                            <td className="p-2 text-right uppercase text-gray-900">TOTAL:</td>
+                            <td className="p-2 text-right text-black">{formatCurrency(b?.finalClientTotal)}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -138,26 +146,28 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
     return (
         <ProposalLayout data={data}>
-            {/* 1. HEADER (Summary Page) */}
-            <div className="flex justify-between items-start mb-8">
-                <div>
-                    {/* Dynamic Logo based on guard */}
-                    <LogoSelector theme={forceWhiteLogo ? "dark" : "light"} width={140} height={100} />
-                    <div className="mt-4">
-                        <h1 className="text-3xl font-bold text-[#003366] uppercase leading-none">Sales Quotation</h1>
-                        <p className="text-sm text-gray-500 mt-1">Proposal #{details.proposalId ?? "DRAFT"}</p>
-                    </div>
+            {/* 1. HEADER (Summary Page) - Refined for ABCDE Layout */}
+            <div className="flex justify-between items-start mb-6">
+                {/* Logo Left */}
+                <div className="w-1/2">
+                    <LogoSelector theme={forceWhiteLogo ? "dark" : "light"} width={180} height={100} />
                 </div>
-                <div className="text-right text-xs text-gray-600">
-                    <p className="font-bold text-gray-900 text-sm">{sender.name}</p>
-                    <p>{sender.address}</p>
-                    <p>{sender.city}, {sender.country} {sender.zipCode}</p>
-                    <p className="mt-2 text-[#0A52EF]">{sender.email}</p>
+                {/* Title Right */}
+                <div className="w-1/2 text-right">
+                    <h1 className="text-2xl font-bold text-[#003366] uppercase leading-tight mb-1">{data.details.proposalName || "PROJECT NAME"}</h1>
+                    <h2 className="text-xl font-bold text-gray-800 uppercase leading-none">SALES QUOTATION</h2>
                 </div>
             </div>
 
+            {/* Intro Paragraph (from ABCDE screenshot) */}
+            <div className="mb-10 text-xs text-gray-600 text-justify leading-relaxed mx-1">
+                <p>
+                    This Sales Quotation will set forth the terms by which {receiver.name} ("Purchaser") located at {receiver.address}, and ANC Sports Enterprises, LLC ("ANC") located at {sender.address} (collectively, the "Parties") agree that ANC will provide following LED Display and services ("the Display System") described below for the {data.details.proposalName || "Project"}, as described below.
+                </p>
+            </div>
+
             {/* 2. SPECIFICATIONS SECTION */}
-            <SectionHeader title={details.proposalName || "Project Specifications"} />
+            <SectionHeader title="SPECIFICATIONS" />
 
             {screens && screens.length > 0 ? (
                 screens.map((screen: any, idx: number) => (

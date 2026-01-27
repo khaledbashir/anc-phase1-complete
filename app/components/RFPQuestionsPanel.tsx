@@ -19,7 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Send, FileUp, Sparkles, Bot, AlertTriangle, Paperclip } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ThemeSwitcher } from "./reusables/ThemeSwitcher";
+import ThemeSwitcher from "./reusables/ThemeSwitcher";
 
 export const RFPQuestionsPanel = () => {
   const { control, setValue } = useFormContext();
@@ -124,8 +124,8 @@ export const RFPQuestionsPanel = () => {
           {aiMessages.map((m: any, i: number) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${m.role === 'user'
-                  ? 'bg-[#003366] text-white rounded-br-none'
-                  : 'bg-zinc-900 text-zinc-300 border border-zinc-800 rounded-bl-none'
+                ? 'bg-[#003366] text-white rounded-br-none'
+                : 'bg-zinc-900 text-zinc-300 border border-zinc-800 rounded-bl-none'
                 }`}>
                 {/* Render newlines properly */}
                 <div className="leading-relaxed whitespace-pre-wrap">{m.content}</div>
