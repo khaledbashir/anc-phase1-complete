@@ -265,6 +265,8 @@ const InvoiceDetailsSchema = z.object({
     paymentTerms: fieldValidators.stringMin1,
     signature: SignatureSchema.optional(),
     updatedAt: fieldValidators.stringOptional,
+    documentType: z.enum(["LOI", "First Round"]).default("First Round"),
+    pricingType: z.enum(["Hard Quoted", "Budget"]).default("Budget"),
     pdfTemplate: z.number(),
 });
 

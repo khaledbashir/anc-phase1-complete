@@ -28,13 +28,14 @@ import {
 } from "@/app/components";
 
 import AuditTable from "@/app/components/invoice/AuditTable";
+import { RFPQuestionsPanel } from "@/app/components/RFPQuestionsPanel";
 
 // Contexts
 import { useTranslationContext } from "@/contexts/TranslationContext";
 import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Icons
-import { Building2, User, LayoutGrid, Package, CreditCard, Calculator } from "lucide-react";
+import { Building2, User, LayoutGrid, Package, CreditCard, Calculator, FileText } from "lucide-react";
 
 const ProposalForm = () => {
     const { _t } = useTranslationContext();
@@ -56,7 +57,7 @@ const ProposalForm = () => {
         }
     }, [proposalId]);
 
-    const TAB_ORDER = ["client","details","screens","items","summary","audit","payment"];
+    const TAB_ORDER = ["client", "details", "screens", "items", "summary", "audit", "payment", "rfp"];
 
     const goToNextTab = () => {
         const idx = TAB_ORDER.indexOf(activeTab || "client");
@@ -94,6 +95,7 @@ const ProposalForm = () => {
                     <TabsTrigger value="summary" className="data-[state=active]:bg-zinc-800 text-zinc-300">Summary</TabsTrigger>
                     <TabsTrigger value="audit" className="data-[state=active]:bg-zinc-800 text-zinc-300">Audit</TabsTrigger>
                     <TabsTrigger value="payment" className="data-[state=active]:bg-zinc-800 text-zinc-300">Payment</TabsTrigger>
+                    <TabsTrigger value="rfp" className="data-[state=active]:bg-zinc-800 text-zinc-300">RFP Analysis</TabsTrigger>
                 </TabsList>
 
                 {/* Client Tab */}
@@ -237,6 +239,26 @@ const ProposalForm = () => {
                             <div className="overflow-x-auto">
                                 <AuditTable />
                             </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* RFP Tab */}
+                <TabsContent value="rfp" className="space-y-4">
+                    <Card className="bg-zinc-900/50 border-zinc-800/50">
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-lg bg-[#003366]/20">
+                                    <FileText className="w-5 h-5 text-[#003366]" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-zinc-100 text-base">RFP Requirement Extraction</CardTitle>
+                                    <CardDescription className="text-zinc-500 text-xs">Upload RFP to extract technical specs and requirements</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <RFPQuestionsPanel />
                         </CardContent>
                     </Card>
                 </TabsContent>

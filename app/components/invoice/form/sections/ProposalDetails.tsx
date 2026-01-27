@@ -9,6 +9,7 @@ import {
     Subheading,
     TemplateSelector,
 } from "@/app/components";
+import FormSelect from "../../../reusables/form-fields/FormSelect";
 
 // Contexts
 import { useTranslationContext } from "@/contexts/TranslationContext";
@@ -56,6 +57,22 @@ const ProposalDetails = () => {
                 </div>
 
                 <div className="flex flex-col gap-2">
+                    <FormSelect
+                        name="details.documentType"
+                        label="Document Purpose"
+                        options={[
+                            { label: "LOI", value: "LOI" },
+                            { label: "First Round (Proposal/Budget)", value: "First Round" },
+                        ]}
+                    />
+                    <FormSelect
+                        name="details.pricingType"
+                        label="Pricing Round"
+                        options={[
+                            { label: "Hard Quoted", value: "Hard Quoted" },
+                            { label: "Budget", value: "Budget" },
+                        ]}
+                    />
                     <TemplateSelector />
                 </div>
             </div>

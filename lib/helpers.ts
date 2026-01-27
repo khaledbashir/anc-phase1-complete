@@ -33,7 +33,7 @@ const formatNumberWithCommas = (number: number) => {
     "afterDecimal": "Fils"
  }
  */
- const fetchCurrencyDetails = (currency: string): CurrencyDetails | null => {
+const fetchCurrencyDetails = (currency: string): CurrencyDetails | null => {
     const data = currenciesDetails as Record<string, CurrencyDetails>;
     const currencyDetails = data[currency];
     return currencyDetails || null;
@@ -47,11 +47,16 @@ const formatNumberWithCommas = (number: number) => {
  * @returns {string} Number in words
  */
 const formatPriceToString = (price: number, currency: string): string => {
+    // Safety check for NaN or infinite numbers
+    if (!Number.isFinite(price) || isNaN(price)) {
+        return "Zero";
+    }
+
     // Initialize variables
-    let decimals : number;
+    let decimals: number;
     let beforeDecimal: string | null = null;
     let afterDecimal: string | null = null;
-    
+
     const currencyDetails = fetchCurrencyDetails(currency);
 
     // If currencyDetails is available, use its values, else dynamically set decimals
@@ -71,7 +76,7 @@ const formatPriceToString = (price: number, currency: string): string => {
 
     // Split the price into integer and fractional parts
     const integerPart = Math.floor(roundedPrice);
-    
+
     const fractionalMultiplier = Math.pow(10, decimals);
     const fractionalPart = Math.round((roundedPrice - integerPart) * fractionalMultiplier);
 

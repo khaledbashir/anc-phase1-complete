@@ -128,17 +128,17 @@ export const SHORT_DATE_OPTIONS: Intl.DateTimeFormatOptions = {
  */
 export const FORM_DEFAULT_VALUES = {
   sender: {
-    name: "",
-    address: "",
-    zipCode: "",
-    city: "",
-    country: "",
-    email: "",
-    phone: "",
+    name: "ANC Sports Enterprises",
+    address: "2 Manhattanville Road, Suite 402",
+    zipCode: "10577",
+    city: "Purchase, NY",
+    country: "United States",
+    email: "info@ancsports.com",
+    phone: "(914) 696-2100",
     customInputs: [],
   },
   receiver: {
-    name: "",
+    name: "Client Name",
     address: "",
     zipCode: "",
     city: "",
@@ -184,6 +184,8 @@ export const FORM_DEFAULT_VALUES = {
     additionalNotes: "",
     paymentTerms: "",
     totalAmountInWords: "",
+    documentType: "First Round" as "LOI" | "First Round",
+    pricingType: "Budget" as "Hard Quoted" | "Budget",
     pdfTemplate: 1,
   },
 };
@@ -267,6 +269,8 @@ export const FORM_FILL_VALUES = {
     subTotal: "850",
     totalAmount: "850",
     totalAmountInWords: "Eight Hundred Fifty",
+    documentType: "First Round" as "LOI" | "First Round",
+    pricingType: "Hard Quoted" as "Hard Quoted" | "Budget",
     pdfTemplate: 1,
   },
 };

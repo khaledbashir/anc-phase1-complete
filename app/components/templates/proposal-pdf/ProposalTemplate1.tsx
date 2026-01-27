@@ -14,6 +14,15 @@ import { ProposalType } from "@/types";
 
 const ProposalTemplate1 = (data: ProposalType) => {
 	const { sender, receiver, details } = data;
+	const isLOI = (details as any).documentType === "LOI";
+	const pricingType = (details as any).pricingType;
+	const docLabel = isLOI ? "SALES QUOTATION" : pricingType === "Hard Quoted" ? "PROPOSAL" : "BUDGET";
+
+	const headerText = isLOI
+		? `This Sales Quotation will set forth the terms by which ${receiver.name} (“Purchaser”) located at ${receiver.address}, ${receiver.zipCode} ${receiver.city}, ${receiver.country} and ANC Sports Enterprises, LLC (“ANC”) located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the “Parties”) agree that ANC will provide following LED Display and services (“the “Display System”) described below for the ${details.proposalName || 'your project'}.`
+		: pricingType === "Hard Quoted"
+			? `ANC is pleased to present the following LED Display proposal to ${details.proposalName || 'your project'} per the specifications and pricing below.`
+			: `ANC is pleased to present the following LED Display budget to ${details.proposalName || 'your project'} per the specifications and pricing below.`;
 
 	return (
 		<ProposalLayout data={data}>
@@ -29,17 +38,17 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						/>
 					) : (
 						<img
-							src="/anc-logo.svg"
+							src="/anc-logo-blue.png"
 							width={160}
 							height={80}
 							className="object-contain"
 							alt="ANC Logo"
 						/>
 					)}
-					<h1 className='text-xl md:text-2xl font-bold text-[#004990]' style={{ fontFamily: "Montserrat, sans-serif" }}>{sender.name}</h1>
+					<h1 className='text-xl md:text-2xl font-bold text-[#0A52EF]' style={{ fontFamily: "Montserrat, sans-serif" }}>{sender.name}</h1>
 				</div>
 				<div className='text-right'>
-					<h2 className='text-3xl md:text-4xl font-bold text-[#004990]' style={{ fontFamily: "Montserrat, sans-serif" }}>PROPOSAL</h2>
+					<h2 className='text-3xl md:text-4xl font-bold text-[#0A52EF]' style={{ fontFamily: "Montserrat, sans-serif" }}>{docLabel}</h2>
 					<span className='mt-2 block text-gray-600 font-semibold tracking-wider'>#{details.proposalId ?? details.invoiceNumber}</span>
 					<address className='mt-4 not-italic text-gray-800'>
 						{sender.address}
@@ -52,9 +61,13 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				</div>
 			</div>
 
+			<div className='mt-6 border-b border-gray-100 pb-4'>
+				<p className='text-gray-700 leading-relaxed text-sm'>{headerText}</p>
+			</div>
+
 			<div className='mt-6 grid sm:grid-cols-2 gap-3'>
 				<div>
-					<h3 className='text-sm uppercase tracking-widest font-bold text-[#004990] mb-2' style={{ fontFamily: "Montserrat, sans-serif" }}>Prepared For</h3>
+					<h3 className='text-sm uppercase tracking-widest font-bold text-[#0A52EF] mb-2' style={{ fontFamily: "Montserrat, sans-serif" }}>Prepared For</h3>
 					<h3 className='text-xl font-bold text-gray-900'>{receiver.name}</h3>
 					{ }
 					<address className='mt-2 not-italic text-gray-500'>
@@ -86,10 +99,10 @@ const ProposalTemplate1 = (data: ProposalType) => {
 			<div className='mt-3'>
 				<div className='border border-gray-200 p-1 rounded-lg space-y-1'>
 					<div className='hidden sm:grid sm:grid-cols-5 bg-[#f8fafc] p-2 rounded-t-lg'>
-						<div className='sm:col-span-2 text-xs font-bold text-[#004990] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Item Description</div>
-						<div className='text-left text-xs font-bold text-[#004990] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Qty</div>
-						<div className='text-left text-xs font-bold text-[#004990] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Rate</div>
-						<div className='text-right text-xs font-bold text-[#004990] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Amount</div>
+						<div className='sm:col-span-2 text-xs font-bold text-[#0A52EF] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Item Description</div>
+						<div className='text-left text-xs font-bold text-[#0A52EF] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Qty</div>
+						<div className='text-left text-xs font-bold text-[#0A52EF] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Rate</div>
+						<div className='text-right text-xs font-bold text-[#0A52EF] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Amount</div>
 					</div>
 					<div className='hidden sm:block border-b border-gray-200'></div>
 					<div className='grid grid-cols-3 sm:grid-cols-5 gap-y-1'>
@@ -179,60 +192,60 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				</div>
 			</div>
 
-			<div>
-				<div className='my-4'>
-					<div className='my-2'>
-						<p className='font-bold text-[#004990] uppercase text-xs tracking-widest mb-1' style={{ fontFamily: "Montserrat, sans-serif" }}>Additional Notes</p>
-						<p className='font-regular text-gray-700 leading-relaxed'>{details.additionalNotes}</p>
+			{isLOI ? (
+				<div className='mt-8 text-sm'>
+					<div className='my-4 border-t border-gray-200 pt-4'>
+						<p className='font-bold text-[#0A52EF] uppercase text-xs tracking-widest mb-2' style={{ fontFamily: "Montserrat, sans-serif" }}>Notes</p>
+						<p className='text-gray-700 whitespace-pre-line'>{details.additionalNotes}</p>
+					</div>
+
+					<div className='my-4'>
+						<p className='font-bold text-[#0A52EF] uppercase text-xs tracking-widest mb-2' style={{ fontFamily: "Montserrat, sans-serif" }}>Payment Terms</p>
+						<p className='text-gray-700 whitespace-pre-line'>{details.paymentTerms}</p>
+					</div>
+
+					<div className='my-6 text-gray-700 leading-relaxed'>
+						<p className='mb-4 text-xs font-semibold uppercase tracking-wider text-[#0A52EF]'>Legal Terms</p>
+						<p className='mb-4'>Please sign below to indicate Purchaser’s agreement to purchase the Work as described herein and to authorize ANC to commence production.</p>
+						<p>If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Additional sales tax will be included in ANC’s invoice. Payment is due within thirty (30) days of ANC’s invoice(s).</p>
+					</div>
+
+					<div className='mt-10'>
+						<p className='font-bold text-gray-900 mb-6'>AGREED TO AND ACCEPTED:</p>
+						<div className='grid grid-cols-2 gap-12'>
+							<div className='space-y-4'>
+								<div>
+									<p className='font-bold text-xs text-[#0A52EF] uppercase tracking-tighter mb-1'>{sender.name}</p>
+									<p className='text-[10px] text-gray-500 uppercase'>{sender.address}, {sender.city}</p>
+								</div>
+								<div className='border-b border-gray-300 h-8 flex items-end pb-1 text-xs text-gray-400'>By:</div>
+								<div className='border-b border-gray-300 h-8 flex items-end pb-1 text-xs text-gray-400'>Title:</div>
+								<div className='border-b border-gray-300 h-8 flex items-end pb-1 text-xs text-gray-400'>Date:</div>
+							</div>
+							<div className='space-y-4'>
+								<div>
+									<p className='font-bold text-xs text-[#0A52EF] uppercase tracking-tighter mb-1'>{receiver.name}</p>
+									<p className='text-[10px] text-gray-500 uppercase'>{receiver.address || "TBD"}, {receiver.city || "TBD"}</p>
+								</div>
+								<div className='border-b border-gray-300 h-8 flex items-end pb-1 text-xs text-gray-400'>By:</div>
+								<div className='border-b border-gray-300 h-8 flex items-end pb-1 text-xs text-gray-400'>Title:</div>
+								<div className='border-b border-gray-300 h-8 flex items-end pb-1 text-xs text-gray-400'>Date:</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			) : (
+				<div className='mt-6'>
+					<div className='my-4 border-t border-gray-200 pt-4'>
+						<p className='font-bold text-[#0A52EF] uppercase text-xs tracking-widest mb-1' style={{ fontFamily: "Montserrat, sans-serif" }}>Additional Notes</p>
+						<p className='text-gray-700 whitespace-pre-line'>{details.additionalNotes}</p>
 					</div>
 					<div className='my-2'>
-						<p className='font-bold text-[#004990] uppercase text-xs tracking-widest mb-1' style={{ fontFamily: "Montserrat, sans-serif" }}>Payment Terms</p>
+						<p className='font-bold text-[#0A52EF] uppercase text-xs tracking-widest mb-1' style={{ fontFamily: "Montserrat, sans-serif" }}>Payment Terms</p>
 						<p className='font-regular text-gray-700 leading-relaxed'>{details.paymentTerms}</p>
 					</div>
-					<div className='my-2'>
-						<span className='font-semibold text-md text-gray-800'>
-							Please send the payment to this address
-							<p className='text-sm'>Bank: {details.paymentInformation?.bankName}</p>
-							<p className='text-sm'>Account name: {details.paymentInformation?.accountName}</p>
-							<p className='text-sm'>Account no: {details.paymentInformation?.accountNumber}</p>
-						</span>
-					</div>
 				</div>
-				<p className='text-gray-500 text-sm'>
-					If you have any questions concerning this invoice, use the following contact information:
-				</p>
-				<div>
-					<p className='block text-sm font-medium text-gray-800'>{sender.email}</p>
-					<p className='block text-sm font-medium text-gray-800'>{sender.phone}</p>
-				</div>
-			</div>
-
-			{/* Signature */}
-			{details?.signature?.data && isDataUrl(details?.signature?.data) ? (
-				<div className='mt-6'>
-					<p className='font-semibold text-gray-800'>Signature:</p>
-					<img
-						src={details.signature.data}
-						width={120}
-						height={60}
-						alt={`Signature of ${sender.name}`}
-					/>
-				</div>
-			) : details.signature?.data ? (
-				<div className='mt-6'>
-					<p className='text-gray-800'>Signature:</p>
-					<p
-						style={{
-							fontSize: 30,
-							fontWeight: 400,
-							fontFamily: `${details.signature.fontFamily}, cursive`,
-							color: "black",
-						}}
-					>
-						{details.signature.data}
-					</p>
-				</div>
-			) : null}
+			)}
 		</ProposalLayout>
 	);
 };
