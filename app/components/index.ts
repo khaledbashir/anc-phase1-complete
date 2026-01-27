@@ -7,7 +7,6 @@ import BaseFooter from "./layout/BaseFooter";
 /* =========================
    * Proposal
    ========================= */
-import ProposalMain from "./invoice/ProposalMain";
 import ProposalActions from "./invoice/ProposalActions";
 import ActionToolbar from "./ActionToolbar";
 
@@ -102,7 +101,6 @@ import SendPdfEmail from "./templates/email/SendPdfEmail";
 export {
    BaseNavbar,
    BaseFooter,
-   ProposalMain,
    ProposalActions,
    ActionToolbar,
    BillFromSection,
