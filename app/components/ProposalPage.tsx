@@ -182,12 +182,12 @@ const ProposalPage = ({ initialData, projectId }: ProposalPageProps) => {
               "transition-all duration-300 flex gap-4",
               isIntelligenceEngineOpen ? "w-[60%] min-w-[900px]" : "w-[40%] min-w-[500px]"
             )}>
-              <div className="flex-1 sticky top-24">
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
-                  <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900/30 flex justify-between items-center">
+              <div className="flex-1 sticky top-24 h-[calc(100vh-120px)]">
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl shadow-2xl h-full flex flex-col">
+                  <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-900/30 flex justify-between items-center shrink-0">
                     <span className="text-zinc-400 text-sm font-medium">Live Proposal Preview</span>
                   </div>
-                  <div className="p-4 bg-zinc-950/50 relative aspect-[1/1.4] overflow-hidden">
+                  <div className="p-4 bg-zinc-950/50 relative flex-1 overflow-y-auto custom-scrollbar">
                     <PdfViewer />
                   </div>
                 </div>

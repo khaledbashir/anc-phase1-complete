@@ -27,7 +27,7 @@ const PdfViewer = () => {
     return (
         <div className="my-3">
             {proposalPdf.size == 0 ? (
-                <div className="w-full overflow-hidden rounded-lg shadow-2xl">
+                <div className="w-full rounded-lg shadow-2xl bg-white min-h-[1000px]">
                     <div className="origin-top transform scale-50 md:scale-50 lg:scale-75">
                         <DynamicProposalTemplate {...formValues} />
                     </div>
