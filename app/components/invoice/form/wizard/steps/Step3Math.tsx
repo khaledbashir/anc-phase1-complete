@@ -30,12 +30,12 @@ const Step3Math = () => {
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* KPI Cards: The Natalia Gut Check */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card className="bg-blue-600 border-none text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+                <Card className="bg-[#0A52EF] border-none text-white shadow-[0_10px_30px_rgba(10,82,239,0.3)]">
                     <CardContent className="p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-blue-100/80 text-xs font-bold uppercase tracking-widest mb-1">Project Average</p>
-                                <h3 className="text-3xl font-bold font-mono">
+                                <p className="text-white/80 text-xs font-bold uppercase tracking-widest mb-1" style={{ fontFamily: "Work Sans, sans-serif" }}>Selling Price / SqFt</p>
+                                <h3 className="text-3xl font-bold" style={{ fontFamily: "Work Sans, sans-serif" }}>
                                     {formatCurrency(sellPricePerSqFt)} <span className="text-sm font-normal">/ SqFt</span>
                                 </h3>
                             </div>

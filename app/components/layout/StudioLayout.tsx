@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import ModeToggle from "@/app/components/reusables/ModeToggle";
+import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
 
 interface StudioLayoutProps {
     /** Header content (Logo | Stepper | Actions) */
@@ -71,8 +72,17 @@ export function StudioLayout({
                 </section>
 
                 {/* THE ANCHOR (Right Pane) - PDF Preview */}
-                <section className="overflow-y-auto bg-slate-200 flex items-start justify-center p-8">
-                    <div className="w-full max-w-[650px] bg-white shadow-2xl rounded-sm">
+                <section className="relative overflow-y-auto bg-slate-200 flex items-start justify-center p-8">
+                    {/* Brand Signature Slashes in background */}
+                    <BrandSlashes
+                        className="absolute -top-20 -right-20 pointer-events-none"
+                        width={400}
+                        height={400}
+                        opacity={0.07}
+                        count={10}
+                    />
+
+                    <div className="relative z-10 w-full max-w-[650px] bg-white shadow-2xl rounded-sm">
                         {pdfContent}
                     </div>
                 </section>

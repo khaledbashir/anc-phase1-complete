@@ -4,63 +4,60 @@
 
 @layer base {
     :root {
-        /* ANC Brand Colors - Deep Navy & Lime Green */
+        /* ANC Brand Palette - Functional Allocation */
         --background: 0 0% 98%;
-        --foreground: 240 10% 3.9%;
+        --foreground: 221 92% 5%;
+        /* Very deep blue for text */
 
         --card: 0 0% 100%;
-        --card-foreground: 240 10% 3.9%;
+        --card-foreground: 221 92% 5%;
 
         --popover: 0 0% 100%;
-        --popover-foreground: 240 10% 3.9%;
+        --popover-foreground: 221 92% 5%;
 
         /* Primary: ANC French Blue #0A52EF */
         --primary: 221 92% 49%;
-        --primary-foreground: 0 0% 98%;
+        --primary-foreground: 0 0% 100%;
 
-        /* Accent: ANC Lime Green #C4D600 */
-        --accent: 75 82% 44%;
-        --accent-foreground: 221 92% 49%;
+        /* Secondary Blue Palette */
+        --secondary-splash: 197 100% 51%;
+        --secondary-malibu: 204 97% 44%;
+        --secondary-opal: 217 100% 23%;
 
-        --muted: 240 4.8% 95.9%;
-        --muted-foreground: 240 3.8% 46.1%;
+        --muted: 221 20% 96%;
+        --muted-foreground: 221 15% 40%;
 
         --destructive: 0 84.2% 60.2%;
         --destructive-foreground: 0 0% 98%;
 
-        --border: 240 5.9% 90%;
-        --input: 240 5.9% 90%;
+        --border: 221 20% 90%;
+        --input: 221 20% 90%;
         --ring: 221 92% 49%;
 
-        --radius: 0.75rem;
+        --radius: 0.5rem;
     }
 
     .dark {
-        --background: 240 10% 4%;
-        --foreground: 0 0% 98%;
+        --background: 221 40% 4%;
+        --foreground: 221 10% 98%;
 
-        --card: 240 10% 4%;
-        --card-foreground: 0 0% 98%;
+        --card: 221 40% 4%;
+        --card-foreground: 221 10% 98%;
 
-        --popover: 240 10% 4%;
-        --popover-foreground: 0 0% 98%;
+        --popover: 221 40% 4%;
+        --popover-foreground: 221 10% 98%;
 
-        /* Primary: ANC French Blue */
         --primary: 221 92% 55%;
-        --primary-foreground: 0 0% 98%;
+        --primary-foreground: 0 0% 100%;
 
-        /* Accent: ANC Lime Green */
-        --accent: 75 82% 44%;
-        --accent-foreground: 221 92% 49%;
-
-        --muted: 240 3.7% 15.9%;
-        --muted-foreground: 240 5% 64.9%;
+        --muted: 221 30% 12%;
+        --muted-foreground: 221 15% 65%;
 
         --destructive: 0 62.8% 30.6%;
         --destructive-foreground: 0 0% 98%;
 
-        --border: 240 3.7% 15.9%;
-        --input: 240 3.7% 15.9%;
+        --border: 221 30% 18%;
+        --input: 221 30% 18%;
         --ring: 221 92% 55%;
     }
 }
@@ -69,13 +66,14 @@
     * {
         @apply border-border;
     }
+
     body {
         @apply bg-background text-foreground;
     }
 }
 
 body {
-    font-family: "Outfit", sans-serif;
+    font-family: inherit;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }

@@ -3,12 +3,12 @@ import {
     Alex_Brush,
     Dancing_Script,
     Great_Vibes,
-    Outfit,
+    Work_Sans,
     Parisienne,
 } from "next/font/google";
 
-// Default Fonts
-export const outfit = Outfit({
+// Primary Brand Font
+export const workSans = Work_Sans({
     subsets: ["latin"],
     display: "swap",
     adjustFontFallback: false,

@@ -6,7 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Providers from "@/contexts/Providers";
 // Fonts
 import {
-    outfit,
+    workSans,
 } from "@/lib/fonts";
 // SEO
 import { JSONLD, ROOTKEYWORDS } from "@/lib/seo";
@@ -68,7 +68,7 @@ export default function RootLayout({
                 />
             </head>
             <body
-                className={`${outfit.className} antialiased bg-zinc-50 dark:bg-zinc-950`}
+                className={`${workSans.className} antialiased bg-zinc-50 dark:bg-zinc-950`}
                 suppressHydrationWarning
             >
                 <NextIntlClientProvider locale={locale} messages={messages}>
