@@ -28,32 +28,64 @@ import { Send, Sparkles, Download, Share2, Upload, Loader2, BrainCircuit } from 
 // Types
 import { ProposalType } from "@/types";
 
+
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
 };
 
-const ProposalPage = () => {
-  const { handleSubmit, setValue } = useFormContext<ProposalType>();
+
+// Hooks
+import useAutoSave from "@/lib/useAutoSave";
+
+// Components
+import SaveIndicator from "@/app/components/reusables/SaveIndicator";
+
+// ... imports
+
+interface ProposalPageProps {
+  initialData?: Partial<ProposalType>;
+  projectId?: string;
+}
+
+const ProposalPage = ({ initialData, projectId }: ProposalPageProps) => {
+  const { handleSubmit, setValue, reset, control } = useFormContext<ProposalType>();
   const { _t } = useTranslationContext();
   const { onFormSubmit, applyCommand, activeTab, setActiveTab, aiWorkspaceSlug, importANCExcel, excelImportLoading } = useProposalContext();
 
+  // Initialize form with server data if available
+  useState(() => {
+    if (initialData) {
+      reset(initialData);
+    }
+    if (projectId) {
+      setValue("proposalId", projectId);
+    }
+  });
+
+  // Enterprise Auto-Save Hook (Heartbeat)
+  const { status: saveStatus } = useAutoSave({
+    projectId: projectId || null,
+    debounceMs: 2000
+  });
+
   const projectName = useWatch({
     name: "proposalName",
-    control: useFormContext().control,
+    control: control,
   }) || "Untitled Project";
 
+  // Watch proposalId so command submit has access to it
   const proposalId = useWatch({
     name: "proposalId",
-    control: useFormContext().control,
+    control: control,
   });
 
   const [commandInput, setCommandInput] = useState("");
   const [commandLoading, setCommandLoading] = useState(false);
   const [commandHistory, setCommandHistory] = useState<ChatMessage[]>([]);
   const [showCommandHistory, setShowCommandHistory] = useState(false);
-  const [isGodModeOpen, setIsGodModeOpen] = useState(false);
+  const [isIntelligenceEngineOpen, setIsIntelligenceEngineOpen] = useState(false);
 
   const handleCommandSubmit = async () => {
     if (!commandInput.trim()) return;
@@ -64,13 +96,15 @@ const ProposalPage = () => {
     setCommandLoading(true);
 
     try {
+      const currentProposalId = proposalId || projectId || "new";
+
       const res = await fetch("/api/command", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: userMsg.content,
           history: commandHistory.map((m) => ({ role: m.role, content: m.content })),
-          proposalId: proposalId,
+          proposalId: currentProposalId,
           workspace: aiWorkspaceSlug || localStorage.getItem("aiWorkspaceSlug") || "anc-estimator",
         }),
       });
@@ -131,19 +165,21 @@ const ProposalPage = () => {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            <SaveIndicator status={saveStatus} lastSavedAt={initialData?.lastSavedAt ? new Date(initialData.lastSavedAt) : undefined} />
+
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsGodModeOpen(!isGodModeOpen)}
+              onClick={() => setIsIntelligenceEngineOpen(!isIntelligenceEngineOpen)}
               className={cn(
                 "transition-all",
-                isGodModeOpen
+                isIntelligenceEngineOpen
                   ? "bg-blue-600 border-blue-500 text-white hover:bg-blue-700"
                   : "text-zinc-400 border-zinc-700 hover:text-blue-500 hover:border-blue-500"
               )}
             >
               <BrainCircuit className="w-4 h-4 mr-2" />
-              God Mode
+              Intelligence Engine
             </Button>
             <Button
               variant="ghost"
@@ -185,7 +221,7 @@ const ProposalPage = () => {
               className="bg-[#003366] hover:bg-[#004080] text-white"
             >
               <Download className="w-4 h-4 mr-2" />
-              Export
+              Export Proposal PDF
             </Button>
           </div>
         </div>
@@ -209,7 +245,7 @@ const ProposalPage = () => {
             {/* Right: Live PDF Preview (40%) / RfpSidebar Toggle */}
             <div className={cn(
               "transition-all duration-300 flex gap-4",
-              isGodModeOpen ? "w-[55%] min-w-[800px]" : "w-[40%] min-w-[500px]"
+              isIntelligenceEngineOpen ? "w-[55%] min-w-[800px]" : "w-[40%] min-w-[500px]"
             )}>
               <div className="flex-1 sticky top-24">
                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden shadow-2xl">
@@ -222,7 +258,7 @@ const ProposalPage = () => {
                 </div>
               </div>
 
-              {isGodModeOpen && (
+              {isIntelligenceEngineOpen && (
                 <div className="w-80 lg:w-96 shrink-0 sticky top-24 h-[calc(100vh-120px)] overflow-hidden rounded-2xl border border-zinc-800 shadow-2xl animate-in slide-in-from-right duration-300">
                   <RfpSidebar />
                 </div>
@@ -233,28 +269,30 @@ const ProposalPage = () => {
       </div>
 
       {/* Floating Command Bar */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4">
+      < div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 w-full max-w-2xl px-4" >
         {/* Command History Popover */}
-        {showCommandHistory && commandHistory.length > 0 && (
-          <div className="mb-4 bg-zinc-900/95 border border-zinc-800 rounded-2xl backdrop-blur-xl shadow-2xl max-h-64 overflow-y-auto">
-            <div className="p-4 space-y-3">
-              {commandHistory.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`p-3 rounded-xl ${msg.role === "user"
-                    ? "bg-[#003366]/20 text-zinc-200"
-                    : "bg-zinc-800/50 text-zinc-400"
-                    }`}
-                >
-                  <div className="text-xs text-zinc-500 mb-1">
-                    {msg.role === "user" ? "You" : "AI Assistant"}
+        {
+          showCommandHistory && commandHistory.length > 0 && (
+            <div className="mb-4 bg-zinc-900/95 border border-zinc-800 rounded-2xl backdrop-blur-xl shadow-2xl max-h-64 overflow-y-auto">
+              <div className="p-4 space-y-3">
+                {commandHistory.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`p-3 rounded-xl ${msg.role === "user"
+                      ? "bg-[#003366]/20 text-zinc-200"
+                      : "bg-zinc-800/50 text-zinc-400"
+                      }`}
+                  >
+                    <div className="text-xs text-zinc-500 mb-1">
+                      {msg.role === "user" ? "You" : "AI Assistant"}
+                    </div>
+                    <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
                   </div>
-                  <div className="text-sm whitespace-pre-wrap">{msg.content}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
         {/* Command Input */}
         <div className="bg-zinc-900/80 border border-zinc-800 rounded-full backdrop-blur-xl shadow-2xl">
@@ -294,8 +332,8 @@ const ProposalPage = () => {
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 };
 

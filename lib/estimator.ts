@@ -18,7 +18,9 @@ export interface ScreenPriceBreakdown {
  * Total = Sell Price + Bond
  */
 export function calculateTotalWithBond(cost: number, marginPct: number) {
+  // Ferrari Edition Divisor Model: P = C / (1 - M)
   const sellPrice = cost / (1 - (marginPct / 100));
+  // Bond is 1.5% of the Sell Price
   const bond = sellPrice * 0.015;
   const total = sellPrice + bond;
 
@@ -396,7 +398,7 @@ export function calculatePerScreenAudit(
   // Ferrari Edition Divisor Model: P = C / (1 - M)
   const sellPrice = roundToCents(totalCost / (1 - desiredMargin));
 
-  // Bond Fee: 1.5% applied AFTER the divisor margin calculation
+  // Bond Fee: 1.5% applied ON TOP of the Sell Price
   const bondCost = roundToCents(sellPrice * 0.015);
   const finalClientTotal = roundToCents(sellPrice + bondCost);
 
@@ -404,7 +406,7 @@ export function calculatePerScreenAudit(
   const ancMargin = roundToCents(sellPrice - totalCost);
 
   // Selling SqFt: Final Client Total / Total Sq Ft
-  const sellingPricePerSqFt = roundToCents(finalClientTotal / totalArea);
+  const sellingPricePerSqFt = totalArea > 0 ? roundToCents(finalClientTotal / totalArea) : 0;
 
   return {
     name: s.name,

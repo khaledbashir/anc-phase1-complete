@@ -79,7 +79,7 @@ const NewProposalAlert = ({
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleCancel}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirm}>
-              {confirmLabel ?? "Create new invoice"}
+              {confirmLabel ?? "Create new proposal"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

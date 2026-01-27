@@ -16,7 +16,7 @@ type LogoSelectorProps = {
  * - Dark theme (blue/dark background) -> White Logo
  */
 const LogoSelector = ({ theme = "light", width = 160, height = 80, className = "" }: LogoSelectorProps) => {
-    const logoSrc = theme === "light" ? "/anc-logo-blue.png" : "/anc-logo-white.png";
+    const logoSrc = theme === "light" ? "/ANC_Logo_2023_blue.png" : "/ANC_Logo_2023_white.png";
 
     return (
         <img

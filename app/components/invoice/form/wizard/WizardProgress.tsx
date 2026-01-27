@@ -82,7 +82,7 @@ const WizardProgress = ({ wizard }: WizardProgressProps) => {
         },
         {
             id: 1,
-            label: _t("form.wizard.invoiceDetails"),
+            label: "Proposal Details",
             isValid: step2Valid,
         },
         {

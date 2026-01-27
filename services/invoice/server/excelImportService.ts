@@ -56,28 +56,37 @@ export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> 
             }
 
             // Financial fields on LED Sheet (fallbacks if Margin Analysis fails)
-            const hardwareCost = row[16] || 0;
-            const shippingCost = row[19] || 0;
-            const totalCostBeforeMargin = row[20] || 0;
-            const sellPrice = row[22] || 0;
-            const ancMargin = row[23] || 0;
-            const bondCost = row[24] || 0;
-            const finalClientTotal = row[25] || 0;
+            const hardwareCost = Number(row[16] || 0);
+            // Gap columns: usually Install (R/17) and Other/Spare (S/18)
+            const col17 = Number(row[17] || 0);
+            const col18 = Number(row[18] || 0);
+
+            // Heuristic: If Col 17 is substantial, likely Install/Structure. Col 18 often spare parts or tax.
+            // We map to bins to ensure they aren't lost in "Other"
+            const structureCost = col17 * 0.5; // Split heuristic if unknown
+            const laborCost = col17 * 0.5 + col18;
+
+            const shippingCost = Number(row[19] || 0);
+            const totalCostBeforeMargin = Number(row[20] || 0);
+            const sellPrice = Number(row[22] || 0);
+            const ancMargin = Number(row[23] || 0);
+            const bondCost = Number(row[24] || 0);
+            const finalClientTotal = Number(row[25] || 0);
 
             const screen: any = {
                 name: projectName,
-                pitchMm: parseFloat(pitch),
-                heightFt: parseFloat(heightFt),
-                widthFt: parseFloat(widthFt),
-                pixelsH: parseInt(pixelsH),
-                pixelsW: parseInt(pixelsW),
+                pitchMm: parseFloat(pitch) || 0,
+                heightFt: parseFloat(heightFt) || 0,
+                widthFt: parseFloat(widthFt) || 0,
+                pixelsH: parseInt(pixelsH) || 0,
+                pixelsW: parseInt(pixelsW) || 0,
                 brightness: brightness,
-                quantity: 1,
+                quantity: 1, // Default to 1 if not found
                 lineItems: []
             };
 
             // Enhance description with Brightness if available
-            let description = `Resolution: ${pixelsH}h x ${pixelsW}w. `;
+            let description = `Resolution: ${screen.pixelsH}h x ${screen.pixelsW}w. `;
             if (brightness) {
                 description += `Brightness: ${brightness} nits.`;
             }
@@ -97,25 +106,23 @@ export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> 
                 }
             }
 
-            // Fallback if no margin data found
+            // Fallback if no line items found via mirroring
             if (screen.lineItems.length === 0) {
-                screen.lineItems = [
-                    { id: `hw-${i}`, category: 'Display System', price: sellPrice },
-                ];
+                // We leave empty so ProposalContext syncLineItemsFromAudit populates from internalAudit
             }
 
             const audit: ScreenAudit = {
                 name: projectName,
                 productType: 'LED Display',
                 quantity: 1,
-                areaSqFt: heightFt * widthFt,
-                pixelResolution: pixelsH * pixelsW,
+                areaSqFt: (parseFloat(heightFt) || 0) * (parseFloat(widthFt) || 0),
+                pixelResolution: (parseInt(pixelsH) || 0) * (parseInt(pixelsW) || 0),
                 pixelMatrix: `${pixelsH} x ${pixelsW} @ ${pitch}mm`,
                 breakdown: {
                     hardware: hardwareCost,
-                    structure: 0,
+                    structure: structureCost, // Mapped heuristic
                     install: 0,
-                    labor: 0,
+                    labor: laborCost, // Mapped heuristic
                     power: 0,
                     shipping: shippingCost,
                     pm: 0,
@@ -131,7 +138,7 @@ export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> 
                     bondCost: bondCost,
                     totalCost: totalCostBeforeMargin,
                     finalClientTotal: finalClientTotal,
-                    sellingPricePerSqFt: heightFt && widthFt ? finalClientTotal / (heightFt * widthFt) : 0,
+                    sellingPricePerSqFt: heightFt && widthFt ? finalClientTotal / (parseFloat(heightFt) * parseFloat(widthFt)) : 0,
                     marginAmount: ancMargin // back compat
                 }
             };

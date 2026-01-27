@@ -333,7 +333,7 @@ export const ProposalContextProvider = ({
    * Downloads a PDF file.
    */
   const downloadPdf = () => {
-    // Only download if there is an invoice
+    // Only download if there is a pdf
     if (proposalPdf instanceof Blob && proposalPdf.size > 0) {
       // Create a blob URL to trigger the download
       const url = window.URL.createObjectURL(proposalPdf);
@@ -341,7 +341,7 @@ export const ProposalContextProvider = ({
       // Create an anchor element to initiate the download
       const a = document.createElement("a");
       a.href = url;
-      a.download = "invoice.pdf";
+      a.download = "proposal.pdf";
       document.body.appendChild(a);
 
       // Trigger the download
@@ -367,13 +367,12 @@ export const ProposalContextProvider = ({
     }
   };
 
-  // TODO: Change function name. (saveProposalDataData maybe?)
   /**
-   * Saves the invoice/proposal data to local storage (normalizes invoice/proposal ids).
+   * Saves the proposal data to local storage.
    */
   const saveProposalData = () => {
     if (proposalPdf) {
-      // If get values function is provided, allow to save the invoice
+      // If get values function is provided, allow to save the proposal
       if (getValues) {
         // Retrieve the existing array from local storage or initialize an empty array
         const savedProposalsJSON = localStorage.getItem("savedProposals");
@@ -383,10 +382,10 @@ export const ProposalContextProvider = ({
 
         const formValues = getValues();
 
-        // Normalize IDs: prefer proposalId, fall back to invoiceNumber, keep both in sync
-        const id =
-          formValues?.details?.proposalId ?? formValues?.details?.invoiceNumber ?? "";
+        // Normalize IDs: use proposalId
+        const id = formValues?.details?.proposalId || `prop-${Date.now()}`;
         formValues.details.proposalId = id;
+        // Legacy support
         formValues.details.invoiceNumber = id;
 
         const updatedDate = new Date().toLocaleDateString(
@@ -417,18 +416,18 @@ export const ProposalContextProvider = ({
           console.warn("Failed to calculate audit for saved proposal:", e);
         }
 
-        const existingInvoiceIndex = savedProposals.findIndex(
-          (invoice: ProposalType) => {
+        const existingIndex = savedProposals.findIndex(
+          (p: ProposalType) => {
             return (
-              invoice.details.invoiceNumber === id ||
-              invoice.details.proposalId === id
+              p.details.proposalId === id ||
+              p.details.invoiceNumber === id
             );
           }
         );
 
-        // If invoice already exists
-        if (existingInvoiceIndex !== -1) {
-          savedProposals[existingInvoiceIndex] = formValues;
+        // If proposal already exists
+        if (existingIndex !== -1) {
+          savedProposals[existingIndex] = formValues;
 
           // Toast
           modifiedProposalSuccess();
@@ -473,38 +472,37 @@ export const ProposalContextProvider = ({
     }
   };
 
-  // TODO: Change function name. (deleteProposalDataData maybe?)
   /**
-   * Delete an invoice from local storage based on the given index.
+   * Delete a proposal from local storage based on the given index.
    *
-   * @param {number} index - The index of the invoice to be deleted.
+   * @param {number} index - The index of the proposal to be deleted.
    */
   const deleteProposalData = (index: number) => {
     if (index >= 0 && index < savedProposals.length) {
-      const updatedInvoices = [...savedProposals];
-      updatedInvoices.splice(index, 1);
-      setSavedProposals(updatedInvoices);
+      const updatedProposals = [...savedProposals];
+      updatedProposals.splice(index, 1);
+      setSavedProposals(updatedProposals);
 
-      const updatedInvoicesJSON = JSON.stringify(updatedInvoices);
+      const updatedProposalsJSON = JSON.stringify(updatedProposals);
 
-      localStorage.setItem("savedProposals", updatedInvoicesJSON);
+      localStorage.setItem("savedProposals", updatedProposalsJSON);
     }
   };
 
   /**
-   * Send the invoice PDF to the specified email address.
+   * Send the proposal PDF to the specified email address.
    *
-   * @param {string} email - The email address to which the Invoice PDF will be sent.
+   * @param {string} email - The email address to which the Proposal PDF will be sent.
    * @returns {Promise<void>} A promise that resolves once the email is successfully sent.
    */
   const sendPdfToMail = (email: string) => {
     const fd = new FormData();
     const formValues = getValues();
-    const id = formValues?.details?.proposalId ?? formValues?.details?.invoiceNumber ?? "";
+    const id = formValues?.details?.proposalId ?? "";
     fd.append("email", email);
-    fd.append("proposalPdf", proposalPdf, "invoice.pdf");
+    fd.append("proposalPdf", proposalPdf, "proposal.pdf");
     // Keep invoiceNumber for backwards-compatibility and include proposalId
-    fd.append("invoiceNumber", formValues?.details?.invoiceNumber ?? id);
+    fd.append("invoiceNumber", id);
     fd.append("proposalId", id);
 
     return fetch(SEND_PDF_API, {

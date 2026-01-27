@@ -47,7 +47,7 @@ export default function FinalPdf() {
             {/* Buttons */}
             <div className="flex flex-wrap gap-2 my-1">
                 <BaseButton
-                    tooltipLabel="Preview invoice in new tab"
+                    tooltipLabel="Preview proposal in new tab"
                     onClick={previewPdfInTab}
                     size="sm"
                     variant="outline"
@@ -56,7 +56,7 @@ export default function FinalPdf() {
                     Preview
                 </BaseButton>
                 <BaseButton
-                    tooltipLabel="Download invoice PDF"
+                    tooltipLabel="Download proposal PDF"
                     onClick={downloadPdf}
                     size="sm"
                     variant="outline"
@@ -66,7 +66,7 @@ export default function FinalPdf() {
                 </BaseButton>
 
                 <BaseButton
-                    tooltipLabel="Print invoice"
+                    tooltipLabel="Print proposal"
                     onClick={printPdf}
                     size="sm"
                     variant="outline"
@@ -76,7 +76,7 @@ export default function FinalPdf() {
                 </BaseButton>
 
                 <BaseButton
-                    tooltipLabel="Save invoice in website"
+                    tooltipLabel="Save proposal"
                     onClick={saveProposalData}
                     size="sm"
                     variant="outline"
@@ -87,7 +87,7 @@ export default function FinalPdf() {
 
                 <SendPdfToEmailModal sendPdfToMail={sendPdfToMail}>
                     <BaseButton
-                        tooltipLabel="Send invoice PDF to mail"
+                        tooltipLabel="Send proposal PDF to mail"
                         size="sm"
                         variant="outline"
                     >

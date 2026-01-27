@@ -53,7 +53,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				</div>
 				<div className='text-right'>
 					<h2 className='text-3xl font-bold text-[#0A52EF]' style={{ fontFamily: "'Work Sans', sans-serif", fontWeight: 700 }}>{docLabel}</h2>
-					<span className='mt-2 block text-zinc-500 font-medium tracking-tight text-sm'>#{details.proposalId ?? details.invoiceNumber}</span>
+					<span className='mt-2 block text-zinc-500 font-medium tracking-tight text-sm'>#{details.proposalId ?? 'DRAFT'}</span>
 				</div>
 			</div>
 
@@ -79,7 +79,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						<dl className='grid sm:grid-cols-6 gap-x-3'>
 							<dt className='col-span-3 font-semibold text-gray-800'>Proposal Date:</dt>
 							<dd className='col-span-3 text-gray-500'>
-								{new Date(details.proposalDate ?? details.invoiceDate).toLocaleDateString("en-US", DATE_OPTIONS)}
+								{new Date(details.proposalDate ?? new Date()).toLocaleDateString("en-US", DATE_OPTIONS)}
 							</dd>
 						</dl>
 						<dl className='grid sm:grid-cols-6 gap-x-3'>
@@ -116,36 +116,67 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				</div>
 			</div>
 
+
 			<div className='mt-8'>
 				<h3 className='text-sm font-bold text-[#0A52EF] uppercase tracking-widest mb-4' style={{ fontFamily: "Work Sans, sans-serif" }}>Physical Specifications</h3>
 				<div className='grid sm:grid-cols-2 gap-4'>
-					{details.screens?.map((screen: any, idx: number) => (
-						<div key={idx} className='p-4 border border-zinc-100 rounded-xl bg-zinc-50/30'>
-							<p className='font-bold text-zinc-900 mb-3 text-sm border-b border-zinc-100 pb-2'>{screen.name}</p>
-							<div className='space-y-2'>
-								<div className='flex justify-between text-xs'>
-									<span className='text-zinc-500'>Pitch:</span>
-									<span className='font-bold text-zinc-800'>{screen.pitchMm}mm</span>
-								</div>
-								<div className='flex justify-between text-xs'>
-									<span className='text-zinc-500'>Dimensions:</span>
-									<span className='font-bold text-zinc-800'>{screen.heightFt}'h x {screen.widthFt}'w</span>
-								</div>
-								{(screen.pixelsH && screen.pixelsW) && (
+					{(() => {
+						// Group identical screens for spec display
+						const specGroups = (details.screens || []).reduce((acc: any[], screen: any) => {
+							const key = `${screen.widthFt}-${screen.heightFt}-${screen.pitchMm}-${screen.pixelsW}-${screen.pixelsH}`;
+							const existing = acc.find(g => g.key === key);
+
+							// Check if names are similar enough to group (e.g. "Main Display 1", "Main Display 2")
+							// Or just use the first name found if they match specs
+							if (existing) {
+								existing.qty += (screen.quantity || 1);
+								// If names differ significantly, maybe append? For now, keep the first name or common prefix
+								const commonPrefix = screen.name.split('-')[0].trim();
+								if (!existing.name.startsWith(commonPrefix)) {
+									// If names are totally different but specs same, maybe keep separate? 
+									// For strict grouping by specs:
+								}
+							} else {
+								acc.push({
+									key,
+									name: screen.name,
+									qty: screen.quantity || 1,
+									...screen
+								});
+							}
+							return acc;
+						}, []);
+
+						return specGroups.map((screen: any, idx: number) => (
+							<div key={idx} className='p-4 border border-zinc-100 rounded-xl bg-zinc-50/30'>
+								<p className='font-bold text-zinc-900 mb-3 text-sm border-b border-zinc-100 pb-2'>
+									{screen.name} {screen.qty > 1 && <span className="text-[#0A52EF] ml-1">(Qty {screen.qty})</span>}
+								</p>
+								<div className='space-y-2'>
 									<div className='flex justify-between text-xs'>
-										<span className='text-zinc-500'>Resolution:</span>
-										<span className='font-bold text-zinc-800'>{screen.pixelsH}h x {screen.pixelsW}w</span>
+										<span className='text-zinc-500'>Pitch:</span>
+										<span className='font-bold text-zinc-800'>{screen.pitchMm}mm</span>
 									</div>
-								)}
-								{(screen.brightness && screen.brightness !== "0" && screen.brightness !== "" && String(screen.brightness).toUpperCase() !== 'N/A') && (
 									<div className='flex justify-between text-xs'>
-										<span className='text-zinc-500'>Brightness:</span>
-										<span className='font-bold text-zinc-800'>{screen.brightness} nits</span>
+										<span className='text-zinc-500'>Dimensions:</span>
+										<span className='font-bold text-zinc-800'>{screen.heightFt}'h x {screen.widthFt}'w</span>
 									</div>
-								)}
+									{(screen.pixelsH && screen.pixelsW) && (
+										<div className='flex justify-between text-xs'>
+											<span className='text-zinc-500'>Resolution:</span>
+											<span className='font-bold text-zinc-800'>{screen.pixelsH}h x {screen.pixelsW}w</span>
+										</div>
+									)}
+									{(screen.brightness && screen.brightness !== "0" && screen.brightness !== "" && String(screen.brightness).toUpperCase() !== 'N/A') && (
+										<div className='flex justify-between text-xs'>
+											<span className='text-zinc-500'>Brightness:</span>
+											<span className='font-bold text-zinc-800'>{screen.brightness} nits</span>
+										</div>
+									)}
+								</div>
 							</div>
-						</div>
-					))}
+						));
+					})()}
 				</div>
 			</div>
 
