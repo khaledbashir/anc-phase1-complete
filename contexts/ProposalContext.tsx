@@ -584,7 +584,32 @@ export const ProposalContextProvider = ({
 
           // Push new screen
           const updatedScreens = [...screens, newScreen];
-          setValue("details.screens", updatedScreens);
+
+          // Calculate audit for the new screen set
+          const audit = calculateProposalAudit(updatedScreens);
+          const internalAudit = audit.internalAudit;
+
+          // Sync line items for PDF template
+          const screensWithLineItems = syncLineItemsFromAudit(updatedScreens, internalAudit);
+          setValue("details.screens", screensWithLineItems);
+
+          // CRITICAL: Flatten all screen-level lineItems into details.items for the PDF Template
+          const allItems = screensWithLineItems.flatMap(s => s.lineItems || []).map(li => {
+            let desc = "Standard specification.";
+            if (li.category.includes('LED')) desc = "Supply of LED Display System including spare parts, power/data cabling, and processing hardware.";
+            if (li.category.includes('Structure')) desc = "Structural engineering, fabrication, and mounting hardware.";
+            if (li.category.includes('Installation')) desc = "Union labor installation per IBEW jurisdiction. Includes prevailing wage, certified payroll, and final commissioning.";
+            if (li.category.includes('Electrical')) desc = "Primary power tie-in and data conduit runs.";
+
+            return {
+              name: li.category,
+              description: desc,
+              quantity: 1,
+              unitPrice: li.price,
+              total: li.price
+            };
+          });
+          setValue("details.items", allItems);
 
           // Normalize screens to ensure all have required fields for ScreenInput type
           const normalizedScreens = updatedScreens.map((s: any) => ({
@@ -831,6 +856,24 @@ export const ProposalContextProvider = ({
         if (data.screens) {
           const screensWithLineItems = syncLineItemsFromAudit(data.screens, data.internalAudit);
           setValue("details.screens", screensWithLineItems);
+
+          // Flatten for PDF item table
+          const allItems = screensWithLineItems.flatMap(s => s.lineItems || []).map(li => {
+            let desc = "Standard specification.";
+            if (li.category.includes('LED')) desc = "Supply of LED Display System including spare parts, power/data cabling, and processing hardware.";
+            if (li.category.includes('Structure')) desc = "Structural engineering, fabrication, and mounting hardware.";
+            if (li.category.includes('Installation')) desc = "Union labor installation per IBEW jurisdiction. Includes prevailing wage, certified payroll, and final commissioning.";
+            if (li.category.includes('Electrical')) desc = "Primary power tie-in and data conduit runs.";
+
+            return {
+              name: li.category,
+              description: desc,
+              quantity: 1,
+              unitPrice: li.price,
+              total: li.price
+            };
+          });
+          setValue("details.items", allItems);
         }
       }
 

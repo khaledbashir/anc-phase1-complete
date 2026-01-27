@@ -9,8 +9,8 @@ import { Builder } from "xml2js";
 // XLSX (legacy - kept for fallback)
 import XLSX from "xlsx";
 
-// ExcelJS Formulaic Export
-import { generateFormulaicExcelBuffer, FormulaicExcelOptions } from "./exportFormulaicExcel";
+// ExcelJS Audit Export (Values Only)
+import { generateAuditExcelBuffer, AuditExcelOptions } from "./exportFormulaicExcel";
 
 // Helpers
 import { flattenObject } from "@/lib/helpers";
@@ -71,15 +71,15 @@ export async function exportProposalService(req: NextRequest) {
                     const screens: ScreenInput[] = body.details?.screens || [];
 
                     // Build options from proposal data
-                    const excelOptions: FormulaicExcelOptions = {
+                    const excelOptions: AuditExcelOptions = {
                         proposalName: body.details?.proposalId || body.details?.invoiceNumber || 'Proposal',
                         clientName: body.receiver?.name || 'Client',
                         proposalDate: body.details?.invoiceDate || new Date().toLocaleDateString(),
                         status: body.details?.status || 'DRAFT',
                     };
 
-                    // Generate the formulaic Excel buffer
-                    const xlsxBuffer = await generateFormulaicExcelBuffer(screens, excelOptions);
+                    // Generate the audit Excel buffer
+                    const xlsxBuffer = await generateAuditExcelBuffer(screens, excelOptions);
 
                     return new NextResponse(new Uint8Array(xlsxBuffer), {
                         headers: {

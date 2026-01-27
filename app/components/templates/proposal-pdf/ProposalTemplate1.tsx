@@ -18,20 +18,29 @@ const ProposalTemplate1 = (data: ProposalType) => {
 	return (
 		<ProposalLayout data={data}>
 			<div className='flex justify-between'>
-				<div>
-					{(details.proposalLogo || details.invoiceLogo) && (
+				<div className="flex flex-col gap-2">
+					{(details.proposalLogo || details.invoiceLogo) ? (
 						<img
 							src={details.proposalLogo || details.invoiceLogo}
-							width={140}
-							height={100}
+							width={160}
+							height={80}
+							className="object-contain"
 							alt={`Logo of ${sender.name}`}
 						/>
+					) : (
+						<img
+							src="/anc-logo.svg"
+							width={160}
+							height={80}
+							className="object-contain"
+							alt="ANC Logo"
+						/>
 					)}
-					<h1 className='mt-2 text-lg md:text-xl font-semibold text-blue-600'>{sender.name}</h1>
+					<h1 className='text-xl md:text-2xl font-bold text-[#004990]' style={{ fontFamily: "Montserrat, sans-serif" }}>{sender.name}</h1>
 				</div>
 				<div className='text-right'>
-				<h2 className='text-2xl md:text-3xl font-semibold text-gray-800'>Proposal #</h2>
-				<span className='mt-1 block text-gray-500'>{details.proposalId ?? details.invoiceNumber}</span>
+					<h2 className='text-3xl md:text-4xl font-bold text-[#004990]' style={{ fontFamily: "Montserrat, sans-serif" }}>PROPOSAL</h2>
+					<span className='mt-2 block text-gray-600 font-semibold tracking-wider'>#{details.proposalId ?? details.invoiceNumber}</span>
 					<address className='mt-4 not-italic text-gray-800'>
 						{sender.address}
 						<br />
@@ -45,9 +54,9 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 			<div className='mt-6 grid sm:grid-cols-2 gap-3'>
 				<div>
-					<h3 className='text-lg font-semibold text-gray-800'>Bill to:</h3>
-					<h3 className='text-lg font-semibold text-gray-800'>{receiver.name}</h3>
-					{}
+					<h3 className='text-sm uppercase tracking-widest font-bold text-[#004990] mb-2' style={{ fontFamily: "Montserrat, sans-serif" }}>Prepared For</h3>
+					<h3 className='text-xl font-bold text-gray-900'>{receiver.name}</h3>
+					{ }
 					<address className='mt-2 not-italic text-gray-500'>
 						{receiver.address && receiver.address.length > 0 ? receiver.address : null}
 						{receiver.zipCode && receiver.zipCode.length > 0 ? `, ${receiver.zipCode}` : null}
@@ -76,11 +85,11 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 			<div className='mt-3'>
 				<div className='border border-gray-200 p-1 rounded-lg space-y-1'>
-					<div className='hidden sm:grid sm:grid-cols-5'>
-						<div className='sm:col-span-2 text-xs font-medium text-gray-500 uppercase'>Item</div>
-						<div className='text-left text-xs font-medium text-gray-500 uppercase'>Qty</div>
-						<div className='text-left text-xs font-medium text-gray-500 uppercase'>Rate</div>
-						<div className='text-right text-xs font-medium text-gray-500 uppercase'>Amount</div>
+					<div className='hidden sm:grid sm:grid-cols-5 bg-[#f8fafc] p-2 rounded-t-lg'>
+						<div className='sm:col-span-2 text-xs font-bold text-[#004990] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Item Description</div>
+						<div className='text-left text-xs font-bold text-[#004990] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Qty</div>
+						<div className='text-left text-xs font-bold text-[#004990] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Rate</div>
+						<div className='text-right text-xs font-bold text-[#004990] uppercase tracking-wider' style={{ fontFamily: "Montserrat, sans-serif" }}>Amount</div>
 					</div>
 					<div className='hidden sm:block border-b border-gray-200'></div>
 					<div className='grid grid-cols-3 sm:grid-cols-5 gap-y-1'>
@@ -173,12 +182,12 @@ const ProposalTemplate1 = (data: ProposalType) => {
 			<div>
 				<div className='my-4'>
 					<div className='my-2'>
-						<p className='font-semibold text-blue-600'>Additional notes:</p>
-						<p className='font-regular text-gray-800'>{details.additionalNotes}</p>
+						<p className='font-bold text-[#004990] uppercase text-xs tracking-widest mb-1' style={{ fontFamily: "Montserrat, sans-serif" }}>Additional Notes</p>
+						<p className='font-regular text-gray-700 leading-relaxed'>{details.additionalNotes}</p>
 					</div>
 					<div className='my-2'>
-						<p className='font-semibold text-blue-600'>Payment terms:</p>
-						<p className='font-regular text-gray-800'>{details.paymentTerms}</p>
+						<p className='font-bold text-[#004990] uppercase text-xs tracking-widest mb-1' style={{ fontFamily: "Montserrat, sans-serif" }}>Payment Terms</p>
+						<p className='font-regular text-gray-700 leading-relaxed'>{details.paymentTerms}</p>
 					</div>
 					<div className='my-2'>
 						<span className='font-semibold text-md text-gray-800'>

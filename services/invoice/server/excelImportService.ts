@@ -1,5 +1,5 @@
 import * as xlsx from 'xlsx';
-import { InternalAudit, ScreenAudit } from '@/lib/schemas';
+import { InternalAudit, ScreenAudit } from '@/lib/estimator';
 
 interface ParsedANCProposal {
     clientName: string;
@@ -88,6 +88,8 @@ export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> 
 
             const audit: ScreenAudit = {
                 name: projectName,
+                productType: projectName.includes('RB.') ? 'Ribbon' : 'LED Display',
+                quantity: quantity,
                 areaSqFt: areaSqFt,
                 pixelResolution: 0, // Calculate later or mark as 0
                 breakdown: {
