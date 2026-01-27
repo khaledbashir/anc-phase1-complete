@@ -205,6 +205,7 @@ export const ProposalContextProvider = ({
         details: {
           proposalId: d.id, // Use DB ID
           invoiceNumber: d.id, // Legacy compat
+          proposalName: details.proposalName || d.proposalName || "",
           invoiceDate: details.invoiceDate || new Date().toISOString(),
           dueDate: details.dueDate || new Date().toISOString(),
           items: details.items || [],
@@ -215,22 +216,26 @@ export const ProposalContextProvider = ({
           shippingDetails: details.shippingDetails,
           paymentInformation: details.paymentInformation,
           additionalNotes: details.additionalNotes,
-          paymentTerms: details.paymentTerms,
+          paymentTerms: details.paymentTerms || "Net 30", // Default if missing
           pdfTemplate: details.pdfTemplate || 1,
+          subTotal: details.subTotal || 0,
+          totalAmount: details.totalAmount || 0,
+          totalAmountInWords: details.totalAmountInWords || "",
           // Critical: Screens
           screens: d.screens ? d.screens.map((s: any) => ({
             ...s,
-            // If JSON was stored as string, parse it? No, Prisma handles Json type as object usually.
-            // But ensure pitchMm etc are numbers
-            pitchMm: Number(s.pitchMm),
-            widthFt: Number(s.widthFt),
-            heightFt: Number(s.heightFt),
+            pitchMm: Number(s.pitchMm || 0),
+            widthFt: Number(s.widthFt || 0),
+            heightFt: Number(s.heightFt || 0),
+            quantity: Number(s.quantity || 1),
           })) : (details.screens || []),
-          clientName: d.clientName,
-          workspaceId: d.workspaceId,
-          aiWorkspaceSlug: d.aiWorkspaceSlug, // Hydrate the workspace slug!
+          clientName: d.clientName || "",
+          workspaceId: d.workspaceId || "",
+          aiWorkspaceSlug: d.aiWorkspaceSlug || null, // Hydrate the workspace slug!
           internalAudit: details.internalAudit || null,
           clientSummary: details.clientSummary || null,
+          documentType: d.documentType || "First Round",
+          pricingType: d.pricingType || "Budget",
         },
       };
 

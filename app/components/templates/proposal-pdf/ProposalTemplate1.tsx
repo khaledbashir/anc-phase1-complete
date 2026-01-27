@@ -40,8 +40,8 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 	const displayLineItems = convertToLineItems(screensForGrouping);
 	// Detect Options/Alternates (items starting with "Option")
-	const optionsItems = itemsToRender.filter(i => i.name.startsWith("Option") || i.name.startsWith("Alternates"));
-	const mainItems = itemsToRender.filter(i => !i.name.startsWith("Option") && !i.name.startsWith("Alternates"));
+	const optionsItems = displayLineItems.filter(i => i.name.startsWith("Option") || i.name.startsWith("Alternates"));
+	const mainItems = displayLineItems.filter(i => !i.name.startsWith("Option") && !i.name.startsWith("Alternates"));
 
 	return (
 		<ProposalLayout data={data}>

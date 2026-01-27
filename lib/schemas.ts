@@ -221,6 +221,8 @@ const InvoiceDetailsSchema = z.object({
     proposalLogo: fieldValidators.stringOptional,
     proposalId: fieldValidators.stringOptional,
     proposalName: fieldValidators.stringOptional, // Professional project name
+    clientName: fieldValidators.stringOptional,
+    workspaceId: fieldValidators.stringOptional,
     proposalDate: fieldValidators.date.optional(),
     aiWorkspaceSlug: fieldValidators.stringOptional, // Dedicated Project Room
     invoiceNumber: fieldValidators.stringMin1,

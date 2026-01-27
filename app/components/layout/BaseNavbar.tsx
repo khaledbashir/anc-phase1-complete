@@ -2,6 +2,29 @@
 
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
+import { Settings, LogOut } from "lucide-react";
+
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const BaseNavbar = () => {
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);

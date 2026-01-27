@@ -17,6 +17,7 @@ import { PDF_COLORS, PDF_STYLES } from "./PdfStyles";
 
 interface ProposalTemplate2Props extends ProposalType {
     forceWhiteLogo?: boolean;
+    screens?: any[];
 }
 
 const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
