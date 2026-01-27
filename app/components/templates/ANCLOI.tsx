@@ -83,7 +83,11 @@ export default function SalesQuotation({ proposal }: Props) {
               <h2 className="text-center text-xs font-medium tracking-[0.25em] text-neutral-500 mb-8">SPECIFICATIONS</h2>
               {/* For each screen render a small table with its specs */}
               {screens.map((screen) => {
-                const { h, w } = computePixels(screen.height, screen.width, screen.pixelPitch);
+                const height = screen.heightFt ?? screen.height ?? 0;
+                const width = screen.widthFt ?? screen.width ?? 0;
+                const pitch = screen.pitchMm ?? screen.pixelPitch ?? 0;
+
+                const { h, w } = computePixels(height, width, pitch);
 
                 return (
                   <table key={screen.id} className="w-full mb-6 text-[11px]">
@@ -96,19 +100,19 @@ export default function SalesQuotation({ proposal }: Props) {
                     <tbody>
                       <tr className="bg-white">
                         <td className="py-1.5 pl-3 text-neutral-600">MM Pitch</td>
-                        <td className="py-1.5 text-right text-neutral-600">{(screen.pixelPitch ?? 0).toFixed(2)} mm</td>
+                        <td className="py-1.5 text-right text-neutral-600">{pitch.toFixed(2)} mm</td>
                       </tr>
                       <tr className="bg-[#f0f0f0]">
                         <td className="py-1.5 pl-3 text-neutral-600">Quantity</td>
-                        <td className="py-1.5 text-right text-neutral-600">1</td>
+                        <td className="py-1.5 text-right text-neutral-600">{screen.quantity}</td>
                       </tr>
                       <tr className="bg-white">
                         <td className="py-1.5 pl-3 text-neutral-600">Active Display Height (ft.)</td>
-                        <td className="py-1.5 text-right text-neutral-600">{(screen.height ?? 0).toFixed(2)}'</td>
+                        <td className="py-1.5 text-right text-neutral-600">{height.toFixed(2)}'</td>
                       </tr>
                       <tr className="bg-[#f0f0f0]">
                         <td className="py-1.5 pl-3 text-neutral-600">Active Display Width (ft.)</td>
-                        <td className="py-1.5 text-right text-neutral-600">{(screen.width ?? 0).toFixed(2)}'</td>
+                        <td className="py-1.5 text-right text-neutral-600">{width.toFixed(2)}'</td>
                       </tr>
                       <tr className="bg-white">
                         <td className="py-1.5 pl-3 text-neutral-600">Pixel Resolution (H)</td>
