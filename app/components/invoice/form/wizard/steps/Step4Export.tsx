@@ -21,7 +21,7 @@ import {
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { BaseButton, FinalPdf } from "@/app/components";
+import { BaseButton } from "@/app/components";
 import { formatCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
@@ -281,8 +281,6 @@ const Step4Export = () => {
                 </BaseButton>
             </div>
 
-            {/* Hidden helper for generating the final file */}
-            <FinalPdf />
         </div>
     );
 };

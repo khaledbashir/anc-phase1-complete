@@ -64,7 +64,7 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
     };
 
     return (
-        <div className="w-full px-4 py-3 bg-zinc-900/50 border-b border-zinc-800">
+        <div className="w-full px-4 py-2">
             <div className="flex items-center justify-between max-w-2xl mx-auto">
                 {steps.map((step, idx) => {
                     const isActive = activeStep === step.id;
