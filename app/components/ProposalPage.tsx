@@ -6,7 +6,6 @@ import { Wizard, useWizard } from "react-use-wizard";
 
 // Components
 import StudioLayout from "@/app/components/layout/StudioLayout";
-import ProposalForm from "@/app/components/invoice/ProposalForm";
 import PdfViewer from "@/app/components/invoice/actions/PdfViewer";
 import RfpSidebar from "@/app/components/invoice/RfpSidebar";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
@@ -96,7 +95,7 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   const HeaderContent = (
     <div className="h-full max-w-[1920px] mx-auto px-4 flex items-center justify-between">
       {/* Logo with clear space */}
-      <div className="flex items-center shrink-0 pl-2 w-40">
+      <div className="flex items-center shrink-0 pl-2 w-44">
         <LogoSelector theme="dark" width={80} height={32} />
       </div>
 
@@ -105,42 +104,19 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
         <WizardStepper wizard={wizard} />
       </div>
 
-      {/* Right Actions */}
-      <div className="flex items-center gap-2 shrink-0 w-40 justify-end">
+      {/* Right Actions - Strict: Save and Finalize only */}
+      <div className="flex items-center gap-3 shrink-0 w-44 justify-end">
         <SaveIndicator
           status={saveStatus}
           lastSavedAt={(initialData as any)?.lastSavedAt ? new Date((initialData as any).lastSavedAt) : undefined}
         />
 
         <Button
-          variant="ghost"
-          size="sm"
-          className="text-zinc-400 hover:text-zinc-100"
-          onClick={() => document.getElementById("excel-import-input")?.click()}
-          disabled={excelImportLoading}
-        >
-          {excelImportLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Upload className="w-4 h-4" />
-          )}
-        </Button>
-
-        <input
-          id="excel-import-input"
-          type="file"
-          accept=".xlsx,.xls"
-          className="hidden"
-          onChange={handleExcelImport}
-        />
-
-        <Button
           size="sm"
           onClick={handleExport}
-          className="bg-[#0A52EF] hover:bg-[#0A52EF]/90 text-white"
+          className="bg-[#0A52EF] hover:bg-[#0A52EF]/90 text-white font-bold h-9 px-5 rounded-lg transition-all"
         >
-          <Download className="w-4 h-4 mr-1" />
-          Export
+          Finalize 🏁
         </Button>
       </div>
     </div>
@@ -150,7 +126,14 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   const FormContent = (
     <Form {...useFormContext<ProposalType>()}>
       <form onSubmit={handleSubmit(onFormSubmit, (err) => console.log(err))}>
-        <div className="p-6">
+        {/* WE DO NOT MAP HERE - The Wizard provider in ProposalPage will automatically 
+            render the current step if we pass individual WizardStep components as children.
+            BUT, since we are inside WizardWrapper which is ALREADY UNDER <Wizard>,
+            and using useWizard() hook, we should just render the children directly.
+            The current double-rendering is because ProposalPage wraps <Wizard> and WizardWrapper 
+            is where useWizard is used. We need to be careful.
+        */}
+        <div className="p-0">
           <WizardStep>
             <Step1Ingestion />
           </WizardStep>

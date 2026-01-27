@@ -52,9 +52,11 @@ const ProposalTemplate1 = (data: ProposalType) => {
 					<h2 className='text-xl font-bold text-[#0A52EF] uppercase' style={{ fontFamily: "Work Sans, sans-serif" }}>
 						{receiver.name || 'CLIENT NAME'}
 					</h2>
-					<h3 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Work Sans, sans-serif" }}>
-						{details.proposalName || 'PROJECT'} LED DISPLAYS {docLabel}
-					</h3>
+					{(!receiver.name || receiver.name === 'CLIENT NAME') && (
+						<h3 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Work Sans, sans-serif" }}>
+							{details.proposalName || 'PROJECT'} LED DISPLAYS {docLabel}
+						</h3>
+					)}
 				</div>
 			</div>
 

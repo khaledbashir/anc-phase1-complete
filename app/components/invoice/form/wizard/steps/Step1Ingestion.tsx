@@ -1,9 +1,10 @@
 "use client";
 
 import { useFormContext, useWatch } from "react-hook-form";
-import { Building2, Upload } from "lucide-react";
+import { Building2, Upload, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useProposalContext } from "@/contexts/ProposalContext";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BillFromSection, BillToSection, ImportJsonButton } from "@/app/components";
@@ -11,6 +12,7 @@ import { ProposalType } from "@/types";
 
 const Step1Ingestion = () => {
     const { control, setValue } = useFormContext();
+    const { importANCExcel, excelImportLoading } = useProposalContext();
     const [loading, setLoading] = useState(false);
     const [creationStep, setCreationStep] = useState(0);
     const router = useRouter();
@@ -116,13 +118,7 @@ const Step1Ingestion = () => {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header / Context */}
-            <div className="flex flex-col gap-2">
-                <h2 className="text-2xl font-bold text-zinc-100 font-montserrat">Step 1: Ingestion & Parties</h2>
-                <p className="text-zinc-400 text-sm">Upload existing data or define the client and sender details.</p>
-            </div>
-
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 px-6 py-8">
             {/* Actions: Import */}
             <Card className="bg-zinc-900/50 border-zinc-800/50">
                 <CardHeader className="pb-3">
@@ -137,13 +133,33 @@ const Step1Ingestion = () => {
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex gap-4">
-// If ImportJsonButton requires setOpen, we might need to mock it or provide a real one if it's for a modal.
-                        // Assuming it's a modal trigger that handles its own state or needs a parent state.
-                        // Let's check the definition. If it creates a modal, maybe we don't need to pass setOpen if it's optional?
-                        // Or if it's required, we add a dummy.
+                    <div className="flex flex-wrap gap-4">
                         <ImportJsonButton setOpen={() => { }} />
-                        {/* We can add the Excel Import button here if it's separate */}
+
+                        <div className="relative">
+                            <button
+                                onClick={() => document.getElementById("excel-import-input-step1")?.click()}
+                                disabled={excelImportLoading}
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-bold rounded-lg border border-zinc-700 transition-all disabled:opacity-50"
+                            >
+                                {excelImportLoading ? (
+                                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                ) : (
+                                    <Upload className="w-4 h-4 text-emerald-500" />
+                                )}
+                                <span>Import ANC Excel</span>
+                            </button>
+                            <input
+                                id="excel-import-input-step1"
+                                type="file"
+                                accept=".xlsx,.xls"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) importANCExcel(file);
+                                }}
+                            />
+                        </div>
                     </div>
                 </CardContent>
             </Card>

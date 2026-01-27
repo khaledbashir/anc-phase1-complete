@@ -11,13 +11,7 @@ const Step4Export = () => {
     const { pdfUrl, downloadPdf, printPdf, previewPdfInTab } = useProposalContext();
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header */}
-            <div className="flex flex-col gap-2">
-                <h2 className="text-2xl font-bold text-zinc-100 font-montserrat">Step 4: Review & Export</h2>
-                <p className="text-zinc-400 text-sm">Review the WYSIWYG PDF and finalize proposal.</p>
-            </div>
-
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 p-6">
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                 {/* Actions Toolbar */}
                 <div className="xl:col-span-1 space-y-4">

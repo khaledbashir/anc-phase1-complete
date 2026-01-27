@@ -72,7 +72,7 @@ export function StudioLayout({
                 </section>
 
                 {/* THE ANCHOR (Right Pane) - PDF Preview */}
-                <section className="relative overflow-y-auto bg-slate-200 flex items-start justify-center p-8">
+                <section className="relative overflow-y-auto bg-slate-200 flex items-start justify-center p-12">
                     {/* Brand Signature Slashes in background */}
                     <BrandSlashes
                         className="absolute -top-20 -right-20 pointer-events-none"

@@ -27,7 +27,7 @@ const Step3Math = () => {
     const sellPricePerSqFt = totals?.sellingPricePerSqFt || 0;
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 p-6">
             {/* KPI Cards: The Natalia Gut Check */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className="bg-[#0A52EF] border-none text-white shadow-[0_10px_30px_rgba(10,82,239,0.3)]">

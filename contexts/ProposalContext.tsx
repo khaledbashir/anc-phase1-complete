@@ -243,6 +243,11 @@ export const ProposalContextProvider = ({
       reset(mappedData);
       // Force update the slug state if needed
       setValue("details.aiWorkspaceSlug", d.aiWorkspaceSlug);
+
+      // Cleanup AI state on project switch
+      setAiMessages([]);
+      setAiFields([]);
+      setProposalPdf(new Blob());
     }
   }, [initialData, reset, setValue]);
 
