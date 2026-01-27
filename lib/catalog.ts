@@ -54,11 +54,13 @@ function parseCsv(content: string) {
 export async function loadCatalog(): Promise<CatalogEntry[]> {
   if (catalog) return catalog;
 
+  const MASTER_CATALOG_URL = process.env.ANYTHING_LLM_MASTER_CATALOG_URL;
   const isBrowser = typeof window !== "undefined";
 
   if (isBrowser) {
     try {
-      const response = await fetch("/assets/data/anc_catalog.csv");
+      const url = MASTER_CATALOG_URL || "/assets/data/anc_catalog.csv";
+      const response = await fetch(url);
       const content = await response.text();
       catalog = parseCsv(content);
       return catalog;
@@ -70,6 +72,13 @@ export async function loadCatalog(): Promise<CatalogEntry[]> {
 
   // Server-side
   try {
+    if (MASTER_CATALOG_URL) {
+      const response = await fetch(MASTER_CATALOG_URL);
+      const content = await response.text();
+      catalog = parseCsv(content);
+      return catalog;
+    }
+
     const fs = require("fs");
     const path = require("path");
     const p = path.join(process.cwd(), "public", "assets", "data", "anc_catalog.csv");
