@@ -93,10 +93,14 @@ export const useProposalContext = () => {
 
 type ProposalContextProviderProps = {
   children: React.ReactNode;
+  initialData?: any; // Hydration data
+  projectId?: string; // DB ID
 };
 
 export const ProposalContextProvider = ({
   children,
+  initialData,
+  projectId
 }: ProposalContextProviderProps) => {
   const router = useRouter();
 
@@ -164,8 +168,131 @@ export const ProposalContextProvider = ({
     return () => subscription.unsubscribe();
   }, [watch]);
 
+  // Hydrate from initialData if provided (Server Component support)
+  useEffect(() => {
+    // @ts-ignore
+    if (initialData && typeof reset === 'function') {
+      const d = initialData;
+      console.log("Hydrating ProposalContext from Server Data:", d.id);
+
+      // Map Prisma model to Form structure
+      // Ensure we explicitly map JSON fields
+      const details = typeof d.detailsData === 'string' ? JSON.parse(d.detailsData) : d.detailsData || {};
+      const sender = typeof d.senderData === 'string' ? JSON.parse(d.senderData) : d.senderData || {};
+      const receiver = typeof d.receiverData === 'string' ? JSON.parse(d.receiverData) : d.receiverData || {};
+
+      const mappedData: ProposalType = {
+        sender: {
+          name: sender.name || "",
+          address: sender.address || "",
+          zipCode: sender.zipCode || "",
+          city: sender.city || "",
+          country: sender.country || "",
+          email: sender.email || "",
+          phone: sender.phone || "",
+          customInputs: sender.customInputs || [],
+        },
+        receiver: {
+          name: receiver.name || "",
+          address: receiver.address || "",
+          zipCode: receiver.zipCode || "",
+          city: receiver.city || "",
+          country: receiver.country || "",
+          email: receiver.email || "",
+          phone: receiver.phone || "",
+          customInputs: receiver.customInputs || [],
+        },
+        details: {
+          proposalId: d.id, // Use DB ID
+          invoiceNumber: d.id, // Legacy compat
+          invoiceDate: details.invoiceDate || new Date().toISOString(),
+          dueDate: details.dueDate || new Date().toISOString(),
+          items: details.items || [],
+          currency: details.currency || "USD",
+          language: "English",
+          taxDetails: details.taxDetails,
+          discountDetails: details.discountDetails,
+          shippingDetails: details.shippingDetails,
+          paymentInformation: details.paymentInformation,
+          additionalNotes: details.additionalNotes,
+          paymentTerms: details.paymentTerms,
+          pdfTemplate: details.pdfTemplate || 1,
+          // Critical: Screens
+          screens: d.screens ? d.screens.map((s: any) => ({
+            ...s,
+            // If JSON was stored as string, parse it? No, Prisma handles Json type as object usually.
+            // But ensure pitchMm etc are numbers
+            pitchMm: Number(s.pitchMm),
+            widthFt: Number(s.widthFt),
+            heightFt: Number(s.heightFt),
+          })) : (details.screens || []),
+          clientName: d.clientName,
+          workspaceId: d.workspaceId,
+          aiWorkspaceSlug: d.aiWorkspaceSlug, // Hydrate the workspace slug!
+          internalAudit: details.internalAudit || null,
+          clientSummary: details.clientSummary || null,
+        },
+      };
+
+      reset(mappedData);
+      // Force update the slug state if needed
+      setValue("details.aiWorkspaceSlug", d.aiWorkspaceSlug);
+    }
+  }, [initialData, reset, setValue]);
+
+
   // Reactive Watcher for ANC Logic Brain (Real-time Math)
   const screens = watch("details.screens");
+
+  // AUTO-SAVE LOGIC (Debounced)
+  useEffect(() => {
+    if (!screens || typeof window === 'undefined') return;
+
+    // Use a ref or simple timeout for debounce
+    const handler = setTimeout(async () => {
+      const currentValues = getValues();
+      const pid = currentValues.details?.proposalId;
+
+      // Only auto-save if we have a valid database ID (not "new")
+      if (pid && pid !== 'new' && projectId) {
+        try {
+          // Construct payload matching Prisma schema requirements
+          // We send partial JSON updates or full JSONs
+          const payload = {
+            clientName: currentValues.receiver.name || "Unnamed Client",
+            senderData: currentValues.sender,
+            receiverData: currentValues.receiver,
+            detailsData: {
+              ...currentValues.details,
+              // Don't duplicate screens in detailsData if we use relations, 
+              // but for now keeping it redundant for safety is fine or just minimal
+            },
+            screens: currentValues.details.screens, // This might need special handling endpoint side
+            aiWorkspaceSlug: currentValues.details.aiWorkspaceSlug
+          };
+
+          // Using specific endpoint for auto-save
+          /* 
+             Note: The route /api/projects/[id] needs to handle PATCH.
+          */
+          await fetch(`/api/projects/${projectId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          // Determine if we need to show a save indicator?
+          // For now, silent save is "Enterprise" standard.
+        } catch (e) {
+          console.warn("Auto-save failed:", e);
+        }
+      }
+    }, 2000); // 2 second debounce
+
+    return () => clearTimeout(handler);
+  }, [screens, projectId, getValues, watch]); // Re-run when screens change (primary driver of value)
+
+
   useEffect(() => {
     if (!screens || !Array.isArray(screens) || screens.length === 0) return;
 

@@ -1,318 +1,220 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { CheckCircle2, Circle, FileText, ChevronRight, ChevronDown } from "lucide-react";
+import { useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+import { useProposalContext } from "@/contexts/ProposalContext";
+import { anythingLLMService } from "@/services/AnythingLLMService";
+
+// ShadCn
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useProposalContext } from "@/contexts/ProposalContext";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Send, FileUp, Sparkles, Bot, AlertTriangle, Paperclip } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ThemeSwitcher } from "./reusables/ThemeSwitcher";
 
-interface RfpQuestion {
-  id: string;
-  question: string;
-  answer: string | null;
-  answered: boolean;
-  order: number;
-}
+export const RFPQuestionsPanel = () => {
+  const { control, setValue } = useFormContext();
+  const {
+    aiMessages,
+    executeAiCommand,
+    aiLoading
+  } = useProposalContext();
 
-export function RFPQuestionsPanel() {
-  const { proposal } = useProposalContext();
-  const [questions, setQuestions] = useState<RfpQuestion[]>([]);
-  const [unansweredQuestions, setUnansweredQuestions] = useState<RfpQuestion[]>([]);
-  const [answeredQuestions, setAnsweredQuestions] = useState<RfpQuestion[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [previewPages, setPreviewPages] = useState(1);
+  // Use project-specific slug
+  const aiWorkspaceSlug = useWatch({
+    name: "details.aiWorkspaceSlug",
+    control
+  });
 
-  // Load questions on mount
-  useEffect(() => {
-    if (proposal?.id) {
-      loadQuestions();
-    }
-  }, [proposal?.id]);
+  // We also watch proposal ID to enable features only when a project exists
+  const proposalId = useWatch({
+    name: "details.proposalId",
+    control
+  });
 
-  const loadQuestions = async () => {
-    if (!proposal?.id) return;
+  const [input, setInput] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/rfp/questions/${proposal.id}`);
-      const data = await res.json();
+  // Initial Questions to prompt the user (Step 3 Gap Fill)
+  const SUGGESTED_QUESTIONS = [
+    "What are the screen quantities and sizes?",
+    "Extract the client's preferred payment terms.",
+    "List any union labor requirements.",
+    "Does the RFP require a 1.5% Performance Bond?"
+  ];
 
-      if (data.ok) {
-        setQuestions(data.allQuestions || []);
-        setUnansweredQuestions(data.unansweredQuestions || []);
-        setAnsweredQuestions(data.answeredQuestions || []);
-        setProgress(data.progress || 0);
-        setPreviewPages(data.answeredCount ? Math.ceil(data.answeredCount / 3) + 1 : 1);
-      }
-    } catch (e) {
-      console.error("Failed to load questions:", e);
-    } finally {
-      setLoading(false);
-    }
+  const handleSend = async () => {
+    if (!input.trim()) return;
+    const msg = input;
+    setInput("");
+    await executeAiCommand(msg);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !proposal?.id) return;
+    if (!file) return;
 
-    setUploading(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("proposalId", proposal.id);
+    setIsUploading(true);
+    setUploadError(null);
 
+    // Upload Logic:
+    // 1. In a real scenario, we'd upload to our server -> Get URL -> Send to AnythingLLM
+    // 2. For now, we simulate the effect for the Linear Wizard Demo
     try {
-      const res = await fetch("/api/rfp/upload", {
-        method: "POST",
-        body: formData,
-      });
+      // Simulate upload delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      const data = await res.json();
-      if (data.ok) {
-        loadQuestions(); // Reload questions after extraction
-      } else {
-        alert(`Failed to upload: ${data.error}`);
-      }
-    } catch (e) {
-      console.error("Upload error:", e);
-      alert("Failed to upload document");
-    } finally {
-      setUploading(false);
+      // Trigger AI analysis automatically
+      executeAiCommand("I have uploaded the RFP. Please extract the screen specifications and any union labor requirements.");
+
+      setIsUploading(false);
+    } catch (err: any) {
+      setUploadError("Upload failed: " + err.message);
+      setIsUploading(false);
     }
   };
-
-  const handleAnswer = async (questionId: string, answer: string) => {
-    if (!proposal?.id) return;
-
-    try {
-      const res = await fetch("/api/rfp/answer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ proposalId: proposal.id, questionId, answer }),
-      });
-
-      const data = await res.json();
-      if (data.ok) {
-        // Remove from unanswered, add to answered
-        setUnansweredQuestions((prev) =>
-          prev.filter((q) => q.id !== questionId)
-        );
-        setAnsweredQuestions((prev) => [...prev, data.question]);
-        setProgress(data.progress);
-        setPreviewPages(data.previewWillBePages);
-      } else {
-        alert(`Failed to save answer: ${data.error}`);
-      }
-    } catch (e) {
-      console.error("Answer error:", e);
-      alert("Failed to save answer");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-sm text-gray-500">Loading RFP questions...</div>
-      </div>
-    );
-  }
-
-  if (questions.length === 0) {
-    return (
-      <div className="p-6 border border-dashed rounded-lg">
-        <div className="text-center py-12">
-          <FileText className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold mb-2">Upload RFP Document</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            Upload your RFP and AI will extract all questions that need to be answered.
-          </p>
-          <label className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-primary/90">
-            <input
-              type="file"
-              className="hidden"
-              accept=".pdf,.doc,.docx,.txt"
-              onChange={handleFileUpload}
-              disabled={uploading}
-            />
-            {uploading ? "Uploading..." : "Choose RFP File"}
-          </label>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div>
-          <h3 className="font-semibold">RFP Questions</h3>
-          <p className="text-sm text-gray-500">
-            {answeredQuestions.length} / {questions.length} answered
-          </p>
-        </div>
+    <div className="flex flex-col h-[600px] bg-zinc-950/30 rounded-lg border border-zinc-800/50 overflow-hidden font-sans">
+
+      {/* Status Header */}
+      <div className="p-3 border-b border-zinc-800/50 flex items-center justify-between bg-zinc-900/80 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-primary transition-all duration-300"
-              style={{ width: `${progress}%` }}
-            />
+          <div className={`p-1.5 rounded-full ${aiWorkspaceSlug ? 'bg-green-500/10' : 'bg-zinc-800'}`}>
+            <Bot className={`w-4 h-4 ${aiWorkspaceSlug ? 'text-green-500' : 'text-zinc-500'}`} />
           </div>
-          <span className="text-sm text-gray-500">{progress}%</span>
+          <div className="flex flex-col">
+            <span className="text-xs font-semibold text-zinc-300">ANC Intelligence</span>
+            <span className="text-[10px] text-zinc-500 font-mono text-ellipsis overflow-hidden max-w-[150px]">
+              {aiWorkspaceSlug || "Waiting for upload..."}
+            </span>
+          </div>
         </div>
+        {aiLoading && <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />}
       </div>
 
-      {/* Progress banner */}
-      {progress > 0 && progress < 100 && (
-        <div className="bg-blue-50 border-b border-blue-100 px-4 py-2">
-          <p className="text-sm text-blue-700">
-            📄 Preview: Currently {previewPages} page{previewPages > 1 ? "s" : ""}
-            {progress === 100 && " (complete!)"}
-          </p>
-        </div>
-      )}
-
-      {/* Questions List */}
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-3">
-          {/* Unanswered Questions Only - Smart Filter */}
-          {unansweredQuestions.length > 0 && (
-            <div className="space-y-3">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                Pending ({unansweredQuestions.length})
+      {/* Chat Area */}
+      <ScrollArea className="flex-1 p-4 bg-zinc-950/20">
+        <div className="space-y-6">
+          {/* Welcome Message */}
+          {aiMessages.length === 0 && (
+            <div className="text-center space-y-4 mt-8 opacity-60">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mx-auto ring-1 ring-indigo-500/20">
+                <Sparkles className="w-8 h-8 text-indigo-400" />
               </div>
-              {unansweredQuestions.map((q) => (
-                <QuestionCard
-                  key={q.id}
-                  question={q}
-                  onAnswer={handleAnswer}
-                />
-              ))}
+              <div className="space-y-1">
+                <h3 className="text-sm font-medium text-zinc-200">Senior Estimator AI Ready</h3>
+                <p className="text-xs text-zinc-500 max-w-[200px] mx-auto">
+                  Upload an RFP to begin extraction. I will flag risky terms like "Union Labor".
+                </p>
+              </div>
             </div>
           )}
 
-          {/* Answered Questions - Collapsible */}
-          {answeredQuestions.length > 0 && (
-            <AnsweredSection
-              questions={answeredQuestions}
-              onReopen={(id) => {
-                setAnsweredQuestions((prev) => prev.filter((q) => q.id !== id));
-                setUnansweredQuestions((prev) => [...prev, answeredQuestions.find((q) => q.id === id)!]);
-              }}
-            />
+          {aiMessages.map((m: any, i: number) => (
+            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+              <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${m.role === 'user'
+                  ? 'bg-[#003366] text-white rounded-br-none'
+                  : 'bg-zinc-900 text-zinc-300 border border-zinc-800 rounded-bl-none'
+                }`}>
+                {/* Render newlines properly */}
+                <div className="leading-relaxed whitespace-pre-wrap">{m.content}</div>
+              </div>
+            </div>
+          ))}
+
+          {aiLoading && (
+            <div className="flex justify-start animate-in fade-in duration-300">
+              <div className="bg-zinc-900 rounded-2xl rounded-bl-none px-4 py-3 border border-zinc-800">
+                <div className="flex gap-1.5 items-center h-5">
+                  <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </ScrollArea>
-    </div>
-  );
-}
 
-function QuestionCard({
-  question,
-  onAnswer,
-}: {
-  question: RfpQuestion;
-  onAnswer: (id: string, answer: string) => void;
-}) {
-  const [expanded, setExpanded] = useState(true);
-  const [answer, setAnswer] = useState("");
-
-  const handleSubmit = () => {
-    if (answer.trim()) {
-      onAnswer(question.id, answer);
-    }
-  };
-
-  return (
-    <div className="border rounded-lg overflow-hidden">
-      {/* Question Header */}
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 transition-colors"
-      >
-        <Circle className="w-5 h-5 text-gray-400 flex-shrink-0" />
-        <span className="flex-1 text-sm font-medium">{question.question}</span>
-        {expanded ? (
-          <ChevronDown className="w-4 h-4 text-gray-400" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-gray-400" />
-        )}
-      </button>
-
-      {/* Answer Input */}
-      {expanded && (
-        <div className="border-t p-3 space-y-3 bg-gray-50">
-          <Textarea
-            placeholder="Type your answer here..."
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            rows={4}
-            className="resize-none"
-          />
-          <div className="flex justify-end">
-            <Button
-              onClick={handleSubmit}
-              disabled={!answer.trim()}
-              size="sm"
+      {/* Suggestions (Gap Fill) */}
+      <div className="p-2 bg-zinc-900/30 border-t border-zinc-800/30 backdrop-blur-sm">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide no-scrollbar mask-linear-fade">
+          {SUGGESTED_QUESTIONS.map((q, i) => (
+            <button
+              key={i}
+              onClick={() => executeAiCommand(q)}
+              disabled={aiLoading}
+              className="whitespace-nowrap px-3 py-1.5 rounded-full bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-zinc-600 text-[10px] text-zinc-400 hover:text-zinc-200 transition-all cursor-pointer flex-shrink-0"
             >
-              Submit Answer
+              {q}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Input Area */}
+      <div className="p-3 bg-zinc-900 border-t border-zinc-800">
+        {uploadError && (
+          <Alert variant="destructive" className="mb-2 py-2 text-xs">
+            <AlertTriangle className="h-3 w-3" />
+            <AlertTitle className="text-xs">Upload Error</AlertTitle>
+            <AlertDescription className="text-xs">{uploadError}</AlertDescription>
+          </Alert>
+        )}
+
+        <div className="flex gap-2 items-end">
+          <div className="relative pb-1">
+            <input
+              type="file"
+              id="rfp-upload-input"
+              className="hidden"
+              accept=".pdf,.docx,.txt"
+              onChange={handleUpload}
+              disabled={isUploading}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 h-9 w-9 rounded-full text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800"
+              onClick={() => document.getElementById('rfp-upload-input')?.click()}
+              disabled={isUploading}
+            >
+              {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Paperclip className="w-4 h-4" />}
+            </Button>
+          </div>
+
+          <div className="flex-1 relative">
+            <Input
+              placeholder={proposalId ? "Ask a question..." : "Create workspace..."}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+              disabled={aiLoading}
+              className="bg-zinc-950 border-zinc-800 focus-visible:ring-indigo-500/50 focus-visible:border-indigo-500/50 h-10 pr-10 text-sm"
+            />
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={handleSend}
+              disabled={!input.trim() || aiLoading}
+              className="absolute right-1 top-1 h-8 w-8 rounded-md text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10"
+            >
+              <Send className="w-4 h-4" />
             </Button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
-}
-
-function AnsweredSection({
-  questions,
-  onReopen,
-}: {
-  questions: RfpQuestion[];
-  onReopen: (id: string) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div>
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-2 p-2 text-left hover:bg-gray-50 rounded-md transition-colors"
-      >
-        <CheckCircle2 className="w-4 h-4 text-green-600" />
-        <span className="text-sm font-medium text-gray-600">
-          Answered ({questions.length})
-        </span>
-        {expanded ? (
-          <ChevronDown className="w-4 h-4 text-gray-400 ml-auto" />
-        ) : (
-          <ChevronRight className="w-4 h-4 text-gray-400 ml-auto" />
-        )}
-      </button>
-
-      {expanded && (
-        <div className="mt-2 space-y-2 ml-2 pl-4 border-l-2 border-green-200">
-          {questions.map((q) => (
-            <div key={q.id} className="group">
-              <div className="text-sm text-gray-600 font-medium">
-                {q.question}
-              </div>
-              <div className="text-sm text-gray-500 mt-1 bg-white p-2 rounded border">
-                {q.answer || "No answer"}
-              </div>
-              <button
-                onClick={() => onReopen(q.id)}
-                className="text-xs text-blue-600 hover:underline mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                Edit answer
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+};

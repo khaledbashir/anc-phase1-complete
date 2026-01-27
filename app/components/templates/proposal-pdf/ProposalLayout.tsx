@@ -49,8 +49,17 @@ export default function ProposalLayout({ data, children }: ProposalLayoutProps) 
                             </span>
                         </div>
                     )}
-                    <div className="relative z-10">
+                    <div className="relative z-10 mb-16">
                         {children}
+                    </div>
+
+                    {/* FIXED FOOTER - Indiana Fever Style */}
+                    <div className="absolute bottom-8 right-10 flex items-center gap-4 opacity-80">
+                        <div className="text-right">
+                            <p className="text-[9px] font-bold text-[#0A52EF] uppercase tracking-wide">www.anc.com/contact</p>
+                            <p className="text-[7px] text-zinc-400 tracking-wider">NY 914.696.2100 TX 940.464.2320</p>
+                        </div>
+                        <img src="/ANC_Logo_2023_blue.png" alt="ANC" className="w-12 h-6 object-contain" />
                     </div>
                 </div>
             </section>

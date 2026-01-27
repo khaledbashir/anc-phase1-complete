@@ -19,20 +19,19 @@ const ProposalTemplate1 = (data: ProposalType) => {
 	const { sender, receiver, details } = data;
 	const isLOI = (details as any).documentType === "LOI";
 	const pricingType = (details as any).pricingType;
-	const docLabel = isLOI ? "SALES QUOTATION" : pricingType === "Hard Quoted" ? "PROPOSAL" : "BUDGET";
+	const docLabel = isLOI ? "SALES QUOTATION" : pricingType === "Hard Quoted" ? "SALES QUOTATION" : "BUDGET ESTIMATE";
 
+	// Indiana Fever Style Intro Text
 	const headerText = isLOI
-		? `This Sales Quotation sets forth the terms by which ${receiver.name} (“Purchaser”) located at ${receiver.address || '[Client Address]'} and ANC Sports Enterprises, LLC (“ANC”) located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 agree that ANC will provide the following Display System.`
-		: pricingType === "Hard Quoted"
-			? `ANC is pleased to present the following LED Display proposal to ${details.proposalName || 'your project'} per the specifications and pricing below.`
-			: `ANC is pleased to present the following LED Display budget to ${details.proposalName || 'your project'} per the specifications and pricing below.`;
-	// Group items if they have names that suggest they belong together
-	// This logic runs client-side to keep the PDF dynamic
+		? `This Sales Quotation will set forth the terms by which ${receiver.name} (“Purchaser”) located at ${receiver.address || '[Client Address]'} and ANC Sports Enterprises, LLC (“ANC”) located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the “Parties”) agree that ANC will provide following LED Display and services (“the “Display System”) described below for ${details.proposalName || 'the project'}.`
+		: `This document sets forth the terms by which ${receiver.name} (“Purchaser”) located at ${receiver.address || '[Client Address]'} and ANC Sports Enterprises, LLC (“ANC”) located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the “Parties”) agree that ANC will provide following LED Display and services (“the “Display System”) described below for ${details.proposalName || 'the project'}.`;
+
+	// Group items logic
 	const screensForGrouping: ScreenItem[] = (details.screens || []).map((s: any) => ({
 		id: s.id || Math.random().toString(),
 		name: s.name,
 		group: s.name.includes("-") ? s.name.split("-")[0].trim() : undefined,
-		sellPrice: s.sellPrice || s.finalClientTotal || 0, // Fallback for sell price
+		sellPrice: s.sellPrice || s.finalClientTotal || 0,
 		specs: {
 			width: s.widthFt ?? s.width ?? 0,
 			height: s.heightFt ?? s.height ?? 0
@@ -40,151 +39,198 @@ const ProposalTemplate1 = (data: ProposalType) => {
 	}));
 
 	const displayLineItems = convertToLineItems(screensForGrouping);
-
-	// Fallback if no screens (e.g. manual items only)
-	const itemsToRender: any[] = displayLineItems.length > 0 ? displayLineItems : details.items;
+	// Detect Options/Alternates (items starting with "Option")
+	const optionsItems = itemsToRender.filter(i => i.name.startsWith("Option") || i.name.startsWith("Alternates"));
+	const mainItems = itemsToRender.filter(i => !i.name.startsWith("Option") && !i.name.startsWith("Alternates"));
 
 	return (
 		<ProposalLayout data={data}>
-			<div className='flex justify-between items-start'>
-				{/* Logo with Clear Space (2rem padding per ANC Guidelines) */}
-				<div className="flex flex-col gap-2 p-8">
-					<LogoSelector theme="light" width={180} height={90} />
+			{/* HEADER: Logo Left | Client Info Right */}
+			<div className='flex justify-between items-start px-8 pt-8 pb-4'>
+				<div className="w-[40%]">
+					<LogoSelector theme="light" width={160} height={80} />
 				</div>
-				<div className='text-right'>
-					<h2 className='text-3xl font-bold text-[#0A52EF]' style={{ fontFamily: "'Work Sans', sans-serif", fontWeight: 700 }}>{docLabel}</h2>
-					<span className='mt-2 block text-zinc-500 font-medium tracking-tight text-sm'>#{details.proposalId ?? 'DRAFT'}</span>
-				</div>
-			</div>
-
-			<div className='mt-10 pt-6 border-t border-zinc-200'>
-				<p className='text-zinc-700 leading-relaxed text-sm max-w-3xl' style={{ fontFamily: "'Helvetica Condensed', 'Arial Narrow', Arial, sans-serif" }}>{headerText}</p>
-			</div>
-
-			<div className='mt-6 grid sm:grid-cols-2 gap-3'>
-				<div>
-					<h3 className='text-sm uppercase tracking-widest font-bold text-[#0A52EF] mb-2' style={{ fontFamily: "Montserrat, sans-serif" }}>Prepared For</h3>
-					<h3 className='text-xl font-bold text-gray-900'>{receiver.name}</h3>
-					{ }
-					<address className='mt-2 not-italic text-gray-500'>
-						{receiver.address && receiver.address.length > 0 ? receiver.address : null}
-						{receiver.zipCode && receiver.zipCode.length > 0 ? `, ${receiver.zipCode}` : null}
-						<br />
-						{receiver.city}, {receiver.country}
-						<br />
-					</address>
-				</div>
-				<div className='sm:text-right space-y-2'>
-					<div className='grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-2'>
-						<dl className='grid sm:grid-cols-6 gap-x-3'>
-							<dt className='col-span-3 font-semibold text-gray-800'>Proposal Date:</dt>
-							<dd className='col-span-3 text-gray-500'>
-								{new Date(details.proposalDate ?? new Date()).toLocaleDateString("en-US", DATE_OPTIONS)}
-							</dd>
-						</dl>
-						<dl className='grid sm:grid-cols-6 gap-x-3'>
-							<dt className='col-span-3 font-semibold text-gray-800'>Valid Until:</dt>
-							<dd className='col-span-3 text-gray-500'>
-								{new Date(details.dueDate).toLocaleDateString("en-US", DATE_OPTIONS)}
-							</dd>
-						</dl>
-					</div>
+				<div className='w-[60%] text-right space-y-1'>
+					<h2 className='text-xl font-bold text-[#0A52EF] uppercase' style={{ fontFamily: "Montserrat, sans-serif" }}>
+						{receiver.name || 'CLIENT NAME'}
+					</h2>
+					<h3 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Montserrat, sans-serif" }}>
+						{details.proposalName || 'PROJECT'} LED DISPLAYS {docLabel}
+					</h3>
 				</div>
 			</div>
 
-			<div className='mt-6'>
-				<div className='border border-zinc-200 rounded-lg overflow-hidden'>
-					<div className='grid grid-cols-4 bg-zinc-50 p-3'>
-						<div className='col-span-3 text-xs font-bold text-[#0A52EF] uppercase tracking-widest' style={{ fontFamily: "Work Sans, sans-serif" }}>Item Description</div>
-						<div className='text-right text-xs font-bold text-[#0A52EF] uppercase tracking-widest' style={{ fontFamily: "Work Sans, sans-serif" }}>Selling Price</div>
-					</div>
-					<div className='divide-y divide-zinc-200'>
-						{itemsToRender.map((item, index) => (
-							<div key={index} className={`grid grid-cols-4 p-3 hover:bg-zinc-50/50 transition-colors ${item.isGroup ? 'bg-blue-50/30' : ''}`}>
-								<div className='col-span-3'>
-									<p className={`text-zinc-900 text-sm ${item.isGroup ? 'font-bold text-[#0A52EF]' : 'font-semibold'}`}>{item.name}</p>
-									<p className='text-xs text-zinc-600 mt-1 leading-relaxed' style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>{item.description}</p>
-								</div>
-								<div className='text-right flex flex-col justify-center'>
-									<p className={`text-sm text-zinc-900 ${item.isGroup ? 'font-bold' : 'font-medium'}`}>
-										{formatNumberWithCommas(item.total)} {details.currency}
-									</p>
-								</div>
+			{/* HEADER TEXT */}
+			<div className='px-8 mb-8'>
+				<p className='text-zinc-600 text-[11px] leading-relaxed text-justify' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
+					{headerText}
+				</p>
+			</div>
+
+			{/* MAIN PRICING TABLE */}
+			<div className='px-8 mb-8'>
+				<div className='flex justify-between items-end border-b border-black pb-1 mb-0'>
+					<h4 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Montserrat, sans-serif" }}>PROJECT TOTAL</h4>
+					<h4 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Montserrat, sans-serif" }}>PRICING</h4>
+				</div>
+
+				<div className="w-full">
+					{mainItems.map((item, index) => (
+						<div key={index} className='flex justify-between items-center py-1 px-2 odd:bg-white even:bg-zinc-100'>
+							<div className='text-[10px] text-zinc-700 font-medium uppercase' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
+								{item.name} {item.isGroup ? ', Install, CMS, Engineering, Warranty' : ''}
 							</div>
-						))}
+							<div className='text-[10px] font-bold text-zinc-900'>
+								${formatNumberWithCommas(item.total)}
+							</div>
+						</div>
+					))}
+				</div>
+
+				{/* SUBTOTAL FOR MAIN ITEMS */}
+				<div className="flex justify-between items-center mt-2 pt-1 border-t-2 border-black">
+					<div className="text-right w-full text-xs font-bold uppercase mr-4" style={{ fontFamily: "Montserrat, sans-serif" }}>SUBTOTAL:</div>
+					<div className="text-xs font-bold text-black min-w-[80px] text-right">
+						${formatNumberWithCommas(Number(details.subTotal))}
 					</div>
 				</div>
 			</div>
 
+			{/* OPTIONS / ALTERNATES TABLES */}
+			{optionsItems.length > 0 && optionsItems.map((opt, idx) => (
+				<div key={idx} className='px-8 mb-6 break-inside-avoid'>
+					<div className='flex justify-between items-end border-b border-black pb-1 mb-0'>
+						<h4 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Montserrat, sans-serif" }}>{opt.name}</h4>
+						<h4 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Montserrat, sans-serif" }}>PRICING</h4>
+					</div>
+					<div className="w-full">
+						{/* If the option has sub-items in a real implementation we'd iterate them here. 
+							For now, we render the single option line item as a subtotal-like row or detailed row.
+							Based on screenshot "Year 3... Year 10" are rows. 
+							Assuming 'opt' might be a group. If it's a flat item, we just show it. */}
+						<div className='flex justify-between items-center py-1 px-2 bg-zinc-100'>
+							<div className='text-[10px] text-zinc-700 font-medium uppercase' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
+								{opt.description || opt.name}
+							</div>
+							<div className='text-[10px] font-bold text-zinc-900'>
+								${formatNumberWithCommas(opt.total)}
+							</div>
+						</div>
+					</div>
+					<div className="flex justify-between items-center mt-1 pt-1 border-t-2 border-black">
+						<div className="text-right w-full text-xs font-bold uppercase mr-4" style={{ fontFamily: "Montserrat, sans-serif" }}>SUBTOTAL:</div>
+						<div className="text-xs font-bold text-black min-w-[80px] text-right">
+							${formatNumberWithCommas(opt.total)}
+						</div>
+					</div>
+				</div>
+			))}
 
-			<div className='mt-8'>
-				<h3 className='text-sm font-bold text-[#0A52EF] uppercase tracking-widest mb-4' style={{ fontFamily: "Work Sans, sans-serif" }}>Physical Specifications</h3>
-				<div className='grid sm:grid-cols-2 gap-4'>
+			{/* PAYMENT TERMS */}
+			<div className='px-8 mb-12'>
+				<h4 className='text-xs font-bold text-black uppercase mb-2' style={{ fontFamily: "Montserrat, sans-serif" }}>PAYMENT TERMS:</h4>
+				<ul className='list-disc pl-4 space-y-1'>
+					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>50% on Deposit</li>
+					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>40% on Mobilization</li>
+					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>10% on Substantial Completion</li>
+				</ul>
+				<p className="text-[10px] text-zinc-600 mt-4 leading-relaxed text-justify" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
+					Please sign below to indicate Purchaser’s agreement to purchase the Display System as described herein and to authorize ANC to commence production.
+					<br /><br />
+					If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Additional sales tax will be included in ANC’s invoice. Payment is due within thirty (30) days of ANC’s invoice(s).
+				</p>
+			</div>
+
+			{/* SIGNATURES */}
+			<div className='px-8 mb-8 break-inside-avoid'>
+				<h4 className='text-xs font-bold text-black uppercase mb-6' style={{ fontFamily: "Montserrat, sans-serif" }}>AGREED TO AND ACCEPTED:</h4>
+
+				<div className="grid grid-cols-2 gap-16">
+					{/* ANC */}
+					<div>
+						<h5 className="text-[10px] text-zinc-500 uppercase mb-4 font-bold">ANC SPORTS ENTERPRISES, LLC ("ANC")</h5>
+						<p className="text-[9px] text-zinc-400 mb-8">
+							2 Manhattanville Road, Suite 402<br />
+							Purchase, NY 10577
+						</p>
+						<div className="space-y-6">
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">By:</span>
+								<span className="flex-1"></span>
+							</div>
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">Title:</span>
+								<span className="flex-1"></span>
+							</div>
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">Date:</span>
+								<span className="flex-1"></span>
+							</div>
+						</div>
+					</div>
+
+					{/* CLIENT */}
+					<div>
+						<h5 className="text-[10px] text-zinc-500 uppercase mb-4 font-bold">{receiver.name} ("PURCHASER")</h5>
+						<p className="text-[9px] text-zinc-400 mb-8">
+							{receiver.address || 'Address Line 1'}<br />
+							{receiver.city || 'City'}, {receiver.zipCode || 'Zip'}
+						</p>
+						<div className="space-y-6">
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">By:</span>
+								<span className="flex-1"></span>
+							</div>
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">Title:</span>
+								<span className="flex-1"></span>
+							</div>
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">Date:</span>
+								<span className="flex-1"></span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* PAGE BREAK FOR SPECS */}
+			<div className="break-before-page px-8 pt-8">
+				<div className="text-center mb-8">
+					<h2 className="text-[#0A52EF] font-bold text-lg uppercase" style={{ fontFamily: "Montserrat, sans-serif" }}>{receiver.name || 'CLIENT'}</h2>
+					<h3 className="text-zinc-500 text-sm uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>SPECIFICATIONS</h3>
+				</div>
+
+				<div className="space-y-8">
 					{(() => {
-						// Group identical screens for spec display
-						const specGroups = (details.screens || []).reduce((acc: any[], screen: any) => {
-							const key = `${screen.widthFt}-${screen.heightFt}-${screen.pitchMm}-${screen.pixelsW}-${screen.pixelsH}`;
-							const existing = acc.find(g => g.key === key);
-
-							// Check if names are similar enough to group (e.g. "Main Display 1", "Main Display 2")
-							// Or just use the first name found if they match specs
-							if (existing) {
-								existing.qty += (screen.quantity || 1);
-								// If names differ significantly, maybe append? For now, keep the first name or common prefix
-								const commonPrefix = screen.name.split('-')[0].trim();
-								if (!existing.name.startsWith(commonPrefix)) {
-									// If names are totally different but specs same, maybe keep separate? 
-									// For strict grouping by specs:
-								}
-							} else {
-								acc.push({
-									key,
-									name: screen.name,
-									qty: screen.quantity || 1,
-									heightFt: screen.heightFt ?? screen.height ?? 0,
-									widthFt: screen.widthFt ?? screen.width ?? 0,
-									pitchMm: screen.pitchMm ?? screen.pixelPitch ?? 0,
-									...screen
-								});
-							}
-							return acc;
-						}, []);
-
-						return specGroups.map((screen: any, idx: number) => (
-							<div key={idx} className='p-4 border border-zinc-100 rounded-xl bg-zinc-50/30'>
-								<p className='font-bold text-zinc-900 mb-3 text-sm border-b border-zinc-100 pb-2'>
-									{screen.name} {screen.qty > 1 && <span className="text-[#0A52EF] ml-1">(Qty {screen.qty})</span>}
-								</p>
-								<div className='space-y-2'>
-									<div className='flex justify-between text-xs'>
-										<span className='text-zinc-500'>Pitch:</span>
-										<span className='font-bold text-zinc-800'>{screen.pitchMm || 0}mm</span>
+						return (details.screens || []).map((screen: any, idx: number) => (
+							<div key={idx} className="break-inside-avoid">
+								<h4 className="text-xs font-bold uppercase mb-1" style={{ fontFamily: "Montserrat, sans-serif" }}>{screen.name.toUpperCase()}</h4>
+								<div className="w-full border-t border-black">
+									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>MM Pitch</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pitchMm || screen.pixelPitch || 0}mm</span>
 									</div>
-									<div className='flex justify-between text-xs'>
-										<span className='text-zinc-500'>Dimensions:</span>
-										<span className='font-bold text-zinc-800'>{screen.heightFt}'h x {screen.widthFt}'w</span>
+									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Quantity</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.quantity || 1}</span>
 									</div>
-									{(() => {
-										// If explicit pixels are missing, try to compute them for the preview
-										const h = screen.pixelsH || Math.round((screen.heightFt * 304.8) / (screen.pitchMm || 10));
-										const w = screen.pixelsW || Math.round((screen.widthFt * 304.8) / (screen.pitchMm || 10));
-
-										if (h > 0 && w > 0) {
-											return (
-												<div className='flex justify-between text-xs'>
-													<span className='text-zinc-500'>Resolution:</span>
-													<span className='font-bold text-zinc-800'>{h}h x {w}w</span>
-												</div>
-											);
-										}
-										return null;
-									})()}
-									{(screen.brightness && screen.brightness !== "0" && screen.brightness !== "" && String(screen.brightness).toUpperCase() !== 'N/A' && !String(screen.brightness).includes("Total SQ FT")) && (
-										<div className='flex justify-between text-xs'>
-											<span className='text-zinc-500'>Brightness:</span>
-											<span className='font-bold text-zinc-800'>{screen.brightness} nits</span>
-										</div>
-									)}
+									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Active Display Height (ft.)</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.heightFt ?? screen.height ?? 0}'</span>
+									</div>
+									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Active Display Width (ft.)</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.widthFt ?? screen.width ?? 0}'</span>
+									</div>
+									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Pixel Resolution (H)</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pixelsH || Math.round((screen.heightFt * 304.8) / (screen.pitchMm || 10)) || 0} p</span>
+									</div>
+									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-black">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Pixel Resolution (W)</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pixelsW || Math.round((screen.widthFt * 304.8) / (screen.pitchMm || 10)) || 0} p</span>
+									</div>
 								</div>
 							</div>
 						));
@@ -192,94 +238,62 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				</div>
 			</div>
 
-			<div className='mt-8 flex sm:justify-end'>
-				<div className='sm:text-right space-y-2'>
-					<div className='grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-2'>
-						<dl className='grid sm:grid-cols-5 gap-x-3'>
-							<dt className='col-span-3 font-semibold text-gray-800'>Subtotal:</dt>
-							<dd className='col-span-2 text-gray-500'>
-								{formatNumberWithCommas(Number(details.subTotal))} {details.currency}
-							</dd>
-						</dl>
-
-						<dl className='grid sm:grid-cols-5 gap-x-3'>
-							<dt className='col-span-3 font-semibold text-gray-800'>Total:</dt>
-							<dd className='col-span-2 text-gray-500'>
-								{formatNumberWithCommas(Number(details.totalAmount))} {details.currency}
-							</dd>
-						</dl>
-					</div>
-				</div>
-			</div>
-
 			{/* SOW Page (Page 7) */}
-			<div className="break-before-page mt-12 pt-8 border-t border-zinc-200">
-				<h3 className="text-lg font-bold text-[#0A52EF] mb-6 uppercase tracking-widest" style={{ fontFamily: "Work Sans, sans-serif" }}>
-					Statement of Work & General Conditions
-				</h3>
-				<div className="whitespace-pre-wrap text-xs leading-relaxed text-zinc-700 space-y-4" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
-					{generateSOWContent({
-						includeUnionLabor: details.additionalNotes?.toLowerCase().includes("union"),
-						includeReplacement: details.additionalNotes?.toLowerCase().includes("replacement")
-					})}
-				</div>
-			</div>
-
-			{/* Signature Block - 2 Column Layout */}
-			<div className='mt-16 break-before-avoid'>
-				<div className="grid grid-cols-2 gap-12">
-					{/* Left: ANC */}
-					<div>
-						<h4 className="text-sm font-bold text-[#0A52EF] mb-4 uppercase tracking-wider">ANC Sports Enterprises, LLC</h4>
-						<p className="text-[10px] text-zinc-500 mb-6">
-							2 Manhattanville Road, Suite 402<br />
-							Purchase, NY 10577
-						</p>
-						<div className="space-y-6">
-							<div className="border-b border-zinc-300 pb-1">
-								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">By:</span>
-							</div>
-							<div className="border-b border-zinc-300 pb-1">
-								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Name:</span>
-							</div>
-							<div className="border-b border-zinc-300 pb-1">
-								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Title:</span>
-							</div>
-							<div className="border-b border-zinc-300 pb-1">
-								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Date:</span>
-							</div>
-						</div>
+			{details.additionalNotes && details.additionalNotes.length > 50 && (
+				<div className="break-before-page px-8 pt-8">
+					<div className="text-center mb-8">
+						<h2 className="text-[#0A52EF] font-bold text-lg uppercase" style={{ fontFamily: "Montserrat, sans-serif" }}>{receiver.name || 'CLIENT'}</h2>
+						<h3 className="text-zinc-500 text-sm uppercase tracking-widest" style={{ fontFamily: "Montserrat, sans-serif" }}>STATEMENT OF WORK</h3>
 					</div>
 
-					{/* Right: Purchaser */}
-					<div>
-						<h4 className="text-sm font-bold text-[#0A52EF] mb-4 uppercase tracking-wider">Purchaser: {receiver.name || '[Client Name]'}</h4>
-						<p className="text-[10px] text-zinc-500 mb-6">
-							{receiver.address || '[Client Address]'}
-						</p>
-						<div className="space-y-6">
-							<div className="border-b border-zinc-300 pb-1">
-								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">By:</span>
+					<div className="space-y-6">
+						{/* Custom SOW Renders with Black Headers */}
+						<div className="break-inside-avoid">
+							<h4 className="bg-black text-white text-[10px] font-bold uppercase py-1 px-2 mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>PHYSICAL INSTALLATION</h4>
+							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
+								ANC assumes all base building structure is to be provided by others or is existing and is of sufficient capacity to support the proposed display systems.
+								<br />
+								ANC assumes that shelving and floor casing and millwork will be provided by others for the custom round displays in the atrium area.
+								<br />
+								ANC assumes reasonable access will be provided to the installation team and any unknown site conditions such as lane closures, site protection, permitting, etc. is not currently in this ROM Proposal.
 							</div>
-							<div className="border-b border-zinc-300 pb-1">
-								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Name:</span>
+						</div>
+
+						<div className="break-inside-avoid">
+							<h4 className="bg-black text-white text-[10px] font-bold uppercase py-1 px-2 mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>ELECTRICAL & DATA INSTALLATION</h4>
+							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
+								ANC assumes primary power feed will be provided by others or is existing, within 5' of the display location with sufficient amps for ANC proposed display(s); typically 208v 3-phase.
+								<br />
+								ANC assumes all secondary power distribution, which may include breaker panels, disconnects, pathway, etc. may be included in this ROM Estimate.
+								<br />
+								ANC assumes all data pathway is provided by others or is existing, but ANC will provide data cabling and labor to pull cable form control location to the display(s).
 							</div>
-							<div className="border-b border-zinc-300 pb-1">
-								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Title:</span>
+						</div>
+
+						<div className="break-inside-avoid">
+							<h4 className="bg-black text-white text-[10px] font-bold uppercase py-1 px-2 mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>CONTROL SYSTEM</h4>
+							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
+								ANC has provided display processors only. Content creation studio and content delivery system is not included at this time.
+								<br />
+								ANC will provide appropriate on-site operation and Maintenance Training.
 							</div>
-							<div className="border-b border-zinc-300 pb-1">
-								<span className="text-[10px] text-zinc-400 uppercase tracking-widest">Date:</span>
+						</div>
+
+						<div className="break-inside-avoid">
+							<h4 className="bg-black text-white text-[10px] font-bold uppercase py-1 px-2 mb-2" style={{ fontFamily: "Montserrat, sans-serif" }}>GENERAL CONDITIONS</h4>
+							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
+								ANC has provided a parts only warranty, excluding on-site labor, on all products consistent with the factory supplier and/or 3rd party vendor. Warranty Terms and Conditions to be defined.
+								<br />
+								ANC has not included bonding of any kind.
+								<br />
+								ANC has not included any tax in the proposal. Any and all sales and use taxes, including, but not limited to, any import or associated duties, fees, tariffs as well other excises and other charges, including without limitation VAT/Sales Tax, ("collectively referred to as Government Charges") now or henceforth levied on any date in connection with the sale of the LED System shall be the full responsibility of the Purchaser. Purchaser shall reimburse ANC for any and all Government Charges ANC may advance on Purchaser's behalf. Purchaser acknowledges that neither ANC nor Purchaser may have advance knowledge of such Government Charges. ANC has excluded any and all taxes from the pricing in the enclosed proposal.
+								<br />
+								Shipping (Ocean Freight Shipping) included in quote at current shipping pricing. Shipping pricing is subject to change due to continued global impacts of the Covid pandemic. Any increase in costs will be responsibility of Purchaser. Current Ocean Freight timelines are approximately 6 weeks. Current Air Freight timelines are approximately 2 weeks.
 							</div>
 						</div>
 					</div>
 				</div>
-
-				<div className="mt-8 text-center">
-					<p className="text-[10px] text-zinc-400 italic">
-						This document is confidential and proprietary to ANC Sports Enterprises, LLC.
-					</p>
-				</div>
-			</div>
+			)}
 		</ProposalLayout>
 	);
 };

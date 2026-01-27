@@ -43,7 +43,7 @@ const RfpSidebar = () => {
             <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 bg-blue-600 text-white flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 fill-white animate-pulse" />
-                    <h3 className="font-bold tracking-tight text-sm uppercase">God Mode: RFP Intel</h3>
+                    <h3 className="font-bold tracking-tight text-sm uppercase">Advanced: RFP Intel</h3>
                 </div>
                 <div className="px-2 py-0.5 bg-blue-500 rounded text-[10px] font-bold border border-blue-400">
                     RAG-ACTIVE
@@ -123,7 +123,7 @@ const RfpSidebar = () => {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                        placeholder="Ask AnythingLLM..."
+                        placeholder="Ask ANC Intelligence..."
                         className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none pr-10 shadow-sm"
                     />
                     <button

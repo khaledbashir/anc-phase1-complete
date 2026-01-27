@@ -55,7 +55,6 @@ import FormSelect from "./reusables/form-fields/FormSelect";
 
 import BaseButton from "./reusables/BaseButton";
 import ThemeSwitcher from "./reusables/ThemeSwitcher";
-import LanguageSelector from "./reusables/LanguageSelector";
 import Subheading from "./reusables/Subheading";
 import AiWand from "./reusables/AiWand";
 import LogoSelector from "./reusables/LogoSelector";
@@ -135,7 +134,6 @@ export {
    SingleScreen,
    BaseButton,
    ThemeSwitcher,
-   LanguageSelector,
    Subheading,
    AiWand,
    SendPdfToEmailModal,

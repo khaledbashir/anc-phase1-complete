@@ -79,7 +79,7 @@ export function CommanderChat() {
       if (data?.data?.type === "action" && data.data.action) {
         const action = data.data.action;
         applyCommand(action);
-        setMessages(prev => [...prev, { role: "assistant", content: `✅ I've updated the proposal: ${action.type}. The "Ferrari" math is applied.` }])
+        setMessages(prev => [...prev, { role: "assistant", content: `✅ I've updated the proposal: ${action.type}. The "Advanced" math is applied.` }])
         return
       }
 
@@ -208,7 +208,7 @@ export function CommanderChat() {
             </Button>
           </form>
           <div className="mt-2 text-[10px] text-zinc-600 text-center">
-            Powered by AnythingLLM
+            Powered by ANC Intelligence
           </div>
         </div>
       )}
