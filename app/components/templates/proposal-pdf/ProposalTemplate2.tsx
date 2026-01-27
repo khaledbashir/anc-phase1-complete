@@ -4,7 +4,7 @@ import React from "react";
 import { ProposalLayout, LogoSelector } from "@/app/components";
 
 // Helpers
-import { formatNumberWithCommas, isDataUrl } from "@/lib/helpers";
+import { formatNumberWithCommas, isDataUrl, formatCurrency } from "@/lib/helpers";
 
 // Variables
 import { DATE_OPTIONS } from "@/lib/variables";
@@ -12,285 +12,213 @@ import { DATE_OPTIONS } from "@/lib/variables";
 // Types
 import { ProposalType } from "@/types";
 
-const ProposalTemplate2 = (data: ProposalType) => {
-    const { sender, receiver, details } = data;
+// Styles
+import { PDF_COLORS, PDF_STYLES } from "./PdfStyles";
+
+interface ProposalTemplate2Props extends ProposalType {
+    forceWhiteLogo?: boolean;
+}
+
+const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
+    const { sender, receiver, details, forceWhiteLogo, screens } = data;
+    const internalAudit = details?.internalAudit as any; // Cast for now if schema update lags
+    const totals = internalAudit?.totals;
+
+    // Filter out "summary" tables only? Or generic items?
+    // Indiana Fever has 3 Sections:
+    // 1. Specs (Screen Configs)
+    // 2. Pricing Breakdown (Audit Table)
+    // 3. Summary (Totals)
+
+    // Helper for Header
+    const SectionHeader = ({ title }: { title: string }) => (
+        <div style={{ color: PDF_COLORS.FRENCH_BLUE }} className="text-center mb-4 mt-8">
+            <h2 className="text-xl font-bold uppercase tracking-widest">{title}</h2>
+        </div>
+    );
+
+    // Helper for Spec Table
+    const SpecTable = ({ screen }: { screen: any }) => (
+        <div className="mb-6 break-inside-avoid">
+            <div className="flex justify-between items-end mb-1 border-b-2 border-black pb-1">
+                <h3 className="font-bold text-lg uppercase text-gray-900">{screen.name}</h3>
+                <span className="font-bold text-sm uppercase text-gray-900">SPECIFICATIONS</span>
+            </div>
+            <table className="w-full text-xs">
+                <tbody>
+                    <tr className="bg-gray-100">
+                        <td className="p-1 font-bold pl-2">MM Pitch</td>
+                        <td className="p-1 text-right pr-2">{screen.pitchMm ?? screen.pixelPitch}mm</td>
+                    </tr>
+                    <tr>
+                        <td className="p-1 font-bold pl-2">Quantity</td>
+                        <td className="p-1 text-right pr-2">{screen.quantity}</td>
+                    </tr>
+                    <tr className="bg-gray-100">
+                        <td className="p-1 font-bold pl-2">Active Display Height (ft.)</td>
+                        <td className="p-1 text-right pr-2">{screen.heightFt ?? screen.height}'</td>
+                    </tr>
+                    <tr>
+                        <td className="p-1 font-bold pl-2">Active Display Width (ft.)</td>
+                        <td className="p-1 text-right pr-2">{screen.widthFt ?? screen.width}'</td>
+                    </tr>
+                    <tr className="bg-gray-100">
+                        <td className="p-1 font-bold pl-2">Pixel Resolution (H)</td>
+                        <td className="p-1 text-right pr-2">{screen.resolutionH ?? ((screen.heightFt ?? screen.height) * 12 * 25.4 / (screen.pitchMm ?? screen.pixelPitch)).toFixed(0)} p</td>
+                    </tr>
+                    <tr>
+                        <td className="p-1 font-bold pl-2">Pixel Resolution (W)</td>
+                        <td className="p-1 text-right pr-2">{screen.resolutionW ?? ((screen.widthFt ?? screen.width) * 12 * 25.4 / (screen.pitchMm ?? screen.pixelPitch)).toFixed(0)} p</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    );
+
+    // Helper for Pricing Table
+    const PricingTable = ({ screen }: { screen: any }) => {
+        // If we have internal audit breakdown, use it. Else fallback.
+        const auditRow = internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
+        const b = auditRow?.breakdown;
+
+        // Mock rows if real data missing (fallback to legacy items?)
+        // Assuming Enterprise flow always has audit.
+        if (!auditRow) return null;
+
+        return (
+            <div className="mb-6 break-inside-avoid">
+                <div className="flex justify-between items-end mb-1 border-b-2 border-black pb-1">
+                    <h3 className="font-bold text-lg uppercase text-gray-900">{screen.name}</h3>
+                    <span className="font-bold text-sm uppercase text-gray-900">PRICING</span>
+                </div>
+                <table className="w-full text-xs">
+                    <tbody>
+                        {/* Base Hardware (Sell Price) */}
+                        <tr className="border-b border-gray-200">
+                            <td className="p-2 text-gray-700">Base LED Display Hardware - {screen.pitchMm}mm SMD</td>
+                            <td className="p-2 text-right font-medium">{formatCurrency(b?.hardware * 1.3)}</td>
+                            {/* Note: logic above is illustrative, usually 'Sell Price' is the line item. 
+                                In 'AuditTable', we have 'b.sellPrice'. 
+                                We probably want to break it down.
+                                Let's assume 'b.sellPrice' is the total line for this screen.
+                            */}
+                        </tr>
+                        {/* Services Bundle */}
+                        <tr className="bg-gray-100 border-b border-gray-200">
+                            <td className="p-2 text-gray-700">LED Mounts and Secondary Support</td>
+                            <td className="p-2 text-right font-medium">{formatCurrency(b?.structure)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-200">
+                            <td className="p-2 text-gray-700">LED and Material Installation</td>
+                            <td className="p-2 text-right font-medium">{formatCurrency(b?.install)}</td>
+                        </tr>
+                        <tr className="bg-gray-100 border-b border-gray-200">
+                            <td className="p-2 text-gray-700">Project Management, Power & Data</td>
+                            <td className="p-2 text-right font-medium">{formatCurrency(b?.pm + b?.power)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-200">
+                            <td className="p-2 text-gray-700">Engineering and Permits</td>
+                            <td className="p-2 text-right font-medium">{formatCurrency(b?.engineering)}</td>
+                        </tr>
+                        <tr className="bg-gray-100 border-b border-gray-200">
+                            <td className="p-2 text-gray-700">Warranty (2 Years Parts)</td>
+                            <td className="p-2 text-right font-medium">Included</td>
+                        </tr>
+
+                        {/* Subtotal */}
+                        <tr className="border-t-2 border-black">
+                            <td className="p-2 font-bold text-right uppercase">Subtotal:</td>
+                            <td className="p-2 text-right font-bold text-black text-sm">{formatCurrency(b?.finalClientTotal)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        );
+    };
+
     return (
         <ProposalLayout data={data}>
-            <div className="flex justify-between">
+            {/* 1. HEADER (Summary Page) */}
+            <div className="flex justify-between items-start mb-8">
                 <div>
-                    <h2 className="text-2xl md:text-3xl font-semibold text-gray-800">
-                        Proposal #
-                    </h2>
-                    <span className="mt-1 block text-gray-500">
-                        {details.proposalId ?? details.invoiceNumber}
-                    </span>
-                    <LogoSelector theme="light" width={140} height={100} />
-
-                    <h1 className="mt-2 text-lg md:text-xl font-semibold text-blue-600">
-                        {sender.name}
-                    </h1>
+                    {/* Dynamic Logo based on guard */}
+                    <LogoSelector theme={forceWhiteLogo ? "dark" : "light"} width={140} height={100} />
+                    <div className="mt-4">
+                        <h1 className="text-3xl font-bold text-[#003366] uppercase leading-none">Sales Quotation</h1>
+                        <p className="text-sm text-gray-500 mt-1">Proposal #{details.proposalId ?? "DRAFT"}</p>
+                    </div>
                 </div>
-                <div className="text-right">
-                    <address className="mt-4 not-italic text-gray-800">
-                        {sender.address}
-                        <br />
-                        {sender.zipCode}, {sender.city}
-                        <br />
-                        {sender.country}
-                        <br />
-                    </address>
+                <div className="text-right text-xs text-gray-600">
+                    <p className="font-bold text-gray-900 text-sm">{sender.name}</p>
+                    <p>{sender.address}</p>
+                    <p>{sender.city}, {sender.country} {sender.zipCode}</p>
+                    <p className="mt-2 text-[#0A52EF]">{sender.email}</p>
                 </div>
             </div>
 
-            <div className="mt-6 grid sm:grid-cols-2 gap-3">
-                <div>
-                    <h3 className="text-lg font-semibold text-gray-800">
-                        Bill to:
-                    </h3>
-                    <h3 className="text-lg font-semibold text-gray-800">
-                        {receiver.name}
-                    </h3>
-                    <address className="mt-2 not-italic text-gray-500">
-                        {receiver.address}, {receiver.zipCode}
-                        <br />
-                        {receiver.city}, {receiver.country}
-                        <br />
-                    </address>
-                </div>
-                <div className="sm:text-right space-y-2">
-                    <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-2">
-                        <dl className="grid sm:grid-cols-6 gap-x-3">
-                            <dt className="col-span-3 font-semibold text-gray-800">
-                                Invoice date:
-                            </dt>
-                            <dd className="col-span-3 text-gray-500">
-                                {new Date(details.proposalDate ?? details.invoiceDate).toLocaleDateString("en-US", DATE_OPTIONS)}
-                            </dd>
-                        </dl>
-                        <dl className="grid sm:grid-cols-6 gap-x-3">
-                            <dt className="col-span-3 font-semibold text-gray-800">
-                                Due date:
-                            </dt>
-                            <dd className="col-span-3 text-gray-500">
-                                {new Date(details.dueDate).toLocaleDateString(
-                                    "en-US",
-                                    DATE_OPTIONS
-                                )}
-                            </dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
+            {/* 2. SPECIFICATIONS SECTION */}
+            <SectionHeader title={details.proposalName || "Project Specifications"} />
 
-            <div className="mt-3">
-                <div className="border border-gray-200 p-1 rounded-lg space-y-1">
-                    <div className="hidden sm:grid sm:grid-cols-5">
-                        <div className="sm:col-span-2 text-xs font-medium text-gray-500 uppercase">
-                            Item
-                        </div>
-                        <div className="text-left text-xs font-medium text-gray-500 uppercase">
-                            Qty
-                        </div>
-                        <div className="text-left text-xs font-medium text-gray-500 uppercase">
-                            Rate
-                        </div>
-                        <div className="text-right text-xs font-medium text-gray-500 uppercase">
-                            Amount
-                        </div>
-                    </div>
-                    <div className="hidden sm:block border-b border-gray-200"></div>
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-y-1">
-                        {details.items.map((item, index) => (
-                            <React.Fragment key={index}>
-                                <div className="col-span-full sm:col-span-2 border-b border-gray-300">
-                                    <p className="font-medium text-gray-800">
-                                        {item.name}
-                                    </p>
-                                    <p className="text-xs text-gray-600 whitespace-pre-line">
-                                        {item.description}
-                                    </p>
-                                </div>
-                                <div className="border-b border-gray-300">
-                                    <p className="text-gray-800">
-                                        {item.quantity}
-                                    </p>
-                                </div>
-                                <div className="border-b border-gray-300">
-                                    <p className="text-gray-800">
-                                        {item.unitPrice} {details.currency}
-                                    </p>
-                                </div>
-                                <div className="border-b border-gray-300">
-                                    <p className="sm:text-right text-gray-800">
-                                        {item.total} {details.currency}
-                                    </p>
-                                </div>
-                            </React.Fragment>
-                        ))}
-                    </div>
-                    <div className="sm:hidden border-b border-gray-200"></div>
-                </div>
-            </div>
+            {screens && screens.length > 0 ? (
+                screens.map((screen: any, idx: number) => (
+                    <SpecTable key={idx} screen={screen} />
+                ))
+            ) : (
+                <div className="text-center text-gray-400 italic py-8">No screens configured.</div>
+            )}
 
-            <div className="mt-2 flex sm:justify-end">
-                <div className="w-full max-w-2xl sm:text-right space-y-2">
-                    <div className="grid grid-cols-2 sm:grid-cols-1 gap-3 sm:gap-2">
-                        <dl className="grid sm:grid-cols-5 gap-x-3">
-                            <dt className="col-span-3 font-semibold text-gray-800">
-                                Subtotal:
-                            </dt>
-                            <dd className="col-span-2 text-gray-500">
-                                {formatNumberWithCommas(
-                                    Number(details.subTotal)
-                                )}{" "}
-                                {details.currency}
-                            </dd>
-                        </dl>
-                        {details.discountDetails?.amount != undefined &&
-                            details.discountDetails?.amount > 0 && (
-                                <dl className="grid sm:grid-cols-5 gap-x-3">
-                                    <dt className="col-span-3 font-semibold text-gray-800">
-                                        Discount:
-                                    </dt>
-                                    <dd className="col-span-2 text-gray-500">
-                                        {details.discountDetails.amountType ===
-                                            "amount"
-                                            ? `- ${details.discountDetails.amount} ${details.currency}`
-                                            : `- ${details.discountDetails.amount}%`}
-                                    </dd>
-                                </dl>
-                            )}
-                        {details.taxDetails?.amount != undefined &&
-                            details.taxDetails?.amount > 0 && (
-                                <dl className="grid sm:grid-cols-5 gap-x-3">
-                                    <dt className="col-span-3 font-semibold text-gray-800">
-                                        Tax:
-                                    </dt>
-                                    <dd className="col-span-2 text-gray-500">
-                                        {details.taxDetails.amountType ===
-                                            "amount"
-                                            ? `+ ${details.taxDetails.amount} ${details.currency}`
-                                            : `+ ${details.taxDetails.amount}%`}
-                                    </dd>
-                                </dl>
-                            )}
-                        {details.shippingDetails?.cost != undefined &&
-                            details.shippingDetails?.cost > 0 && (
-                                <dl className="grid sm:grid-cols-5 gap-x-3">
-                                    <dt className="col-span-3 font-semibold text-gray-800">
-                                        Shipping:
-                                    </dt>
-                                    <dd className="col-span-2 text-gray-500">
-                                        {details.shippingDetails.costType ===
-                                            "amount"
-                                            ? `+ ${details.shippingDetails.cost} ${details.currency}`
-                                            : `+ ${details.shippingDetails.cost}%`}
-                                    </dd>
-                                </dl>
-                            )}
-                        <dl className="grid sm:grid-cols-5 gap-x-3">
-                            <dt className="col-span-3 font-semibold text-gray-800">
-                                Total:
-                            </dt>
-                            <dd className="col-span-2 text-gray-500">
-                                {formatNumberWithCommas(
-                                    Number(details.totalAmount)
-                                )}{" "}
-                                {details.currency}
-                            </dd>
-                        </dl>
-                        {details.totalAmountInWords && (
-                            <dl className="grid sm:grid-cols-5 gap-x-3">
-                                <dt className="col-span-3 font-semibold text-gray-800">
-                                    Total in words:
-                                </dt>
-                                <dd className="col-span-2 text-gray-500">
-                                    <em>
-                                        {details.totalAmountInWords}{" "}
-                                        {details.currency}
-                                    </em>
-                                </dd>
-                            </dl>
+            <div className="break-before-page"></div>
+
+            {/* 3. PRICING SECTION */}
+            <SectionHeader title="Pricing Breakdown" />
+
+            {screens && screens.length > 0 ? (
+                screens.map((screen: any, idx: number) => (
+                    <PricingTable key={idx} screen={screen} />
+                ))
+            ) : null}
+
+            {/* 4. TOTALS SUMMARY */}
+            <div className="mt-8 border-t-4 border-[#003366] pt-4">
+                <div className="flex justify-end">
+                    <div className="w-1/2">
+                        <div className="flex justify-between py-2 border-b border-gray-300">
+                            <span className="font-bold text-gray-700">PROJECT TOTAL</span>
+                            <span className="font-bold text-gray-900">{formatCurrency(totals?.finalClientTotal || details?.totalAmount || 0)}</span>
+                        </div>
+                        {/* Payment Terms? */}
+                        {details.paymentTerms && (
+                            <div className="mt-4 text-xs text-gray-500 text-right">
+                                <p className="font-bold uppercase text-gray-700">Payment Terms</p>
+                                <p>{details.paymentTerms}</p>
+                            </div>
                         )}
                     </div>
                 </div>
             </div>
 
-            <div>
-                <div className="my-4">
-                    <div className="my-2">
-                        <p className="font-semibold text-blue-600">
-                            Additional notes:
-                        </p>
-                        <p className="font-regular text-gray-800">
-                            {details.additionalNotes}
-                        </p>
+            {/* 5. SIGNATURE */}
+            <div className="mt-12 break-inside-avoid">
+                <div className="border-t-2 border-gray-300 pt-8 flex justify-between gap-12">
+                    <div className="flex-1">
+                        <p className="font-bold text-[#003366] uppercase mb-12">AGREED TO AND ACCEPTED BY:</p>
+                        <div className="border-b border-black mb-2"></div>
+                        <p className="text-xs uppercase font-bold text-gray-600">Signature</p>
+
+                        <div className="border-b border-black mb-2 mt-8"></div>
+                        <p className="text-xs uppercase font-bold text-gray-600">Date</p>
                     </div>
-                    <div className="my-2">
-                        <p className="font-semibold text-blue-600">
-                            Payment terms:
-                        </p>
-                        <p className="font-regular text-gray-800">
-                            {details.paymentTerms}
-                        </p>
+                    <div className="flex-1">
+                        <p className="font-bold text-[#003366] uppercase mb-12">{receiver.name}</p>
+                        <div className="border-b border-black mb-2"></div>
+                        <p className="text-xs uppercase font-bold text-gray-600">Printed Name</p>
+
+                        <div className="border-b border-black mb-2 mt-8"></div>
+                        <p className="text-xs uppercase font-bold text-gray-600">Title</p>
                     </div>
-                    <div className="my-2">
-                        <span className="font-semibold text-md text-gray-800">
-                            Please send the payment to this address
-                            <p className="text-sm">
-                                Bank: {details.paymentInformation?.bankName}
-                            </p>
-                            <p className="text-sm">
-                                Account name:{" "}
-                                {details.paymentInformation?.accountName}
-                            </p>
-                            <p className="text-sm">
-                                Account no:{" "}
-                                {details.paymentInformation?.accountNumber}
-                            </p>
-                        </span>
-                    </div>
-                </div>
-                <p className="text-gray-500 text-sm">
-                    If you have any questions concerning this invoice, use the
-                    following contact information:
-                </p>
-                <div>
-                    <p className="block text-sm font-medium text-gray-800">
-                        {sender.email}
-                    </p>
-                    <p className="block text-sm font-medium text-gray-800">
-                        {sender.phone}
-                    </p>
                 </div>
             </div>
 
-            {/* Signature */}
-            {details?.signature?.data && isDataUrl(details?.signature?.data) ? (
-                <div className="mt-6">
-                    <p className="font-semibold text-gray-800">Signature:</p>
-                    <img
-                        src={details.signature.data}
-                        width={120}
-                        height={60}
-                        alt={`Signature of ${sender.name}`}
-                    />
-                </div>
-            ) : details.signature?.data ? (
-                <div className="mt-6">
-                    <p className="text-gray-800">Signature:</p>
-                    <p
-                        style={{
-                            fontSize: 30,
-                            fontWeight: 400,
-                            fontFamily: `${details.signature.fontFamily}, cursive`,
-                            color: "black",
-                        }}
-                    >
-                        {details.signature.data}
-                    </p>
-                </div>
-            ) : null}
         </ProposalLayout>
     );
 };
