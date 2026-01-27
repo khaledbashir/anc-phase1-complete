@@ -32,10 +32,10 @@ const ProposalTemplate1 = (data: ProposalType) => {
 		id: s.id || Math.random().toString(),
 		name: s.name,
 		group: s.name.includes("-") ? s.name.split("-")[0].trim() : undefined,
-		sellPrice: s.sellPrice || 0,
+		sellPrice: s.sellPrice || s.finalClientTotal || 0, // Fallback for sell price
 		specs: {
-			width: s.widthFt,
-			height: s.heightFt
+			width: s.widthFt ?? s.width ?? 0,
+			height: s.heightFt ?? s.height ?? 0
 		}
 	}));
 
@@ -141,6 +141,9 @@ const ProposalTemplate1 = (data: ProposalType) => {
 									key,
 									name: screen.name,
 									qty: screen.quantity || 1,
+									heightFt: screen.heightFt ?? screen.height ?? 0,
+									widthFt: screen.widthFt ?? screen.width ?? 0,
+									pitchMm: screen.pitchMm ?? screen.pixelPitch ?? 0,
 									...screen
 								});
 							}
@@ -155,19 +158,28 @@ const ProposalTemplate1 = (data: ProposalType) => {
 								<div className='space-y-2'>
 									<div className='flex justify-between text-xs'>
 										<span className='text-zinc-500'>Pitch:</span>
-										<span className='font-bold text-zinc-800'>{screen.pitchMm}mm</span>
+										<span className='font-bold text-zinc-800'>{screen.pitchMm || 0}mm</span>
 									</div>
 									<div className='flex justify-between text-xs'>
 										<span className='text-zinc-500'>Dimensions:</span>
-										<span className='font-bold text-zinc-800'>{screen.heightFt}'h x {screen.widthFt}'w</span>
+										<span className='font-bold text-zinc-800'>{heightFt}'h x {widthFt}'w</span>
 									</div>
-									{(screen.pixelsH && screen.pixelsW) && (
-										<div className='flex justify-between text-xs'>
-											<span className='text-zinc-500'>Resolution:</span>
-											<span className='font-bold text-zinc-800'>{screen.pixelsH}h x {screen.pixelsW}w</span>
-										</div>
-									)}
-									{(screen.brightness && screen.brightness !== "0" && screen.brightness !== "" && String(screen.brightness).toUpperCase() !== 'N/A') && (
+									{(() => {
+										// If explicit pixels are missing, try to compute them for the preview
+										const h = screen.pixelsH || Math.round((heightFt * 304.8) / (screen.pitchMm || 10));
+										const w = screen.pixelsW || Math.round((widthFt * 304.8) / (screen.pitchMm || 10));
+
+										if (h > 0 && w > 0) {
+											return (
+												<div className='flex justify-between text-xs'>
+													<span className='text-zinc-500'>Resolution:</span>
+													<span className='font-bold text-zinc-800'>{h}h x {w}w</span>
+												</div>
+											);
+										}
+										return null;
+									})()}
+									{(screen.brightness && screen.brightness !== "0" && screen.brightness !== "" && String(screen.brightness).toUpperCase() !== 'N/A' && !String(screen.brightness).includes("Total SQ FT")) && (
 										<div className='flex justify-between text-xs'>
 											<span className='text-zinc-500'>Brightness:</span>
 											<span className='font-bold text-zinc-800'>{screen.brightness} nits</span>
