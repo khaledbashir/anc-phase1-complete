@@ -37,7 +37,6 @@ import SingleScreen from "./invoice/form/SingleScreen";
 
 // * Actions
 import PdfViewer from "./invoice/actions/PdfViewer";
-import LivePreview from "./invoice/actions/LivePreview";
 import FinalPdf from "./invoice/actions/FinalPdf";
 
 // * Reusable components
@@ -118,7 +117,6 @@ export {
    CurrencySelector,
    SavedProposalsList,
    PdfViewer,
-   LivePreview,
    FinalPdf,
    FormInput,
    FormTextarea,
