@@ -12,6 +12,24 @@ export interface ScreenPriceBreakdown {
 }
 
 /**
+ * calculateTotalWithBond (Ferrari Edition Divisor Model)
+ * Sell Price = Cost / (1 - Margin%)
+ * Bond = Sell Price * 0.015
+ * Total = Sell Price + Bond
+ */
+export function calculateTotalWithBond(cost: number, marginPct: number) {
+  const sellPrice = cost / (1 - (marginPct / 100));
+  const bond = sellPrice * 0.015;
+  const total = sellPrice + bond;
+
+  return {
+    sellPrice: Math.round(sellPrice * 100) / 100,
+    bond: Math.round(bond * 100) / 100,
+    total: Math.round(total * 100) / 100
+  };
+}
+
+/**
  * Calculate screen price based on dimensions, pitch, and environment
  * @param width Screen width in meters
  * @param height Screen height in meters
@@ -138,6 +156,7 @@ export type ANCProjectResult = {
     shipping: number;
     labor: number;
     pm: number;
+    demolition?: number;
     bond: number;
     margin: number;
     totalCost: number;
@@ -163,6 +182,7 @@ export type ScreenAudit = {
     structure: number;
     install: number;
     labor: number;
+    demolition: number;
     power: number;
     shipping: number;
     pm: number;
@@ -192,6 +212,7 @@ export type InternalAudit = {
     power: number;
     shipping: number;
     pm: number;
+    demolition: number;
     generalConditions: number;
     travel: number;
     submittals: number;
@@ -283,6 +304,7 @@ export function calculatePerScreenAudit(
   const PERMITS_FIXED = options?.permitsFixed ?? 500;
   const CMS_PCT = options?.cmsPct ?? 0.02;
   const BOND_PCT = options?.bondPct ?? 0.015;
+  const DEMOLITION_FIXED = 5000;
 
   const qty = s.quantity ?? 1;
   const pitch = s.pitchMm ?? DEFAULT_PITCH_MM;
@@ -346,6 +368,8 @@ export function calculatePerScreenAudit(
   const permits = roundToCents(PERMITS_FIXED);
   const cms = roundToCents(hardware * CMS_PCT);
 
+  const demolition = s.isReplacement ? roundToCents(DEMOLITION_FIXED) : 0;
+
   // Outlet Distance Surcharge: If > 50ft, add $2,500 to Power
   const outletSurcharge = outletDistance > 50 ? 2500 : 0;
   const adjustedPower = roundToCents(power + outletSurcharge);
@@ -364,21 +388,19 @@ export function calculatePerScreenAudit(
     submittals +
     engineering +
     permits +
-    cms
+    cms +
+    demolition
   );
 
   // Sell Price (P): Total Cost / (1 - DesiredMargin)
-  // Example: Cost $1,000, Margin 10% → Price $1,111.11
-  const sellPrice = roundToCents(totalCost / (1 - desiredMargin));
+  // Ferrari Edition Divisor Model
+  const results = calculateTotalWithBond(totalCost, desiredMargin * 100);
+  const sellPrice = results.sellPrice;
+  const bondCost = results.bond;
+  const finalClientTotal = results.total;
 
   // ANC Margin (Profit): Sell Price - Total Cost
   const ancMargin = roundToCents(sellPrice - totalCost);
-
-  // Bond Cost: Sell Price * 0.015 (1.5% flat rate)
-  const bondCost = roundToCents(sellPrice * BOND_PCT);
-
-  // Final Client Total: Sell Price + Bond Cost
-  const finalClientTotal = roundToCents(sellPrice + bondCost);
 
   // Selling SqFt: Final Client Total / Total Sq Ft
   const sellingPricePerSqFt = roundToCents(finalClientTotal / totalArea);
@@ -405,6 +427,7 @@ export function calculatePerScreenAudit(
       engineering,
       permits,
       cms,
+      demolition,
       totalCost,
       ancMargin,
       sellPrice,
@@ -501,6 +524,7 @@ export function calculateProposalAudit(
     totalCost: 0,
     finalClientTotal: 0,
     sellingPricePerSqFt: 0,
+    demolition: 0,
   };
 
   for (const ps of perScreen) {
@@ -525,6 +549,7 @@ export function calculateProposalAudit(
     totals.finalClientTotal += b.finalClientTotal;
     totals.sellingPricePerSqFt += b.sellingPricePerSqFt * ps.areaSqFt; // Weighted average later
     totals.margin += b.ancMargin;
+    totals.demolition += b.demolition || 0;
   }
 
   for (const k of Object.keys(totals) as Array<keyof typeof totals>) {
@@ -559,7 +584,7 @@ export function calculateProposalAudit(
       structure: totals.structure,
       install: totals.install,
       others: roundToCents(
-        totals.shipping + totals.pm + totals.generalConditions + totals.travel + totals.submittals + totals.engineering + totals.permits + totals.cms
+        totals.shipping + totals.pm + totals.generalConditions + totals.travel + totals.submittals + totals.engineering + totals.permits + totals.cms + totals.demolition
       ),
     },
   };

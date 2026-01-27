@@ -39,6 +39,7 @@ import { calculateProposalAudit } from "@/lib/estimator";
 const defaultProposalContext = {
   proposalPdf: new Blob(),
   proposalPdfLoading: false,
+  excelImportLoading: false,
   savedProposals: [] as ProposalType[],
   pdfUrl: null as string | null,
   activeTab: "client",
@@ -114,6 +115,7 @@ export const ProposalContextProvider = ({
   // Variables
   const [proposalPdf, setProposalPdf] = useState<Blob>(new Blob());
   const [proposalPdfLoading, setProposalPdfLoading] = useState<boolean>(false);
+  const [excelImportLoading, setExcelImportLoading] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("client");
 
   // Alerts
@@ -535,6 +537,11 @@ export const ProposalContextProvider = ({
     if (!internalAudit?.perScreen) return screens;
 
     return screens.map((screen, idx) => {
+      // If line items are already present (e.g. from Excel Mirroring), preserve them
+      if (screen.lineItems && screen.lineItems.length > 0) {
+        return screen;
+      }
+
       const audit = internalAudit.perScreen[idx];
       if (!audit) return screen;
 
@@ -594,7 +601,7 @@ export const ProposalContextProvider = ({
           setValue("details.screens", screensWithLineItems);
 
           // CRITICAL: Flatten all screen-level lineItems into details.items for the PDF Template
-          const allItems = screensWithLineItems.flatMap(s => s.lineItems || []).map(li => {
+          const allItems = screensWithLineItems.flatMap(s => s.lineItems || []).map((li: any) => {
             let desc = "Standard specification.";
             if (li.category.includes('LED')) desc = "Supply of LED Display System including spare parts, power/data cabling, and processing hardware.";
             if (li.category.includes('Structure')) desc = "Structural engineering, fabrication, and mounting hardware.";
@@ -828,6 +835,7 @@ export const ProposalContextProvider = ({
     const formData = new FormData();
     formData.append("file", file);
 
+    setExcelImportLoading(true);
     try {
       const res = await fetch("/api/proposals/import-excel", {
         method: "POST",
@@ -858,30 +866,21 @@ export const ProposalContextProvider = ({
           setValue("details.screens", screensWithLineItems);
 
           // Flatten for PDF item table
-          const allItems = screensWithLineItems.flatMap(s => s.lineItems || []).map(li => {
-            let desc = "Standard specification.";
-            if (li.category.includes('LED')) desc = "Supply of LED Display System including spare parts, power/data cabling, and processing hardware.";
-            if (li.category.includes('Structure')) desc = "Structural engineering, fabrication, and mounting hardware.";
-            if (li.category.includes('Installation')) desc = "Union labor installation per IBEW jurisdiction. Includes prevailing wage, certified payroll, and final commissioning.";
-            if (li.category.includes('Electrical')) desc = "Primary power tie-in and data conduit runs.";
-
-            return {
-              name: li.category,
-              description: desc,
-              quantity: 1,
-              unitPrice: li.price,
-              total: li.price
-            };
-          });
+          const allItems = screensWithLineItems.flatMap(s => (s.lineItems || []).map((li: any) => ({
+            name: li.category,
+            description: s.description || "Standard specification.",
+            quantity: 1,
+            unitPrice: li.price,
+            total: li.price
+          })));
           setValue("details.items", allItems);
         }
       }
 
       aiExtractionSuccess();
       setActiveTab("audit");
-    } catch (error) {
-      console.error("Error importing ANC Excel:", error);
-      aiExtractionError();
+    } finally {
+      setExcelImportLoading(false);
     }
   };
 
@@ -890,6 +889,7 @@ export const ProposalContextProvider = ({
       value={{
         proposalPdf,
         proposalPdfLoading,
+        excelImportLoading,
         savedProposals,
         pdfUrl,
         activeTab,

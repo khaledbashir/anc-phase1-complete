@@ -25,7 +25,7 @@ export default function ProposalLayout({ data, children }: ProposalLayoutProps) 
                 crossOrigin="anonymous"
             />
             <link
-                href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap"
+                href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap"
                 rel="stylesheet"
             ></link>
             {details.signature?.fontFamily && (
@@ -39,7 +39,7 @@ export default function ProposalLayout({ data, children }: ProposalLayoutProps) 
     return (
         <>
             {head}
-            <section style={{ fontFamily: "'Open Sans', sans-serif" }}>
+            <section style={{ fontFamily: "'Work Sans', 'Helvetica Condensed', sans-serif" }}>
                 <div className="flex flex-col p-4 sm:p-10 bg-white rounded-xl min-h-[60rem] text-[#1a1a1a]">
                     {children}
                 </div>

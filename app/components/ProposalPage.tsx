@@ -18,7 +18,7 @@ import { useProposalContext } from "@/contexts/ProposalContext";
 import { useTranslationContext } from "@/contexts/TranslationContext";
 
 // Icons
-import { Send, Sparkles, Download, Share2, Upload } from "lucide-react";
+import { Send, Sparkles, Download, Share2, Upload, Loader2 } from "lucide-react";
 
 // Types
 import { ProposalType } from "@/types";
@@ -32,7 +32,7 @@ type ChatMessage = {
 const ProposalPage = () => {
   const { handleSubmit, setValue } = useFormContext<ProposalType>();
   const { _t } = useTranslationContext();
-  const { onFormSubmit, applyCommand, activeTab, setActiveTab, aiWorkspaceSlug, importANCExcel } = useProposalContext();
+  const { onFormSubmit, applyCommand, activeTab, setActiveTab, aiWorkspaceSlug, importANCExcel, excelImportLoading } = useProposalContext();
 
   const projectName = useWatch({
     name: "proposalName",
@@ -141,9 +141,19 @@ const ProposalPage = () => {
               size="sm"
               className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
               onClick={() => document.getElementById("excel-import-input")?.click()}
+              disabled={excelImportLoading}
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Import Excel
+              {excelImportLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import Excel
+                </>
+              )}
             </Button>
             <input
               id="excel-import-input"

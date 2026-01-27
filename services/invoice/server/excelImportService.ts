@@ -15,128 +15,181 @@ interface ParsedANCProposal {
 export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> {
     const workbook = xlsx.read(buffer, { type: 'buffer' });
 
-    // 1. Primary Data Source: "LED Cost Sheet"
-    const ledSheet = workbook.Sheets['LED Cost Sheet'];
-    if (!ledSheet) throw new Error('Sheet "LED Cost Sheet" not found');
+    // 1. Primary Data Source: "LED Sheet" (New format) or "LED Cost Sheet" (Legacy fallback)
+    const ledSheet = workbook.Sheets['LED Sheet'] || workbook.Sheets['LED Cost Sheet'];
+    if (!ledSheet) throw new Error('Sheet "LED Sheet" or "LED Cost Sheet" not found');
     const ledData: any[][] = xlsx.utils.sheet_to_json(ledSheet, { header: 1 });
 
-    // 2. Secondary Data Sources: Install tabs
-    const installInBowlSheet = workbook.Sheets['Install (In-Bowl)'];
-    const installConcourseSheet = workbook.Sheets['Install (Concourse)'];
-
-    const installInBowlData: any[][] = installInBowlSheet ? xlsx.utils.sheet_to_json(installInBowlSheet, { header: 1 }) : [];
-    const installConcourseData: any[][] = installConcourseSheet ? xlsx.utils.sheet_to_json(installConcourseSheet, { header: 1 }) : [];
+    // 2. Financial Source of Truth: "Margin Analysis"
+    const marginSheet = workbook.Sheets['Margin Analysis'];
+    const marginData: any[][] = marginSheet ? xlsx.utils.sheet_to_json(marginSheet, { header: 1 }) : [];
 
     const screens: any[] = [];
     const perScreenAudits: ScreenAudit[] = [];
 
-    // Iterate through "LED Cost Sheet" to find screen configurations
-    // Based on the observed structure:
-    // Row 0: Header (some title)
-    // Row 1: Column Headers [Issue/Project Name, null, null, null, Pitch, Height, Width, ...]
+    // Mapping for LED Sheet (Master format)
+    // Col A: Display Name (0)
+    // Col E: Pixel Pitch (4)
+    // Col F: Height (5)
+    // Col G: Width (6)
+    // Col H: Pixel H (7)
+    // Col J: Pixel W (9)
+    // Col M: Brightness (12)
 
     for (let i = 2; i < ledData.length; i++) {
         const row = ledData[i];
         const projectName = row[0];
 
-        // Look for project name markers like "RB.05 - LED Ribbon..." or "LED.EXT.N.C..."
-        if (typeof projectName === 'string' && (projectName.includes('LED') || projectName.includes('RB.'))) {
+        // Valid project row usually has a name and dimensions
+        if (typeof projectName === 'string' && projectName.trim() !== "" && row[4]) {
             const pitch = row[4];
             const heightFt = row[5];
             const widthFt = row[6];
-            const quantity = row[11] || 1;
-            const areaSqFt = row[12];
-            const serviceType = row[14]; // "Top", "Front", etc.
+            const pixelsH = row[7];
+            const pixelsW = row[9];
+            const brightness = row[12];
 
-            const hardwareCost = row[16]; // Display Cost
-            const shippingCost = row[19]; // Shipping
-            const totalCostBeforeMargin = row[20]; // Total Cost (Display + Shipping)
-            const sellPrice = row[22]; // Price (after margin)
-            const ancMargin = row[23]; // ANC Margin
-            const bondCost = row[24]; // Bond Cost
-            const finalClientTotal = row[25]; // Total with Bond
-
-            // Now find corresponding Install data in "Install (In-Bowl)" or "Install (Concourse)"
-            // The prompt indicates:
-            // FABRICATE SECONDARY STEEL SUBSTRUCTURE -> structure cost
-            // INSTALL SECONDARY STEEL SUBSTRUCTURE -> labor part 1
-            // INSTALL LED DISPLAYS -> labor part 2
-            // INSTALL CLADDING AND TRIM -> labor part 3
-            // HEAVY EQUIPMENT -> pm/travel/etc.
-
-            const installRowHeader = findInstallRow(installInBowlData, projectName) || findInstallRow(installConcourseData, projectName);
-
-            let structureCost = hardwareCost * 0.2; // Default fallback (from old logic)
-            let laborCost = hardwareCost * 0.15; // Default fallback
-            let pmCost = areaSqFt * 0.5; // Default fallback
-
-            if (installRowHeader) {
-                structureCost = installRowHeader.structure;
-                laborCost = installRowHeader.labor;
-                pmCost = installRowHeader.pm;
-            }
+            // Financial fields on LED Sheet (fallbacks if Margin Analysis fails)
+            const hardwareCost = row[16] || 0;
+            const shippingCost = row[19] || 0;
+            const totalCostBeforeMargin = row[20] || 0;
+            const sellPrice = row[22] || 0;
+            const ancMargin = row[23] || 0;
+            const bondCost = row[24] || 0;
+            const finalClientTotal = row[25] || 0;
 
             const screen: any = {
                 name: projectName,
                 pitchMm: parseFloat(pitch),
                 heightFt: parseFloat(heightFt),
                 widthFt: parseFloat(widthFt),
-                quantity: parseInt(quantity),
-                serviceType: serviceType,
-                costPerSqFt: row[15],
+                pixelsH: parseInt(pixelsH),
+                pixelsW: parseInt(pixelsW),
+                brightness: brightness,
+                quantity: 1,
+                lineItems: []
             };
+
+            // Enhance description with Brightness if available
+            let description = `Resolution: ${pixelsH}h x ${pixelsW}w. `;
+            if (brightness) {
+                description += `Brightness: ${brightness} nits.`;
+            }
+            screen.description = description;
+
+            // MIRRORING LOGIC: Find this project in "Margin Analysis"
+            // The Margin Analysis tab is the real source of truth for PDF pricing tables.
+            if (marginSheet) {
+                const mirroredItems = findMirrorItems(marginData, projectName);
+                if (mirroredItems.length > 0) {
+                    screen.lineItems = mirroredItems.map((item, idx) => ({
+                        id: `mi-${i}-${idx}`,
+                        category: item.name,
+                        price: item.sellPrice, // VEIL POLICY: Only selling price
+                        description: screen.description
+                    }));
+                }
+            }
+
+            // Fallback if no margin data found
+            if (screen.lineItems.length === 0) {
+                screen.lineItems = [
+                    { id: `hw-${i}`, category: 'Display System', price: sellPrice },
+                ];
+            }
 
             const audit: ScreenAudit = {
                 name: projectName,
-                productType: projectName.includes('RB.') ? 'Ribbon' : 'LED Display',
-                quantity: quantity,
-                areaSqFt: areaSqFt,
-                pixelResolution: 0, // Calculate later or mark as 0
+                productType: 'LED Display',
+                quantity: 1,
+                areaSqFt: heightFt * widthFt,
+                pixelResolution: pixelsH * pixelsW,
+                pixelMatrix: `${pixelsH} x ${pixelsW} @ ${pitch}mm`,
                 breakdown: {
                     hardware: hardwareCost,
-                    structure: structureCost,
-                    install: laborCost, // Mapped to labor
-                    labor: laborCost,
-                    power: 0, // If available
+                    structure: 0,
+                    install: 0,
+                    labor: 0,
+                    power: 0,
                     shipping: shippingCost,
-                    pm: pmCost,
+                    pm: 0,
                     generalConditions: 0,
                     travel: 0,
                     submittals: 0,
                     engineering: 0,
                     permits: 0,
                     cms: 0,
+                    demolition: 0,
                     ancMargin: ancMargin,
                     sellPrice: sellPrice,
                     bondCost: bondCost,
-                    marginAmount: ancMargin,
                     totalCost: totalCostBeforeMargin,
                     finalClientTotal: finalClientTotal,
-                    sellingPricePerSqFt: row[26],
+                    sellingPricePerSqFt: finalClientTotal / (heightFt * widthFt || 1),
+                    marginAmount: ancMargin // back compat
                 }
             };
 
-            // Populate lineItems for the PDF template (Summary Level)
-            const totalSell = finalClientTotal;
-            const hardwareSell = (hardwareCost / totalCostBeforeMargin) * totalSell;
-            const structureSell = (structureCost / totalCostBeforeMargin) * totalSell;
-            const laborSell = (laborCost / totalCostBeforeMargin) * totalSell;
-            const otherSell = totalSell - hardwareSell - structureSell - laborSell;
-
-            screen.lineItems = [
-                { id: `hw-${i}`, category: 'LED Display System', price: hardwareSell },
-                { id: `st-${i}`, category: 'Structural Materials', price: structureSell },
-                { id: `inst-${i}`, category: 'Installation & Labor', price: laborSell },
-                { id: `other-${i}`, category: 'Electrical, Data & Conditions', price: otherSell },
-            ];
+            // If Margin Analysis exists, we can extract even more detailed audit per row if needed,
+            // but for now we aggregate the screen-level financials.
 
             screens.push(screen);
             perScreenAudits.push(audit);
         }
     }
 
-    // Aggregate totals
-    const totals = perScreenAudits.reduce((acc, curr) => {
+    // Aggregate totals for the internalAudit object
+    const totals = aggregateTotals(perScreenAudits);
+
+    const internalAudit: InternalAudit = {
+        perScreen: perScreenAudits,
+        totals: totals
+    };
+
+    return {
+        clientName: ledData[0][0]?.replace('Project Name: ', '') || 'New Project',
+        proposalName: 'ANC LED Display Proposal',
+        screens,
+        internalAudit
+    };
+}
+
+/**
+ * findMirrorItems: Finds the row group in Margin Analysis matching the screen name.
+ * Respects row order and excludes internal metrics (costs/margins).
+ */
+function findMirrorItems(data: any[][], projectName: string): { name: string, sellPrice: number }[] {
+    const items: { name: string, sellPrice: number }[] = [];
+    let found = false;
+
+    for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        const cellA = row[0];
+
+        if (typeof cellA === 'string' && cellA.includes(projectName)) {
+            found = true;
+            // Found the header, now look at subsequent rows until next project or empty
+            for (let j = i + 1; j < data.length; j++) {
+                const subRow = data[j];
+                const label = subRow[0];
+                const sellPrice = subRow[5]; // Assuming sell price is Col F (5) in Margin Analysis
+
+                if (!label || (typeof label === 'string' && (label.includes('LED') || label.includes('RB.')))) {
+                    break; // End of group
+                }
+
+                if (typeof sellPrice === 'number' && sellPrice > 0) {
+                    items.push({ name: label, sellPrice });
+                }
+            }
+            break;
+        }
+    }
+    return items;
+}
+
+function aggregateTotals(audits: ScreenAudit[]) {
+    const totals = audits.reduce((acc, curr) => {
         const b = curr.breakdown;
         return {
             hardware: acc.hardware + b.hardware,
@@ -155,57 +208,22 @@ export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> 
             ancMargin: acc.ancMargin + b.ancMargin,
             sellPrice: acc.sellPrice + b.sellPrice,
             bondCost: acc.bondCost + b.bondCost,
-            margin: acc.margin + b.marginAmount,
             totalCost: acc.totalCost + b.totalCost,
             finalClientTotal: acc.finalClientTotal + b.finalClientTotal,
-            sellingPricePerSqFt: 0, // Calculate weighted avg
+            demolition: (acc.demolition || 0) + (b.demolition || 0),
+            margin: acc.margin + (b.marginAmount || 0),
+            sellingPricePerSqFt: 0 // calc below
         };
     }, {
         hardware: 0, structure: 0, install: 0, labor: 0, power: 0, shipping: 0, pm: 0,
         generalConditions: 0, travel: 0, submittals: 0, engineering: 0, permits: 0, cms: 0,
-        ancMargin: 0, sellPrice: 0, bondCost: 0, margin: 0, totalCost: 0, finalClientTotal: 0,
+        ancMargin: 0, sellPrice: 0, bondCost: 0, totalCost: 0, finalClientTotal: 0, margin: 0,
+        demolition: 0,
         sellingPricePerSqFt: 0
     });
 
-    const internalAudit: InternalAudit = {
-        perScreen: perScreenAudits,
-        totals: totals
-    };
+    const totalArea = audits.reduce((sum, s) => sum + s.areaSqFt, 0);
+    totals.sellingPricePerSqFt = totals.finalClientTotal / (totalArea || 1);
 
-    return {
-        clientName: ledData[0][0]?.replace('Project Name: ', '') || 'New Project',
-        proposalName: 'LED Display Proposal',
-        screens,
-        internalAudit
-    };
-}
-
-function findInstallRow(data: any[][], projectName: string) {
-    for (let i = 0; i < data.length; i++) {
-        const row = data[i];
-        if (row[0] === projectName) {
-            // Found the screen block in Install tab
-            // Search for keywords below this row
-            let structure = 0;
-            let labor = 0;
-            let pm = 0;
-
-            for (let j = i + 1; j < data.length && j < i + 50; j++) {
-                const subRow = data[j];
-                const label = subRow[0];
-                if (typeof label !== 'string') continue;
-
-                if (label.includes('FABRICATE SECONDARY STEEL')) structure = subRow[9] || 0;
-                if (label.includes('INSTALL SECONDARY STEEL')) labor += subRow[9] || 0;
-                if (label.includes('INSTALL LED DISPLAYS')) labor += subRow[9] || 0;
-                if (label.includes('INSTALL CLADDING AND TRIM')) labor += subRow[9] || 0;
-                if (label.includes('PM/GENERAL CONDITIONS/TRAVEL')) pm = subRow[9] || 0;
-
-                // Stop if we hit the next project
-                if (label.includes('LED.') || label.includes('RB.')) break;
-            }
-            return { structure, labor, pm };
-        }
-    }
-    return null;
+    return totals;
 }
