@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateFormulaicExcel } from "@/services/invoice/server/exportFormulaicExcel";
+import { generateAuditExcelBuffer } from "@/services/invoice/server/exportFormulaicExcel";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,21 +13,26 @@ export async function POST(req: NextRequest) {
 
     const proposal = await prisma.proposal.findUnique({
       where: { id: proposalId },
+      include: { screens: true },
     });
 
     if (!proposal) {
       return NextResponse.json({ error: "Proposal not found" }, { status: 404 });
     }
 
-    // Prepare data for the formulaic engine
-    // The engine expects an array of screens and global options
-    const screens = (proposal as any).screens || [];
+    // Map internalAudit data to screens for the exporter
+    const internalAudit: any = proposal.internalAudit;
+    const screensWithAudit = (proposal.screens || []).map((screen, idx) => ({
+      ...screen,
+      internalAudit: internalAudit?.perScreen?.[idx] || null,
+    }));
+
     const proposalName = proposal.proposalName || proposal.clientName || "Proposal";
-
-    const workbook = await generateFormulaicExcel(screens, { proposalName });
-
-    // Generate buffer
-    const buffer = await workbook.xlsx.writeBuffer();
+    const buffer = await generateAuditExcelBuffer(screensWithAudit, {
+      proposalName,
+      clientName: proposal.clientName,
+      status: proposal.status as any,
+    });
 
     return new Response(buffer as any, {
       status: 200,

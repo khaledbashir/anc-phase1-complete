@@ -18,7 +18,7 @@ import { useProposalContext } from "@/contexts/ProposalContext";
 import { useTranslationContext } from "@/contexts/TranslationContext";
 
 // Icons
-import { Send, Sparkles, Download, Share2 } from "lucide-react";
+import { Send, Sparkles, Download, Share2, Upload } from "lucide-react";
 
 // Types
 import { ProposalType } from "@/types";
@@ -32,7 +32,7 @@ type ChatMessage = {
 const ProposalPage = () => {
   const { handleSubmit, setValue } = useFormContext<ProposalType>();
   const { _t } = useTranslationContext();
-  const { onFormSubmit, applyCommand, activeTab, setActiveTab, aiWorkspaceSlug } = useProposalContext();
+  const { onFormSubmit, applyCommand, activeTab, setActiveTab, aiWorkspaceSlug, importANCExcel } = useProposalContext();
 
   const projectName = useWatch({
     name: "proposalName",
@@ -97,6 +97,13 @@ const ProposalPage = () => {
     handleSubmit(onFormSubmit)();
   };
 
+  const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      importANCExcel(file);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col">
       {/* Top Navigation */}
@@ -129,6 +136,22 @@ const ProposalPage = () => {
               <Share2 className="w-4 h-4 mr-2" />
               Share
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+              onClick={() => document.getElementById("excel-import-input")?.click()}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Import Excel
+            </Button>
+            <input
+              id="excel-import-input"
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleExcelImport}
+            />
             <Button
               size="sm"
               onClick={handleExport}

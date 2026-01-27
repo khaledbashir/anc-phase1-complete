@@ -60,6 +60,7 @@ const defaultProposalContext = {
   exportProposalAs: (exportAs: ExportTypes) => { },
   exportAudit: () => Promise.resolve(),
   importProposalData: (file: File) => { },
+  importANCExcel: (file: File) => Promise.resolve(),
   // Diagnostic functions
   diagnosticOpen: false,
   diagnosticPayload: null,
@@ -151,6 +152,48 @@ export const ProposalContextProvider = ({
     });
     return () => subscription.unsubscribe();
   }, [watch]);
+
+  // Reactive Watcher for ANC Logic Brain (Real-time Math)
+  const screens = watch("details.screens");
+  useEffect(() => {
+    if (!screens || !Array.isArray(screens) || screens.length === 0) return;
+
+    try {
+      // Normalize for estimator
+      const normalized = screens.map((s: any) => ({
+        name: s.name || "Unnamed",
+        productType: s.productType || "Unknown",
+        widthFt: Number(s.widthFt || 0),
+        heightFt: Number(s.heightFt || 0),
+        quantity: Number(s.quantity || 1),
+        pitchMm: Number(s.pitchMm || 10),
+        costPerSqFt: Number(s.costPerSqFt || 120),
+        desiredMargin: s.desiredMargin,
+        serviceType: s.serviceType,
+        formFactor: s.formFactor,
+        isReplacement: !!s.isReplacement,
+        useExistingStructure: !!s.useExistingStructure,
+        includeSpareParts: s.includeSpareParts !== false,
+      }));
+
+      const { clientSummary, internalAudit } = calculateProposalAudit(normalized);
+
+      // Update internal state without triggering infinite loop (only if changed)
+      const currentAudit = getValues("details.internalAudit");
+      if (JSON.stringify(currentAudit?.totals) !== JSON.stringify(internalAudit.totals)) {
+        setValue("details.internalAudit", internalAudit);
+        setValue("details.clientSummary", clientSummary);
+
+        // Sync line items for PDF template (Polished Mode)
+        const screensWithLineItems = syncLineItemsFromAudit(screens, internalAudit);
+
+        // Only setValue if lineItems actually differ to prevent flickering
+        setValue("details.screens", screensWithLineItems, { shouldValidate: false });
+      }
+    } catch (e) {
+      console.warn("Real-time calculation failed:", e);
+    }
+  }, [screens, setValue, getValues]);
 
   // Get pdf url from blob
   const pdfUrl = useMemo(() => {
@@ -485,6 +528,35 @@ export const ProposalContextProvider = ({
     closeDiagnostic();
   };
 
+  /**
+   * Syncs summarized line items to each screen based on current internalAudit
+   */
+  const syncLineItemsFromAudit = (screens: any[], internalAudit: any) => {
+    if (!internalAudit?.perScreen) return screens;
+
+    return screens.map((screen, idx) => {
+      const audit = internalAudit.perScreen[idx];
+      if (!audit) return screen;
+
+      const b = audit.breakdown;
+      // Grouping logic for "Polished" client-facing PDF
+      const hardwareSell = b.hardware + (b.ancMargin * (b.hardware / (b.totalCost || 1)));
+      const structureSell = b.structure + (b.ancMargin * (b.structure / (b.totalCost || 1)));
+      const laborSell = (b.labor + b.install) + (b.ancMargin * ((b.labor + b.install) / (b.totalCost || 1)));
+      const otherSell = b.finalClientTotal - hardwareSell - structureSell - laborSell;
+
+      return {
+        ...screen,
+        lineItems: [
+          { id: `hw-${idx}`, category: 'LED Display System', price: hardwareSell },
+          { id: `st-${idx}`, category: 'Structural Materials', price: structureSell },
+          { id: `inst-${idx}`, category: 'Installation & Labor', price: laborSell },
+          { id: `other-${idx}`, category: 'Electrical, Data & Conditions', price: otherSell },
+        ]
+      };
+    });
+  };
+
   const applyCommand = (command: any) => {
     try {
       const formValues = getValues();
@@ -534,6 +606,10 @@ export const ProposalContextProvider = ({
             const { clientSummary, internalAudit } = calculateProposalAudit(normalizedScreens);
             setValue("details.internalAudit", internalAudit);
             setValue("details.clientSummary", clientSummary);
+
+            // Sync line items for PDF template
+            const screensWithLineItems = syncLineItemsFromAudit(normalizedScreens, internalAudit);
+            setValue("details.screens", screensWithLineItems);
 
             // Flag low margins if any per-screen margin below threshold
             try {
@@ -585,6 +661,10 @@ export const ProposalContextProvider = ({
               const { clientSummary, internalAudit } = calculateProposalAudit(updated);
               setValue("details.internalAudit", internalAudit);
               setValue("details.clientSummary", clientSummary);
+
+              // Sync line items for PDF template
+              const screensWithLineItems = syncLineItemsFromAudit(updated, internalAudit);
+              setValue("details.screens", screensWithLineItems);
 
               // Switch to audit tab because internal pricing changed
               setActiveTab("audit");
@@ -714,6 +794,54 @@ export const ProposalContextProvider = ({
     reader.readAsText(file);
   };
 
+  /**
+   * Import an ANC Master Excel file and update the proposal state.
+   * 
+   * @param {File} file - The Excel file to import.
+   */
+  const importANCExcel = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/proposals/import-excel", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      const data = await res.json();
+
+      // Update form values with imported data
+      if (data.clientName) setValue("receiver.name", data.clientName);
+      if (data.proposalName) setValue("details.proposalName", data.proposalName);
+
+      if (data.screens && data.screens.length > 0) {
+        setValue("details.screens", data.screens);
+      }
+
+      if (data.internalAudit) {
+        setValue("details.internalAudit", data.internalAudit);
+        setValue("details.clientSummary", data.clientSummary || data.internalAudit.totals); // Fallback
+
+        // Sync line items for PDF template
+        if (data.screens) {
+          const screensWithLineItems = syncLineItemsFromAudit(data.screens, data.internalAudit);
+          setValue("details.screens", screensWithLineItems);
+        }
+      }
+
+      aiExtractionSuccess();
+      setActiveTab("audit");
+    } catch (error) {
+      console.error("Error importing ANC Excel:", error);
+      aiExtractionError();
+    }
+  };
+
   return (
     <ProposalContext.Provider
       value={{
@@ -740,6 +868,7 @@ export const ProposalContextProvider = ({
         exportProposalAs: exportProposalDataAs,
         exportAudit,
         importProposalData,
+        importANCExcel,
         // Diagnostic functions
         diagnosticOpen,
         diagnosticPayload,
