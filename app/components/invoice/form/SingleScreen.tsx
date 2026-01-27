@@ -62,7 +62,7 @@ const SingleScreen = ({
     const sellingPricePerSqFt = audit?.breakdown?.sellingPricePerSqFt || 0;
 
     // Check for validation errors
-    const screenErrors = errors?.details?.screens?.[index];
+    const screenErrors = (errors as any)?.details?.screens?.[index];
     const hasErrors = screenErrors && Object.keys(screenErrors).length > 0;
     
     // Check for warnings
@@ -211,7 +211,7 @@ const SingleScreen = ({
                             size="sm"
                             onClick={() => removeField(index)}
                         >
-                            <Trash2 className="w-4 h-4 mr-1" /
+                            <Trash2 className="w-4 h-4 mr-1" />
                             Remove
                         </BaseButton>
                     </div>

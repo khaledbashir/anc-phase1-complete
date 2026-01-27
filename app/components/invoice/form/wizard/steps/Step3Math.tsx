@@ -53,7 +53,7 @@ const Step3Math = () => {
 
     // Apply global margin to all screens
     const applyGlobalMargin = (margin: number) => {
-        screens.forEach((_, index) => {
+        screens.forEach((_screen: any, index: number) => {
             setValue(`details.screens[${index}].desiredMargin`, margin);
         });
         setValue("details.globalMargin", margin);
@@ -187,7 +187,7 @@ const Step3Math = () => {
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Label className="text-sm font-medium text-zinc-300 flex items-center gap-2 cursor-help">
-                                                <Percent className="w-4 h-4 text-zinc-500" /
+                                                <Percent className="w-4 h-4 text-zinc-500" />
                                                 Global Margin Target
                                                 <Info className="w-3.5 h-3.5 text-zinc-600 hover:text-[#0A52EF] transition-colors" />
                                             </Label>
@@ -230,7 +230,7 @@ const Step3Math = () => {
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <Label className="text-sm font-medium text-zinc-300 flex items-center gap-2 cursor-help">
-                                                <AlertCircle className="w-4 h-4 text-zinc-500" /
+                                                <AlertCircle className="w-4 h-4 text-zinc-500" />
                                                 Bond Rate (%)
                                                 <Info className="w-3.5 h-3.5 text-zinc-600 hover:text-[#0A52EF] transition-colors" />
                                             </Label>

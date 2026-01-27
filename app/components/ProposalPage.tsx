@@ -169,7 +169,6 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
     <StudioLayout
       header={HeaderContent}
       formContent={FormContent}
-      aiContent={AIContent}
       pdfContent={PDFContent}
     />
   );
