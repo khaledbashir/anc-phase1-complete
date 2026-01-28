@@ -80,8 +80,8 @@ const Step1Ingestion = () => {
         return (
             <div className="max-w-4xl mx-auto mt-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
                 <div className="text-center mb-10">
-                    <h1 className="text-4xl font-black tracking-tighter text-white mb-2 uppercase">Command Center Initialization</h1>
-                    <p className="text-zinc-500 font-medium">Define your project path to activate the Strategic Hub.</p>
+                    <h1 className="text-2xl font-semibold text-white mb-2">Project Setup</h1>
+                    <p className="text-zinc-500 text-sm">Configure your project settings to begin.</p>
                 </div>
 
                 {!loading ? (
@@ -89,16 +89,16 @@ const Step1Ingestion = () => {
                         {/* LEFT: Project Identity */}
                         <div className="flex flex-col gap-6 p-8 bg-zinc-900/40 border border-zinc-800 rounded-2xl">
                             <div className="space-y-4">
-                                <label className="text-xs text-blue-500 uppercase font-black tracking-[0.2em]">Project Identity</label>
+                                <label className="text-xs font-medium text-zinc-400">Project Name</label>
                                 <input
                                     autoFocus
-                                    className="flex h-14 w-full rounded-xl border-2 border-zinc-800 bg-zinc-950 px-4 py-2 text-lg font-bold ring-offset-zinc-950 placeholder:text-zinc-700 focus:border-blue-600 focus:outline-none transition-all text-white shadow-2xl"
+                                    className="flex h-11 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2 text-base font-medium ring-offset-zinc-950 placeholder:text-zinc-700 focus:border-blue-600 focus:outline-none transition-all text-white shadow-sm"
                                     placeholder="e.g. Lakers Arena - 2026"
                                     value={clientNameInput}
                                     onChange={(e) => setClientNameInput(e.target.value)}
                                 />
-                                <p className="text-xs text-zinc-600 leading-relaxed font-medium">
-                                    The project name will be used to generate your unique Strategic Slug and AI context.
+                                <p className="text-xs text-zinc-500 leading-relaxed">
+                                    This name will identify your project in the dashboard and AI context.
                                 </p>
                             </div>
 
@@ -106,29 +106,28 @@ const Step1Ingestion = () => {
                                 <button
                                     onClick={handleCreateProject}
                                     disabled={!clientNameInput || !selectedPath}
-                                    className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-xl text-sm font-black uppercase tracking-widest transition-all focus:outline-none disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed bg-[#0A52EF] text-white hover:bg-blue-600 h-14 shadow-xl shadow-blue-500/10 active:scale-95"
+                                    className="w-full inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold transition-all focus:outline-none disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-500 h-11 active:scale-[0.98]"
                                 >
-                                    Initialize Strategic Hub
+                                    Create Project
                                 </button>
                             </div>
                         </div>
 
-                        {/* RIGHT: Path Selection */}
                         <div className="flex flex-col gap-4">
-                            <label className="text-xs text-blue-500 uppercase font-black tracking-[0.2em] ml-2">Navigation Strategy</label>
+                            <label className="text-xs font-medium text-zinc-400 ml-2">Select Mode</label>
 
                             <div
                                 onClick={() => setSelectedPath("STRATEGIC")}
-                                className={`group p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${selectedPath === "STRATEGIC"
-                                    ? "bg-blue-600/10 border-blue-600 shadow-2xl shadow-blue-500/10"
+                                className={`group p-5 rounded-xl border cursor-pointer transition-all duration-300 ${selectedPath === "STRATEGIC"
+                                    ? "bg-blue-600/10 border-blue-600 shadow-md shadow-blue-500/5"
                                     : "bg-zinc-900/40 border-zinc-800 hover:border-zinc-700"
                                     }`}
                             >
-                                <div className="flex items-center gap-4 mb-3">
-                                    <div className={`p-3 rounded-lg ${selectedPath === "STRATEGIC" ? "bg-blue-600 text-white" : "bg-zinc-800 text-zinc-500"}`}>
+                                <div className="flex items-center gap-4 mb-2">
+                                    <div className={`p-2 rounded-lg ${selectedPath === "STRATEGIC" ? "bg-blue-600 text-white" : "bg-zinc-800 text-zinc-500"}`}>
                                         <Building2 className="w-5 h-5" />
                                     </div>
-                                    <h3 className={`font-black uppercase tracking-tight ${selectedPath === "STRATEGIC" ? "text-white" : "text-zinc-400"}`}>Strategic Mode</h3>
+                                    <h3 className={`font-semibold ${selectedPath === "STRATEGIC" ? "text-white" : "text-zinc-300"}`}>Strategic Mode</h3>
                                 </div>
                                 <p className="text-xs text-zinc-500 font-medium leading-relaxed">
                                     Full commercial optimization with Natalia Math Engine. Automatic margin logic and AI assistance.
@@ -137,16 +136,16 @@ const Step1Ingestion = () => {
 
                             <div
                                 onClick={() => setSelectedPath("MIRROR")}
-                                className={`group p-6 rounded-2xl border-2 cursor-pointer transition-all duration-300 ${selectedPath === "MIRROR"
-                                    ? "bg-emerald-600/10 border-emerald-600 shadow-2xl shadow-emerald-500/10"
+                                className={`group p-5 rounded-xl border cursor-pointer transition-all duration-300 ${selectedPath === "MIRROR"
+                                    ? "bg-emerald-600/10 border-emerald-600 shadow-md shadow-emerald-500/5"
                                     : "bg-zinc-900/40 border-zinc-800 hover:border-zinc-700"
                                     }`}
                             >
-                                <div className="flex items-center gap-4 mb-3">
-                                    <div className={`p-3 rounded-lg ${selectedPath === "MIRROR" ? "bg-emerald-600 text-white" : "bg-zinc-800 text-zinc-500"}`}>
+                                <div className="flex items-center gap-4 mb-2">
+                                    <div className={`p-2 rounded-lg ${selectedPath === "MIRROR" ? "bg-emerald-600 text-white" : "bg-zinc-800 text-zinc-500"}`}>
                                         <Upload className="w-5 h-5" />
                                     </div>
-                                    <h3 className={`font-bold tracking-tight ${selectedPath === "MIRROR" ? "text-white" : "text-zinc-400"}`}>Mirror Mode</h3>
+                                    <h3 className={`font-semibold ${selectedPath === "MIRROR" ? "text-white" : "text-zinc-300"}`}>Mirror Mode</h3>
                                 </div>
                                 <p className="text-xs text-zinc-500 font-medium leading-relaxed">
                                     Excel Pass-Through. Lock pricing to your uploaded ANC spreadsheet for 1:1 precision.
@@ -198,8 +197,8 @@ const Step1Ingestion = () => {
                             </div>
                         </div>
                         <div className="text-center space-y-2">
-                            <div className="text-2xl font-black text-white uppercase tracking-tighter italic">{steps[creationStep]}</div>
-                            <div className="text-zinc-500 text-sm font-medium">Securing Project Vault & Strategic Context...</div>
+                            <div className="text-xl font-semibold text-white italic">{steps[creationStep]}</div>
+                            <div className="text-zinc-500 text-sm">Setting up your secure project environment...</div>
                         </div>
                     </div>
                 )}

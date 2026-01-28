@@ -98,7 +98,7 @@ export function StudioLayout({
                 {/* THE STUDIO GRID (50/50 Split) */}
                 <main className="flex-1 overflow-hidden flex">
                     {/* THE HUB (Left Pane: 50vw) */}
-                    <section className="w-1/2 flex flex-col overflow-hidden bg-black border-r border-zinc-900">
+                    <section className="w-1/2 flex flex-col overflow-hidden bg-zinc-950/40 border-r border-zinc-900">
                         <div className="flex-1 overflow-y-auto custom-scrollbar">
                             <div className="h-full">
                                 {viewMode === "form" && (

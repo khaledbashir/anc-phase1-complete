@@ -90,9 +90,9 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
         <Button
           size="sm"
           onClick={() => handleSubmit(onFormSubmit)()}
-          className="bg-[#0A52EF] hover:bg-blue-600 text-white font-black uppercase tracking-widest h-10 px-6 rounded-xl transition-all shadow-lg shadow-blue-500/10 active:scale-95"
+          className="bg-blue-600 hover:bg-blue-500 text-white font-semibold h-10 px-6 rounded-lg transition-all shadow-md shadow-blue-500/10 active:scale-[0.98]"
         >
-          Finalize 🏁
+          Finalize
         </Button>
       </div>
     </div>
@@ -133,14 +133,14 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   // Audit Content (The Hub - Audit Mode)
   const AuditContent = (
     <div className="h-full flex flex-col p-6 space-y-6">
-      <div className="flex items-center justify-between bg-zinc-900/40 p-6 rounded-2xl border border-zinc-800">
+      <div className="flex items-center justify-between bg-zinc-900/40 p-5 rounded-xl border border-zinc-800">
         <div>
-          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">Financial Audit</h2>
-          <p className="text-sm text-zinc-500 font-medium">Real-time margin verification & ANC Profitability Protocol.</p>
+          <h2 className="text-xl font-semibold text-white">Financial Audit</h2>
+          <p className="text-xs text-zinc-500">Real-time margin verification and profitability analysis.</p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <Badge className="bg-blue-600 text-white font-black uppercase tracking-widest px-3 py-1">17/20 Strategy Match</Badge>
-          <span className="text-[10px] text-zinc-600 font-bold uppercase">Natalia Engine Active</span>
+        <div className="flex flex-col items-end gap-1.5">
+          <Badge className="bg-blue-600/10 text-blue-400 border-blue-500/20 font-medium px-3 py-1">17/20 Strategy Match</Badge>
+          <span className="text-[10px] text-zinc-500 font-medium">Natalia Math Engine Active</span>
         </div>
       </div>
 
