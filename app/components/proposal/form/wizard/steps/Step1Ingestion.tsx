@@ -35,6 +35,7 @@ const Step1Ingestion = () => {
 
     const isNew = !proposalId || proposalId === 'new';
     const [selectedPath, setSelectedPath] = useState<"MIRROR" | "STRATEGIC" | null>(null);
+    const [excelFile, setExcelFile] = useState<File | null>(null);
 
     const handleCreateProject = async () => {
         if (!clientNameInput || !selectedPath) return;
@@ -145,12 +146,47 @@ const Step1Ingestion = () => {
                                     <div className={`p-3 rounded-lg ${selectedPath === "MIRROR" ? "bg-emerald-600 text-white" : "bg-zinc-800 text-zinc-500"}`}>
                                         <Upload className="w-5 h-5" />
                                     </div>
-                                    <h3 className={`font-black uppercase tracking-tight ${selectedPath === "MIRROR" ? "text-white" : "text-zinc-400"}`}>Mirror Mode</h3>
+                                    <h3 className={`font-bold tracking-tight ${selectedPath === "MIRROR" ? "text-white" : "text-zinc-400"}`}>Mirror Mode</h3>
                                 </div>
                                 <p className="text-xs text-zinc-500 font-medium leading-relaxed">
                                     Excel Pass-Through. Lock pricing to your uploaded ANC spreadsheet for 1:1 precision.
                                 </p>
                             </div>
+
+                            {/* Excel Upload - Shows when Mirror Mode is selected */}
+                            {selectedPath === "MIRROR" && (
+                                <div className="p-4 bg-emerald-900/20 border border-emerald-800/50 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <label className="text-xs text-emerald-400 font-medium mb-2 block">Upload ANC Excel</label>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            id="excel-file-new-project"
+                                            type="file"
+                                            accept=".xlsx,.xls"
+                                            className="hidden"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) setExcelFile(file);
+                                            }}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                document.getElementById("excel-file-new-project")?.click();
+                                            }}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-sm font-medium rounded-lg border border-zinc-700 transition-all"
+                                        >
+                                            <Upload className="w-4 h-4" />
+                                            {excelFile ? excelFile.name : "Choose Excel File"}
+                                        </button>
+                                    </div>
+                                    {excelFile && (
+                                        <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+                                            ✓ File will be imported after project creation
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                 ) : (
@@ -205,12 +241,12 @@ const Step1Ingestion = () => {
                             <button
                                 onClick={() => document.getElementById("excel-import-input-step1")?.click()}
                                 disabled={excelImportLoading}
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-bold rounded-lg border border-zinc-700 transition-all disabled:opacity-50"
+                                className="inline-flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg transition-all disabled:opacity-50 shadow-lg shadow-emerald-500/20"
                             >
                                 {excelImportLoading ? (
-                                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                                    <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                    <Upload className="w-4 h-4 text-emerald-500" />
+                                    <Upload className="w-4 h-4" />
                                 )}
                                 <span>Import ANC Excel</span>
                             </button>
