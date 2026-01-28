@@ -4,10 +4,10 @@ import React, { useState, useEffect, useRef } from "react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { useFormContext } from "react-hook-form";
 import { BaseButton } from "@/app/components";
-import { 
-    Send, 
-    Sparkles, 
-    MessageSquare, 
+import {
+    Send,
+    Sparkles,
+    MessageSquare,
     AlertCircle,
     CheckCircle2,
     ChevronUp,
@@ -38,20 +38,20 @@ interface AiCommandBarProps {
 }
 
 const QUICK_PROMPTS = [
-    { 
-        label: "Set All Margins", 
+    {
+        label: "Set All Margins",
         prompt: "/set all margins to 25%",
         icon: Target,
         description: "Apply margin to all screens"
     },
-    { 
-        label: "Find Delivery Date", 
+    {
+        label: "Find Delivery Date",
         prompt: "What is the requested delivery or installation date in the RFP?",
         icon: FileText,
         description: "Extract from RFP document"
     },
-    { 
-        label: "Check Labor Rates", 
+    {
+        label: "Check Labor Rates",
         prompt: "Does the RFP specify prevailing wage or union labor rates?",
         icon: AlertCircle,
         description: "Review labor requirements"
@@ -65,7 +65,7 @@ const QUICK_PROMPTS = [
 function analyzeGaps(formValues: any): GapItem[] {
     const gaps: GapItem[] = [];
     const screens = formValues?.details?.screens || [];
-    
+
     // Check for missing screen information
     screens.forEach((screen: any, index: number) => {
         if (!screen.name || screen.name === "") {
@@ -105,7 +105,7 @@ function analyzeGaps(formValues: any): GapItem[] {
             });
         }
     });
-    
+
     // Check receiver info
     if (!formValues?.receiver?.name) {
         gaps.push({
@@ -115,23 +115,23 @@ function analyzeGaps(formValues: any): GapItem[] {
             description: "Client/Receiver name is missing"
         });
     }
-    
+
     return gaps;
 }
 
 const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
-    const { 
-        aiWorkspaceSlug, 
-        aiMessages, 
-        aiLoading, 
+    const {
+        aiWorkspaceSlug,
+        aiMessages,
+        aiLoading,
         executeAiCommand,
-        trackAiFieldModification 
+        trackAiFieldModification
     } = useProposalContext();
     const { watch } = useFormContext();
     const [input, setInput] = useState("");
     const [showGaps, setShowGaps] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
-    
+
     const formValues = watch();
     const gaps = analyzeGaps(formValues);
     const highPriorityGaps = gaps.filter(g => g.priority === "high");
@@ -149,7 +149,7 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
         if (!messageText.trim() || !aiWorkspaceSlug) return;
 
         setInput("");
-        
+
         // Handle special commands
         if (messageText.startsWith("/set all margins to")) {
             const match = messageText.match(/(\d+)%?/);
@@ -157,16 +157,16 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
                 const margin = parseInt(match[1]) / 100;
                 const screens = formValues?.details?.screens || [];
                 const modifiedFields: string[] = [];
-                
+
                 screens.forEach((_: any, index: number) => {
                     modifiedFields.push(`details.screens[${index}].desiredMargin`);
                 });
-                
+
                 // Track the AI modification for ghost effect
                 trackAiFieldModification(modifiedFields);
             }
         }
-        
+
         await executeAiCommand(messageText);
     };
 
@@ -197,10 +197,10 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
                     <span className="text-sm font-medium text-zinc-200">
                         ANC Intelligence Engine
                     </span>
-                    <span className="px-2 py-0.5 bg-[#0A52EF]/20 text-[#0A52EF] text-[10px] font-bold rounded-full">
-                        RAG-ACTIVE
+                    <span className="px-2 py-0.5 bg-blue-600/20 text-blue-400 text-[10px] font-medium rounded-full">
+                        Active
                     </span>
-                    
+
                     {/* Gap Analysis Badge */}
                     {gapCount > 0 && (
                         <button
@@ -210,8 +210,8 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
                             }}
                             className={cn(
                                 "ml-2 px-2 py-0.5 text-[10px] font-bold rounded-full flex items-center gap-1 transition-colors",
-                                highPriorityGaps.length > 0 
-                                    ? "bg-red-500/20 text-red-400 hover:bg-red-500/30" 
+                                highPriorityGaps.length > 0
+                                    ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
                                     : "bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
                             )}
                         >
@@ -226,23 +226,23 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
                         </span>
                     )}
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                     {/* Completion Progress */}
                     <div className="hidden md:flex items-center gap-2 mr-4">
                         <div className="w-24 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                            <div 
+                            <div
                                 className={cn(
                                     "h-full rounded-full transition-all duration-500",
-                                    completionRate >= 80 ? "bg-emerald-500" : 
-                                    completionRate >= 50 ? "bg-yellow-500" : "bg-red-500"
+                                    completionRate >= 80 ? "bg-emerald-500" :
+                                        completionRate >= 50 ? "bg-yellow-500" : "bg-red-500"
                                 )}
                                 style={{ width: `${completionRate}%` }}
                             />
                         </div>
                         <span className="text-xs text-zinc-500">{Math.round(completionRate)}%</span>
                     </div>
-                    
+
                     {isExpanded ? (
                         <ChevronDown className="w-4 h-4 text-zinc-400" />
                     ) : (
@@ -258,8 +258,8 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
                     {showGaps && gaps.length > 0 && (
                         <div className="border-b border-zinc-800 bg-zinc-900/50">
                             <div className="p-3">
-                                <p className="text-xs font-bold text-zinc-400 uppercase mb-2">
-                                    17/20 Gap Analysis
+                                <p className="text-xs font-medium text-zinc-400 mb-2">
+                                    Gap Analysis
                                 </p>
                                 <div className="space-y-1 max-h-32 overflow-y-auto">
                                     {gaps.map((gap) => (
@@ -270,8 +270,8 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
                                         >
                                             <div className={cn(
                                                 "w-1.5 h-1.5 rounded-full",
-                                                gap.priority === "high" ? "bg-red-500" : 
-                                                gap.priority === "medium" ? "bg-yellow-500" : "bg-zinc-500"
+                                                gap.priority === "high" ? "bg-red-500" :
+                                                    gap.priority === "medium" ? "bg-yellow-500" : "bg-zinc-500"
                                             )} />
                                             <span className="text-xs text-zinc-300">{gap.description}</span>
                                         </button>
@@ -294,10 +294,10 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
                                 <div className="space-y-1">
                                     <p className="font-bold text-zinc-100 text-sm">ANC Document Brain</p>
                                     <p className="text-xs text-zinc-500 max-w-[250px] mx-auto">
-                                        Ask anything about the RFP or use commands like 
+                                        Ask anything about the RFP or use commands like
                                         <span className="text-[#0A52EF]">/set all margins to 25%</span>
                                     </p>
-                                </div>                            
+                                </div>
                             </div>
                         )}
 
@@ -366,7 +366,7 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
                                 <Send className="w-4 h-4" />
                             </button>
                         </div>
-                        
+
                         <p className="text-[10px] text-zinc-600 mt-2 text-center">
                             Try: "/set all margins to 25%" or "Extract delivery date from RFP"
                         </p>

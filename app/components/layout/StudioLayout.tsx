@@ -68,15 +68,15 @@ export function StudioLayout({
                                     key={item.id}
                                     onClick={() => setViewMode(item.id as ViewMode)}
                                     className={cn(
-                                        "h-12 mx-3 px-3 rounded-xl flex items-center gap-4 transition-all group relative",
+                                        "h-10 mx-2 px-3 rounded-lg flex items-center gap-3 transition-all group relative",
                                         isActive
-                                            ? "bg-[#0A52EF] text-white shadow-lg shadow-blue-500/20"
-                                            : "text-zinc-500 hover:text-white hover:bg-zinc-900"
+                                            ? "bg-blue-600 text-white"
+                                            : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
                                     )}
                                 >
-                                    <Icon className={cn("w-5 h-5 shrink-0", isActive ? "text-white" : "group-hover:text-blue-400")} />
+                                    <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-white" : "group-hover:text-blue-400")} />
                                     {!isSidebarCollapsed && (
-                                        <span className="text-xs font-black uppercase tracking-widest truncate">{item.label}</span>
+                                        <span className="text-sm font-medium truncate">{item.label}</span>
                                     )}
                                     {isActive && isSidebarCollapsed && (
                                         <div className="absolute right-0 w-1 h-6 bg-blue-500 rounded-l-full" />
@@ -112,7 +112,7 @@ export function StudioLayout({
                                         {aiContent || (
                                             <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-zinc-900/20 rounded-2xl border border-zinc-800 border-dashed">
                                                 <MessageSquare className="w-12 h-12 text-zinc-700 mb-4" />
-                                                <h3 className="text-lg font-black text-zinc-400 uppercase tracking-tight">AI Context Initializing</h3>
+                                                <h3 className="text-base font-semibold text-zinc-400">AI Context Initializing</h3>
                                                 <p className="text-sm text-zinc-600 mt-2 max-w-xs">Connecting to AnythingLLM Strategic Node...</p>
                                             </div>
                                         )}
@@ -124,7 +124,7 @@ export function StudioLayout({
                                         {auditContent || (
                                             <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-zinc-900/20 rounded-2xl border border-zinc-800 border-dashed">
                                                 <Table className="w-12 h-12 text-zinc-700 mb-4" />
-                                                <h3 className="text-lg font-black text-zinc-400 uppercase tracking-tight">No Audit Data</h3>
+                                                <h3 className="text-base font-semibold text-zinc-400">No Audit Data</h3>
                                                 <p className="text-sm text-zinc-600 mt-2 max-w-xs">Finalize your technical specifications to activate the Financial Audit.</p>
                                             </div>
                                         )}
@@ -148,23 +148,23 @@ export function StudioLayout({
                             {/* Brand Signature Slashes in background */}
                             <BrandSlashes
                                 className="absolute -top-20 -right-20 pointer-events-none transition-opacity duration-1000"
-                                width={500}
-                                height={500}
-                                opacity={0.05}
-                                count={12}
+                                width={400}
+                                height={400}
+                                opacity={0.03}
+                                count={8}
                             />
 
                             <div className="relative z-10 mx-auto w-full max-w-[850px] transform-gpu transition-all duration-500">
-                                <div className="bg-white shadow-[0_40px_100px_rgba(0,0,0,0.6)] rounded-sm overflow-hidden border border-white/5">
+                                <div className="bg-white shadow-2xl rounded-md overflow-hidden border border-zinc-800">
                                     {pdfContent}
                                 </div>
                             </div>
                         </div>
 
                         {/* Footer Status for PDF */}
-                        <div className="h-10 border-t border-zinc-900/50 bg-black/40 backdrop-blur-sm flex items-center justify-between px-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
-                            <span>Live Preview Active</span>
-                            <span className="text-blue-500/50">ANC Strategic Anchor v3.0</span>
+                        <div className="h-9 border-t border-zinc-800 bg-zinc-900/60 backdrop-blur-sm flex items-center justify-between px-6 text-xs text-zinc-500">
+                            <span>Live Preview</span>
+                            <span className="text-zinc-600">PDF Engine</span>
                         </div>
                     </section>
                 </main>
