@@ -68,7 +68,7 @@ const CalculationModePathCards = ({ className }: CalculationModePathCardsProps) 
     <div className={`space-y-4 ${className || ""}`}>
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-lg font-bold text-zinc-100">Calculation Mode</h3>
-        <span className="text-xs text-zinc-500 uppercase tracking-wider font-bold">Primary Branch Decision Gate</span>
+        <span className="text-xs text-zinc-500 font-bold">Primary Branch Decision Gate</span>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -82,8 +82,8 @@ const CalculationModePathCards = ({ className }: CalculationModePathCardsProps) 
               onClick={() => handleModeClick(mode.value)}
               className={`
                 relative cursor-pointer rounded-xl border-2 transition-all duration-300
-                ${isSelected 
-                  ? `${mode.borderColor} ${mode.gradient} bg-gradient-to-br` 
+                ${isSelected
+                  ? `${mode.borderColor} ${mode.gradient} bg-gradient-to-br`
                   : "border-zinc-800/50 bg-zinc-900/50 hover:border-zinc-700"
                 }
               `}

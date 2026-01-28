@@ -43,7 +43,7 @@ const RfpSidebar = () => {
             <div className="p-4 border-b border-zinc-800 bg-[#0A52EF] text-white flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 fill-white animate-pulse" />
-                    <h3 className="font-bold tracking-tight text-sm uppercase">ANC Intelligence Engine</h3>
+                    <h3 className="font-bold tracking-tight text-sm">ANC Intelligence Engine</h3>
                 </div>
                 <div className="px-2 py-0.5 bg-white/20 rounded text-[10px] font-bold border border-white/30">
                     RAG-ACTIVE
@@ -99,7 +99,7 @@ const RfpSidebar = () => {
             <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 space-y-4 bg-zinc-50 dark:bg-zinc-900/50">
                 {/* Quick Prompts */}
                 <div className="space-y-2">
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-1">
+                    <p className="text-[10px] font-bold text-zinc-500 flex items-center gap-1">
                         <Info className="w-3 h-3" /> Quick Gaps
                     </p>
                     <div className="flex flex-wrap gap-2">

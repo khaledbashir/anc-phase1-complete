@@ -42,23 +42,33 @@ export function BrandSlashes({
           If we want 55° from horizontal (standard slash):
           y = -tan(55) * x + b
         */}
-                {[...Array(count)].map((_, i) => (
-                    <line
-                        key={i}
-                        x1={-20 + i * 20}
-                        y1="120"
-                        x2={60 + i * 20}
-                        y2="-20"
-                        stroke={
-                            i % 3 === 0 ? "#03B8FF" : // Splish Splash
-                                i % 3 === 1 ? "#0385DD" : // Malibu Blue
-                                    "#002C73"                 // Blue Opal
-                        }
-                        strokeWidth="8"
-                        strokeLinecap="butt"
-                        transform={`rotate(0, 50, 50)`} /* Baseline */
-                    />
-                ))}
+                {[...Array(count)].map((_, i) => {
+                    const spacing = 25;
+                    const xStart = -50 + i * spacing;
+                    const yStart = 150;
+                    // For 55 degrees from horizontal: deltaX = deltaY / tan(55)
+                    // deltaY = 200 (from 150 to -50)
+                    // deltaX = 200 / 1.4281 = 140.04
+                    const xEnd = xStart + 140;
+                    const yEnd = -50;
+
+                    return (
+                        <line
+                            key={i}
+                            x1={xStart}
+                            y1={yStart}
+                            x2={xEnd}
+                            y2={yEnd}
+                            stroke={
+                                i % 3 === 0 ? "#03B8FF" : // Splish Splash
+                                    i % 3 === 1 ? "#0385DD" : // Malibu Blue
+                                        "#002C73"                 // Blue Opal
+                            }
+                            strokeWidth="6"
+                            strokeLinecap="butt"
+                        />
+                    );
+                })}
             </svg>
 
             {/* 

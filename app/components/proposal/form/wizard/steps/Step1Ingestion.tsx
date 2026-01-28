@@ -223,8 +223,8 @@ const Step1Ingestion = () => {
             <Card className="bg-zinc-900/50 border-zinc-800/50">
                 <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-[#003366]/20">
-                            <Upload className="w-5 h-5 text-[#003366]" />
+                        <div className="p-2 rounded-lg bg-[#0A52EF]/20">
+                            <Upload className="w-5 h-5 text-[#0A52EF]" />
                         </div>
                         <div>
                             <CardTitle className="text-zinc-100 text-base">Data Ingestion</CardTitle>
@@ -268,8 +268,8 @@ const Step1Ingestion = () => {
             <Card className="bg-zinc-900/50 border-zinc-800/50">
                 <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-[#003366]/20">
-                            <Building2 className="w-5 h-5 text-[#003366]" />
+                        <div className="p-2 rounded-lg bg-[#0A52EF]/20">
+                            <Building2 className="w-5 h-5 text-[#0A52EF]" />
                         </div>
                         <div>
                             <CardTitle className="text-zinc-100 text-base">Project Parties</CardTitle>

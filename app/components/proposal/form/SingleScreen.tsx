@@ -67,7 +67,7 @@ const SingleScreen = ({
     // Check for validation errors
     const screenErrors = (errors as any)?.details?.screens?.[index];
     const hasErrors = screenErrors && Object.keys(screenErrors).length > 0;
-    
+
     // Check for warnings
     const hasLowMargin = desiredMargin < 0.15;
     const isMissingDimensions = !width || !height || width === 0 || height === 0;
@@ -92,9 +92,9 @@ const SingleScreen = ({
     return (
         <div className={cn(
             "border rounded-xl overflow-hidden transition-all duration-200",
-            hasErrors ? "border-red-500/50 bg-red-950/10" : 
-            hasWarning ? "border-yellow-500/50 bg-yellow-950/10" : 
-            "border-zinc-700 bg-zinc-900/30"
+            hasErrors ? "border-red-500/50 bg-red-950/10" :
+                hasWarning ? "border-yellow-500/50 bg-yellow-950/10" :
+                    "border-zinc-700 bg-zinc-900/30"
         )}>
             {/* Collapsed Header - Always Visible */}
             <button
@@ -106,16 +106,16 @@ const SingleScreen = ({
                     <div className={cn(
                         "w-2 h-2 rounded-full",
                         hasErrors ? "bg-red-500" :
-                        hasWarning ? "bg-yellow-500" :
-                        "bg-emerald-500"
+                            hasWarning ? "bg-yellow-500" :
+                                "bg-emerald-500"
                     )} />
-                    
+
                     <div className="text-left">
                         <p className="font-medium text-zinc-100">
                             #{index + 1} - {screenName || "Untitled Screen"}
                         </p>
                         <p className="text-xs text-zinc-500">
-                            {width > 0 && height > 0 ? `${formatDimension(Number(width))}' × ${formatDimension(Number(height))}'` : "No dimensions"} 
+                            {width > 0 && height > 0 ? `${formatDimension(Number(width))}' × ${formatDimension(Number(height))}'` : "No dimensions"}
                             {quantity > 1 && ` × ${quantity}`}
                             {pitch > 0 && ` • ${pitch}mm pitch`}
                         </p>
@@ -126,13 +126,13 @@ const SingleScreen = ({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <span className="px-2 py-0.5 bg-red-500/20 text-red-400 text-[10px] font-bold rounded-full flex items-center gap-1 cursor-help">
+                                    <span className="px-2 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-medium rounded-full flex items-center gap-1 cursor-help">
                                         <AlertTriangle className="w-3 h-3" />
                                         Errors
                                     </span>
                                 </TooltipTrigger>
-                                <TooltipContent 
-                                    side="top" 
+                                <TooltipContent
+                                    side="top"
                                     className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3"
                                 >
                                     <div className="text-xs space-y-1">
@@ -148,7 +148,7 @@ const SingleScreen = ({
                         </TooltipProvider>
                     )}
                     {hasLowMargin && !hasErrors && (
-                        <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 text-[10px] font-bold rounded-full">
+                        <span className="px-2 py-0.5 bg-yellow-500/10 text-yellow-600 text-[10px] font-medium rounded-full">
                             Low Margin
                         </span>
                     )}
@@ -156,13 +156,13 @@ const SingleScreen = ({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <span className="px-2 py-0.5 bg-[#0A52EF]/20 text-[#0A52EF] text-[10px] font-bold rounded-full flex items-center gap-1 cursor-help">
+                                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-600 text-[10px] font-medium rounded-full flex items-center gap-1 cursor-help">
                                         <CheckCircle2 className="w-3 h-3" />
                                         AI
                                     </span>
                                 </TooltipTrigger>
-                                <TooltipContent 
-                                    side="top" 
+                                <TooltipContent
+                                    side="top"
                                     className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3"
                                 >
                                     <p className="text-xs leading-relaxed">
@@ -177,7 +177,7 @@ const SingleScreen = ({
                 <div className="flex items-center gap-4">
                     {/* Price Preview */}
                     <div className="text-right">
-                        <p className="text-lg font-bold text-blue-400">
+                        <p className="text-base font-semibold text-blue-500">
                             {finalClientTotal > 0
                                 ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(formatCurrencyPDF(finalClientTotal))
                                 : "$0"
@@ -201,35 +201,35 @@ const SingleScreen = ({
                     {/* Quick Actions Bar */}
                     <div className="flex items-center justify-between pb-3 border-b border-zinc-700/30">
                         <div className="flex items-center gap-2">
-                            <BaseButton 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => moveFieldUp(index)} 
+                            <BaseButton
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => moveFieldUp(index)}
                                 disabled={index === 0}
                                 tooltipLabel="Move up"
                             >
                                 <ChevronUp className="w-4 h-4" />
                             </BaseButton>
-                            <BaseButton 
-                                size="icon" 
-                                variant="ghost" 
-                                onClick={() => moveFieldDown(index)} 
+                            <BaseButton
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => moveFieldDown(index)}
                                 disabled={index === fields.length - 1}
                                 tooltipLabel="Move down"
                             >
                                 <ChevronDown className="w-4 h-4" />
                             </BaseButton>
-                            <BaseButton 
-                                size="icon" 
-                                variant="outline" 
+                            <BaseButton
+                                size="icon"
+                                variant="outline"
                                 onClick={() => duplicateField?.(index)}
                                 tooltipLabel="Duplicate"
                             >
                                 <Copy className="w-4 h-4" />
                             </BaseButton>
                         </div>
-                        <BaseButton 
-                            variant="destructive" 
+                        <BaseButton
+                            variant="destructive"
                             size="sm"
                             onClick={() => removeField(index)}
                         >
@@ -240,21 +240,21 @@ const SingleScreen = ({
 
                     {/* Primary Fields */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <FormInput 
-                            name={`${name}[${index}].name`} 
-                            label="Screen Name" 
+                        <FormInput
+                            name={`${name}[${index}].name`}
+                            label="Screen Name"
                             placeholder="e.g., Main Scoreboard"
-                            vertical 
+                            vertical
                         />
-                        <FormInput 
-                            name={`${name}[${index}].productType`} 
-                            label="Product Type" 
+                        <FormInput
+                            name={`${name}[${index}].productType`}
+                            label="Product Type"
                             placeholder="e.g., A Series"
-                            vertical 
+                            vertical
                         />
-                        
+
                         <div className="flex flex-col gap-1">
-                            <Label className="text-xs uppercase text-zinc-500 font-bold">Service Type</Label>
+                            <Label className="text-[11px] text-zinc-500 font-medium">Service Type</Label>
                             <select
                                 {...register(`${name}[${index}].serviceType`)}
                                 className={cn(
@@ -268,7 +268,7 @@ const SingleScreen = ({
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <Label className="text-xs uppercase text-zinc-500 font-bold">Form Factor</Label>
+                            <Label className="text-[11px] text-zinc-500 font-medium">Form Factor</Label>
                             <select
                                 {...register(`${name}[${index}].formFactor`)}
                                 className={cn(
@@ -284,60 +284,60 @@ const SingleScreen = ({
 
                     {/* Dimensions Row */}
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <FormInput 
-                            name={`${name}[${index}].widthFt`} 
-                            label="Width (ft)" 
+                        <FormInput
+                            name={`${name}[${index}].widthFt`}
+                            label="Width (ft)"
                             type="number"
-                            vertical 
+                            vertical
                         />
-                        <FormInput 
-                            name={`${name}[${index}].heightFt`} 
-                            label="Height (ft)" 
+                        <FormInput
+                            name={`${name}[${index}].heightFt`}
+                            label="Height (ft)"
                             type="number"
-                            vertical 
+                            vertical
                         />
-                        
-                        <FormInput 
-                            name={`${name}[${index}].quantity`} 
-                            label="Quantity" 
+
+                        <FormInput
+                            name={`${name}[${index}].quantity`}
+                            label="Quantity"
                             type="number"
-                            vertical 
+                            vertical
                         />
-                        
-                        <FormInput 
-                            name={`${name}[${index}].pitchMm`} 
-                            label="Pitch (mm)" 
+
+                        <FormInput
+                            name={`${name}[${index}].pitchMm`}
+                            label="Pitch (mm)"
                             type="number"
-                            vertical 
+                            vertical
                         />
-                        
-                        <FormInput 
-                            name={`${name}[${index}].outletDistance`} 
-                            label="Outlet Dist (ft)" 
+
+                        <FormInput
+                            name={`${name}[${index}].outletDistance`}
+                            label="Outlet Dist (ft)"
                             type="number"
-                            vertical 
+                            vertical
                         />
                     </div>
 
                     {/* Margin Slider - With Natalia Math Tooltip */}
                     <div className={cn(
                         "p-4 rounded-xl border space-y-3",
-                        aiFields?.includes(`${name}[${index}].desiredMargin`) 
-                            ? "border-[#0A52EF]/50 bg-[#0A52EF]/10" 
+                        aiFields?.includes(`${name}[${index}].desiredMargin`)
+                            ? "border-[#0A52EF]/50 bg-[#0A52EF]/10"
                             : "border-zinc-700 bg-zinc-800/30"
                     )}>
                         <div className="flex justify-between items-center">
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Label className="text-xs uppercase text-zinc-500 font-bold flex items-center gap-1 cursor-help">
-                                            <Zap className="w-3 h-3 text-yellow-500" /> 
+                                        <Label className="text-[11px] text-zinc-500 font-medium flex items-center gap-1 cursor-help">
+                                            <Zap className="w-3 h-3 text-yellow-500" />
                                             Desired Margin
-                                            <Info className="w-3 h-3 text-zinc-600 hover:text-[#0A52EF] transition-colors" />
+                                            <Info className="w-3 h-3 text-zinc-600 hover:text-blue-500 transition-colors" />
                                         </Label>
                                     </TooltipTrigger>
-                                    <TooltipContent 
-                                        side="top" 
+                                    <TooltipContent
+                                        side="top"
                                         className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3"
                                     >
                                         <p className="text-xs leading-relaxed">
@@ -347,8 +347,8 @@ const SingleScreen = ({
                                 </Tooltip>
                             </TooltipProvider>
                             <span className={cn(
-                                "text-sm font-bold",
-                                hasLowMargin ? "text-yellow-500" : "text-blue-400"
+                                "text-sm font-semibold",
+                                hasLowMargin ? "text-yellow-600" : "text-blue-500"
                             )}>
                                 {(desiredMargin * 100 || 0).toFixed(0)}%
                             </span>
@@ -384,16 +384,16 @@ const SingleScreen = ({
                     {/* Advanced Settings */}
                     {showAdvanced && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-zinc-800/30 rounded-xl border border-zinc-700/50">
-                            <FormInput 
-                                name={`${name}[${index}].costPerSqFt`} 
-                                label="Cost per Sq Ft ($)" 
+                            <FormInput
+                                name={`${name}[${index}].costPerSqFt`}
+                                label="Cost per Sq Ft ($)"
                                 type="number"
-                                vertical 
+                                vertical
                             />
 
                             <div className="flex flex-col gap-2">
-                                <Label className="text-[10px] uppercase text-zinc-500 font-bold flex items-center gap-1">
-                                    <ShieldCheck className="w-3 h-3" /> 
+                                <Label className="text-[10px] text-zinc-500 font-medium flex items-center gap-1">
+                                    <ShieldCheck className="w-3 h-3" />
                                     Include Spares (5%)
                                 </Label>
                                 <Switch
@@ -403,7 +403,7 @@ const SingleScreen = ({
                             </div>
 
                             <div className="flex flex-col gap-2">
-                                <Label className="text-[10px] uppercase text-zinc-500 font-bold">Replacement Project</Label>
+                                <Label className="text-[10px] text-zinc-500 font-medium">Replacement Project</Label>
                                 <Switch
                                     checked={useWatch({ name: `${name}[${index}].isReplacement`, control })}
                                     onCheckedChange={(checked) => setValue(`${name}[${index}].isReplacement`, checked)}
@@ -412,7 +412,7 @@ const SingleScreen = ({
 
                             {useWatch({ name: `${name}[${index}].isReplacement`, control }) && (
                                 <div className="flex flex-col gap-2">
-                                    <Label className="text-[10px] uppercase text-zinc-500 font-bold">Use Existing Steel</Label>
+                                    <Label className="text-[10px] text-zinc-500 font-medium">Use Existing Steel</Label>
                                     <Switch
                                         checked={useWatch({ name: `${name}[${index}].useExistingStructure`, control })}
                                         onCheckedChange={(checked) => setValue(`${name}[${index}].useExistingStructure`, checked)}
@@ -431,7 +431,7 @@ const SingleScreen = ({
                         <div className="flex items-center gap-2">
                             <span className="text-zinc-500">Price/SqFt:</span>
                             <span className="font-medium text-blue-400">
-                                {sellingPricePerSqFt > 0 
+                                {sellingPricePerSqFt > 0
                                     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(sellingPricePerSqFt)
                                     : "$0.00"
                                 }

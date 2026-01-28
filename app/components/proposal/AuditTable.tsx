@@ -65,7 +65,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
   return (
     <div className="min-w-[1000px] text-xs font-mono">
       {/* Header Row */}
-      <div className="grid grid-cols-12 gap-2 bg-zinc-950 p-3 rounded-t-lg border-b border-zinc-800 text-zinc-400 font-bold uppercase tracking-wider">
+      <div className="grid grid-cols-12 gap-2 bg-zinc-950 p-3 rounded-t-lg border-b border-zinc-800 text-zinc-400 font-bold">
         <div className="col-span-2">Screen Name</div>
         <div className="col-span-1 text-right">Qty</div>
         <div className="col-span-1 text-right">Area</div>

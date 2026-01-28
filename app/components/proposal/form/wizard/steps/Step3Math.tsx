@@ -71,14 +71,14 @@ const Step3Math = () => {
                 {/* KPI Cards Row */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Selling Price Card - With Gut Check Tooltip */}
-                    <Card className="bg-[#0A52EF] border-none text-white shadow-[0_10px_30px_rgba(10,82,239,0.3)]">
+                    <Card className="bg-blue-600 border-none text-white shadow-md">
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <div className="flex items-center gap-2 cursor-help">
-                                                <p className="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">
+                                                <p className="text-white/70 text-[11px] font-medium mb-1">
                                                     Selling Price / SqFt
                                                 </p>
                                                 <Info className="w-3.5 h-3.5 text-white/60 hover:text-white transition-colors" />
@@ -93,12 +93,12 @@ const Step3Math = () => {
                                             </p>
                                         </TooltipContent>
                                     </Tooltip>
-                                    <h3 className="text-3xl font-bold">
-                                        {formatCurrency(sellPricePerSqFt)} <span className="text-sm font-normal">/ SqFt</span>
+                                    <h3 className="text-xl font-semibold">
+                                        {formatCurrency(sellPricePerSqFt)} <span className="text-sm font-normal opacity-70">/ SqFt</span>
                                     </h3>
                                 </div>
-                                <div className="p-3 bg-white/10 rounded-xl">
-                                    <DollarSign className="w-8 h-8 text-white" />
+                                <div className="p-3 bg-white/10 rounded-lg">
+                                    <DollarSign className="w-6 h-6 text-white" />
                                 </div>
                             </div>
                         </CardContent>
@@ -109,10 +109,10 @@ const Step3Math = () => {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">
+                                    <p className="text-zinc-500 text-[11px] font-medium mb-1">
                                         Total Project Value
                                     </p>
-                                    <h3 className="text-2xl font-bold text-zinc-100">
+                                    <h3 className="text-lg font-semibold text-zinc-100">
                                         {formatCurrency(totalProjectValue)}
                                     </h3>
                                 </div>
@@ -130,7 +130,7 @@ const Step3Math = () => {
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <div className="flex items-center gap-2 cursor-help">
-                                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-1">
+                                            <p className="text-zinc-500 text-[11px] font-medium mb-1">
                                                 Calculation Mode
                                             </p>
                                             <Info className="w-3.5 h-3.5 text-zinc-600 hover:text-zinc-400 transition-colors" />
@@ -146,7 +146,7 @@ const Step3Math = () => {
                                     </TooltipContent>
                                 </Tooltip>
 
-                                <h3 className="text-lg font-bold text-zinc-200">
+                                <h3 className="text-base font-semibold text-zinc-200">
                                     {mirrorMode ? "Excel Pass-Through" : "ANC Strategic Estimator"}
                                 </h3>
                                 <p className="text-zinc-500 text-[10px] mt-1 italic">
@@ -173,7 +173,7 @@ const Step3Math = () => {
                                     <Settings2 className="w-5 h-5 text-[#0A52EF]" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-zinc-100 text-base">Global Pricing Controls</CardTitle>
+                                    <CardTitle className="text-zinc-100 text-sm font-bold">Global Pricing Controls</CardTitle>
                                     <CardDescription className="text-zinc-500 text-xs">
                                         Apply settings to all {screens.length} screen{screens.length !== 1 ? 's' : ''}
                                     </CardDescription>
@@ -186,7 +186,7 @@ const Step3Math = () => {
                                 <div className="flex items-center justify-between">
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Label className="text-sm font-medium text-zinc-300 flex items-center gap-2 cursor-help">
+                                            <Label className="text-xs font-semibold text-zinc-400 flex items-center gap-2 cursor-help">
                                                 <Percent className="w-4 h-4 text-zinc-500" />
                                                 Global Margin Target
                                                 <Info className="w-3.5 h-3.5 text-zinc-600 hover:text-[#0A52EF] transition-colors" />
@@ -202,7 +202,7 @@ const Step3Math = () => {
                                         </TooltipContent>
                                     </Tooltip>
 
-                                    <span className="text-lg font-bold text-blue-400">
+                                    <span className="text-base font-semibold text-blue-500">
                                         {((globalMargin || 0.25) * 100).toFixed(2)}%
                                     </span>
                                 </div>
@@ -229,7 +229,7 @@ const Step3Math = () => {
                                 <div className="flex-1">
                                     <Tooltip>
                                         <TooltipTrigger asChild>
-                                            <Label className="text-sm font-medium text-zinc-300 flex items-center gap-2 cursor-help">
+                                            <Label className="text-xs font-semibold text-zinc-400 flex items-center gap-2 cursor-help">
                                                 <AlertCircle className="w-4 h-4 text-zinc-500" />
                                                 Bond Rate (%)
                                                 <Info className="w-3.5 h-3.5 text-zinc-600 hover:text-[#0A52EF] transition-colors" />
@@ -261,7 +261,7 @@ const Step3Math = () => {
 
                             {/* Quick Presets */}
                             <div className="flex flex-wrap gap-2">
-                                <span className="text-xs text-zinc-500 w-full mb-1">Quick Margin Presets:</span>
+                                <span className="text-[10px] text-zinc-500 font-medium w-full mb-1">Quick Margin Presets:</span>
                                 {[
                                     { label: "Conservative", value: 0.15, color: "yellow" },
                                     { label: "Standard", value: 0.25, color: "blue" },
@@ -290,11 +290,11 @@ const Step3Math = () => {
                 <Card className="bg-zinc-950/50 border border-zinc-800/40 backdrop-blur-lg">
                     <CardHeader className="pb-3">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-[#003366]/20">
-                                <Calculator className="w-5 h-5 text-[#003366]" />
+                            <div className="p-2 rounded-lg bg-[#0A52EF]/20">
+                                <Calculator className="w-5 h-5 text-[#0A52EF]" />
                             </div>
                             <div>
-                                <CardTitle className="text-zinc-100 text-base">Internal Audit & P&L</CardTitle>
+                                <CardTitle className="text-zinc-100 text-sm font-bold">Internal Audit & P&L</CardTitle>
                                 <CardDescription className="text-zinc-500 text-xs">
                                     Detailed per-screen profitability analysis
                                 </CardDescription>

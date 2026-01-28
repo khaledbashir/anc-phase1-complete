@@ -35,7 +35,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     // Helper for Header
     const SectionHeader = ({ title }: { title: string }) => (
         <div className="text-center mb-8 mt-4">
-            <h2 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="text-xl font-normal uppercase tracking-[0.2em]">{title}</h2>
+            <h2 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="text-xl font-bold tracking-wide">{title}</h2>
         </div>
     );
 
@@ -44,8 +44,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         <div className="mb-8 break-inside-avoid">
             {/* Gray Header Bar */}
             <div className="flex justify-between items-center bg-gray-200 px-2 py-1 border-b border-gray-300">
-                <h3 className="font-bold text-sm uppercase text-gray-900">{screen.name}</h3>
-                <span className="font-bold text-sm uppercase text-gray-900">SPECIFICATIONS</span>
+                <h3 className="font-bold text-sm text-gray-900">{screen.name}</h3>
+                <span className="font-bold text-sm text-gray-900">Specifications</span>
             </div>
             <table className="w-full text-xs">
                 <tbody>
@@ -94,8 +94,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             <div className="mb-8 break-inside-avoid">
                 {/* Gray Header Bar */}
                 <div className="flex justify-between items-center bg-gray-200 px-2 py-1 border-b border-gray-300">
-                    <h3 className="font-bold text-sm uppercase text-gray-900">{screen.name}</h3>
-                    <span className="font-bold text-sm uppercase text-gray-900">PRICING</span>
+                    <h3 className="font-bold text-sm text-gray-900">{screen.name}</h3>
+                    <span className="font-bold text-sm text-gray-900">Pricing</span>
                 </div>
 
                 <table className="w-full text-xs box-border">
@@ -133,17 +133,17 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
                         {/* Subtotal Row - darker bar */}
                         <tr className="bg-gray-100 font-bold border-t border-gray-300">
-                            <td className="p-2 text-right uppercase text-gray-900">SUBTOTAL:</td>
+                            <td className="p-2 text-right text-gray-900">Subtotal:</td>
                             <td className="p-2 text-right text-black">{formatCurrency(b?.finalClientTotal)}</td>
                         </tr>
                         {/* Tax Row */}
                         <tr className="border-b border-gray-300">
-                            <td className="p-1 text-right text-[10px] text-gray-500 uppercase">Tax (EST):</td>
+                            <td className="p-1 text-right text-[10px] text-gray-500">Tax (Est):</td>
                             <td className="p-1 text-right text-[10px] text-gray-500">$0.00</td>
                         </tr>
                         {/* Final Total Row */}
                         <tr className="font-bold border-b-2 border-black">
-                            <td className="p-2 text-right uppercase text-gray-900">TOTAL:</td>
+                            <td className="p-2 text-right text-gray-900">Total:</td>
                             <td className="p-2 text-right text-black">{formatCurrency(b?.finalClientTotal)}</td>
                         </tr>
                     </tbody>
@@ -162,8 +162,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 </div>
                 {/* Title Right */}
                 <div className="w-1/2 text-right">
-                    <h1 className="text-2xl font-bold text-[#003366] uppercase leading-tight mb-1">{data.details.proposalName || "PROJECT NAME"}</h1>
-                    <h2 className="text-xl font-bold text-gray-800 uppercase leading-none">SALES QUOTATION</h2>
+                    <h1 className="text-2xl font-bold text-[#0A52EF] leading-tight mb-1">{data.details.proposalName || "Project Name"}</h1>
+                    <h2 className="text-xl font-bold text-gray-800 leading-none">Sales Quotation</h2>
                 </div>
             </div>
 
@@ -197,7 +197,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             ) : null}
 
             {/* 4. TOTALS SUMMARY */}
-            <div className="mt-8 border-t-4 border-[#003366] pt-4">
+            <div className="mt-8 border-t-4 border-[#0A52EF] pt-4">
                 <div className="flex justify-end">
                     <div className="w-1/2">
                         <div className="flex justify-between py-2 border-b border-gray-300">
@@ -207,7 +207,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         {/* Payment Terms? */}
                         {details.paymentTerms && (
                             <div className="mt-4 text-xs text-gray-500 text-right">
-                                <p className="font-bold uppercase text-gray-700">Payment Terms</p>
+                                <p className="font-bold text-gray-700">Payment Terms</p>
                                 <p>{details.paymentTerms}</p>
                             </div>
                         )}
@@ -222,7 +222,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
                 <div className="space-y-8 text-[11px] leading-relaxed text-gray-700">
                     <section>
-                        <h4 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="font-bold border-b border-gray-100 pb-1 mb-2 uppercase tracking-wide">1. PHYSICAL INSTALLATION</h4>
+                        <h4 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="font-bold border-b border-gray-100 pb-1 mb-2 tracking-wide">1. PHYSICAL INSTALLATION</h4>
                         <ul className="list-disc pl-5 space-y-1">
                             <li>ANC will furnish and install necessary structural secondary steel/aluminum framing for LED display mounting.</li>
                             <li>Installation includes mounting of all LED display cabinets, internal cabling, and module populating.</li>
@@ -232,7 +232,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     </section>
 
                     <section>
-                        <h4 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="font-bold border-b border-gray-100 pb-1 mb-2 uppercase tracking-wide">2. ELECTRICAL & DATA INSTALLATION</h4>
+                        <h4 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="font-bold border-b border-gray-100 pb-1 mb-2 tracking-wide">2. ELECTRICAL & DATA INSTALLATION</h4>
                         <ul className="list-disc pl-5 space-y-1">
                             <li>ANC will provide internal DC power and data distribution within the LED display system.</li>
                             <li>Client/Purchaser to provide primary AC power (breakers/panels) and permanent data conduit to the ANC head-end.</li>
@@ -242,7 +242,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     </section>
 
                     <section>
-                        <h4 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="font-bold border-b border-gray-100 pb-1 mb-2 uppercase tracking-wide">3. CONTROL SYSTEM</h4>
+                        <h4 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="font-bold border-b border-gray-100 pb-1 mb-2 tracking-wide">3. CONTROL SYSTEM</h4>
                         <ul className="list-disc pl-5 space-y-1">
                             <li>Installation and commissioning of the ANC vSOFT™ Control System or specified CMS platform.</li>
                             <li>Configuration of screen layouts, zones, and content mapping per project specifications.</li>
@@ -252,7 +252,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     </section>
 
                     <section>
-                        <h4 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="font-bold border-b border-gray-100 pb-1 mb-2 uppercase tracking-wide">4. GENERAL CONDITIONS</h4>
+                        <h4 style={{ color: PDF_COLORS.FRENCH_BLUE }} className="font-bold border-b border-gray-100 pb-1 mb-2 tracking-wide">4. GENERAL CONDITIONS</h4>
                         <ul className="list-disc pl-5 space-y-1">
                             <li>Price includes one (1) round of submittals and engineering shop drawings.</li>
                             <li>ANC to maintain standard Liability and Workers Comp insurance during on-site performance.</li>
@@ -267,20 +267,20 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             <div className="mt-12 break-inside-avoid">
                 <div className="border-t-2 border-gray-300 pt-8 flex justify-between gap-12">
                     <div className="flex-1">
-                        <p className="font-bold text-[#003366] uppercase mb-12">AGREED TO AND ACCEPTED BY:</p>
+                        <p className="font-bold text-[#0A52EF] mb-12">Agreed To And Accepted By:</p>
                         <div className="border-b border-black mb-2"></div>
-                        <p className="text-xs uppercase font-bold text-gray-600">Signature</p>
+                        <p className="text-xs font-bold text-gray-600">Signature</p>
 
                         <div className="border-b border-black mb-2 mt-8"></div>
-                        <p className="text-xs uppercase font-bold text-gray-600">Date</p>
+                        <p className="text-xs font-bold text-gray-600">Date</p>
                     </div>
                     <div className="flex-1">
-                        <p className="font-bold text-[#003366] uppercase mb-12">{receiver.name}</p>
+                        <p className="font-bold text-[#0A52EF] mb-12">{receiver.name}</p>
                         <div className="border-b border-black mb-2"></div>
-                        <p className="text-xs uppercase font-bold text-gray-600">Printed Name</p>
+                        <p className="text-xs font-bold text-gray-600">Printed Name</p>
 
                         <div className="border-b border-black mb-2 mt-8"></div>
-                        <p className="text-xs uppercase font-bold text-gray-600">Title</p>
+                        <p className="text-xs font-bold text-gray-600">Title</p>
                     </div>
                 </div>
             </div>

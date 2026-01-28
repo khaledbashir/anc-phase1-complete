@@ -49,12 +49,12 @@ const ProposalTemplate1 = (data: ProposalType) => {
 					<LogoSelector theme="light" width={160} height={80} />
 				</div>
 				<div className='w-[60%] text-right space-y-1'>
-					<h2 className='text-xl font-bold text-[#0A52EF] uppercase' style={{ fontFamily: "Work Sans, sans-serif" }}>
-						{receiver.name || 'CLIENT NAME'}
+					<h2 className='text-xl font-bold text-[#0A52EF]' style={{ fontFamily: "Work Sans, sans-serif" }}>
+						{receiver.name || 'Client Name'}
 					</h2>
 					{(!receiver.name || receiver.name === 'CLIENT NAME') && (
-						<h3 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Work Sans, sans-serif" }}>
-							{details.proposalName || 'PROJECT'} LED DISPLAYS {docLabel}
+						<h3 className='text-sm font-bold text-black' style={{ fontFamily: "Work Sans, sans-serif" }}>
+							{details.proposalName || 'Project'} LED Displays {docLabel}
 						</h3>
 					)}
 				</div>
@@ -70,14 +70,14 @@ const ProposalTemplate1 = (data: ProposalType) => {
 			{/* MAIN PRICING TABLE */}
 			<div className='px-8 mb-8'>
 				<div className='flex justify-between items-end border-b border-black pb-1 mb-0'>
-					<h4 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Work Sans, sans-serif" }}>PROJECT TOTAL</h4>
-					<h4 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Work Sans, sans-serif" }}>PRICING</h4>
+					<h4 className='text-sm font-bold text-black' style={{ fontFamily: "Work Sans, sans-serif" }}>Project Total</h4>
+					<h4 className='text-sm font-bold text-black' style={{ fontFamily: "Work Sans, sans-serif" }}>Pricing</h4>
 				</div>
 
 				<div className="w-full">
 					{mainItems.map((item, index) => (
 						<div key={index} className='flex justify-between items-center py-1 px-2 odd:bg-white even:bg-zinc-100'>
-							<div className='text-[10px] text-zinc-700 font-medium uppercase' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
+							<div className='text-[10px] text-zinc-700 font-medium' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
 								{item.name} {item.isGroup ? ', Install, CMS, Engineering, Warranty' : ''}
 							</div>
 							<div className='text-[10px] font-bold text-zinc-900'>
@@ -89,7 +89,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 				{/* SUBTOTAL FOR MAIN ITEMS */}
 				<div className="flex justify-between items-center mt-2 pt-1 border-t-2 border-black">
-					<div className="text-right w-full text-xs font-bold uppercase mr-4" style={{ fontFamily: "Work Sans, sans-serif" }}>SUBTOTAL:</div>
+					<div className="text-right w-full text-xs font-bold mr-4" style={{ fontFamily: "Work Sans, sans-serif" }}>Subtotal:</div>
 					<div className="text-xs font-bold text-black min-w-[80px] text-right">
 						${formatNumberWithCommas(Math.round(Number(details.subTotal)))}
 					</div>
@@ -100,8 +100,8 @@ const ProposalTemplate1 = (data: ProposalType) => {
 			{optionsItems.length > 0 && optionsItems.map((opt, idx) => (
 				<div key={idx} className='px-8 mb-6 break-inside-avoid'>
 					<div className='flex justify-between items-end border-b border-black pb-1 mb-0'>
-						<h4 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Work Sans, sans-serif" }}>{opt.name}</h4>
-						<h4 className='text-sm font-bold text-black uppercase' style={{ fontFamily: "Work Sans, sans-serif" }}>PRICING</h4>
+						<h4 className='text-sm font-bold text-black' style={{ fontFamily: "Work Sans, sans-serif" }}>{opt.name}</h4>
+						<h4 className='text-sm font-bold text-black' style={{ fontFamily: "Work Sans, sans-serif" }}>Pricing</h4>
 					</div>
 					<div className="w-full">
 						{/* If the option has sub-items in a real implementation we'd iterate them here. 
@@ -109,7 +109,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 							Based on screenshot "Year 3... Year 10" are rows. 
 							Assuming 'opt' might be a group. If it's a flat item, we just show it. */}
 						<div className='flex justify-between items-center py-1 px-2 bg-zinc-100'>
-							<div className='text-[10px] text-zinc-700 font-medium uppercase' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
+							<div className='text-[10px] text-zinc-700 font-medium' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
 								{opt.description || opt.name}
 							</div>
 							<div className='text-[10px] font-bold text-zinc-900'>
@@ -118,7 +118,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						</div>
 					</div>
 					<div className="flex justify-between items-center mt-1 pt-1 border-t-2 border-black">
-						<div className="text-right w-full text-xs font-bold uppercase mr-4" style={{ fontFamily: "Work Sans, sans-serif" }}>SUBTOTAL:</div>
+						<div className="text-right w-full text-xs font-bold mr-4" style={{ fontFamily: "Work Sans, sans-serif" }}>Subtotal:</div>
 						<div className="text-xs font-bold text-black min-w-[80px] text-right">
 							${formatNumberWithCommas(Math.round(opt.total))}
 						</div>
@@ -128,7 +128,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 			{/* PAYMENT TERMS */}
 			<div className='px-8 mb-12'>
-				<h4 className='text-xs font-bold text-black uppercase mb-2' style={{ fontFamily: "Work Sans, sans-serif" }}>PAYMENT TERMS:</h4>
+				<h4 className='text-xs font-bold text-black mb-2' style={{ fontFamily: "Work Sans, sans-serif" }}>Payment Terms:</h4>
 				<ul className='list-disc pl-4 space-y-1'>
 					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>50% on Deposit</li>
 					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>40% on Mobilization</li>
@@ -143,12 +143,12 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 			{/* SIGNATURES */}
 			<div className='px-8 mb-8 break-inside-avoid'>
-				<h4 className='text-xs font-bold text-black uppercase mb-6' style={{ fontFamily: "Work Sans, sans-serif" }}>AGREED TO AND ACCEPTED:</h4>
+				<h4 className='text-xs font-bold text-black mb-6' style={{ fontFamily: "Work Sans, sans-serif" }}>Agreed To And Accepted:</h4>
 
 				<div className="grid grid-cols-2 gap-16">
 					{/* ANC */}
 					<div>
-						<h5 className="text-[10px] text-zinc-500 uppercase mb-4 font-bold">ANC SPORTS ENTERPRISES, LLC ("ANC")</h5>
+						<h5 className="text-[10px] text-zinc-500 mb-4 font-bold">ANC Sports Enterprises, LLC ("ANC")</h5>
 						<p className="text-[9px] text-zinc-400 mb-8">
 							2 Manhattanville Road, Suite 402<br />
 							Purchase, NY 10577
@@ -171,7 +171,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 					{/* CLIENT */}
 					<div>
-						<h5 className="text-[10px] text-zinc-500 uppercase mb-4 font-bold">{receiver.name} ("PURCHASER")</h5>
+						<h5 className="text-[10px] text-zinc-500 mb-4 font-bold">{receiver.name} ("Purchaser")</h5>
 						<p className="text-[9px] text-zinc-400 mb-8">
 							{receiver.address || 'Address Line 1'}<br />
 							{receiver.city || 'City'}, {receiver.zipCode || 'Zip'}
@@ -205,7 +205,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 					{(() => {
 						return (details.screens || []).map((screen: any, idx: number) => (
 							<div key={idx} className="break-inside-avoid">
-								<h4 className="text-xs font-bold uppercase mb-1" style={{ fontFamily: "Work Sans, sans-serif" }}>{screen.name.toUpperCase()}</h4>
+								<h4 className="text-xs font-bold mb-1" style={{ fontFamily: "Work Sans, sans-serif" }}>{screen.name}</h4>
 								<div className="w-full border-t border-black">
 									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
 										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>MM Pitch</span>
@@ -255,7 +255,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 					<div className="space-y-6">
 						{/* Custom SOW Renders with Black Headers */}
 						<div className="break-inside-avoid">
-							<h4 className="bg-black text-white text-[10px] font-bold uppercase py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>PHYSICAL INSTALLATION</h4>
+							<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>PHYSICAL INSTALLATION</h4>
 							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
 								ANC assumes all base building structure is to be provided by others or is existing and is of sufficient capacity to support the proposed display systems.
 								<br />
@@ -266,7 +266,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						</div>
 
 						<div className="break-inside-avoid">
-							<h4 className="bg-black text-white text-[10px] font-bold uppercase py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>ELECTRICAL & DATA INSTALLATION</h4>
+							<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>ELECTRICAL & DATA INSTALLATION</h4>
 							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
 								ANC assumes primary power feed will be provided by others or is existing, within 5' of the display location with sufficient amps for ANC proposed display(s); typically 208v 3-phase.
 								<br />
@@ -277,7 +277,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						</div>
 
 						<div className="break-inside-avoid">
-							<h4 className="bg-black text-white text-[10px] font-bold uppercase py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>CONTROL SYSTEM</h4>
+							<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>CONTROL SYSTEM</h4>
 							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
 								ANC has provided display processors only. Content creation studio and content delivery system is not included at this time.
 								<br />
@@ -286,7 +286,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						</div>
 
 						<div className="break-inside-avoid">
-							<h4 className="bg-black text-white text-[10px] font-bold uppercase py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>GENERAL CONDITIONS</h4>
+							<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>GENERAL CONDITIONS</h4>
 							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
 								ANC has provided a parts only warranty, excluding on-site labor, on all products consistent with the factory supplier and/or 3rd party vendor. Warranty Terms and Conditions to be defined.
 								<br />

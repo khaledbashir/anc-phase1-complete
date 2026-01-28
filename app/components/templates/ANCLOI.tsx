@@ -47,8 +47,8 @@ export default function SalesQuotation({ proposal }: Props) {
           <div className="flex justify-between items-start pb-4 border-b border-neutral-300">
             <LogoSelector theme="light" width={120} height={60} />
             <div className="text-right">
-              <div className="text-[#1e3a5f] text-xl font-bold">{proposal.clientName}</div>
-              <div className="text-[11px] text-neutral-500 tracking-[0.15em] font-medium">SALES QUOTATION</div>
+              <div className="text-[#0A52EF] text-xl font-bold">{proposal.clientName}</div>
+              <div className="text-[11px] text-neutral-500 tracking-wide font-medium">Sales Quotation</div>
             </div>
           </div>
 
@@ -65,7 +65,7 @@ export default function SalesQuotation({ proposal }: Props) {
           {isEmptyProposal && (
             <div className="flex-1 flex flex-col items-center justify-center py-16">
               <div className="text-center">
-                <div className="text-[#1e3a5f] text-6xl font-black tracking-tight mb-4" style={{ fontFamily: "Arial Black, sans-serif" }}>
+                <div className="text-[#0A52EF] text-6xl font-bold tracking-tight mb-4" style={{ fontFamily: "Work Sans, sans-serif" }}>
                   ANC
                 </div>
                 <p className="text-neutral-500 text-sm mb-2">Sports Enterprises, LLC</p>
@@ -80,7 +80,7 @@ export default function SalesQuotation({ proposal }: Props) {
           {/* SPECIFICATIONS - Only show if screens exist */}
           {screens.length > 0 && (
             <>
-              <h2 className="text-center text-xs font-medium tracking-[0.25em] text-neutral-500 mb-8">SPECIFICATIONS</h2>
+              <h2 className="text-center text-xs font-bold tracking-wide text-neutral-500 mb-8">Specifications</h2>
               {/* For each screen render a small table with its specs */}
               {screens.map((screen) => {
                 const height = screen.height ?? 0;
@@ -94,7 +94,7 @@ export default function SalesQuotation({ proposal }: Props) {
                     <thead>
                       <tr className="border-b border-neutral-400">
                         <th className="text-left py-1.5 font-bold text-neutral-700 text-[11px]">{screen.name}</th>
-                        <th className="text-right py-1.5 font-bold text-neutral-700 text-[11px]">SPECIFICATIONS</th>
+                        <th className="text-right py-1.5 font-bold text-neutral-700 text-[11px]">Specifications</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -145,7 +145,7 @@ export default function SalesQuotation({ proposal }: Props) {
               <div className="text-right text-[10px] leading-tight">
                 <div className="text-neutral-600">www.anc.com/contact</div>
                 <div>
-                  <span className="text-[#1e3a5f] font-medium">NY</span>{" "}
+                  <span className="text-[#0A52EF] font-medium">NY</span>{" "}
                   <span className="text-neutral-500">914.696.2100</span>{" "}
                   <span className="text-amber-600 font-medium">TX</span>{" "}
                   <span className="text-neutral-500">940.464.2320</span>
@@ -158,8 +158,8 @@ export default function SalesQuotation({ proposal }: Props) {
           <div className="px-12 pb-8 flex-1">
             {/* Title */}
             <div className="text-center mb-4">
-              <h1 className="text-base font-bold text-[#1e3a5f] mb-0.5">{proposal.clientName}</h1>
-              <h2 className="text-[11px] text-[#1e3a5f] tracking-wide">PRICING</h2>
+              <h1 className="text-base font-bold text-[#0A52EF] mb-0.5">{proposal.clientName}</h1>
+              <h2 className="text-[11px] text-[#0A52EF] tracking-wide">Pricing</h2>
             </div>
 
             {screens.map((screen) => {
@@ -171,7 +171,7 @@ export default function SalesQuotation({ proposal }: Props) {
                     <thead>
                       <tr className="border-b border-neutral-400">
                         <th className="text-left py-1.5 font-bold text-neutral-700 text-[11px]">{screen.name}</th>
-                        <th className="text-right py-1.5 font-bold text-neutral-700 text-[11px]">PRICING</th>
+                        <th className="text-right py-1.5 font-bold text-neutral-700 text-[11px]">Pricing</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -193,7 +193,7 @@ export default function SalesQuotation({ proposal }: Props) {
 
                   <div className="mb-4 text-[11px]">
                     <div className="flex justify-end py-0.5">
-                      <span className="font-bold text-neutral-700 w-20 text-right">SUBTOTAL:</span>
+                      <span className="font-bold text-neutral-700 w-20 text-right">Subtotal:</span>
                       <span className="font-bold text-neutral-700 w-12 text-right">{formatMoney(subtotal)}</span>
                     </div>
                   </div>
@@ -204,12 +204,12 @@ export default function SalesQuotation({ proposal }: Props) {
             {/* Grand totals */}
             <div className="mb-6 text-[11px]">
               <div className="flex justify-end py-0.5">
-                <span className="font-bold text-neutral-700 w-20 text-right">SUBTOTAL:</span>
+                <span className="font-bold text-neutral-700 w-20 text-right">Subtotal:</span>
                 <span className="font-bold text-neutral-700 w-12 text-right">{formatMoney(grandSubtotal)}</span>
               </div>
               {/* Taxes omitted here - add if required */}
               <div className="flex justify-end py-0.5">
-                <span className="font-bold text-neutral-700 w-20 text-right">TOTAL:</span>
+                <span className="font-bold text-neutral-700 w-20 text-right">Total:</span>
                 <span className="font-bold text-neutral-700 w-12 text-right">{formatMoney(grandSubtotal)}</span>
               </div>
             </div>
@@ -236,13 +236,13 @@ export default function SalesQuotation({ proposal }: Props) {
                 <div className="text-right text-[10px] leading-tight">
                   <div className="text-neutral-600">www.anc.com/contact</div>
                   <div>
-                    <span className="text-[#1e3a5f] font-medium">NY</span>{" "}
+                    <span className="text-[#0A52EF] font-medium">NY</span>{" "}
                     <span className="text-neutral-500">914.696.2100</span>{" "}
                     <span className="text-amber-600 font-medium">TX</span>{" "}
                     <span className="text-neutral-500">940.464.2320</span>
                   </div>
                 </div>
-                <div className="text-[#1e3a5f] text-2xl font-black tracking-tight" style={{ fontFamily: "Arial Black, sans-serif" }}>
+                <div className="text-[#0A52EF] text-2xl font-bold tracking-tight" style={{ fontFamily: "Work Sans, sans-serif" }}>
                   anc
                 </div>
               </div>
@@ -251,12 +251,12 @@ export default function SalesQuotation({ proposal }: Props) {
             <div className="px-12 pb-8 flex-1">
               {/* Title */}
               <div className="text-center mb-6">
-                <h1 className="text-base font-bold text-[#1e3a5f]">{proposal.clientName}</h1>
+                <h1 className="text-base font-bold text-[#0A52EF]">{proposal.clientName}</h1>
               </div>
 
               {/* Payment Terms */}
               <div className="mb-4">
-                <h3 className="font-bold text-[11px] text-neutral-800 mb-2">PAYMENT TERMS:</h3>
+                <h3 className="font-bold text-[11px] text-neutral-800 mb-2">Payment Terms:</h3>
                 <ul className="text-[11px] text-neutral-700 space-y-0.5 ml-4">
                   <li className="flex items-start">
                     <span className="mr-2">•</span>
@@ -285,7 +285,7 @@ export default function SalesQuotation({ proposal }: Props) {
               {/* Signature Blocks */}
               <div className="mt-8">
                 <div className="mb-6">
-                  <p className="font-bold text-[11px] text-[#1e3a5f] mb-4">ANC SPORTS ENTERPRISES, LLC ("ANC")</p>
+                  <p className="font-bold text-[11px] text-[#0A52EF] mb-4">ANC Sports Enterprises, LLC ("ANC")</p>
                   <p className="text-[10px] text-neutral-600 mb-1">2 Manhattanville Road,  Suite 402</p>
                   <p className="text-[10px] text-neutral-600 mb-4">Purchase, NY 10577</p>
                   <div className="flex gap-4">
@@ -305,7 +305,7 @@ export default function SalesQuotation({ proposal }: Props) {
                 </div>
 
                 <div>
-                  <p className="font-bold text-[11px] text-[#1e3a5f] mb-4">{proposal.clientName} ("PURCHASER")</p>
+                  <p className="font-bold text-[11px] text-[#0A52EF] mb-4">{proposal.clientName} ("Purchaser")</p>
                   <div className="flex gap-4">
                     <div className="flex-1">
                       <p className="text-[10px] text-neutral-500 mb-1">By:</p>

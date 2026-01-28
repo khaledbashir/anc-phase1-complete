@@ -1,7 +1,6 @@
 export const PDF_COLORS = {
     // Brand Colors (ANC Standard)
     FRENCH_BLUE: "#0A52EF", // ANC/Enterprise Blue
-    NAVY_BLUE: "#003366",   // Deep Navy
     ACCENT_RED: "#C8102E",  // Brand Red
     ACCENT_YELLOW: "#FFCD00", // Brand Yellow
 
@@ -14,13 +13,13 @@ export const PDF_COLORS = {
 
 export const PDF_STYLES = {
     // Typography
-    Heading1: "text-2xl font-bold uppercase tracking-tight",
-    Heading2: "text-lg font-bold uppercase tracking-wide",
+    Heading1: "text-2xl font-bold tracking-tight",
+    Heading2: "text-lg font-bold tracking-wide",
     Body: "text-xs font-normal",
 
     // Table Styles
     Table: "w-full text-xs border-collapse",
-    TableHeaderCell: `bg-[${PDF_COLORS.TABLE_HEADER_BG}] p-2 font-bold text-left uppercase text-gray-700 border-b border-gray-300`,
+    TableHeaderCell: `bg-[${PDF_COLORS.TABLE_HEADER_BG}] p-2 font-bold text-left text-gray-700 border-b border-gray-300`,
     TableCell: "p-2 border-b border-gray-100 text-gray-800",
 
     // Layout

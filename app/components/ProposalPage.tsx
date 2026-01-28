@@ -90,9 +90,9 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
         <Button
           size="sm"
           onClick={() => handleSubmit(onFormSubmit)()}
-          className="bg-blue-600 hover:bg-blue-500 text-white font-semibold h-10 px-6 rounded-lg transition-all shadow-md shadow-blue-500/10 active:scale-[0.98]"
+          className="bg-blue-600 hover:bg-blue-500 text-white font-semibold h-10 px-6 rounded-lg transition-all shadow-md active:scale-[0.98]"
         >
-          Finalize
+          Finish Proposal
         </Button>
       </div>
     </div>
@@ -139,7 +139,7 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
           <p className="text-xs text-zinc-500">Real-time margin verification and profitability analysis.</p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
-          <Badge className="bg-blue-600/10 text-blue-400 border-blue-500/20 font-medium px-3 py-1">17/20 Strategy Match</Badge>
+          <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/10 font-semibold px-2 py-0.5 rounded">17/20 Strategic Match</Badge>
           <span className="text-[10px] text-zinc-500 font-medium">Natalia Math Engine Active</span>
         </div>
       </div>

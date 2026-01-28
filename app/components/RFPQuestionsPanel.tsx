@@ -124,7 +124,7 @@ export const RFPQuestionsPanel = () => {
           {aiMessages.map((m: any, i: number) => (
             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm shadow-sm ${m.role === 'user'
-                ? 'bg-[#003366] text-white rounded-br-none'
+                ? 'bg-[#0A52EF] text-white rounded-br-none'
                 : 'bg-zinc-900 text-zinc-300 border border-zinc-800 rounded-bl-none'
                 }`}>
                 {/* Render newlines properly */}

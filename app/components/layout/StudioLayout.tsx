@@ -98,7 +98,7 @@ export function StudioLayout({
                 {/* THE STUDIO GRID (50/50 Split) */}
                 <main className="flex-1 overflow-hidden flex">
                     {/* THE HUB (Left Pane: 50vw) */}
-                    <section className="w-1/2 flex flex-col overflow-hidden bg-zinc-950/40 border-r border-zinc-900">
+                    <section className="w-1/2 flex flex-col overflow-hidden bg-zinc-950/40 border-r border-zinc-900 anc-slash-bg">
                         <div className="flex-1 overflow-y-auto custom-scrollbar">
                             <div className="h-full">
                                 {viewMode === "form" && (
@@ -143,15 +143,15 @@ export function StudioLayout({
                     </section>
 
                     {/* THE ANCHOR (Right Pane: 50vw) */}
-                    <section className="w-1/2 relative bg-[#111] overflow-hidden flex flex-col">
+                    <section className="w-1/2 relative bg-[#090909] overflow-hidden flex flex-col anc-slash-bg">
                         <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
                             {/* Brand Signature Slashes in background */}
                             <BrandSlashes
                                 className="absolute -top-20 -right-20 pointer-events-none transition-opacity duration-1000"
-                                width={400}
-                                height={400}
-                                opacity={0.03}
-                                count={8}
+                                width={600}
+                                height={600}
+                                opacity={0.05}
+                                count={12}
                             />
 
                             <div className="relative z-10 mx-auto w-full max-w-[850px] transform-gpu transition-all duration-500">

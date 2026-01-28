@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { useFormContext } from "react-hook-form";
-import { 
-    FileDown, 
-    Printer, 
-    Eye, 
-    CheckCircle2, 
-    Share2, 
-    Mail, 
+import {
+    FileDown,
+    Printer,
+    Eye,
+    CheckCircle2,
+    Share2,
+    Mail,
     Clock,
     ArrowLeft,
     Copy,
@@ -26,13 +26,13 @@ import { formatCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
 const Step4Export = () => {
-    const { 
-        downloadPdf, 
-        printPdf, 
-        previewPdfInTab, 
-        saveProposalData, 
+    const {
+        downloadPdf,
+        printPdf,
+        previewPdfInTab,
+        saveProposalData,
         sendPdfToMail,
-        exportAudit 
+        exportAudit
     } = useProposalContext();
     const { watch } = useFormContext();
     const [copied, setCopied] = useState(false);
@@ -45,7 +45,7 @@ const Step4Export = () => {
     const proposalId = watch("details.proposalId");
     const totalValue = internalAudit?.totals?.finalClientTotal || 0;
     const lastSaved = watch("lastSavedAt");
-    
+
     const screenCount = screens.length;
     const hasErrors = screens.some((s: any) => !s.widthFt || !s.heightFt || !s.name);
     const allScreensValid = screenCount > 0 && !hasErrors;
@@ -68,39 +68,39 @@ const Step4Export = () => {
             {/* Success Header */}
             <div className="text-center space-y-3">
                 <div className={cn(
-                    "inline-flex items-center justify-center w-20 h-20 rounded-full mb-4",
-                    allScreensValid ? "bg-emerald-500/20" : "bg-yellow-500/20"
+                    "inline-flex items-center justify-center w-12 h-12 rounded-full mb-2",
+                    allScreensValid ? "bg-emerald-500/10" : "bg-yellow-500/10"
                 )}>
                     {allScreensValid ? (
-                        <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                        <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                     ) : (
-                        <AlertTriangle className="w-10 h-10 text-yellow-500" />
+                        <AlertTriangle className="w-6 h-6 text-yellow-500" />
                     )}
                 </div>
-                
-                <h1 className="text-3xl font-bold text-zinc-100">
+
+                <h1 className="text-xl font-semibold text-zinc-100">
                     {allScreensValid ? "Proposal Validated" : "Proposal Incomplete"}
                 </h1>
-                
-                <p className="text-zinc-400 text-lg">
+
+                <p className="text-zinc-500 text-base">
                     {proposalName}
                 </p>
-                
-                <div className="flex items-center justify-center gap-4 text-sm">
-                    <span className="px-3 py-1 bg-zinc-800 rounded-full text-zinc-300">
+
+                <div className="flex items-center justify-center gap-3 text-[11px]">
+                    <span className="px-2 py-0.5 bg-zinc-800 rounded text-zinc-400">
                         {screenCount} screen{screenCount !== 1 ? 's' : ''}
                     </span>
-                    <span className="px-3 py-1 bg-[#0A52EF]/20 text-[#0A52EF] rounded-full font-bold">
+                    <span className="px-2 py-0.5 border border-blue-500/20 text-blue-500 rounded font-medium">
                         {formatCurrency(totalValue)}
                     </span>
                     {allScreensValid && (
-                        <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center gap-1">
+                        <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 rounded flex items-center gap-1">
                             <Shield className="w-3 h-3" />
                             Ready for Export
                         </span>
                     )}
                 </div>
-                
+
                 {hasErrors && (
                     <div className="inline-flex items-center gap-2 px-4 py-3 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mt-4">
                         <AlertTriangle className="w-5 h-5 text-yellow-500" />
@@ -114,11 +114,11 @@ const Step4Export = () => {
             {/* Primary Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Download PDF */}
-                <Card 
+                <Card
                     className={cn(
                         "border transition-all cursor-pointer group",
-                        allScreensValid 
-                            ? "bg-zinc-900/50 border-zinc-800 hover:border-[#0A52EF]/50 hover:shadow-[0_0_20px_rgba(10,82,239,0.2)]" 
+                        allScreensValid
+                            ? "bg-zinc-900/50 border-zinc-800 hover:border-[#0A52EF]/50 hover:shadow-[0_0_20px_rgba(10,82,239,0.2)]"
                             : "bg-zinc-900/30 border-zinc-800/50 opacity-50 cursor-not-allowed"
                     )}
                     onClick={allScreensValid ? downloadPdf : undefined}
@@ -142,7 +142,7 @@ const Step4Export = () => {
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger asChild>
-                            <Card 
+                            <Card
                                 className="bg-zinc-900/50 border-zinc-800 hover:border-emerald-500/50 transition-all cursor-pointer group"
                                 onClick={exportAudit}
                             >
@@ -161,8 +161,8 @@ const Step4Export = () => {
                                 </CardContent>
                             </Card>
                         </TooltipTrigger>
-                        <TooltipContent 
-                            side="top" 
+                        <TooltipContent
+                            side="top"
                             className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3"
                         >
                             <p className="text-xs leading-relaxed">
@@ -173,11 +173,11 @@ const Step4Export = () => {
                 </TooltipProvider>
 
                 {/* Email to Client */}
-                <Card 
+                <Card
                     className={cn(
                         "border transition-all cursor-pointer group",
-                        allScreensValid 
-                            ? "bg-zinc-900/50 border-zinc-800 hover:border-purple-500/50" 
+                        allScreensValid
+                            ? "bg-zinc-900/50 border-zinc-800 hover:border-purple-500/50"
                             : "bg-zinc-900/30 border-zinc-800/50 opacity-50 cursor-not-allowed"
                     )}
                     onClick={allScreensValid ? handleSendEmail : undefined}
@@ -205,8 +205,8 @@ const Step4Export = () => {
                 </CardHeader>
                 <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <BaseButton 
-                            variant="outline" 
+                        <BaseButton
+                            variant="outline"
                             size="sm"
                             onClick={previewPdfInTab}
                             className="justify-center"
@@ -215,8 +215,8 @@ const Step4Export = () => {
                             Preview
                         </BaseButton>
 
-                        <BaseButton 
-                            variant="outline" 
+                        <BaseButton
+                            variant="outline"
                             size="sm"
                             onClick={printPdf}
                             className="justify-center"
@@ -225,8 +225,8 @@ const Step4Export = () => {
                             Print
                         </BaseButton>
 
-                        <BaseButton 
-                            variant="outline" 
+                        <BaseButton
+                            variant="outline"
                             size="sm"
                             onClick={handleCopyLink}
                             className="justify-center"
@@ -238,8 +238,8 @@ const Step4Export = () => {
                             )}
                         </BaseButton>
 
-                        <BaseButton 
-                            variant="outline" 
+                        <BaseButton
+                            variant="outline"
                             size="sm"
                             onClick={saveProposalData}
                             className="justify-center"
@@ -257,13 +257,13 @@ const Step4Export = () => {
                     <div className="flex items-center gap-2 text-sm text-zinc-500">
                         <Clock className="w-4 h-4" />
                         <span>
-                            {lastSaved 
+                            {lastSaved
                                 ? `Last saved to vault: ${new Date(lastSaved).toLocaleString()}`
                                 : "Auto-saving enabled"
                             }
                         </span>
                     </div>
-                    
+
                     {proposalId && (
                         <span className="text-xs text-zinc-600 font-mono">
                             ID: {proposalId}
@@ -271,8 +271,8 @@ const Step4Export = () => {
                     )}
                 </div>
 
-                <BaseButton 
-                    variant="ghost" 
+                <BaseButton
+                    variant="ghost"
                     size="sm"
                     onClick={() => window.history.back()}
                 >

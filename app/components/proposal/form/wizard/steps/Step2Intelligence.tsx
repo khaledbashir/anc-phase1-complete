@@ -13,8 +13,8 @@ const Step2Intelligence = () => {
             <Card className="bg-zinc-900/50 border-zinc-800/50 h-full flex flex-col">
                 <CardHeader className="pb-3 shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-[#003366]/20">
-                            <Calculator className="w-5 h-5 text-[#003366]" />
+                        <div className="p-2 rounded-lg bg-[#0A52EF]/20">
+                            <Calculator className="w-5 h-5 text-[#0A52EF]" />
                         </div>
                         <div className="flex-1 flex justify-between items-center">
                             <div>
