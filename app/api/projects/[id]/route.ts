@@ -13,18 +13,11 @@ export async function GET(
 ) {
     const { id } = await params;
     try {
-        const project = await (prisma.proposal as any).findUnique({
+        const project = await prisma.proposal.findUnique({
             where: { id },
             include: {
                 screens: {
                     include: { lineItems: true },
-                },
-                rfpQuestions: {
-                    orderBy: { order: "asc" },
-                },
-                revisions: {
-                    orderBy: { version: "desc" },
-                    take: 10,
                 },
             },
         });
@@ -48,7 +41,7 @@ export async function GET(
 
 /**
  * PATCH /api/projects/[id]
- * Auto-save (heartbeat) endpoint
+ * Update proposal data
  */
 export async function PATCH(
     req: NextRequest,
@@ -57,58 +50,43 @@ export async function PATCH(
     const { id } = await params;
     try {
         const body = await req.json();
-        const { senderData, receiverData, status, proposalName, changeSource } = body;
+        const { clientName, status, calculationMode, screens } = body;
 
-        const updateData: any = {
-            lastSavedAt: new Date(),
-        };
+        const updateData: any = {};
 
-        if (senderData !== undefined) updateData.senderData = senderData;
-        if (receiverData !== undefined) updateData.receiverData = receiverData;
+        if (clientName !== undefined) updateData.clientName = clientName;
         if (status !== undefined) updateData.status = status;
-        if (proposalName !== undefined) updateData.proposalName = proposalName;
-
-        // Extract clientName from receiverData if present
-        if (receiverData?.name) {
-            updateData.clientName = receiverData.name;
-        }
+        if (calculationMode !== undefined) updateData.calculationMode = calculationMode;
 
         const project = await prisma.$transaction(async (tx) => {
             // Update the main proposal record
             const updated = await tx.proposal.update({
                 where: { id },
                 data: updateData,
-                select: { lastSavedAt: true, id: true },
+                select: { id: true },
             });
 
             // If screens are provided, sync them (destructive sync for screens)
-            if (body.screens && Array.isArray(body.screens)) {
-                // Delete existing screens and line items (Cascade should handle lineItems if set in schema)
+            if (screens && Array.isArray(screens)) {
+                // Delete existing screens and line items
                 await tx.screenConfig.deleteMany({
                     where: { proposalId: id }
                 });
 
-                // Create new screens
-                for (const screen of body.screens) {
+                // Create new screens with correct schema
+                for (const screen of screens) {
                     await tx.screenConfig.create({
                         data: {
                             proposalId: id,
                             name: screen.name || "Unnamed Screen",
-                            productType: screen.productType || "Unknown",
-                            widthFt: Number(screen.widthFt || 0),
-                            heightFt: Number(screen.heightFt || 0),
-                            quantity: Number(screen.quantity || 1),
-                            pitchMm: Number(screen.pitchMm || 10),
-                            costPerSqFt: Number(screen.costPerSqFt || 0),
-                            desiredMargin: Number(screen.desiredMargin || 0),
-                            serviceType: screen.serviceType || "Top",
-                            formFactor: screen.formFactor || "Straight",
-                            isReplacement: !!screen.isReplacement,
-                            useExistingStructure: !!screen.useExistingStructure,
-                            includeSpareParts: screen.includeSpareParts !== false,
+                            pixelPitch: Number(screen.pixelPitch || screen.pitchMm || 10),
+                            width: Number(screen.width || screen.widthFt || 0),
+                            height: Number(screen.height || screen.heightFt || 0),
                             lineItems: {
                                 create: (screen.lineItems || []).map((li: any) => ({
-                                    category: li.category,
+                                    category: li.category || "Other",
+                                    cost: Number(li.cost || 0),
+                                    margin: Number(li.margin || 0),
                                     price: Number(li.price || 0),
                                 }))
                             }
@@ -120,19 +98,9 @@ export async function PATCH(
             return updated;
         });
 
-        // Create audit log for save with change source
-        await (prisma as any).auditLog.create({
-            data: {
-                proposalId: id,
-                action: "SAVED",
-                changeSource: changeSource || "SYSTEM",
-                metadata: { fieldsUpdated: Object.keys(body) },
-            },
-        });
-
         return NextResponse.json({
             success: true,
-            lastSavedAt: (project as any).lastSavedAt,
+            id: project.id,
         });
 
     } catch (error) {
