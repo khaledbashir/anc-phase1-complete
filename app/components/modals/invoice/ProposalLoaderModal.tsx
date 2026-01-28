@@ -34,11 +34,11 @@ const ProposalLoaderModal = ({ children }: ProposalLoaderModalType) => {
 
       <DialogContent>
         <DialogHeader className="pb-2 border-b">
-          <DialogTitle>Saved Invoices</DialogTitle>
+          <DialogTitle>Saved Proposals</DialogTitle>
           <DialogDescription>
             <div className="space-y-2">
-              <p>You have {savedProposals.length} saved invoices</p>
-              <ImportJsonButton setOpen={setOpen}/>
+              <p>You have {savedProposals.length} saved proposals</p>
+              <ImportJsonButton setOpen={setOpen} />
             </div>
           </DialogDescription>
         </DialogHeader>

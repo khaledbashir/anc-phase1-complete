@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create workspace with first user
-    let workspace: WorkspaceWithUsers = await prisma.workspace.create({
+    // 1. PERSISTENCE FIRST: Create local DB records immediately
+    const workspace = await prisma.workspace.create({
       data: {
         name: body.name,
         users: {
@@ -47,103 +47,80 @@ export async function POST(request: NextRequest) {
     });
 
     let proposal: any = null;
-    let aiInfo: any = null;
+    if (body.createInitialProposal && body.clientName) {
+      proposal = await prisma.proposal.create({
+        data: {
+          workspaceId: workspace.id,
+          clientName: body.clientName,
+          status: "DRAFT",
+        },
+      });
+    }
 
-    // Provision AnythingLLM workspace with Natalia's EXPERT SETTINGS
-    try {
-      if (ANYTHING_LLM_BASE_URL && ANYTHING_LLM_KEY) {
+    // 2. BACKGROUND PROVISIONING: Do not block the user's redirect!
+    // We initiate the AI provisioning but we don't 'await' it for the final response.
+    // This gives the user that 'Ferrari' speed.
+    const provisionAI = async () => {
+      if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) return;
+
+      try {
         const uniqueSuffix = Date.now().toString(36).slice(-4);
         const wsName = `${body.name} - ANC Project Room (${uniqueSuffix})`;
-
-        const payload = {
-          name: wsName,
-          similarityThreshold: 0.2, // Catch diverse RFP wording
-          openAiTemp: 0.1,         // Precision for spec extraction
-          openAiHistory: 10,
-          chatMode: "chat",
-          topN: 10,                 // High transparency for dense RFP sections
-          openAiPrompt: `
-            YOU ARE THE ANC STRATEGIC ESTIMATOR (Master Protocol).
-            Your mission is to build high-stakes LED signatures.
-            
-            CORE RULES:
-            1. FORMULAS: Structure=20% (Ribbons/Top=10%), Labor=15%, Power=15%, PM=$0.50/sqft, Shipping=$0.14/sqft.
-            2. BOND: Final totals must include 1.5% Bond on Top of everything.
-            3. FERRARI LOGIC: Look for 'Spare Parts' (5% Hardware) and 'Existing Infrastructure' (Structure drops to 5%).
-            4. PRECISION: If an RFP section is ambiguous, ask for clarification.
-            5. FORMAT: Always prioritize technical accuracy over conversational filler.
-          `.trim(),
-        };
 
         const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/new`, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ name: wsName }),
         });
 
         if (res.ok) {
           const created = await res.json();
-          const slug = created?.workspace?.slug || created?.slug || null;
-
+          const slug = created?.workspace?.slug || created?.slug;
           if (slug) {
-            aiInfo = { slug };
-            // Update workspace with slug
-            workspace = await prisma.workspace.update({
+            await prisma.workspace.update({
               where: { id: workspace.id },
               data: { aiWorkspaceSlug: slug },
-              include: { users: true },
             });
 
-            // Upload master catalog (Global Knowledge Base)
+            // Trigger Catalog Sync in background
             const masterUrl = process.env.ANYTHING_LLM_MASTER_CATALOG_URL;
             if (masterUrl) {
-              try {
-                const { uploadLinkToWorkspace } = await import("@/lib/rag-sync");
-                await uploadLinkToWorkspace(slug, masterUrl);
-              } catch (e) {
-                console.warn("Failed to upload master catalog", e);
-              }
+              const { uploadLinkToWorkspace } = await import("@/lib/rag-sync");
+              uploadLinkToWorkspace(slug, masterUrl).catch(console.error);
             }
 
-            // Create thread if requested
-            if (body.createInitialProposal && body.clientName) {
+            // Create Thread in background
+            if (proposal) {
               const threadRes = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${slug}/thread/new`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
                 body: JSON.stringify({ title: `Project Kickoff: ${body.clientName}` }),
               });
               const threadData = await threadRes.json();
-              aiInfo.threadId = threadData?.thread?.slug || null;
+              const threadId = threadData?.thread?.slug;
+              if (threadId) {
+                await prisma.proposal.update({
+                  where: { id: proposal.id },
+                  data: { aiThreadId: threadId },
+                });
+              }
             }
           }
         }
-      }
-    } catch (e) {
-      console.warn("Provisioning AnythingLLM failed:", e);
-    }
-
-    // ALWAYS create proposal if requested, regardless of AI success
-    if (body.createInitialProposal && body.clientName) {
-      try {
-        proposal = await prisma.proposal.create({
-          data: {
-            workspaceId: workspace.id,
-            clientName: body.clientName,
-            status: "DRAFT",
-            aiThreadId: aiInfo?.threadId || null,
-          },
-        });
       } catch (e) {
-        console.error("Failed to create initial proposal:", e);
+        console.warn("Background AI provisioning failed:", e);
       }
-    }
+    };
 
+    // Kick off provisioning without awaiting
+    provisionAI();
+
+    // 3. IMMEDIATE RESPONSE: User redirects to the project page NOW
     return NextResponse.json(
       {
         success: true,
         workspace,
         proposal,
-        ai: aiInfo
       },
       { status: 201 }
     );

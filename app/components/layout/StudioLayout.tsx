@@ -36,9 +36,8 @@ export function StudioLayout({
     const [isAiExpanded, setIsAiExpanded] = useState(false);
 
     const navItems = [
-        { id: "form", icon: LayoutDashboard, label: "Project Form" },
-        { id: "ai", icon: MessageSquare, label: "AI War Room" },
-        { id: "audit", icon: Table, label: "Audit Data" },
+        { id: "form", icon: LayoutDashboard, label: "Proposal Builder" },
+        { id: "audit", icon: Table, label: "Financial Audit" },
     ];
 
     return (
@@ -100,17 +99,7 @@ export function StudioLayout({
                                     {formContent}
                                 </div>
                             )}
-                            {viewMode === "ai" && (
-                                <div className="animate-in slide-in-from-left-4 duration-300 h-full">
-                                    {aiContent || (
-                                        <div className="flex flex-col items-center justify-center h-full opacity-40 grayscale group hover:grayscale-0 transition-all duration-700">
-                                            <MessageSquare className="w-16 h-16 mb-4 text-blue-500 group-hover:scale-110 transition-transform" />
-                                            <p className="text-lg font-medium">AI Strategic Agent</p>
-                                            <p className="text-sm text-zinc-500 max-w-[200px] text-center mt-2">Activate the AI War Room to perform deep RFP analysis.</p>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+
                             {viewMode === "audit" && (
                                 <div className="animate-in slide-in-from-bottom-4 duration-300 h-full p-4 overflow-auto">
                                     {auditContent || (

@@ -97,13 +97,13 @@ const SavedProposalsList = ({ setModalState }: SavedProposalsListProps) => {
                     <Card
                         key={idx}
                         className="p-2 border rounded-sm hover:border-blue-500 hover:shadow-lg cursor-pointer"
-                        // onClick={() => handleSelect(invoice)}
+                    // onClick={() => handleSelect(invoice)}
                     >
                         <CardContent className="flex justify-between">
                             <div>
                                 {/* <FileText /> */}
                                 <p className="font-semibold">
-                                    Invoice #{invoice.details.invoiceNumber}{" "}
+                                    Proposal #{invoice.details.invoiceNumber}{" "}
                                 </p>
                                 <small className="text-gray-500">
                                     Updated at: {invoice.details.updatedAt}
@@ -162,7 +162,7 @@ const SavedProposalsList = ({ setModalState }: SavedProposalsListProps) => {
 
                 {savedProposals.length == 0 && (
                     <div>
-                        <p>No saved invoices</p>
+                        <p>No saved proposals</p>
                     </div>
                 )}
             </div>

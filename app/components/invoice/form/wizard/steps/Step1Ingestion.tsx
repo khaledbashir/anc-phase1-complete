@@ -47,13 +47,16 @@ const Step1Ingestion = () => {
                 }),
             });
 
-            // show step transitions (Ferrari feel)
-            for (let i = 0; i < steps.length; i++) {
-                setCreationStep(i);
-                await new Promise((r) => setTimeout(r, 400));
-            }
-
             const json = await resp.json();
+
+            // Artificial delay for Ferrari feel, but reduced
+            setCreationStep(0);
+            await new Promise((r) => setTimeout(r, 400));
+            setCreationStep(1);
+            await new Promise((r) => setTimeout(r, 400));
+            setCreationStep(2);
+            await new Promise((r) => setTimeout(r, 400));
+
             if (resp.ok && json && json.proposal) {
                 // store workspace/thread locally
                 if (typeof window !== "undefined") {
@@ -65,6 +68,7 @@ const Step1Ingestion = () => {
                 window.location.href = `/projects/${json.proposal.id}`;
             } else {
                 console.error("Workspace creation failed", json);
+                alert("Failed to create Project Vault. Check database connection.");
                 setLoading(false);
             }
         } catch (e) {
