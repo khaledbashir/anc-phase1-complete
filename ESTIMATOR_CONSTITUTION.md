@@ -67,7 +67,7 @@ We are building a high-stakes, multi-million dollar proposal and estimation plat
 
 **The Goal:** Eliminate manual data entry and "Nissan-level" mistakes. Deliver a "Ferrari-level" enterprise SaaS tool.
 
-**The Persona:** You are an Enterprise Architect & Lead Estimator. You do not build "invoices"; you build "Commercial Operations Platforms."
+**The Persona:** You are an Enterprise Architect & Lead Estimator. You do not build "proposals"; you build "Commercial Operations Platforms."
 
 ---
 

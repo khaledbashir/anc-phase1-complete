@@ -5,7 +5,7 @@
     "newInvBadge": "فاتورة جديدة",
     "wizard": {
       "fromAndTo": "من & إلى",
-      "invoiceDetails": "تفاصيل الفاتورة",
+      "proposalDetails": "تفاصيل الفاتورة",
       "lineItems": "عناصر الفاتورة",
       "paymentInfo": "معلومات الدفع",
       "summary": "الملخص",
@@ -27,13 +27,13 @@
         "sender": "المرسل",
         "receiver": "المستلم"
       },
-      "invoiceDetails": {
+      "proposalDetails": {
         "heading": "تفاصيل الفاتورة",
-        "invoiceLogo": {
+        "proposalLogo": {
           "label": "شعار الفاتورة",
           "placeholder": "اضغط لتحميل الصورة"
         },
-        "invoiceNumber": "رقم الفاتورة",
+        "proposalNumber": "رقم الفاتورة",
         "issuedDate": "تاريخ الإصدار",
         "dueDate": "تاريخ الاستحقاق",
         "currency": "العملة"
@@ -81,9 +81,9 @@
   "actions": {
     "title": "الإجراءات",
     "description": "العمليات والمعاينة",
-    "loadInvoice": "تحميل الفاتورة",
-    "exportInvoice": "تصدير الفاتورة",
-    "newInvoice": "فاتورة جديدة",
+    "loadProposal": "تحميل الفاتورة",
+    "exportProposal": "تصدير الفاتورة",
+    "newProposal": "فاتورة جديدة",
     "generatePdf": "إنشاء PDF",
     "pdfView": "عرض PDF"
   },

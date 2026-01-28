@@ -104,7 +104,7 @@ export const ChargesContextProvider = ({ children }: ChargesContextProps) => {
     const [taxType, setTaxType] = useState("amount");
     const [shippingType, setShippingType] = useState("amount");
 
-    // When loading invoice, if received values, turn on the switches
+    // When loading proposal, if received values, turn on the switches
     useEffect(() => {
         if (discount?.amount) {
             setDiscountSwitch(true);
@@ -168,7 +168,7 @@ export const ChargesContextProvider = ({ children }: ChargesContextProps) => {
     ]);
 
     /**
-     * Calculates the subtotal, total, and the total amount in words on the invoice.
+     * Calculates the subtotal, total, and the total amount in words on the proposal.
      */
     const calculateTotal = () => {
         // Here Number(item.total) fixes a bug where an extra zero appears

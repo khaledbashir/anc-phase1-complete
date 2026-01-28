@@ -1,0 +1,85 @@
+import { NextRequest } from "next/server";
+
+// Nodemailer
+import nodemailer, { SendMailOptions } from "nodemailer";
+
+// React-email
+import { render } from "@react-email/render";
+
+// Components
+import { SendPdfEmail } from "@/app/components";
+
+// Helpers
+import { fileToBuffer } from "@/lib/helpers";
+
+// Variables
+import { NODEMAILER_EMAIL, NODEMAILER_PW } from "@/lib/variables";
+
+// Nodemailer transporter
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: NODEMAILER_EMAIL,
+        pass: NODEMAILER_PW,
+    },
+});
+
+// Check if email credentials are configured
+const isEmailConfigured = () => {
+    return !!(NODEMAILER_EMAIL && NODEMAILER_PW);
+};
+
+/**
+ * Send a PDF as an email attachment.
+ *
+ * @param {NextRequest} req - The Next.js request object.
+ * @returns {Promise<boolean>} A Promise that resolves to a boolean, indicating whether the email was sent successfully.
+ * @throws {Error} Throws an error if there is an issue with sending the email.
+ */
+export async function sendProposalPdfToEmailService(
+    req: NextRequest
+): Promise<boolean> {
+    // Check if email service is configured
+    if (!isEmailConfigured()) {
+        console.error(
+            "Email service not configured. Please set NODEMAILER_EMAIL and NODEMAILER_PW environment variables."
+        );
+        throw new Error(
+            "Email service not configured. Please contact the administrator."
+        );
+    }
+
+    const fd = await req.formData();
+
+    // Get form data values
+    const email = fd.get("email") as string;
+    const proposalPdf = fd.get("proposalPdf") as File;
+    const proposalNumber = fd.get("proposalNumber") as string;
+
+    // Get email html content
+    const emailHTML = render(SendPdfEmail({ proposalNumber }));
+
+    // Convert file to buffer
+    const proposalBuffer = await fileToBuffer(proposalPdf);
+
+    try {
+        const mailOptions: SendMailOptions = {
+            from: "Invoify",
+            to: email,
+            subject: `Proposal Ready: #${proposalNumber}`,
+            html: emailHTML,
+            attachments: [
+                {
+                    filename: "proposal.pdf",
+                    content: proposalBuffer,
+                },
+            ],
+        };
+
+        await transporter.sendMail(mailOptions);
+        return true;
+    } catch (error) {
+        console.error("Error sending email", error);
+        return false;
+    }
+}

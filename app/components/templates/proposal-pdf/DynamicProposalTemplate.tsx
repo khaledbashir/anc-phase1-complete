@@ -15,7 +15,7 @@ const DynamicProposalTemplate = (props: ProposalType) => {
     // Dynamic template component name
     const templateName = `ProposalTemplate${props.details.pdfTemplate}`;
 
-    const DynamicInvoice = useMemo(
+    const DynamicProposal = useMemo(
         () =>
             dynamic<ProposalType>(
                 () =>
@@ -30,7 +30,7 @@ const DynamicProposalTemplate = (props: ProposalType) => {
         [templateName]
     );
 
-    return <DynamicInvoice {...props} />;
+    return <DynamicProposal {...props} />;
 };
 
 export default DynamicProposalTemplate;

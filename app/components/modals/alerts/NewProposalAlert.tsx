@@ -35,7 +35,7 @@ const NewProposalAlert = ({
   confirmLabel,
   onConfirm,
 }: NewProposalAlertProps) => {
-  // Invoice context
+  // Proposal context
   const { newProposal } = useProposalContext();
 
   const {
@@ -44,7 +44,7 @@ const NewProposalAlert = ({
 
   const [open, setOpen] = useState(false);
 
-  const handleNewInvoice = () => {
+  const handleNewProposal = () => {
     if (isDirty) {
       // If the form is dirty, show the alert dialog
       setOpen(true);
@@ -87,7 +87,7 @@ const NewProposalAlert = ({
 
       {/* Not for showing div and instead showing the whole button */}
       {React.cloneElement(children as React.ReactElement, {
-        onClick: handleNewInvoice,
+        onClick: handleNewProposal,
       })}
     </>
   );

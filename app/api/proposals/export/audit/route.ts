@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateAuditExcelBuffer } from "@/services/invoice/server/exportFormulaicExcel";
+import { generateAuditExcelBuffer } from "@/services/proposal/server/exportFormulaicExcel";
 
 export async function POST(req: NextRequest) {
   try {

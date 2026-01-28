@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { parseANCExcel } from "@/services/invoice/server/excelImportService";
+import { parseANCExcel } from "@/services/proposal/server/excelImportService";
 
 export async function POST(req: NextRequest) {
     try {

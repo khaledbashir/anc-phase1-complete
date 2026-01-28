@@ -19,15 +19,15 @@
   - Project name: `invoify` → `anc-proposal-engine`
   - Version: `0.1.0` → `1.0.0`
 - **Updated** `lib/seo.ts`:
-  - Keywords: invoice → proposal, LED screen, sports technology
+  - Keywords: proposal → proposal, LED screen, sports technology
   - JSON-LD: Changed to "ANC Sports" organization
   - Image: Removed old Invoify logo reference
 - **Updated** `lib/variables.ts`:
   - BASE_URL: Updated to `https://anc-sports.vercel.app`
   - Removed AUTHOR_GITHUB, AUTHOR_WEBSITE references
   - Added ANC_WEBSITE constant
-  - Renamed LOCAL_STORAGE key: `invoify:invoiceDraft` → `anc:proposalDraft`
-  - Updated API endpoints from `/invoice/*` to `/proposals/*`
+  - Renamed LOCAL_STORAGE key: `invoify:proposalDraft` → `anc:proposalDraft`
+  - Updated API endpoints from `/proposal/*` to `/proposals/*`
 - **Updated** navbar logo:
   - Changed from SVG import to `<img src="/anc-logo.png" />`
   - Set max-height: 40px (h-10)
@@ -63,10 +63,10 @@
   - Removed translation context usage (clean static text)
 
 ### 5. **UI/UX Polish** ✅
-- **InvoiceMain** (`app/components/invoice/InvoiceMain.tsx`):
+- **ProposalMain** (`app/components/proposal/ProposalMain.tsx`):
   - Added gap-6 between form and actions
   - Improved responsive layout with flex-1
-- **InvoiceActions** (`app/components/invoice/InvoiceActions.tsx`):
+- **ProposalActions** (`app/components/proposal/ProposalActions.tsx`):
   - Added rounded-lg class to card
   - Added shadow-sm for subtle elevation
   - Increased padding (pb-6)
@@ -74,7 +74,7 @@
   - Added spacing (mt-4) to PDF viewer section
   - Updated tooltips to "proposal" terminology
 - **Toast Messages** (`hooks/useToasts.tsx`):
-  - Updated all "invoice" → "proposal" references
+  - Updated all "proposal" → "proposal" references
   - Changed "Invoify" → "ANC" in error messages
 
 ### 6. **Layout Improvements** ✅
@@ -118,8 +118,8 @@ Border:               #e4e4e7 (zinc-200)
 6. `package.json` - Project name update
 7. `app/components/layout/BaseNavbar.tsx` - Complete rebuild
 8. `app/components/layout/BaseFooter.tsx` - ANC copyright
-9. `app/components/invoice/InvoiceMain.tsx` - Layout improvements
-10. `app/components/invoice/InvoiceActions.tsx` - UI polish
+9. `app/components/proposal/ProposalMain.tsx` - Layout improvements
+10. `app/components/proposal/ProposalActions.tsx` - UI polish
 11. `app/components/index.ts` - Removed DevDebug export
 12. `hooks/useToasts.tsx` - Proposal terminology
 
@@ -132,7 +132,7 @@ Border:               #e4e4e7 (zinc-200)
 1. **Add ANC Logo**: Place `anc-logo.png` in `/public/` directory
 2. **Test the App**: Run `npm run dev` and verify branding
 3. **Update Remaining Components**:
-   - More "Invoice" → "Proposal" replacements in UI components
+   - More "Proposal" → "Proposal" replacements in UI components
    - Update all locale files (not just en.json)
 4. **Custom Features**:
    - Build Workspace management UI
@@ -157,7 +157,7 @@ Border:               #e4e4e7 (zinc-200)
 - ✅ Updated color scheme to ANC Navy (#003366) & Lime (#C4D600)
 - ✅ Rebuilt navbar with Workspace dropdown & User profile
 - ✅ Polished UI with better spacing, rounded corners, shadows
-- ✅ Updated all terminology from "Invoice" to "Proposal"
+- ✅ Updated all terminology from "Proposal" to "Proposal"
 
 **Next Immediate Step:**
 1. Add `anc-logo.png` to `/public/` directory (user needs to provide)

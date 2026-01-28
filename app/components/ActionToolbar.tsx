@@ -20,7 +20,7 @@ import { useTranslationContext } from "@/contexts/TranslationContext";
 import { FolderUp, Import, Plus, RotateCcw, FileText } from "lucide-react";
 
 const ActionToolbar = () => {
-  const { proposalPdfLoading, newProposal } = useProposalContext();
+  const { proposalPdfLoading, newProposal, resetProposal } = useProposalContext();
   const { _t } = useTranslationContext();
 
   return (
@@ -68,9 +68,9 @@ const ActionToolbar = () => {
 
       <NewProposalAlert
         title="Reset form?"
-        description="This will clear all fields and the saved draft."
+        description="This will clear all fields and re-fetch the baseline data from the Vault."
         confirmLabel="Reset"
-        onConfirm={newProposal}
+        onConfirm={resetProposal}
       >
         <Button
           variant="ghost"

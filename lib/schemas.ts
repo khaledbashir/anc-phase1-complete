@@ -86,7 +86,7 @@ const CustomInputSchema = z.object({
     value: z.string(),
 });
 
-const InvoiceSenderSchema = z.object({
+const ProposalSenderSchema = z.object({
     name: fieldValidators.name,
     address: fieldValidators.address,
     zipCode: fieldValidators.zipCode,
@@ -97,7 +97,7 @@ const InvoiceSenderSchema = z.object({
     customInputs: z.array(CustomInputSchema).optional(),
 });
 
-const InvoiceReceiverSchema = z.object({
+const ProposalReceiverSchema = z.object({
     name: fieldValidators.name,
     address: fieldValidators.address,
     zipCode: fieldValidators.zipCode,
@@ -215,19 +215,16 @@ const InternalAuditSchema = z.object({
     }),
 });
 
-const InvoiceDetailsSchema = z.object({
-    invoiceLogo: fieldValidators.stringOptional,
-    // Proposal-specific aliases (backwards compatible with invoice fields)
+const ProposalDetailsSchema = z.object({
     proposalLogo: fieldValidators.stringOptional,
     proposalId: fieldValidators.stringOptional,
     proposalName: fieldValidators.stringOptional, // Professional project name
     location: fieldValidators.stringOptional, // Project Location (e.g. "Dodger Stadium")
     clientName: fieldValidators.stringOptional,
     workspaceId: fieldValidators.stringOptional,
-    proposalDate: fieldValidators.date.optional(),
-    aiWorkspaceSlug: fieldValidators.stringOptional, // Dedicated Project Room
-    invoiceNumber: fieldValidators.stringMin1,
-    invoiceDate: fieldValidators.date,
+    aiWorkspaceSlug: fieldValidators.stringOptional,
+    proposalNumber: fieldValidators.stringMin1,
+    proposalDate: fieldValidators.date,
     dueDate: fieldValidators.date,
     purchaseOrderNumber: fieldValidators.stringOptional,
     currency: fieldValidators.string,
@@ -282,9 +279,9 @@ const InvoiceDetailsSchema = z.object({
 });
 
 const ProposalSchema = z.object({
-    sender: InvoiceSenderSchema,
-    receiver: InvoiceReceiverSchema,
-    details: InvoiceDetailsSchema,
+    sender: ProposalSenderSchema,
+    receiver: ProposalReceiverSchema,
+    details: ProposalDetailsSchema,
 });
 
 export { ProposalSchema, ItemSchema };

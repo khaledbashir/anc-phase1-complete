@@ -46,7 +46,7 @@ Annual software maintenance and support is included for the first year. Subseque
     generalConditions: {
         title: "General Conditions",
         content: `Standard Terms:
-• Payment terms: Net 30 from invoice date
+• Payment terms: Net 30 from proposal date
 • Lead time: 12-16 weeks from deposit receipt (subject to manufacturing capacity)
 • Warranty: 5-year manufacturer warranty on LED modules; 2-year warranty on electronics
 • All prices quoted in USD

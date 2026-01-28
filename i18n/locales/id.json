@@ -5,7 +5,7 @@
     "newInvBadge": "Faktur Baru",
     "wizard": {
       "fromAndTo": "Dari & Ke",
-      "invoiceDetails": "Detail Faktur",
+      "proposalDetails": "Detail Faktur",
       "lineItems": "Daftar Item",
       "paymentInfo": "Info Pembayaran",
       "summary": "Ringkasan",
@@ -27,13 +27,13 @@
         "sender": "Pengirim",
         "receiver": "Penerima"
       },
-      "invoiceDetails": {
+      "proposalDetails": {
         "heading": "Detail Faktur",
-        "invoiceLogo": {
+        "proposalLogo": {
           "label": "Logo Faktur",
           "placeholder": "Klik untuk unggah gambar"
         },
-        "invoiceNumber": "Nomor Faktur",
+        "proposalNumber": "Nomor Faktur",
         "issuedDate": "Tanggal Terbit",
         "dueDate": "Jatuh Tempo",
         "currency": "Mata Uang"
@@ -81,9 +81,9 @@
   "actions": {
     "title": "Tindakan",
     "description": "Operasi dan pratinjau",
-    "loadInvoice": "Muat Faktur",
-    "exportInvoice": "Ekspor Faktur",
-    "newInvoice": "Faktur Baru",
+    "loadProposal": "Muat Faktur",
+    "exportProposal": "Ekspor Faktur",
+    "newProposal": "Faktur Baru",
     "generatePdf": "Buat PDF",
     "pdfView": "Tampilan PDF"
   },

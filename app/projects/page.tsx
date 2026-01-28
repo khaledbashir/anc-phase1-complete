@@ -18,7 +18,7 @@ interface Project {
 }
 
 /**
- * Project Dashboard - The "Garage" for all Ferraris
+ * Project Dashboard - The Project Vault
  * 
  * Features:
  * - List all active bids with key metrics
@@ -73,7 +73,7 @@ export default function ProjectsPage() {
 
             if (res.ok) {
                 const data = await res.json();
-                router.push(`/?projectId=${data.project.id}`);
+                router.push(`/projects/${data.project.id}`);
             }
         } catch (error) {
             console.error("Failed to create project:", error);
@@ -81,7 +81,7 @@ export default function ProjectsPage() {
     };
 
     const openProject = (projectId: string) => {
-        router.push(`/?projectId=${projectId}`);
+        router.push(`/projects/${projectId}`);
     };
 
     const handleImportQuickAction = (e: React.MouseEvent, projectId: string) => {
@@ -94,7 +94,7 @@ export default function ProjectsPage() {
             if (file) {
                 // Redirect to editor with auto-import flag or just projectId
                 // The ProposalPage handles the rest.
-                router.push(`/?projectId=${projectId}&autoImport=true`);
+                router.push(`/projects/${projectId}?autoImport=true`);
                 // Note: We'll need to handle the autoImport flag in ProposalPage
             }
         };

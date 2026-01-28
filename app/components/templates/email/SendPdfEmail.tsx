@@ -17,16 +17,16 @@ import { Tailwind } from "@react-email/tailwind";
 import { BASE_URL } from "@/lib/variables";
 
 type SendPdfEmailProps = {
-    invoiceNumber: string;
+    proposalNumber: string;
 };
 
-export default function SendPdfEmail({ invoiceNumber }: SendPdfEmailProps) {
+export default function SendPdfEmail({ proposalNumber }: SendPdfEmailProps) {
     const logo = `${BASE_URL}/assets/img/invoify-logo.png`;
     return (
         <Html>
             <Head />
             <Preview>
-                Your invoice #{invoiceNumber} is ready for download
+                Your proposal #{proposalNumber} is ready for download
             </Preview>
             <Tailwind>
                 <Body className="bg-gray-100">
@@ -43,8 +43,8 @@ export default function SendPdfEmail({ invoiceNumber }: SendPdfEmailProps) {
                             </Heading>
 
                             <Text>
-                                We're pleased to inform you that your invoice{" "}
-                                <b>#{invoiceNumber}</b> is ready for download.
+                                We're pleased to inform you that your proposal{" "}
+                                <b>#{proposalNumber}</b> is ready for download.
                                 Please find the attached PDF document.
                             </Text>
 

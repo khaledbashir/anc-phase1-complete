@@ -1,7 +1,7 @@
 [![Discord](https://img.shields.io/badge/Discord-%40Invoify-000000?style=flat&logo=Discord&logoColor=#5865F2)](https://discord.gg/uhXKHbVKHZ)
 # Invoify
 
-Invoify is a web-based invoice generator application built with Next.js 13, TypeScript, React, and the Shadcn UI library. It provides an easy way to create and manage professional invoices.
+Invoify is a web-based proposal generator application built with Next.js 13, TypeScript, React, and the Shadcn UI library. It provides an easy way to create and manage professional proposals.
 
 ![Invoify Website image](/public/assets/img/invoify-web-app.png)
 
@@ -39,16 +39,16 @@ Invoify is a web-based invoice generator application built with Next.js 13, Type
 
 ## Roadmap
 
-- [x] **Easily Create Invoices:** Utilize a simple form to quickly generate invoices.
-- [x] **Save for Future Access:** Store your invoices directly in your browser for easy retrieval.
-- [x] **Retrieve Invoices Effortlessly:** Load and access invoices seamlessly from your saved list.
-- [x] **Flexible Download Options:** Download invoices directly or send them via email in PDF format.
-- [x] **Template Variety:** Choose from multiple (currently 2) invoice templates.
+- [x] **Easily Create Proposals:** Utilize a simple form to quickly generate proposals.
+- [x] **Save for Future Access:** Store your proposals directly in your browser for easy retrieval.
+- [x] **Retrieve Proposals Effortlessly:** Load and access proposals seamlessly from your saved list.
+- [x] **Flexible Download Options:** Download proposals directly or send them via email in PDF format.
+- [x] **Template Variety:** Choose from multiple (currently 2) proposal templates.
 - [x] **Live Preview:** Edit the form and see changes in real-time with the live preview feature.
-- [x] **Export in Various Formats:** Export invoices in different formats, including JSON, XLSX, CSV, and XML.
+- [x] **Export in Various Formats:** Export proposals in different formats, including JSON, XLSX, CSV, and XML.
 - [ ] **I18N Support:** i18n support with multiple languages for UI and templates.
-- [ ] **Themeable Templates:** Select a theme color for the invoice
-- [ ] **Custom Inputs:** Define your own inputs that are missing from the default invoice builder. (Ex: VAT number)
+- [ ] **Themeable Templates:** Select a theme color for the proposal
+- [ ] **Custom Inputs:** Define your own inputs that are missing from the default proposal builder. (Ex: VAT number)
 - [ ] **Individual Tax for Line Items:** Add tax details for a specific line item other than the general tax
 
 ## Demo

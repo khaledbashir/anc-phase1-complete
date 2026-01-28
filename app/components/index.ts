@@ -7,37 +7,37 @@ import BaseFooter from "./layout/BaseFooter";
 /* =========================
    * Proposal
    ========================= */
-import ProposalActions from "./invoice/ProposalActions";
+import ProposalActions from "./proposal/ProposalActions";
 import ActionToolbar from "./ActionToolbar";
 
 /* =========================
-   * Invoice components
+   * Proposal components
    ========================= */
 // * Form
 // Form components
-import SingleItem from "./invoice/form/SingleItem";
-import Charges from "./invoice/form/Charges";
-import TemplateSelector from "./invoice/form/TemplateSelector";
+import SingleItem from "./proposal/form/SingleItem";
+import Charges from "./proposal/form/Charges";
+import TemplateSelector from "./proposal/form/TemplateSelector";
 
 // Form / Wizard
-import WizardNavigation from "./invoice/form/wizard/WizardNavigation";
-import WizardStep from "./invoice/form/wizard/WizardStep";
-import WizardProgress from "./invoice/form/wizard/WizardProgress";
+import WizardNavigation from "./proposal/form/wizard/WizardNavigation";
+import WizardStep from "./proposal/form/wizard/WizardStep";
+import WizardProgress from "./proposal/form/wizard/WizardProgress";
 
 // Form / Sections
-import BillFromSection from "./invoice/form/sections/BillFromSection";
-import BillToSection from "./invoice/form/sections/BillToSection";
-import ProposalDetails from "./invoice/form/sections/ProposalDetails";
-import Items from "./invoice/form/sections/Items";
-import PaymentInformation from "./invoice/form/sections/PaymentInformation";
-import ProposalSummary from "./invoice/form/sections/ProposalSummary";
-import ImportJsonButton from "./invoice/form/sections/ImportJsonButton";
-import Screens from "./invoice/form/sections/Screens";
-import SingleScreen from "./invoice/form/SingleScreen";
+import BillFromSection from "./proposal/form/sections/BillFromSection";
+import BillToSection from "./proposal/form/sections/BillToSection";
+import ProposalDetails from "./proposal/form/sections/ProposalDetails";
+import Items from "./proposal/form/sections/Items";
+import PaymentInformation from "./proposal/form/sections/PaymentInformation";
+import ProposalSummary from "./proposal/form/sections/ProposalSummary";
+import ImportJsonButton from "./proposal/form/sections/ImportJsonButton";
+import Screens from "./proposal/form/sections/Screens";
+import SingleScreen from "./proposal/form/SingleScreen";
 
 // * Actions
-import PdfViewer from "./invoice/actions/PdfViewer";
-import FinalPdf from "./invoice/actions/FinalPdf";
+import PdfViewer from "./proposal/actions/PdfViewer";
+import FinalPdf from "./proposal/actions/FinalPdf";
 
 // * Reusable components
 // Form fields
@@ -62,11 +62,11 @@ import LogoSelector from "./reusables/LogoSelector";
 import SendPdfToEmailModal from "./modals/email/SendPdfToEmailModal";
 
 // Import/Export
-import ProposalLoaderModal from "./modals/invoice/ProposalLoaderModal";
-import ProposalExportModal from "./modals/invoice/ProposalExportModal";
+import ProposalLoaderModal from "./modals/proposal/ProposalLoaderModal";
+import ProposalExportModal from "./modals/proposal/ProposalExportModal";
 
 // Custom Selectors
-import SavedProposalsList from "./modals/invoice/components/SavedProposalsList";
+import SavedProposalsList from "./modals/proposal/components/SavedProposalsList";
 
 // Signature
 import SignatureModal from "./modals/signature/SignatureModal";
@@ -87,7 +87,7 @@ import NewProjectModal from "./modals/NewProjectModal";
 /* =========================
    * Templates
    ========================= */
-// Invoice templates
+// Proposal templates
 import DynamicProposalTemplate from "./templates/proposal-pdf/DynamicProposalTemplate";
 import ProposalLayout from "./templates/proposal-pdf/ProposalLayout";
 import ProposalTemplate1 from "./templates/proposal-pdf/ProposalTemplate1";

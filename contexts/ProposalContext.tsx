@@ -18,7 +18,7 @@ import { useFormContext } from "react-hook-form";
 import useToasts from "@/hooks/useToasts";
 
 // Services
-import { exportProposal } from "@/services/invoice/client/exportProposal";
+import { exportProposal } from "@/services/proposal/client/exportProposal";
 
 // Variables
 import {
@@ -27,7 +27,6 @@ import {
   SEND_PDF_API,
   SHORT_DATE_OPTIONS,
   LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,
-  LOCAL_STORAGE_INVOICE_DRAFT_KEY,
 } from "@/lib/variables";
 
 // Types
@@ -46,6 +45,7 @@ const defaultProposalContext = {
   setActiveTab: (tab: string) => { },
   onFormSubmit: (values: ProposalType) => { },
   newProposal: () => { },
+  resetProposal: () => { },
   generatePdf: async (data: ProposalType) => { },
   removeFinalPdf: () => { },
   downloadPdf: () => { },
@@ -182,7 +182,7 @@ export const ProposalContextProvider = ({
   useEffect(() => {
     let savedProposalsDefault;
     if (typeof window !== undefined) {
-      // Saved invoices variables
+      // Saved proposals variables
       const savedProposalsJSON = window.localStorage.getItem("savedProposals");
       savedProposalsDefault = savedProposalsJSON
         ? JSON.parse(savedProposalsJSON)
@@ -197,7 +197,7 @@ export const ProposalContextProvider = ({
     const subscription = watch((value: any) => {
       try {
         window.localStorage.setItem(
-          LOCAL_STORAGE_INVOICE_DRAFT_KEY,
+          LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,
           JSON.stringify(value)
         );
       } catch { }
@@ -241,9 +241,9 @@ export const ProposalContextProvider = ({
         },
         details: {
           proposalId: d.id, // Use DB ID
-          invoiceNumber: d.id, // Legacy compat
+          proposalNumber: d.id, // Legacy compat
           proposalName: details.proposalName || d.proposalName || "",
-          invoiceDate: details.invoiceDate || new Date().toISOString(),
+          proposalDate: details.proposalDate || new Date().toISOString(),
           dueDate: details.dueDate || new Date().toISOString(),
           items: details.items || [],
           currency: details.currency || "USD",
@@ -457,7 +457,7 @@ export const ProposalContextProvider = ({
   };
 
   /**
-   * Generates a new proposal.
+   * Clears state and redirects to start a fresh project.
    */
   const newProposal = () => {
     reset(FORM_DEFAULT_VALUES);
@@ -466,14 +466,39 @@ export const ProposalContextProvider = ({
     // Clear the draft
     if (typeof window !== "undefined") {
       try {
-        window.localStorage.removeItem(LOCAL_STORAGE_INVOICE_DRAFT_KEY);
+        window.localStorage.removeItem(LOCAL_STORAGE_PROPOSAL_DRAFT_KEY);
       } catch { }
     }
 
-    router.refresh();
-
     // Toast
     newProposalSuccess();
+
+    // Force redirect to start fresh initialization
+    window.location.href = "/projects/new";
+  };
+
+  /**
+   * Resets the current form to the last saved state from the database.
+   */
+  const resetProposal = async () => {
+    if (!projectId || projectId === 'new') {
+      newProposal();
+      return;
+    }
+
+    try {
+      const resp = await fetch(`/api/projects/${projectId}`);
+      const data = await resp.json();
+      if (resp.ok && data) {
+        // Hydrate logic is already in an useEffect, 
+        // but we can trigger a manual reset here for immediate UI feedback
+        // Re-using the logic from the hydration useEffect would be cleaner
+        // but for now, let's just trigger a refresh or manual reset.
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error("Reset failed:", e);
+    }
   };
 
   /**
@@ -601,7 +626,7 @@ export const ProposalContextProvider = ({
         const id = formValues?.details?.proposalId || `prop-${Date.now()}`;
         formValues.details.proposalId = id;
         // Legacy support
-        formValues.details.invoiceNumber = id;
+        formValues.details.proposalNumber = id;
 
         const updatedDate = new Date().toLocaleDateString(
           "en-US",
@@ -635,7 +660,7 @@ export const ProposalContextProvider = ({
           (p: ProposalType) => {
             return (
               p.details.proposalId === id ||
-              p.details.invoiceNumber === id
+              p.details.proposalNumber === id
             );
           }
         );
@@ -716,8 +741,8 @@ export const ProposalContextProvider = ({
     const id = formValues?.details?.proposalId ?? "";
     fd.append("email", email);
     fd.append("proposalPdf", proposalPdf, "proposal.pdf");
-    // Keep invoiceNumber for backwards-compatibility and include proposalId
-    fd.append("invoiceNumber", id);
+    // Keep proposalNumber for backwards-compatibility and include proposalId
+    fd.append("proposalNumber", id);
     fd.append("proposalId", id);
 
     return fetch(SEND_PDF_API, {
@@ -1020,19 +1045,19 @@ export const ProposalContextProvider = ({
 
 
   /**
-   * Export an invoice in the specified format using the provided form values.
+   * Export an proposal in the specified format using the provided form values.
    *
    * This function initiates the export process with the chosen export format and the form data.
    *
-   * @param {ExportTypes} exportAs - The format in which to export the invoice.
+   * @param {ExportTypes} exportAs - The format in which to export the proposal.
    */
   const exportProposalDataAs = (exportAs: ExportTypes) => {
     const formValues = getValues();
-    const id = formValues?.details?.proposalId ?? formValues?.details?.invoiceNumber ?? "";
+    const id = formValues?.details?.proposalId ?? formValues?.details?.proposalNumber ?? "";
     formValues.details.proposalId = id;
-    formValues.details.invoiceNumber = id;
+    formValues.details.proposalNumber = id;
 
-    // Service to export invoice with given parameters
+    // Service to export proposal with given parameters
     exportProposal(exportAs, formValues);
   };
 
@@ -1041,7 +1066,7 @@ export const ProposalContextProvider = ({
    */
   const exportAudit = async () => {
     const formValues = getValues();
-    const id = formValues?.details?.proposalId ?? formValues?.details?.invoiceNumber ?? "";
+    const id = formValues?.details?.proposalId ?? formValues?.details?.proposalNumber ?? "";
     if (!id) {
       console.warn("No proposal id set for exportAudit");
       return;
@@ -1072,7 +1097,7 @@ export const ProposalContextProvider = ({
   };
 
   /**
-   * Import an invoice from a JSON file.
+   * Import an proposal from a JSON file.
    *
    * @param {File} file - The JSON file to import.
    */
@@ -1084,9 +1109,9 @@ export const ProposalContextProvider = ({
 
         // Parse the dates
         if (importedData.details) {
-          if (importedData.details.invoiceDate) {
-            importedData.details.invoiceDate = new Date(
-              importedData.details.invoiceDate
+          if (importedData.details.proposalDate) {
+            importedData.details.proposalDate = new Date(
+              importedData.details.proposalDate
             );
           }
           if (importedData.details.dueDate) {
@@ -1095,10 +1120,10 @@ export const ProposalContextProvider = ({
             );
           }
 
-          // Normalize IDs/dates: prefer proposalId/proposalDate and fill invoice fallbacks
-          importedData.details.proposalId = importedData.details.proposalId ?? importedData.details.invoiceNumber ?? "";
-          importedData.details.invoiceNumber = importedData.details.invoiceNumber ?? importedData.details.proposalId;
-          importedData.details.proposalDate = importedData.details.proposalDate ?? importedData.details.invoiceDate ?? null;
+          // Normalize IDs/dates: prefer proposalId/proposalDate and fill proposal fallbacks
+          importedData.details.proposalId = importedData.details.proposalId ?? importedData.details.proposalNumber ?? "";
+          importedData.details.proposalNumber = importedData.details.proposalNumber ?? importedData.details.proposalId;
+          importedData.details.proposalDate = importedData.details.proposalDate ?? importedData.details.proposalDate ?? null;
         }
 
         // Reset form with imported data
@@ -1137,9 +1162,9 @@ export const ProposalContextProvider = ({
         const { formData, internalAudit } = data;
 
         // 1. Batch update main form fields
-        if (formData.receiver?.name) setValue("receiver.name", formData.receiver.name);
-        if (formData.details?.proposalName) setValue("details.proposalName", formData.details.proposalName);
-        if (formData.details?.mirrorMode !== undefined) setValue("details.mirrorMode", formData.details.mirrorMode);
+        if (formData.receiver?.name) setValue("receiver.name", formData.receiver.name, { shouldValidate: true, shouldDirty: true });
+        if (formData.details?.proposalName) setValue("details.proposalName", formData.details.proposalName, { shouldValidate: true, shouldDirty: true });
+        if (formData.details?.mirrorMode !== undefined) setValue("details.mirrorMode", formData.details.mirrorMode, { shouldValidate: true, shouldDirty: true });
 
         // 2. Handle Screens & Line Items
         if (formData.details?.screens && internalAudit) {
@@ -1147,9 +1172,9 @@ export const ProposalContextProvider = ({
 
           // Sync line items for PDF template (Injecting pricing from Audit into Screen Objects)
           const screensWithLineItems = syncLineItemsFromAudit(screens, internalAudit);
-          setValue("details.screens", screensWithLineItems);
-          setValue("details.internalAudit", internalAudit);
-          setValue("details.clientSummary", internalAudit.totals);
+          setValue("details.screens", screensWithLineItems, { shouldValidate: true, shouldDirty: true });
+          setValue("details.internalAudit", internalAudit, { shouldValidate: true, shouldDirty: true });
+          setValue("details.clientSummary", internalAudit.totals, { shouldValidate: true, shouldDirty: true });
 
           // 3. CRITICAL: Update the PDF Item Table (The "Items" array used by templates)
           const allItems = screensWithLineItems.flatMap(s => (s.lineItems || []).map((li: any) => ({
@@ -1159,7 +1184,7 @@ export const ProposalContextProvider = ({
             unitPrice: li.price,
             total: li.price
           })));
-          setValue("details.items", allItems);
+          setValue("details.items", allItems, { shouldValidate: true, shouldDirty: true });
         }
       }
 
@@ -1182,6 +1207,7 @@ export const ProposalContextProvider = ({
         setActiveTab,
         onFormSubmit,
         newProposal,
+        resetProposal,
         generatePdf,
         removeFinalPdf,
         downloadPdf,

@@ -94,6 +94,6 @@
       "finish": "Finish"
     }
   },
-  "invoice": "Proposal",
+  "proposal": "Proposal",
   "billTo": "Client"
 }

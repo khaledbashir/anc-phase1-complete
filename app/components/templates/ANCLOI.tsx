@@ -279,7 +279,7 @@ export default function SalesQuotation({ proposal }: Props) {
                 to commence production. If, for any reason, Purchaser terminates this Agreement prior to completion of work, ANC will immediately cease all work
                 and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be
                 considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language,
-                including terms of liability, indemnification, and warranty. Payment is due within thirty (30) days of ANC's invoice(s).
+                including terms of liability, indemnification, and warranty. Payment is due within thirty (30) days of ANC's proposal(s).
               </p>
 
               {/* Signature Blocks */}

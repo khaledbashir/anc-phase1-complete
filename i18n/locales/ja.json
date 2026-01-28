@@ -5,7 +5,7 @@
         "newInvBadge": "新しい請求書",
         "wizard": {
             "fromAndTo": "送信者 & 受信者",
-            "invoiceDetails": "請求書の詳細",
+            "proposalDetails": "請求書の詳細",
             "lineItems": "品目",
             "paymentInfo": "支払い情報",
             "summary": "概要",
@@ -27,13 +27,13 @@
                 "sender": "送信者",
                 "receiver": "受信者"
             },
-            "invoiceDetails": {
+            "proposalDetails": {
                 "heading": "請求書の詳細",
-                "invoiceLogo": {
+                "proposalLogo": {
                     "label": "請求書のロゴ",
                     "placeholder": "クリックして画像をアップロード"
                 },
-                "invoiceNumber": "請求書番号",
+                "proposalNumber": "請求書番号",
                 "issuedDate": "発行日",
                 "dueDate": "支払期限",
                 "currency": "通貨"
@@ -81,9 +81,9 @@
     "actions": {
         "title": "操作",
         "description": "処理とプレビュー",
-        "loadInvoice": "請求書を読み込む",
-        "exportInvoice": "請求書をエクスポート",
-        "newInvoice": "新しい請求書",
+        "loadProposal": "請求書を読み込む",
+        "exportProposal": "請求書をエクスポート",
+        "newProposal": "新しい請求書",
         "generatePdf": "PDFを生成",
         "pdfView": "PDFビュー"
     },

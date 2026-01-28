@@ -5,7 +5,7 @@
         "newInvBadge": "新发票",
         "wizard": {
             "fromAndTo": "发件人 & 收件人",
-            "invoiceDetails": "发票详情",
+            "proposalDetails": "发票详情",
             "lineItems": "项目明细",
             "paymentInfo": "支付信息",
             "summary": "摘要",
@@ -27,13 +27,13 @@
                 "sender": "发件人",
                 "receiver": "收件人"
             },
-            "invoiceDetails": {
+            "proposalDetails": {
                 "heading": "发票详情",
-                "invoiceLogo": {
+                "proposalLogo": {
                     "label": "发票Logo",
                     "placeholder": "点击上传图片"
                 },
-                "invoiceNumber": "发票编号",
+                "proposalNumber": "发票编号",
                 "issuedDate": "开票日期",
                 "dueDate": "付款截止日",
                 "currency": "货币"
@@ -81,9 +81,9 @@
     "actions": {
         "title": "操作",
         "description": "处理与预览",
-        "loadInvoice": "加载发票",
-        "exportInvoice": "导出发票",
-        "newInvoice": "新建发票",
+        "loadProposal": "加载发票",
+        "exportProposal": "导出发票",
+        "newProposal": "新建发票",
         "generatePdf": "生成PDF",
         "pdfView": "PDF视图"
     },

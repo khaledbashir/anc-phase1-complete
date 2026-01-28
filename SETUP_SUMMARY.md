@@ -22,7 +22,7 @@
 - ✅ Updated app title to "ANC Proposal Engine" in `app/[locale]/layout.tsx`
 - ✅ Updated Tailwind config with ANC Blue (`#003366`) as primary color
 - ✅ Updated navbar alt text to "ANC Logo"
-- ✅ Replaced "Invoice" → "Proposal" in English locale file (`i18n/locales/en.json`)
+- ✅ Replaced "Proposal" → "Proposal" in English locale file (`i18n/locales/en.json`)
   - Form titles
   - Action buttons
   - Labels and descriptions
@@ -138,6 +138,6 @@ anc-engine/
 
 4. **Additional Features**:
    - Update all other locale files (not just en.json)
-   - Replace remaining "Invoice" references in UI components
+   - Replace remaining "Proposal" references in UI components
    - Add screen preview/visualization
    - Implement proposal export functionality

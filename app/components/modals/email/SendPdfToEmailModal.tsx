@@ -59,7 +59,7 @@ const SendPdfToEmailModal = ({
                 <DialogHeader>
                     <DialogTitle>Send to email</DialogTitle>
                     <DialogDescription>
-                        Please specify the email address for invoice delivery.
+                        Please specify the email address for proposal delivery.
                     </DialogDescription>
                 </DialogHeader>
                 <Label>Email</Label>
@@ -75,7 +75,7 @@ const SendPdfToEmailModal = ({
                 )}
 
                 <BaseButton
-                    tooltipLabel="Send invoice PDF"
+                    tooltipLabel="Send proposal PDF"
                     loading={loading}
                     loadingText="Sending email"
                     onClick={handleSendPdf}

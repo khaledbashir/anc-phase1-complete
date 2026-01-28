@@ -73,7 +73,7 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
 
         <DialogContent className="max-w-lg bg-zinc-950/80 backdrop-blur-2xl border border-zinc-800">
           <DialogHeader>
-            <DialogTitle>Initialize AI War Room</DialogTitle>
+            <DialogTitle>Initialize AI Strategic Hub</DialogTitle>
             <DialogDescription>Create a new ANC workspace + initial proposal</DialogDescription>
           </DialogHeader>
 
@@ -93,7 +93,7 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
               </motion.div>
               <div className="text-center">
                 <div className="text-zinc-200 font-medium">{steps[step]}</div>
-                <div className="text-zinc-500 text-sm mt-2">Initializing AI War Room. This may take a few seconds.</div>
+                <div className="text-zinc-500 text-sm mt-2">Initializing AI Strategic Hub. This may take a few seconds.</div>
               </div>
             </div>
           )}

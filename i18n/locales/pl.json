@@ -5,7 +5,7 @@
         "newInvBadge": "Nowa faktura",
         "wizard": {
             "fromAndTo": "Od & Do",
-            "invoiceDetails": "Szczegóły faktury",
+            "proposalDetails": "Szczegóły faktury",
             "lineItems": "Pozycje faktury",
             "paymentInfo": "Informacje o płatności",
             "summary": "Podsumowanie",
@@ -27,13 +27,13 @@
                 "sender": "Nadawca",
                 "receiver": "Odbiorca"
             },
-            "invoiceDetails": {
+            "proposalDetails": {
                 "heading": "Szczegóły faktury",
-                "invoiceLogo": {
+                "proposalLogo": {
                     "label": "Logo faktury",
                     "placeholder": "Kliknij, aby przesłać obraz"
                 },
-                "invoiceNumber": "Numer faktury",
+                "proposalNumber": "Numer faktury",
                 "issuedDate": "Data wystawienia",
                 "dueDate": "Termin płatności",
                 "currency": "Waluta"
@@ -81,9 +81,9 @@
     "actions": {
         "title": "Akcje",
         "description": "Operacje i podgląd",
-        "loadInvoice": "Wczytaj fakturę",
-        "exportInvoice": "Eksportuj fakturę",
-        "newInvoice": "Nowa faktura",
+        "loadProposal": "Wczytaj fakturę",
+        "exportProposal": "Eksportuj fakturę",
+        "newProposal": "Nowa faktura",
         "generatePdf": "Generuj PDF",
         "pdfView": "Podgląd PDF"
     },

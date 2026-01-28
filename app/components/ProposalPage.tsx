@@ -6,11 +6,11 @@ import { Wizard, useWizard } from "react-use-wizard";
 
 // Components
 import StudioLayout from "@/app/components/layout/StudioLayout";
-import PdfViewer from "@/app/components/invoice/actions/PdfViewer";
-import RfpSidebar from "@/app/components/invoice/RfpSidebar";
+import PdfViewer from "@/app/components/proposal/actions/PdfViewer";
+import RfpSidebar from "@/app/components/proposal/RfpSidebar";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
 import SaveIndicator from "@/app/components/reusables/SaveIndicator";
-import WizardStepper from "@/app/components/invoice/form/wizard/WizardProgress";
+import WizardStepper from "@/app/components/proposal/form/wizard/WizardProgress";
 import ActionToolbar from "@/app/components/ActionToolbar";
 import { WizardStep } from "@/app/components";
 import {
@@ -18,7 +18,7 @@ import {
   Step2Intelligence,
   Step3Math,
   Step4Export
-} from "@/app/components/invoice/form/wizard/steps";
+} from "@/app/components/proposal/form/wizard/steps";
 
 // ShadCn
 import { Form } from "@/components/ui/form";
@@ -30,7 +30,7 @@ import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Icons
 import { Download, Share2, Upload, Loader2 } from "lucide-react";
-import AuditTable from "@/app/components/invoice/AuditTable";
+import AuditTable from "@/app/components/proposal/AuditTable";
 
 // Types
 import { ProposalType } from "@/types";

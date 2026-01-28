@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
 import { LayoutDashboard, MessageSquare, Table, PanelLeftClose, PanelLeftOpen } from "lucide-react";
-import AiCommandBar from "@/app/components/invoice/AiCommandBar";
+import AiCommandBar from "@/app/components/proposal/AiCommandBar";
 
 interface StudioLayoutProps {
     /** Header content (Logo | Stepper | Actions) */

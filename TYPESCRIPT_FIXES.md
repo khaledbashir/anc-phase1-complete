@@ -34,14 +34,14 @@ import {
   SEND_PDF_API,
   SHORT_DATE_OPTIONS,
   LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,
-  LOCAL_STORAGE_INVOICE_DRAFT_KEY,  // Added this
+  LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,  // Added this
 } from "@/lib/variables";
 ```
 
 #### Fixed variable names in functions:
-- Changed `setInvoicePdfLoading` to `setProposalPdfLoading` (line 165)
-- Changed `setInvoicePdf` to `setProposalPdf` (line 174, 191)
-- Changed `setSavedInvoices` to `setSavedProposals` (line 288, 303)
+- Changed `setProposalPdfLoading` to `setProposalPdfLoading` (line 165)
+- Changed `setProposalPdf` to `setProposalPdf` (line 174, 191)
+- Changed `setSavedProposals` to `setSavedProposals` (line 288, 303)
 
 #### Fixed type annotation:
 ```typescript

@@ -137,7 +137,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				<p className="text-[10px] text-zinc-600 mt-4 leading-relaxed text-justify" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
 					Please sign below to indicate Purchaser’s agreement to purchase the Display System as described herein and to authorize ANC to commence production.
 					<br /><br />
-					If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Additional sales tax will be included in ANC’s invoice. Payment is due within thirty (30) days of ANC’s invoice(s).
+					If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Additional sales tax will be included in ANC’s proposal. Payment is due within thirty (30) days of ANC’s proposal(s).
 				</p>
 			</div>
 

@@ -5,7 +5,7 @@
     "newInvBadge": "Yeni Fatura",
     "wizard": {
       "fromAndTo": "Gönderen & Alıcı",
-      "invoiceDetails": "Fatura Detayları",
+      "proposalDetails": "Fatura Detayları",
       "lineItems": "Kalemler",
       "paymentInfo": "Ödeme Bilgileri",
       "summary": "Özet",
@@ -27,13 +27,13 @@
         "sender": "Gönderici",
         "receiver": "Alıcı"
       },
-      "invoiceDetails": {
+      "proposalDetails": {
         "heading": "Fatura Detayları",
-        "invoiceLogo": {
+        "proposalLogo": {
           "label": "Fatura Logosu",
           "placeholder": "Resim yüklemek için tıklayın"
         },
-        "invoiceNumber": "Fatura Numarası",
+        "proposalNumber": "Fatura Numarası",
         "issuedDate": "Düzenlenme Tarihi",
         "dueDate": "Son Ödeme Tarihi",
         "currency": "Para Birimi"
@@ -81,9 +81,9 @@
   "actions": {
     "title": "İşlemler",
     "description": "Fatura yönetimi ve önizleme",
-    "loadInvoice": "Fatura Yükle",
-    "exportInvoice": "Faturayı Dışa Aktar",
-    "newInvoice": "Yeni Fatura",
+    "loadProposal": "Fatura Yükle",
+    "exportProposal": "Faturayı Dışa Aktar",
+    "newProposal": "Yeni Fatura",
     "generatePdf": "PDF Oluştur",
     "pdfView": "PDF Görünümü"
   },

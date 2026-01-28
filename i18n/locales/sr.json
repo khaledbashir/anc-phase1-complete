@@ -5,7 +5,7 @@
         "newInvBadge": "Nova faktura",
         "wizard": {
             "fromAndTo": "Od i za",
-            "invoiceDetails": "Detalji fakture",
+            "proposalDetails": "Detalji fakture",
             "lineItems": "Stavke",
             "paymentInfo": "Informacije o plaćanju",
             "summary": "Rezime",
@@ -27,13 +27,13 @@
                 "sender": "Pošiljalac",
                 "receiver": "Primalac"
             },
-            "invoiceDetails": {
+            "proposalDetails": {
                 "heading": "Detalji fakture",
-                "invoiceLogo": {
+                "proposalLogo": {
                     "label": "Logo fakture",
                     "placeholder": "Kliknite da biste otpremili sliku"
                 },
-                "invoiceNumber": "Broj fakture",
+                "proposalNumber": "Broj fakture",
                 "issuedDate": "Datum izdavanja",
                 "dueDate": "Krajnji rok",
                 "currency": "Valuta"
@@ -81,9 +81,9 @@
     "actions": {
         "title": "Radnje",
         "description": "Operacije i pregled",
-        "loadInvoice": "Učitaj fakturu",
-        "exportInvoice": "Izbaci fakturu",
-        "newInvoice": "Nova faktura",
+        "loadProposal": "Učitaj fakturu",
+        "exportProposal": "Izbaci fakturu",
+        "newProposal": "Nova faktura",
         "generatePdf": "Generiši PDF",
         "pdfView": "Pogledaj PDF"
     },

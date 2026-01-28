@@ -5,7 +5,7 @@
         "newInvBadge": "Ny faktura",
         "wizard": {
             "fromAndTo": "Fra & til",
-            "invoiceDetails": "Fakturadetaljer",
+            "proposalDetails": "Fakturadetaljer",
             "lineItems": "Varelinjer",
             "paymentInfo": "Betalingsinformasjon",
             "summary": "Sammendrag",
@@ -27,13 +27,13 @@
                 "sender": "Avsender",
                 "receiver": "Mottaker"
             },
-            "invoiceDetails": {
+            "proposalDetails": {
                 "heading": "Fakturadetaljer",
-                "invoiceLogo": {
+                "proposalLogo": {
                     "label": "Fakturalogo",
                     "placeholder": "Klikk for å laste opp bilde"
                 },
-                "invoiceNumber": "Fakturanummer",
+                "proposalNumber": "Fakturanummer",
                 "issuedDate": "Utstedelsesdato",
                 "dueDate": "Forfallsdato",
                 "currency": "Valuta"
@@ -81,9 +81,9 @@
     "actions": {
         "title": "Handlinger",
         "description": "Operasjoner og forhåndsvisning",
-        "loadInvoice": "Last inn faktura",
-        "exportInvoice": "Eksporter faktura",
-        "newInvoice": "Ny faktura",
+        "loadProposal": "Last inn faktura",
+        "exportProposal": "Eksporter faktura",
+        "newProposal": "Ny faktura",
         "generatePdf": "Generer PDF",
         "pdfView": "PDF-visning"
     },

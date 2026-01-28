@@ -6,7 +6,7 @@
 
 ## Project — What & Why 🎯
 - **Name:** ANC Proposal Engine (codebase: `anc-proposal-engine`, originally `invoify`).
-- **Purpose:** Build, estimate, preview, export, and send professional proposals (originally invoices) focused on sports LED-screen projects. Includes multi-screen estimations, line-item breakdowns, PDF generation, email sending, and AI-driven commands (Commander/AnythingLLM).
+- **Purpose:** Build, estimate, preview, export, and send professional proposals (originally proposals) focused on sports LED-screen projects. Includes multi-screen estimations, line-item breakdowns, PDF generation, email sending, and AI-driven commands (Commander/AnythingLLM).
 
 ---
 
@@ -28,8 +28,8 @@ Major deps live in `package.json`.
 ## Architecture Overview 🏗️
 - **Frontend**: Next.js App using the App Router. Pages/components under `app/` and `app/[locale]/` for i18n.
 - **State & Forms**: Entire proposal workflow is driven by a large RHF (React Hook Form) form (types in `types.ts`, schema in `lib/schemas.ts`) and global `ProposalContext` for cross-component actions (save, export, generate PDF, command application).
-- **Server/API**: App routes in `app/api/*` (e.g., `command`, `proposals/create`, `invoice/generate`, `invoice/send`, `invoice/export`).
-- **Services**: Server-side business logic (PDF generation, export, email send) extracted under `services/invoice/server/*`.
+- **Server/API**: App routes in `app/api/*` (e.g., `command`, `proposals/create`, `proposal/generate`, `proposal/send`, `proposal/export`).
+- **Services**: Server-side business logic (PDF generation, export, email send) extracted under `services/proposal/server/*`.
 - **DB**: Prisma schema at `prisma/schema.prisma` models Workspace, User, Proposal, ScreenConfig, CostLineItem.
 - **Estimator**: Encapsulated in `lib/estimator.ts` with production formulas and a legacy-compatible estimator for ANC Excel logic.
 
@@ -66,11 +66,11 @@ Major deps live in `package.json`.
    - PDF returned to client and saved to `ProposalContext` as `proposalPdf` (Blob) for preview/download.
 
 4. Send PDF via Email
-   - Uses `SEND_PDF_API` (server route under `/api/invoice/send` in the project) and a email template component `app/components/templates/email/SendPdfEmail.tsx`.
+   - Uses `SEND_PDF_API` (server route under `/api/proposal/send` in the project) and a email template component `app/components/templates/email/SendPdfEmail.tsx`.
    - Uses `NODEMAILER_EMAIL` and `NODEMAILER_PW` from env.
 
 5. Export data
-   - `/api/invoice/export` and client-side exports use `@json2csv/node`, `xlsx`, `xml2js` to produce CSV/XLSX/XML/JSON.
+   - `/api/proposal/export` and client-side exports use `@json2csv/node`, `xlsx`, `xml2js` to produce CSV/XLSX/XML/JSON.
 
 6. AnythingLLM Commander
    - Client (Commander components: `CommanderChat`, inline command input in `ProposalPage`) POST → `/api/command`.
@@ -95,14 +95,14 @@ Note: The schema maps directly to create proposals endpoint that uses the estima
 ## API Routes (overview) 📡
 - `POST /api/proposals/create` — Create a proposal in DB (uses `lib/prisma.ts` + estimator integration).
 - `POST /api/command` — AnythingLLM proxy and action extractor.
-- `POST /api/invoice/generate` — Render specified template → PDF (Puppeteer service).
-- `POST /api/invoice/send` — Send PDF using nodemailer & email template.
-- `POST /api/invoice/export` — Export proposal data (JSON/CSV/XML/XLSX).
+- `POST /api/proposal/generate` — Render specified template → PDF (Puppeteer service).
+- `POST /api/proposal/send` — Send PDF using nodemailer & email template.
+- `POST /api/proposal/export` — Export proposal data (JSON/CSV/XML/XLSX).
 - `POST /api/workspaces/create` — Create workspace + default user.
 
 Notes:
-- Client uses constants in `lib/variables.ts` (`GENERATE_PDF_API`, `SEND_PDF_API`, `EXPORT_INVOICE_API`) to call server endpoints.
-- Some naming remains historical (`invoice/*` vs `proposals/*`) — both appear across code and build artifact maps.
+- Client uses constants in `lib/variables.ts` (`GENERATE_PDF_API`, `SEND_PDF_API`, `EXPORT_PROPOSAL_API`) to call server endpoints.
+- Some naming remains historical (`proposal/*` vs `proposals/*`) — both appear across code and build artifact maps.
 
 ---
 
@@ -110,14 +110,14 @@ Notes:
 - `app/components/` — top-level app components
   - `ProposalPage.tsx` — main editor page
   - `CommanderChat.tsx` — LLM chat UI
-  - `invoice/` — Proposal form components
+  - `proposal/` — Proposal form components
     - `ProposalForm.tsx`, `ProposalMain.tsx`, `ProposalActions.tsx`, `actions/PdfViewer.tsx`, `actions/FinalPdf.tsx`
   - `layout/` — `BaseNavbar.tsx`, `BaseFooter.tsx`
   - `templates/` — PDF templates (ANCLOI, dynamic proposal templates)
 - `components/ui/` — design system / shadcn components (Input, Button, Dialog, etc.)
 - `contexts/` — `ProposalContext.tsx`, `ThemeProvider`, `TranslationContext`
 - `lib/` — `estimator.ts`, `schemas.ts`, `prisma.ts`, `variables.ts`, `helpers.ts`
-- `services/invoice/server` — generate/send/export services
+- `services/proposal/server` — generate/send/export services
 - `app/api/*` — server app routes
 
 ---
@@ -146,14 +146,14 @@ Tip: Keep `DATABASE_URL`, LLM keys, and email credentials in a secret store; do 
 - **Estimator** implemented and integrated (`lib/estimator.ts`) including formulas for LED, Structure, Install, Power.
 - **Commander & AnythingLLM** integration (`app/api/command/route.ts`, `CommanderChat.tsx`, `ProposalPage` command input) — model instructed to emit JSON actions for direct mutation.
 - **PDF flow**: `PdfViewer` transforms RHF form data into internal proposal shape and previews server-generated PDFs.
-- **TypeScript fixes**: standard Next.js `next-env.d.ts` present, multiple naming fixes in `contexts/ProposalContext.tsx` to use `proposal*` instead of `invoice*`.
+- **TypeScript fixes**: standard Next.js `next-env.d.ts` present, multiple naming fixes in `contexts/ProposalContext.tsx` to use `proposal*` instead of `proposal*`.
 
 ---
 
 ## Known Issues & Gotchas ⚠️
 - Firefox: Visual issues reported (see `SETUP_SUMMARY.md` / README note about Firefox compatibility).
 - AnythingLLM Bad Gateway: Ensure EasePanel port mapping (Target 3001) for the AnythingLLM container (`BAD_GATEWAY_FIX.md`).
-- Names: `invoice` vs `proposals` path/name inconsistency exists in code and assets — be mindful when adding new endpoints or changing constants.
+- Names: `proposal` vs `proposals` path/name inconsistency exists in code and assets — be mindful when adding new endpoints or changing constants.
 - PDF generation in some environments requires correct Chromium setup (use `@sparticuz/chromium` in containerized/serverless setups).
 
 ---
@@ -162,7 +162,7 @@ Tip: Keep `DATABASE_URL`, LLM keys, and email credentials in a secret store; do 
 1. Verify env variables and document in `README` or a `.env.example` file (missing LLM env variables currently).
 2. Add unit tests and integration tests for `lib/estimator.ts` and `app/api/command/route.ts` action parsing.
 3. Add E2E test for PDF generation (headless Chromium smoke test).
-4. Consolidate API naming (`/api/proposals/*` vs `/api/invoice/*`) or provide mapping docs.
+4. Consolidate API naming (`/api/proposals/*` vs `/api/proposal/*`) or provide mapping docs.
 5. Add CI step to run `npx prisma generate` and `npm run build` to catch build-time errors.
 
 ---
@@ -176,8 +176,8 @@ Tip: Keep `DATABASE_URL`, LLM keys, and email credentials in a secret store; do 
 - `app/components/CommanderChat.tsx` — LLM chat UI
 - `app/api/command/route.ts` — LLM proxy & action extraction
 - `app/api/proposals/create/route.ts` — create proposal API
-- `app/api/invoice/generate`, `.../send`, `.../export` — PDF/export/email server APIs
-- `services/invoice/server/*` — implementation details for PDF/email/export
+- `app/api/proposal/generate`, `.../send`, `.../export` — PDF/export/email server APIs
+- `services/proposal/server/*` — implementation details for PDF/email/export
 - `BRANDING_SUMMARY.md` — rebranding checklist
 - `BAD_GATEWAY_FIX.md` — troubleshooting guide for AnythingLLM container
 

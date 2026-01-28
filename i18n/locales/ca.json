@@ -5,7 +5,7 @@
 		"newInvBadge": "Nova Factura",
 		"wizard": {
 			"fromAndTo": "De qui & Per a qui",
-			"invoiceDetails": "Detalls factura",
+			"proposalDetails": "Detalls factura",
 			"lineItems": "Items",
 			"paymentInfo": "Informació de Pagament",
 			"summary": "Sumari",
@@ -27,13 +27,13 @@
 				"sender": "Remitent",
 				"receiver": "Receptor"
 			},
-			"invoiceDetails": {
+			"proposalDetails": {
 				"heading": "Detalls de factura",
-				"invoiceLogo": {
+				"proposalLogo": {
 					"label": "Logo de factura",
 					"placeholder": "Click para pujar una imagen"
 				},
-				"invoiceNumber": "Número de factura",
+				"proposalNumber": "Número de factura",
 				"issuedDate": "Data d’emisión",
 				"dueDate": "Data de vencimient",
 				"currency": "Divisa"
@@ -81,9 +81,9 @@
 	"actions": {
 		"title": "Accions",
 		"description": "Operacions i vista prèvia",
-		"loadInvoice": "Carregar Factura",
-		"exportInvoice": "Exportar Factura",
-		"newInvoice": "Nova Factura",
+		"loadProposal": "Carregar Factura",
+		"exportProposal": "Exportar Factura",
+		"newProposal": "Nova Factura",
 		"generatePdf": "Generar PDF",
 		"pdfView": "Veure PDF"
 	},

@@ -1,5 +1,5 @@
-import ProposalPage from "@/app/components/ProposalPage";
+import { redirect } from "next/navigation";
 
 export default function RootPage() {
-    return <ProposalPage />;
+    redirect("/projects/new");
 }

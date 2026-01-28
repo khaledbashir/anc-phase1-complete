@@ -17,7 +17,7 @@ export const ANC_WEBSITE = "https://ancsports.com";
  */
 export const GENERATE_PDF_API = "/api/proposals/generate";
 export const SEND_PDF_API = "/api/proposals/send";
-export const EXPORT_INVOICE_API = "/api/proposals/export";
+export const EXPORT_PROPOSAL_API = "/api/proposals/export";
 
 /**
  * External API endpoints
@@ -38,8 +38,6 @@ export const ANYTHING_LLM_KEY = process.env.ANYTHING_LLM_KEY;
  * Local storage
  */
 export const LOCAL_STORAGE_PROPOSAL_DRAFT_KEY = "anc:proposalDraft";
-// Legacy alias for backward compatibility
-export const LOCAL_STORAGE_INVOICE_DRAFT_KEY = LOCAL_STORAGE_PROPOSAL_DRAFT_KEY;
 
 /**
  * Tailwind

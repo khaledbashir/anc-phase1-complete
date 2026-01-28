@@ -1,7 +1,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseANCExcel } from './services/invoice/server/excelImportService';
+import { parseANCExcel } from './services/proposal/server/excelImportService';
 
 async function run() {
     const filePath = '/root/invo/Cost Analysis - Sample Proposal - 2026-01-22.xlsx';

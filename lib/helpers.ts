@@ -12,7 +12,7 @@ import { CurrencyDetails } from "@/types";
  * Formats a number with commas and decimal places
  *
  * @param {number} number - Number to format
- * @returns {string} A styled number to be displayed on the invoice
+ * @returns {string} A styled number to be displayed on the proposal
  */
 const formatNumberWithCommas = (number: number) => {
     if (number == null || isNaN(number)) return "0.00";
@@ -49,7 +49,7 @@ const fetchCurrencyDetails = (currency: string): CurrencyDetails | null => {
 
 
 /**
- * Turns a number into words for invoices
+ * Turns a number into words for proposals
  *
  * @param {number} price - Number to format
  * @returns {string} Number in words
@@ -177,10 +177,10 @@ const isValidEmail = (email: string) => {
 const isDataUrl = (str: string) => str.startsWith("data:");
 
 /**
- * Dynamically imports and retrieves an invoice template React component based on the provided template ID.
+ * Dynamically imports and retrieves an proposal template React component based on the provided template ID.
  *
- * @param {number} templateId - The ID of the invoice template.
- * @returns {Promise<React.ComponentType<any> | null>} A promise that resolves to the invoice template component or null if not found.
+ * @param {number} templateId - The ID of the proposal template.
+ * @returns {Promise<React.ComponentType<any> | null>} A promise that resolves to the proposal template component or null if not found.
  * @throws {Error} Throws an error if there is an issue with the dynamic import or if a default template is not available.
  */
 const getProposalTemplate = async (templateId: number) => {
@@ -201,7 +201,7 @@ const getProposalTemplate = async (templateId: number) => {
 };
 
 /**
- * Convert a file to a buffer. Used for sending invoice as email attachment.
+ * Convert a file to a buffer. Used for sending proposal as email attachment.
  * @param {File} file - The file to convert to a buffer.
  * @returns {Promise<Buffer>} A promise that resolves to a buffer.
  */

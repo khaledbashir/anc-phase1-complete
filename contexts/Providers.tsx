@@ -23,20 +23,20 @@ import { ProposalType } from "@/types";
 // Variables
 import {
   FORM_DEFAULT_VALUES,
-  LOCAL_STORAGE_INVOICE_DRAFT_KEY,
+  LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,
 } from "@/lib/variables";
 
 // Helpers
 const readDraftFromLocalStorage = (): ProposalType | null => {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(LOCAL_STORAGE_INVOICE_DRAFT_KEY);
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_PROPOSAL_DRAFT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     // revive dates
     if (parsed?.details) {
-      if (parsed.details.invoiceDate)
-        parsed.details.invoiceDate = new Date(parsed.details.invoiceDate);
+      if (parsed.details.proposalDate)
+        parsed.details.proposalDate = new Date(parsed.details.proposalDate);
       if (parsed.details.dueDate)
         parsed.details.dueDate = new Date(parsed.details.dueDate);
     }
