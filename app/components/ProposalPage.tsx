@@ -23,12 +23,14 @@ import {
 // ShadCn
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 // Context
 import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Icons
 import { Download, Share2, Upload, Loader2 } from "lucide-react";
+import AuditTable from "@/app/components/invoice/AuditTable";
 
 // Types
 import { ProposalType } from "@/types";
@@ -65,33 +67,6 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
     debounceMs: 2000
   });
 
-  const projectName = useWatch({
-    name: "details.proposalName" as any,
-    control: control,
-  }) as any || "Untitled Project";
-
-  // Handle auto-import from dashboard
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('autoImport') === 'true') {
-      document.getElementById("excel-import-input")?.click();
-      const newUrl = window.location.pathname + (projectId ? `?projectId=${projectId}` : '');
-      window.history.replaceState({}, '', newUrl);
-    }
-  }, [projectId]);
-
-  const handleExcelImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      importANCExcel(file);
-    }
-  };
-
-  const handleExport = () => {
-    handleSubmit(onFormSubmit)();
-  };
-
   // Header: Logo | Stepper (center) | Actions
   const HeaderContent = (
     <div className="h-full max-w-[1920px] mx-auto px-4 flex items-center justify-between">
@@ -114,7 +89,7 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
 
         <Button
           size="sm"
-          onClick={handleExport}
+          onClick={() => handleSubmit(onFormSubmit)()}
           className="bg-[#0A52EF] hover:bg-[#0A52EF]/90 text-white font-bold h-9 px-5 rounded-lg transition-all"
         >
           Finalize 🏁
@@ -125,36 +100,48 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
 
   // Form Content (Drafting Mode)
   const FormContent = (
-    <Form {...useFormContext<ProposalType>()}>
-      <form onSubmit={handleSubmit(onFormSubmit, (err) => console.log(err))}>
-        {/* Action Toolbar - Quick access to New, Reset, Load, Export */}
-        <div className="px-4 pt-4">
-          <ActionToolbar />
-        </div>
-        
-        {/* Wizard Steps */}
-        <div className="p-0">
-          <WizardStep>
-            <Step1Ingestion />
-          </WizardStep>
-          <WizardStep>
-            <Step2Intelligence />
-          </WizardStep>
-          <WizardStep>
-            <Step3Math />
-          </WizardStep>
-          <WizardStep>
-            <Step4Export />
-          </WizardStep>
-        </div>
-      </form>
-    </Form>
+    <div className="flex flex-col h-full bg-zinc-950">
+      <div className="px-4 pt-4 shrink-0">
+        <ActionToolbar />
+      </div>
+
+      <div className="flex-1 overflow-auto">
+        <WizardStep>
+          <Step1Ingestion />
+        </WizardStep>
+        <WizardStep>
+          <Step2Intelligence />
+        </WizardStep>
+        <WizardStep>
+          <Step3Math />
+        </WizardStep>
+        <WizardStep>
+          <Step4Export />
+        </WizardStep>
+      </div>
+    </div>
   );
 
   // AI Content (Intelligence Mode)
   const AIContent = (
-    <div className="h-full">
+    <div className="h-full bg-zinc-950 border-r border-zinc-800/50">
       <RfpSidebar />
+    </div>
+  );
+
+  // Audit Content (Audit Mode)
+  const AuditContent = (
+    <div className="h-full bg-zinc-950 overflow-auto p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-white">Project Financial Audit</h2>
+          <p className="text-sm text-zinc-500">Real-time gap analysis and margin verification Protocol.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="text-blue-400 border-blue-500/30 bg-blue-500/10">17/20 Strategy Match</Badge>
+        </div>
+      </div>
+      <AuditTable />
     </div>
   );
 
@@ -169,6 +156,8 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
     <StudioLayout
       header={HeaderContent}
       formContent={FormContent}
+      aiContent={AIContent}
+      auditContent={AuditContent}
       pdfContent={PDFContent}
     />
   );

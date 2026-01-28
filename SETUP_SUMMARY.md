@@ -114,7 +114,7 @@ anc-engine/
 1. **Database Connection**: 
    - Error: "Authentication failed against database server"
    - Action needed: Verify PostgreSQL credentials in `.env`
-   - Current: `postgresql://postgres:d082b360b2a728bc2e37@206.189.26.80:5432/anc_production`
+   - Current: `postgresql://postgres:45a2b41a4fc7c0b0d384@209.38.250.155:15432/anc_production`
 
 2. **NPM Vulnerabilities**:
    - 6 vulnerabilities detected (1 low, 2 moderate, 2 high, 1 critical)

@@ -86,6 +86,9 @@ const defaultProposalContext = {
   trackAiFieldModification: (fieldNames: string[]) => {},
   isFieldGhostActive: (fieldName: string) => false,
   proposal: null as any,
+  // Calculation Mode
+  calculationMode: "INTELLIGENCE" as "MIRROR" | "INTELLIGENCE",
+  setCalculationMode: (mode: "MIRROR" | "INTELLIGENCE") => {},
 };
 
 export const ProposalContext = createContext(defaultProposalContext);
@@ -139,6 +142,9 @@ export const ProposalContextProvider = ({
   const [aiFieldTimestamps, setAiFieldTimestamps] = useState<Record<string, number>>({});
   const [aiMessages, setAiMessages] = useState<any[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
+  
+  // Calculation Mode - THE PRIMARY BRANCH DECISION GATE
+  const [calculationMode, setCalculationMode] = useState<"MIRROR" | "INTELLIGENCE">("INTELLIGENCE");
 
   // AI Ghost Effect - Track recently modified fields with timestamps
   const trackAiFieldModification = useCallback((fieldNames: string[]) => {
@@ -268,12 +274,16 @@ export const ProposalContextProvider = ({
           documentType: d.documentType || "First Round",
           pricingType: d.pricingType || "Budget",
           mirrorMode: d.mirrorMode ?? false,
+          calculationMode: d.calculationMode || "INTELLIGENCE", // Hydrate calculation mode
         },
       };
 
       reset(mappedData);
       // Force update the slug state if needed
       setValue("details.aiWorkspaceSlug", d.aiWorkspaceSlug);
+
+      // Hydrate calculation mode from database
+      setCalculationMode(d.calculationMode || "INTELLIGENCE");
 
       // Cleanup AI state on project switch
       setAiMessages([]);
@@ -1276,6 +1286,9 @@ export const ProposalContextProvider = ({
         trackAiFieldModification,
         isFieldGhostActive,
         proposal: watch(),
+        // Calculation Mode
+        calculationMode,
+        setCalculationMode,
       }}
     >
       {children}

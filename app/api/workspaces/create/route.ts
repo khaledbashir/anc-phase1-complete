@@ -46,100 +46,104 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    let proposal: any = null;
+    let aiInfo: any = null;
+
     // Provision AnythingLLM workspace with Natalia's EXPERT SETTINGS
     try {
-      if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) throw new Error("AnythingLLM not configured");
+      if (ANYTHING_LLM_BASE_URL && ANYTHING_LLM_KEY) {
+        const uniqueSuffix = Date.now().toString(36).slice(-4);
+        const wsName = `${body.name} - ANC Project Room (${uniqueSuffix})`;
 
-      const uniqueSuffix = Date.now().toString(36).slice(-4);
-      const wsName = `${body.name} - ANC Project Room (${uniqueSuffix})`;
+        const payload = {
+          name: wsName,
+          similarityThreshold: 0.2, // Catch diverse RFP wording
+          openAiTemp: 0.1,         // Precision for spec extraction
+          openAiHistory: 10,
+          chatMode: "chat",
+          topN: 10,                 // High transparency for dense RFP sections
+          openAiPrompt: `
+            YOU ARE THE ANC STRATEGIC ESTIMATOR (Master Protocol).
+            Your mission is to build high-stakes LED signatures.
+            
+            CORE RULES:
+            1. FORMULAS: Structure=20% (Ribbons/Top=10%), Labor=15%, Power=15%, PM=$0.50/sqft, Shipping=$0.14/sqft.
+            2. BOND: Final totals must include 1.5% Bond on Top of everything.
+            3. FERRARI LOGIC: Look for 'Spare Parts' (5% Hardware) and 'Existing Infrastructure' (Structure drops to 5%).
+            4. PRECISION: If an RFP section is ambiguous, ask for clarification.
+            5. FORMAT: Always prioritize technical accuracy over conversational filler.
+          `.trim(),
+        };
 
-      const payload = {
-        name: wsName,
-        similarityThreshold: 0.2, // Catch diverse RFP wording
-        openAiTemp: 0.1,         // Precision for spec extraction
-        openAiHistory: 10,
-        chatMode: "chat",
-        topN: 10,                 // High transparency for dense RFP sections
-        openAiPrompt: `
-          YOU ARE THE ANC STRATEGIC ESTIMATOR (Master Protocol).
-          Your mission is to build high-stakes LED signatures.
-          
-          CORE RULES:
-          1. FORMULAS: Structure=20% (Ribbons/Top=10%), Labor=15%, Power=15%, PM=$0.50/sqft, Shipping=$0.14/sqft.
-          2. BOND: Final totals must include 1.5% Bond on Top of everything.
-          3. FERRARI LOGIC: Look for 'Spare Parts' (5% Hardware) and 'Existing Infrastructure' (Structure drops to 5%).
-          4. PRECISION: If an RFP section is ambiguous, ask for clarification.
-          5. FORMAT: Always prioritize technical accuracy over conversational filler.
-        `.trim(),
-      };
-
-      const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/new`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
-        body: JSON.stringify(payload),
-      });
-
-      const text = await res.text();
-      let created: any;
-      try {
-        created = JSON.parse(text);
-      } catch (e) {
-        created = null;
-      }
-
-      const slug = created?.workspace?.slug || created?.slug || null;
-
-      if (slug) {
-        // Update workspace with slug
-        workspace = await prisma.workspace.update({
-          where: { id: workspace.id },
-          data: { aiWorkspaceSlug: slug },
-          include: { users: true },
+        const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/new`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
+          body: JSON.stringify(payload),
         });
 
-        // Upload master catalog (Global Knowledge Base)
-        const masterUrl = process.env.ANYTHING_LLM_MASTER_CATALOG_URL;
-        if (masterUrl) {
-          try {
-            const { uploadLinkToWorkspace } = await import("@/lib/rag-sync");
-            await uploadLinkToWorkspace(slug, masterUrl);
-          } catch (e) {
-            console.warn("Failed to upload master catalog", e);
+        if (res.ok) {
+          const created = await res.json();
+          const slug = created?.workspace?.slug || created?.slug || null;
+
+          if (slug) {
+            aiInfo = { slug };
+            // Update workspace with slug
+            workspace = await prisma.workspace.update({
+              where: { id: workspace.id },
+              data: { aiWorkspaceSlug: slug },
+              include: { users: true },
+            });
+
+            // Upload master catalog (Global Knowledge Base)
+            const masterUrl = process.env.ANYTHING_LLM_MASTER_CATALOG_URL;
+            if (masterUrl) {
+              try {
+                const { uploadLinkToWorkspace } = await import("@/lib/rag-sync");
+                await uploadLinkToWorkspace(slug, masterUrl);
+              } catch (e) {
+                console.warn("Failed to upload master catalog", e);
+              }
+            }
+
+            // Create thread if requested
+            if (body.createInitialProposal && body.clientName) {
+              const threadRes = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${slug}/thread/new`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
+                body: JSON.stringify({ title: `Project Kickoff: ${body.clientName}` }),
+              });
+              const threadData = await threadRes.json();
+              aiInfo.threadId = threadData?.thread?.slug || null;
+            }
           }
-        }
-
-        // If requested, create an initial proposal and thread
-        if (body.createInitialProposal && body.clientName) {
-          // Create dedicated thread
-          const threadRes = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${slug}/thread/new`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
-            body: JSON.stringify({ title: `Project Kickoff: ${body.clientName}` }),
-          });
-          const threadId = (await threadRes.json())?.thread?.slug || null;
-
-          // Create proposal
-          const proposal = await prisma.proposal.create({
-            data: {
-              workspaceId: workspace.id,
-              clientName: body.clientName,
-              status: "DRAFT",
-              aiThreadId: threadId,
-            },
-          });
-
-          return NextResponse.json({ success: true, workspace, proposal, ai: { slug, threadId } }, { status: 201 });
         }
       }
     } catch (e) {
-      console.warn("Provisioning failed:", e);
-      // Continue: return workspace without ai info
+      console.warn("Provisioning AnythingLLM failed:", e);
+    }
+
+    // ALWAYS create proposal if requested, regardless of AI success
+    if (body.createInitialProposal && body.clientName) {
+      try {
+        proposal = await prisma.proposal.create({
+          data: {
+            workspaceId: workspace.id,
+            clientName: body.clientName,
+            status: "DRAFT",
+            aiThreadId: aiInfo?.threadId || null,
+          },
+        });
+      } catch (e) {
+        console.error("Failed to create initial proposal:", e);
+      }
     }
 
     return NextResponse.json(
       {
         success: true,
         workspace,
+        proposal,
+        ai: aiInfo
       },
       { status: 201 }
     );

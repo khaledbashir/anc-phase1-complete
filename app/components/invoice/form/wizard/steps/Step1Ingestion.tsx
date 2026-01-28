@@ -9,6 +9,7 @@ import { useProposalContext } from "@/contexts/ProposalContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BillFromSection, BillToSection, ImportJsonButton } from "@/app/components";
 import { ProposalType } from "@/types";
+import CalculationModePathCards from "./CalculationModePathCards";
 
 const Step1Ingestion = () => {
     const { control, setValue } = useFormContext();
@@ -119,6 +120,17 @@ const Step1Ingestion = () => {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 px-6 py-8">
+            {/* PRIMARY BRANCH: Calculation Mode */}
+            <Card className="bg-zinc-900/50 border-zinc-800/50">
+                <CardHeader>
+                    <CardTitle className="text-zinc-100 text-base">Calculation Mode</CardTitle>
+                    <CardDescription className="text-zinc-500 text-xs">Select your calculation engine</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <CalculationModePathCards />
+                </CardContent>
+            </Card>
+
             {/* Actions: Import */}
             <Card className="bg-zinc-900/50 border-zinc-800/50">
                 <CardHeader className="pb-3">

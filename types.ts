@@ -56,3 +56,9 @@ export enum ExportTypes {
     XLSX = "XLSX",
     DOCX = "DOCX",
 }
+
+// Calculation Mode types
+export enum CalculationMode {
+    MIRROR = "MIRROR",
+    INTELLIGENCE = "INTELLIGENCE",
+}
