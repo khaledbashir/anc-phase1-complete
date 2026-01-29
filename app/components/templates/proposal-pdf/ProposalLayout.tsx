@@ -9,9 +9,10 @@ import { ProposalType } from "@/types";
 type ProposalLayoutProps = {
     data: ProposalType;
     children: ReactNode;
+    disableFixedFooter?: boolean;
 };
 
-export default function ProposalLayout({ data, children }: ProposalLayoutProps) {
+export default function ProposalLayout({ data, children, disableFixedFooter = false }: ProposalLayoutProps) {
     const { sender, receiver, details } = data;
 
     // Instead of fetching all signature fonts, get the specific one user selected.
@@ -60,13 +61,15 @@ export default function ProposalLayout({ data, children }: ProposalLayoutProps) 
                     </div>
 
                     {/* FIXED FOOTER - ANC Enterprise Style */}
-                    <div className="absolute bottom-8 right-10 flex items-center gap-4 opacity-80">
-                        <div className="text-right">
-                            <p className="text-[9px] font-bold text-[#0A52EF] tracking-wide">www.anc.com/contact</p>
-                            <p className="text-[7px] text-zinc-400 tracking-wider">NY 914.696.2100 TX 940.464.2320</p>
+                    {!disableFixedFooter && (
+                        <div className="absolute bottom-8 right-10 flex items-center gap-4 opacity-80">
+                            <div className="text-right">
+                                <p className="text-[9px] font-bold text-[#0A52EF] tracking-wide">www.anc.com/contact</p>
+                                <p className="text-[7px] text-zinc-400 tracking-wider">NY 914.696.2100 TX 940.464.2320</p>
+                            </div>
+                            <Image src="/ANC_Logo_2023_blue.png" alt="ANC" width={48} height={24} className="w-12 h-6 object-contain" />
                         </div>
-                        <Image src="/ANC_Logo_2023_blue.png" alt="ANC" width={48} height={24} className="w-12 h-6 object-contain" />
-                    </div>
+                    )}
                 </div>
             </section>
         </>

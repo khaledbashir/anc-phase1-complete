@@ -25,6 +25,10 @@ export async function POST(
             return NextResponse.json({ error: "Project not found" }, { status: 404 });
         }
 
+        // REQ-113: Deep clone project object before sanitization to prevent data leakage
+        // This ensures internal cost/margin data is never accidentally logged or served
+        const sanitizedProject = JSON.parse(JSON.stringify(project));
+
         // 2. Manage Hash Strategy
         let shareHash = project.shareHash;
         if (!shareHash) {

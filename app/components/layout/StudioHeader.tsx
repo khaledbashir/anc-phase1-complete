@@ -32,6 +32,7 @@ export function StudioHeader({
 }: StudioHeaderProps) {
     const wizard = useWizard();
     const { control, getValues } = useFormContext<ProposalType>();
+    const { excelValidationOk } = useProposalContext();
     
     // Watch form values for real-time gap analysis
     const formValues = useWatch({ control });
@@ -79,7 +80,7 @@ export function StudioHeader({
                 
                 <div className="h-8 w-px bg-zinc-800 mx-1" />
                 
-                <Badge 
+                <Badge
                     className="bg-[#0A52EF] hover:bg-[#0A52EF]/90 text-white font-['Work_Sans'] border-none px-3 py-1 flex items-center gap-2"
                 >
                     <CheckCircle2 className="w-3 h-3" />
@@ -87,6 +88,17 @@ export function StudioHeader({
                         Bid Health: {Math.round(completionRate)}%
                     </span>
                 </Badge>
+
+                {excelValidationOk && (
+                    <Badge
+                        className="bg-emerald-500/15 hover:bg-emerald-500/20 text-emerald-300 font-['Work_Sans'] border border-emerald-500/20 px-3 py-1 flex items-center gap-2"
+                    >
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">
+                            Excel Verified
+                        </span>
+                    </Badge>
+                )}
             </div>
 
             {/* Wizard Stepper (center-aligned) */}

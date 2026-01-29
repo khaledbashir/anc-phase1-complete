@@ -25,7 +25,15 @@ const ProposalTemplate1 = (data: ProposalType) => {
 	const headerText = `This Sales Quotation will set forth the terms by which ${receiver?.name || 'Purchaser'} ("Purchaser") located at ${receiver?.address || '[Client Address]'} and ANC Sports Enterprises, LLC ("ANC") located at ${sender?.address || '2 Manhattanville Road, Suite 402, Purchase, NY 10577'} (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for ${details?.location || details?.proposalName || 'the project'}.`;
 
 	// Group items logic
-	const screensForGrouping: ScreenItem[] = (details?.screens || []).map((s: any) => ({
+	const screensForGrouping: ScreenItem[] = (details?.screens || [])
+		.filter((s: any) => {
+			// Filter out empty/placeholder screens with 0 dimensions
+			const width = s.widthFt ?? s.width ?? 0;
+			const height = s.heightFt ?? s.height ?? 0;
+			const pitch = s.pitchMm ?? s.pixelPitch ?? 0;
+			return width > 0 && height > 0 && pitch > 0;
+		})
+		.map((s: any) => ({
 		id: s.id || Math.random().toString(),
 		name: s.name || "Display",
 		group: s.name?.includes("-") ? s.name.split("-")[0].trim() : undefined,
@@ -172,8 +180,58 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				</p>
 			</div>
 
-			{/* SIGNATURES */}
-			<div className='px-8 mb-8 break-inside-avoid'>
+			{/* PAGE BREAK FOR SPECS */}
+			<div className="break-before-page px-8 pt-8">
+				<div className="text-center mb-8">
+					<h2 className="text-[#0A52EF] font-bold text-lg uppercase" style={{ fontFamily: "Work Sans, sans-serif" }}>{receiver?.name || 'CLIENT'}</h2>
+					<h3 className="text-zinc-500 text-sm uppercase tracking-widest" style={{ fontFamily: "Work Sans, sans-serif" }}>SPECIFICATIONS</h3>
+				</div>
+
+				<div className="space-y-8">
+					{(() => {
+						return (details?.screens || []).map((screen: any, idx: number) => (
+							<div key={idx} className="break-inside-avoid">
+								<h4 className="text-xs font-bold mb-1" style={{ fontFamily: "Work Sans, sans-serif" }}>{screen.name}</h4>
+								<div className="w-full border-t border-black">
+									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>MM Pitch</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pitchMm || screen.pixelPitch || 0}mm</span>
+									</div>
+									{screen.brightness && (
+										<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
+											<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Brightness</span>
+											<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.brightness}</span>
+										</div>
+									)}
+									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Quantity</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.quantity || 1}</span>
+									</div>
+									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Active Display Height (ft.)</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'</span>
+									</div>
+									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Active Display Width (ft.)</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'</span>
+									</div>
+									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Pixel Resolution (H)</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</span>
+									</div>
+									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-black">
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Pixel Resolution (W)</span>
+										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</span>
+									</div>
+								</div>
+							</div>
+						));
+					})()}
+				</div>
+			</div>
+
+			{/* SIGNATURES - MOVED TO END */}
+			<div className="break-before-page px-8 pt-8 mb-8">
 				<h4 className='text-xs font-bold text-black mb-6' style={{ fontFamily: "Work Sans, sans-serif" }}>Agreed To And Accepted:</h4>
 
 				<div className="grid grid-cols-2 gap-16">
@@ -222,56 +280,6 @@ const ProposalTemplate1 = (data: ProposalType) => {
 							</div>
 						</div>
 					</div>
-				</div>
-			</div>
-
-			{/* PAGE BREAK FOR SPECS */}
-			<div className="break-before-page px-8 pt-8">
-				<div className="text-center mb-8">
-					<h2 className="text-[#0A52EF] font-bold text-lg uppercase" style={{ fontFamily: "Work Sans, sans-serif" }}>{receiver?.name || 'CLIENT'}</h2>
-					<h3 className="text-zinc-500 text-sm uppercase tracking-widest" style={{ fontFamily: "Work Sans, sans-serif" }}>SPECIFICATIONS</h3>
-				</div>
-
-				<div className="space-y-8">
-					{(() => {
-						return (details?.screens || []).map((screen: any, idx: number) => (
-							<div key={idx} className="break-inside-avoid">
-								<h4 className="text-xs font-bold mb-1" style={{ fontFamily: "Work Sans, sans-serif" }}>{screen.name}</h4>
-								<div className="w-full border-t border-black">
-									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>MM Pitch</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pitchMm || screen.pixelPitch || 0}mm</span>
-									</div>
-									{screen.brightness && (
-										<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
-											<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Brightness</span>
-											<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.brightness}</span>
-										</div>
-									)}
-									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Quantity</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.quantity || 1}</span>
-									</div>
-									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Active Display Height (ft.)</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px]">{Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'</span>
-									</div>
-									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Active Display Width (ft.)</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px]">{Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'</span>
-									</div>
-									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Pixel Resolution (H)</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</span>
-									</div>
-									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-black">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Pixel Resolution (W)</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</span>
-									</div>
-								</div>
-							</div>
-						));
-					})()}
 				</div>
 			</div>
 

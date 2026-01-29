@@ -76,6 +76,9 @@ export async function exportProposalService(req: NextRequest) {
                         clientName: body.receiver?.name || 'Client',
                         proposalDate: body.details?.proposalDate || new Date().toLocaleDateString(),
                         status: body.details?.status || 'DRAFT',
+                        boTaxApplies: /morgantown|wvu|milan\s+puskar/i.test(
+                            `${body.receiver?.address ?? ""} ${body.receiver?.city ?? ""} ${body.details?.venue ?? ""} ${body.details?.location ?? ""}`
+                        ),
                     };
 
                     // Generate the audit Excel buffer

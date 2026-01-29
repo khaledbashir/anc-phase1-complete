@@ -75,6 +75,15 @@ export function calculateScreenPrice(
 export const MORGANTOWN_BO_TAX = 0.02; // 2% West Virginia B&O Tax (REQ-48)
 export const STEEL_PRICE_PER_TON = 4500; // Default estimate $4500/ton installed
 
+function shouldApplyMorgantownBoTax(input?: { projectAddress?: string; venue?: string }) {
+  const haystack = `${input?.projectAddress ?? ""} ${input?.venue ?? ""}`.toLowerCase();
+  if (haystack.includes("morgantown")) return true;
+  if (haystack.includes("wvu")) return true;
+  if (haystack.includes("milan puskar")) return true;
+  if (haystack.includes("puskar stadium")) return true;
+  return false;
+}
+
 /**
  * Calculate multiple screens in a proposal
  * @param screens Array of screen configurations
@@ -290,6 +299,8 @@ export function calculatePerScreenAudit(
     bondPct?: number;
     structuralTonnage?: number; // REQ-46
     reinforcingTonnage?: number; // REQ-46
+    projectAddress?: string; // REQ-81
+    venue?: string; // REQ-81
   }
 ): ScreenAudit {
   // Load catalog for VLOOKUP
@@ -314,12 +325,6 @@ export function calculatePerScreenAudit(
   const CMS_PCT = options?.cmsPct ?? 0.02;
   const BOND_PCT = options?.bondPct ?? 0.015;
   const DEMOLITION_FIXED = 5000;
-
-  // REQ-46 Structural Tonnage Defaults
-  const structuralTonnage = options?.structuralTonnage ?? 0;
-  const reinforcingTonnage = options?.reinforcingTonnage ?? 0;
-  const totalTonnage = structuralTonnage + reinforcingTonnage;
-  const tonnageCost = totalTonnage * STEEL_PRICE_PER_TON;
 
   const qty = s.quantity ?? 1;
   const pitch = s.pitchMm ?? DEFAULT_PITCH_MM;
@@ -385,8 +390,7 @@ export function calculatePerScreenAudit(
   const structureMultiplier = isCurved ? 1.25 : 1.0;
   const laborMultiplier = isCurved ? 1.15 : 1.0;
 
-  // REQ-46: If tonnage exists, use it for structure cost
-  const baseStructure = tonnageCost > 0 ? tonnageCost : (hardware * STRUCTURE_PCT);
+  const baseStructure = hardware * STRUCTURE_PCT;
   const structure = roundToCents(baseStructure * structureMultiplier);
   const install = roundToCents(INSTALL_FLAT * laborMultiplier);
   const labor = roundToCents(hardware * LABOR_PCT * laborMultiplier);
@@ -424,14 +428,26 @@ export function calculatePerScreenAudit(
     demolition
   );
 
+  // REQ-110: Margin Validation - Prevent division by zero
+  // Natalia Math Divisor Model requires margin < 100% to avoid infinite pricing
+  if (desiredMargin >= 1.0) {
+    throw new Error(`Invalid margin: ${desiredMargin * 100}%. Margin must be less than 100% for Divisor Margin model.`);
+  }
+
   // Natalia Math Divisor Model: P = C / (1 - M)
   const sellPrice = roundToCents(totalCost / (1 - desiredMargin));
 
   // Bond Fee: 1.5% applied ON TOP of the Sell Price (calculated against Sell Price)
   const bondCost = roundToCents(sellPrice * BOND_PCT);
 
-  // REQ-48: Morgantown B&O Tax (2% of Sell Price + Bond)
-  const boTaxCost = roundToCents((sellPrice + bondCost) * MORGANTOWN_BO_TAX);
+  // REQ-81: Morgantown/WVU B&O Tax (2% of Sell Price + Bond)
+  const boTaxRate = shouldApplyMorgantownBoTax({
+    projectAddress: options?.projectAddress,
+    venue: options?.venue,
+  })
+    ? MORGANTOWN_BO_TAX
+    : 0;
+  const boTaxCost = roundToCents((sellPrice + bondCost) * boTaxRate);
 
   const finalClientTotal = roundToCents(sellPrice + bondCost + boTaxCost);
 
@@ -544,6 +560,8 @@ export function calculateProposalAudit(
     bondPct?: number; // Override default 1.5%
     structuralTonnage?: number;
     reinforcingTonnage?: number;
+    projectAddress?: string; // REQ-81
+    venue?: string; // REQ-81
   }
 ): { clientSummary: ClientSummary; internalAudit: InternalAudit } {
   const perScreen = screens.map((s) => calculatePerScreenAudit(s, {
@@ -552,6 +570,68 @@ export function calculateProposalAudit(
     structuralTonnage: options?.structuralTonnage,
     reinforcingTonnage: options?.reinforcingTonnage
   }));
+
+  const totalTonnage = (options?.structuralTonnage ?? 0) + (options?.reinforcingTonnage ?? 0);
+  const tonnageCost = roundToCents(totalTonnage * STEEL_PRICE_PER_TON);
+
+  if (tonnageCost > 0 && perScreen.length > 0) {
+    const weights = perScreen.map((ps) => Number(ps.breakdown.structure) || 0);
+    const totalWeight = weights.reduce((acc, w) => acc + w, 0);
+
+    const allocationsUnrounded =
+      totalWeight > 0
+        ? weights.map((w) => tonnageCost * (w / totalWeight))
+        : perScreen.map(() => tonnageCost / perScreen.length);
+
+    const allocations = allocationsUnrounded.map((a) => roundToCents(a));
+    const sumAllocations = allocations.reduce((acc, a) => acc + a, 0);
+    const diff = roundToCents(tonnageCost - sumAllocations);
+    allocations[allocations.length - 1] = roundToCents(allocations[allocations.length - 1] + diff);
+
+    const boTaxRate = shouldApplyMorgantownBoTax({
+      projectAddress: options?.projectAddress,
+      venue: options?.venue,
+    })
+      ? MORGANTOWN_BO_TAX
+      : 0;
+
+    for (let i = 0; i < perScreen.length; i++) {
+      const ps = perScreen[i];
+      const b = ps.breakdown;
+      const oldStructure = Number(b.structure) || 0;
+      const newStructure = allocations[i] ?? 0;
+      if (oldStructure === newStructure) continue;
+
+      const oldTotalCost = Number(b.totalCost) || 0;
+      const newTotalCost = roundToCents(oldTotalCost - oldStructure + newStructure);
+
+      const oldSellPrice = Number(b.sellPrice) || 0;
+      const oldBondCost = Number(b.bondCost) || 0;
+      const desiredMargin = oldSellPrice > 0 ? 1 - oldTotalCost / oldSellPrice : (options?.defaultDesiredMargin ?? 0.25);
+      const bondPct = oldSellPrice > 0 ? oldBondCost / oldSellPrice : (options?.bondPct ?? 0.015);
+
+      if (desiredMargin >= 1.0) {
+        throw new Error(`Invalid margin: ${desiredMargin * 100}%. Margin must be less than 100% for Divisor Margin model.`);
+      }
+
+      const sellPrice = roundToCents(newTotalCost / (1 - desiredMargin));
+      const bondCost = roundToCents(sellPrice * bondPct);
+      const boTaxCost = roundToCents((sellPrice + bondCost) * boTaxRate);
+      const finalClientTotal = roundToCents(sellPrice + bondCost + boTaxCost);
+      const ancMargin = roundToCents(sellPrice - newTotalCost);
+      const sellingPricePerSqFt = ps.areaSqFt > 0 ? roundToCents(finalClientTotal / ps.areaSqFt) : 0;
+
+      b.structure = newStructure;
+      b.totalCost = newTotalCost;
+      b.sellPrice = sellPrice;
+      b.bondCost = bondCost;
+      b.boTaxCost = boTaxCost;
+      b.finalClientTotal = finalClientTotal;
+      b.ancMargin = ancMargin;
+      b.marginAmount = ancMargin;
+      b.sellingPricePerSqFt = sellingPricePerSqFt;
+    }
+  }
 
   const totals = {
     hardware: 0,

@@ -6,6 +6,8 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const proposalId = body.proposalId;
+    const projectAddress = typeof body.projectAddress === "string" ? body.projectAddress : "";
+    const venue = typeof body.venue === "string" ? body.venue : "";
 
     if (!proposalId) {
       return NextResponse.json({ error: "proposalId is required" }, { status: 400 });
@@ -39,6 +41,7 @@ export async function POST(req: NextRequest) {
       proposalName,
       clientName: proposal.clientName,
       status: proposal.status as any,
+      boTaxApplies: /morgantown|wvu|milan\s+puskar/i.test(`${projectAddress} ${venue}`),
     });
 
     return new Response(buffer as any, {

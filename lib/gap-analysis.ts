@@ -74,7 +74,7 @@ export function analyzeGaps(formValues: any): GapItem[] {
 
             // Brightness (HDR/Nits)
             if (!screen.brightness) {
-                gaps.push({ id: `s${index}-brit`, field: "Brightness", screenIndex: index, priority: "medium", description: `${label} missing nits/brightness`, section: "Screens" });
+                gaps.push({ id: `s${index}-brit`, field: "Brightness", screenIndex: index, priority: "medium", description: `${label} missing brightness`, section: "Screens" });
             }
 
 

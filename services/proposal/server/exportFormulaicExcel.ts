@@ -15,6 +15,7 @@ export interface AuditExcelOptions {
     clientName?: string;
     proposalDate?: string;
     status?: 'DRAFT' | 'FINAL';
+    boTaxApplies?: boolean;
 }
 
 // Standard P&L Categories (Standard Enterprise Gold Standard)
@@ -188,7 +189,7 @@ function buildFormulaicAudit(sheet: ExcelJS.Worksheet, screens: any[], options?:
         const boTaxRow = currentRow; // Morgantown 2% Tax (REQ-48)
         sheet.getCell(`A${currentRow}`).value = 'CITY B&O TAX (2%)';
         sheet.getCell(`D${currentRow}`).value = '(Sell Price + Bond) * B&O Rate';
-        sheet.getCell(`H${currentRow}`).value = 0.02; // Default 2%
+        sheet.getCell(`H${currentRow}`).value = options?.boTaxApplies ? 0.02 : 0;
         sheet.getCell(`H${currentRow}`).numFmt = '0.0%';
         sheet.getCell(`H${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }; // Yellow Input
         sheet.getCell(`I${currentRow}`).value = { formula: `(G${sellPriceRow}+I${bondRow})*H${boTaxRow}` };

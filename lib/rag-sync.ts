@@ -35,10 +35,21 @@ export async function vectorSearch(workspace: string, query: string) {
 
   const endpoint = `${ANYTHING_LLM_BASE_URL}/workspace/${workspace}/vector-search`;
 
-  // REQ-25: Division 11 Target RAG Extraction
-  // Prioritize "Section 11 63 10" and "Section 11 06 60"
-  const sectionKeywords = ["Section 11 63 10", "Section 11 06 60", "Division 11", "Display Schedule"];
-  const enhancedQuery = `${query} ${sectionKeywords.join(' ')}`;
+  // REQ-25: Division 11 Target RAG Extraction - Enhanced Keyword Weighting
+  // Master Truth Priority: Section 11 06 60 (Display Schedule) is the absolute source
+  // Weighted keywords for optimal extraction from 2,500-page RFPs
+  const highPriorityKeywords = [
+    "Section 11 06 60",      // Master Truth - Display Schedule (highest priority)
+    "Display Schedule",      // Master Truth keyword
+    "Section 11 63 10",      // LED Display Systems
+    "Division 11",           // CSI Division
+    "LED Display",           // Product type
+    "Pixel Pitch",           // Technical spec
+    "Brightness",            // Technical spec (formerly "Nits")
+  ];
+
+  // Repeat high-priority keywords to boost their weight in vector search
+  const boostedQuery = `${query} ${highPriorityKeywords.join(' ')} ${highPriorityKeywords.slice(0, 3).join(' ')}`;
 
   const res = await fetch(endpoint, {
     method: "POST",
@@ -46,7 +57,11 @@ export async function vectorSearch(workspace: string, query: string) {
       Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ query: enhancedQuery, topN: 6, scoreThreshold: 0.2 }),
+    body: JSON.stringify({ 
+      query: boostedQuery, 
+      topN: 6,              // Capture top 6 relevant results
+      scoreThreshold: 0.2   // 20% similarity threshold for filtering
+    }),
   });
 
   const text = await res.text();

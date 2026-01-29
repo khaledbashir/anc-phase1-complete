@@ -37,11 +37,33 @@ import { calculateProposalAudit } from "@/lib/estimator";
 
 // Risk Detector
 import { detectRisks, RiskItem } from "@/services/risk-detector";
+import * as xlsx from "xlsx";
+
+type ExcelPreviewMerge = { s: { r: number; c: number }; e: { r: number; c: number } };
+export type ExcelPreviewSheet = {
+  name: string;
+  grid: string[][];
+  merges: ExcelPreviewMerge[];
+  hiddenRows: boolean[];
+  colWidths: Array<number | null>;
+  validationIssue: boolean;
+  hasNumericDimensions: boolean;
+};
+
+export type ExcelPreview = {
+  fileName: string;
+  sheets: ExcelPreviewSheet[];
+  loadedAt: number;
+};
 
 const defaultProposalContext = {
   proposalPdf: new Blob(),
   proposalPdfLoading: false,
   excelImportLoading: false,
+  excelPreviewLoading: false,
+  excelPreview: null as ExcelPreview | null,
+  excelValidationOk: false,
+  loadExcelPreview: (file: File) => Promise.resolve(),
   savedProposals: [] as ProposalType[],
   pdfUrl: null as string | null,
   activeTab: "client",
@@ -89,6 +111,8 @@ const defaultProposalContext = {
   trackAiFieldModification: (fieldNames: string[]) => { },
   isFieldGhostActive: (fieldName: string) => false,
   proposal: null as any,
+  headerType: "PROPOSAL" as "LOI" | "PROPOSAL" | "BUDGET",
+  setHeaderType: (type: "LOI" | "PROPOSAL" | "BUDGET") => { },
   // Calculation Mode
   calculationMode: "INTELLIGENCE" as "MIRROR" | "INTELLIGENCE",
   setCalculationMode: (mode: "MIRROR" | "INTELLIGENCE") => { },
@@ -138,6 +162,9 @@ export const ProposalContextProvider = ({
   const [proposalPdf, setProposalPdf] = useState<Blob>(new Blob());
   const [proposalPdfLoading, setProposalPdfLoading] = useState<boolean>(false);
   const [excelImportLoading, setExcelImportLoading] = useState<boolean>(false);
+  const [excelPreviewLoading, setExcelPreviewLoading] = useState<boolean>(false);
+  const [excelPreview, setExcelPreview] = useState<ExcelPreview | null>(null);
+  const [excelValidationOk, setExcelValidationOk] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("client");
 
   // Alerts
@@ -185,6 +212,26 @@ export const ProposalContextProvider = ({
 
   // Sync isolated AI workspace from form state (set via reset(initialData))
   const aiWorkspaceSlug = watch("details.aiWorkspaceSlug") || null;
+
+  const watchedDocumentType = watch("details.documentType");
+  const watchedPricingType = watch("details.pricingType");
+  const headerType = useMemo(() => {
+    return watchedDocumentType === "LOI"
+      ? "LOI"
+      : watchedPricingType === "Hard Quoted"
+        ? "PROPOSAL"
+        : "BUDGET";
+  }, [watchedDocumentType, watchedPricingType]);
+
+  const setHeaderType = useCallback((next: "LOI" | "PROPOSAL" | "BUDGET") => {
+    if (next === "LOI") {
+      setValue("details.documentType", "LOI", { shouldValidate: true, shouldDirty: true });
+      return;
+    }
+
+    setValue("details.documentType", "First Round", { shouldValidate: true, shouldDirty: true });
+    setValue("details.pricingType", next === "PROPOSAL" ? "Hard Quoted" : "Budget", { shouldValidate: true, shouldDirty: true });
+  }, [setValue]);
 
   // Saved proposals
   const [savedProposals, setSavedProposals] = useState<ProposalType[]>([]);
@@ -438,9 +485,15 @@ export const ProposalContextProvider = ({
         includeSpareParts: s.includeSpareParts !== false,
       }));
 
+      const projectAddress = `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim();
+      const venue = getValues("details.venue");
       const { clientSummary, internalAudit } = calculateProposalAudit(normalized, {
         taxRate: getValues("details.taxRateOverride"),
         bondPct: getValues("details.bondRateOverride"),
+        structuralTonnage: getValues("details.metadata.structuralTonnage"),
+        reinforcingTonnage: getValues("details.metadata.reinforcingTonnage"),
+        projectAddress,
+        venue,
       });
 
       // Update internal state without triggering infinite loop (only if changed)
@@ -493,6 +546,10 @@ export const ProposalContextProvider = ({
         const { clientSummary, internalAudit } = calculateProposalAudit(updatedScreens, {
           taxRate: getValues("details.taxRateOverride"),
           bondPct: getValues("details.bondRateOverride"),
+          structuralTonnage: getValues("details.metadata.structuralTonnage"),
+          reinforcingTonnage: getValues("details.metadata.reinforcingTonnage"),
+          projectAddress: `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+          venue: getValues("details.venue"),
         });
         setValue("details.internalAudit", internalAudit);
         setValue("details.clientSummary", clientSummary);
@@ -593,6 +650,10 @@ export const ProposalContextProvider = ({
       const audit = calculateProposalAudit(screens, {
         taxRate: getValues("details.taxRateOverride"),
         bondPct: getValues("details.bondRateOverride"),
+        structuralTonnage: getValues("details.metadata.structuralTonnage"),
+        reinforcingTonnage: getValues("details.metadata.reinforcingTonnage"),
+        projectAddress: `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+        venue: getValues("details.venue"),
       });
 
       const payload = {
@@ -725,6 +786,10 @@ export const ProposalContextProvider = ({
           const audit = calculateProposalAudit(screens, {
             taxRate: getValues("details.taxRateOverride"),
             bondPct: getValues("details.bondRateOverride"),
+            structuralTonnage: getValues("details.metadata.structuralTonnage"),
+            reinforcingTonnage: getValues("details.metadata.reinforcingTonnage"),
+            projectAddress: `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+            venue: getValues("details.venue"),
           });
           // store under a non-typed key to avoid type mismatch with Zod/ProposalType
           (formValues as any)._internalAudit = audit.internalAudit;
@@ -977,6 +1042,10 @@ export const ProposalContextProvider = ({
           const audit = calculateProposalAudit(updatedScreens, {
             taxRate: getValues("details.taxRateOverride"),
             bondPct: getValues("details.bondRateOverride"),
+            structuralTonnage: getValues("details.metadata.structuralTonnage"),
+            reinforcingTonnage: getValues("details.metadata.reinforcingTonnage"),
+            projectAddress: `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+            venue: getValues("details.venue"),
           });
           const internalAudit = audit.internalAudit;
 
@@ -1022,6 +1091,10 @@ export const ProposalContextProvider = ({
             const { clientSummary, internalAudit } = calculateProposalAudit(normalizedScreens, {
               taxRate: getValues("details.taxRateOverride"),
               bondPct: getValues("details.bondRateOverride"),
+              structuralTonnage: getValues("details.metadata.structuralTonnage"),
+              reinforcingTonnage: getValues("details.metadata.reinforcingTonnage"),
+              projectAddress: `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+              venue: getValues("details.venue"),
             });
             setValue("details.internalAudit", internalAudit);
             setValue("details.clientSummary", clientSummary);
@@ -1086,6 +1159,10 @@ export const ProposalContextProvider = ({
               const { clientSummary, internalAudit } = calculateProposalAudit(updated, {
                 taxRate: getValues("details.taxRateOverride"),
                 bondPct: getValues("details.bondRateOverride"),
+                structuralTonnage: getValues("details.metadata.structuralTonnage"),
+                reinforcingTonnage: getValues("details.metadata.reinforcingTonnage"),
+                projectAddress: `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                venue: getValues("details.venue"),
               });
               setValue("details.internalAudit", internalAudit);
               setValue("details.clientSummary", clientSummary);
@@ -1162,7 +1239,11 @@ export const ProposalContextProvider = ({
       const res = await fetch("/api/proposals/export/audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ proposalId: id }),
+        body: JSON.stringify({
+          proposalId: id,
+          projectAddress: `${formValues?.receiver?.address ?? ""} ${formValues?.receiver?.city ?? ""} ${formValues?.receiver?.zipCode ?? ""} ${formValues?.details?.location ?? ""}`.trim(),
+          venue: formValues?.details?.venue ?? "",
+        }),
       });
 
       if (!res.ok) {
@@ -1181,6 +1262,123 @@ export const ProposalContextProvider = ({
       console.error("exportAudit error:", e);
     }
   };
+
+  const loadExcelPreview = useCallback(async (file: File) => {
+    setExcelPreviewLoading(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const workbook = xlsx.read(arrayBuffer, { type: "array" });
+      const maxRows = 200;
+      const maxCols = 60;
+
+      const sheets: ExcelPreviewSheet[] = workbook.SheetNames.map((name) => {
+        const sheet = workbook.Sheets[name];
+        const ref = (sheet as any)["!ref"] as string | undefined;
+        const range = ref ? xlsx.utils.decode_range(ref) : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+        const rowsCount = Math.min(range.e.r + 1, maxRows);
+        const colsCount = Math.min(range.e.c + 1, maxCols);
+
+        const rawRows = xlsx.utils.sheet_to_json(sheet, {
+          header: 1,
+          raw: false,
+          defval: "",
+        }) as any[][];
+
+        const grid: string[][] = Array.from({ length: rowsCount }, (_, r) => {
+          const src = rawRows[r] || [];
+          return Array.from({ length: colsCount }, (_, c) => String(src[c] ?? ""));
+        });
+
+        const merges = (((sheet as any)["!merges"] as any[]) || []).map((m) => ({
+          s: { r: m.s.r, c: m.s.c },
+          e: { r: m.e.r, c: m.e.c },
+        }));
+
+        const hiddenRowsMeta = ((sheet as any)["!rows"] as Array<{ hidden?: boolean }> | undefined) || [];
+        const hiddenRows = Array.from({ length: rowsCount }, (_, r) => !!hiddenRowsMeta[r]?.hidden);
+
+        const colsMeta = ((sheet as any)["!cols"] as Array<{ wch?: number; hidden?: boolean }> | undefined) || [];
+        const colWidths = Array.from({ length: colsCount }, (_, c) => {
+          if (colsMeta[c]?.hidden) return 0;
+          const wch = colsMeta[c]?.wch;
+          return typeof wch === "number" ? wch : null;
+        });
+
+        const normalizedSheetName = name.toLowerCase();
+        const isLedSheet =
+          (normalizedSheetName.includes("led") && normalizedSheetName.includes("sheet")) ||
+          normalizedSheetName.includes("led cost sheet");
+        const requiredCols = { a: 0, f: 5, g: 6 };
+
+        let headerRowIndex = 0;
+        for (let r = 0; r < Math.min(grid.length, 15); r++) {
+          const rowText = grid[r].join(" ").toLowerCase();
+          if (rowText.includes("display name") || rowText.includes("display")) {
+            headerRowIndex = r;
+            break;
+          }
+        }
+
+        let validationIssue = false;
+        let hasNumericDimensions = false;
+        if (isLedSheet) {
+          for (let r = headerRowIndex + 1; r < grid.length; r++) {
+            const row = grid[r];
+            const nameCell = row[requiredCols.a] || "";
+            const rowText = row.join(" ").toUpperCase();
+            const isAlt = rowText.includes("ALT");
+            if (hiddenRows[r] || isAlt) continue;
+            const isRowActive = String(nameCell).trim() !== "";
+            if (!isRowActive) continue;
+            const h = String(row[requiredCols.f] || "").trim();
+            const w = String(row[requiredCols.g] || "").trim();
+
+            const isBad = (v: string) => v === "" || v.toUpperCase().includes("TBD");
+            if (isBad(nameCell) || isBad(h) || isBad(w)) {
+              validationIssue = true;
+              continue;
+            }
+
+            const toNum = (v: string) => Number(String(v).replace(/[^\d.-]/g, ""));
+            const hn = toNum(h);
+            const wn = toNum(w);
+            if (!isFinite(hn) || !isFinite(wn) || hn <= 0 || wn <= 0) {
+              validationIssue = true;
+              continue;
+            }
+            hasNumericDimensions = true;
+          }
+        }
+
+        return {
+          name,
+          grid,
+          merges,
+          hiddenRows,
+          colWidths,
+          validationIssue,
+          hasNumericDimensions,
+        };
+      });
+
+      const ledSheet = sheets.find((s) => {
+        const n = s.name.toLowerCase();
+        return (n.includes("led") && n.includes("sheet")) || n.includes("led cost sheet");
+      });
+      setExcelValidationOk(!!ledSheet?.hasNumericDimensions && !ledSheet?.validationIssue);
+
+      setExcelPreview({
+        fileName: file.name,
+        sheets,
+        loadedAt: Date.now(),
+      });
+    } catch {
+      setExcelPreview(null);
+      setExcelValidationOk(false);
+    } finally {
+      setExcelPreviewLoading(false);
+    }
+  }, []);
 
   /**
    * Import an proposal from a JSON file.
@@ -1228,6 +1426,7 @@ export const ProposalContextProvider = ({
    * @param {File} file - The Excel file to import.
    */
   const importANCExcel = async (file: File) => {
+    loadExcelPreview(file);
     const formData = new FormData();
     formData.append("file", file);
 
@@ -1287,6 +1486,10 @@ export const ProposalContextProvider = ({
         proposalPdf,
         proposalPdfLoading,
         excelImportLoading,
+        excelPreviewLoading,
+        excelPreview,
+        excelValidationOk,
+        loadExcelPreview,
         savedProposals,
         pdfUrl,
         activeTab,
@@ -1400,7 +1603,9 @@ export const ProposalContextProvider = ({
                       taxRate: getValues("details.taxRateOverride"),
                       bondPct: getValues("details.bondRateOverride"),
                       structuralTonnage: ext.rulesDetected?.structuralTonnage,
-                      reinforcingTonnage: ext.rulesDetected?.reinforcingTonnage
+                      reinforcingTonnage: ext.rulesDetected?.reinforcingTonnage,
+                      projectAddress: `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                      venue: ext.venue ?? getValues("details.venue"),
                     });
                     setValue("details.internalAudit", internalAudit);
                     setValue("details.clientSummary", clientSummary);
@@ -1443,6 +1648,8 @@ export const ProposalContextProvider = ({
         trackAiFieldModification,
         isFieldGhostActive,
         proposal: watch(),
+        headerType,
+        setHeaderType,
         // Calculation Mode
         calculationMode,
         setCalculationMode,

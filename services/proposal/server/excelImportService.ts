@@ -36,27 +36,32 @@ export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> 
     const headers = ledData[headerRowIndex];
     if (!headers) throw new Error("Could not find header row in LED Sheet");
 
-    const getCol = (name: string) => headers.findIndex(h => typeof h === 'string' && h.toLowerCase().includes(name.toLowerCase()));
-
+    // REQ-111: Fixed Column Index Mapping for "Master Truth" precision
+    // Using explicit column indices to prevent fuzzy matching errors
     const colIdx = {
-        name: getCol('Display Name') !== -1 ? getCol('Display Name') : 0,    // Column A
-        pitch: getCol('Pixel Pitch') !== -1 ? getCol('Pixel Pitch') : 4,    // Column E (Actually Pixel Count in prompt, but pitch in code)
-        height: getCol('Height') !== -1 ? getCol('Height') : 5,             // Column F
-        width: getCol('Width') !== -1 ? getCol('Width') : 6,               // Column G
-        pixelsH: getCol('Pixel H') !== -1 ? getCol('Pixel H') : 7,          // Column H
-        pixelsW: getCol('Pixel W') !== -1 ? getCol('Pixel W') : 9,          // Column J
-        brightnessNits: getCol('Brightness') !== -1 ? getCol('Brightness') : 12, // Column M
-        hdrStatus: getCol('HDR') !== -1 ? getCol('HDR') : -1,               // Search for HDR column
-        hardwareCost: getCol('LED Price') !== -1 ? getCol('LED Price') : 16,
-        installCost: getCol('Install') !== -1 ? getCol('Install') : 17,
-        otherCost: getCol('Other') !== -1 ? getCol('Other') : 18,
-        shippingCost: getCol('Shipping') !== -1 ? getCol('Shipping') : 19,
-        totalCost: getCol('Total Cost') !== -1 ? getCol('Total Cost') : 20,
-        sellPrice: getCol('Sell Price') !== -1 ? getCol('Sell Price') : 22,
-        ancMargin: getCol('Margin') !== -1 ? getCol('Margin') : 23,
-        bondCost: getCol('Bond') !== -1 ? getCol('Bond') : 24,
-        finalTotal: getCol('Total') !== -1 ? (getCol('Total') === getCol('Total Cost') ? 25 : getCol('Total')) : 25,
+        name: 0,           // Column A - Display Name
+        pitch: 4,          // Column E - Pixel Pitch
+        height: 5,         // Column F - Height
+        width: 6,          // Column G - Width
+        pixelsH: 7,        // Column H - Pixel H (Resolution Height)
+        pixelsW: 9,        // Column J - Pixel W (Resolution Width)
+        brightnessNits: 12, // Column M - Brightness (formerly "Nits")
+        hdrStatus: -1,     // HDR column (search dynamically)
+        hardwareCost: 16,  // LED Price
+        installCost: 17,   // Install
+        otherCost: 18,     // Other
+        shippingCost: 19,  // Shipping
+        totalCost: 20,     // Total Cost
+        sellPrice: 22,     // Sell Price
+        ancMargin: 23,     // Margin
+        bondCost: 24,      // Bond
+        finalTotal: 25,    // Total (Final)
     };
+
+    // Dynamic search for HDR column if not at fixed position
+    if (colIdx.hdrStatus === -1) {
+        colIdx.hdrStatus = headers.findIndex(h => typeof h === 'string' && h.toLowerCase().includes('hdr'));
+    }
 
     const screens: any[] = [];
     const perScreenAudits: ScreenAudit[] = [];
@@ -67,8 +72,10 @@ export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> 
 
         // Valid project row usually has a name and dimensions
         if (typeof projectName === 'string' && projectName.trim() !== "" && row[colIdx.pitch]) {
-            // BYPASS LOGIC: Ignore "Alternate" rows as per estimation standards
-            if (projectName.toLowerCase().includes('alternate') || projectName.toLowerCase().includes('alt.')) {
+            // REQ-111: Alternate Row Filter - Use startsWith to avoid false positives
+            // Prevents "Altitude Display" from being incorrectly skipped
+            const normalizedName = projectName.trim().toLowerCase();
+            if (normalizedName.startsWith('alt') || normalizedName.startsWith('alternate')) {
                 continue;
             }
 
@@ -113,7 +120,7 @@ export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> 
 
             let description = `Resolution: ${screen.pixelsH}h x ${screen.pixelsW}w. `;
             if (brightness) {
-                description += `Brightness: ${brightness} nits.`;
+                description += `Brightness: ${brightness}.`;
             }
             screen.description = description;
 

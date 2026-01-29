@@ -1,11 +1,11 @@
 /**
  * RFP Parser - Extracts technical requirements from RFP documents
- * 
+ *
  * This module parses RFP text to extract:
  * - Location names
  * - Display dimensions (width × height)
  * - Pixel pitch requirements
- * - Brightness (nits) requirements
+ * - Brightness requirements
  * - Viewing angle requirements
  * - IP rating requirements
  * - Special notes (transparent displays, serviceability, etc.)
@@ -175,7 +175,7 @@ function parseLocationRequirements(locationName: string, locationText: string): 
     };
   }
 
-  // Extract minimum nits
+  // Extract minimum brightness
   const nitsMatch = locationText.match(/Minimum Nits\s*[\r\n\s]*[:=]\s*(\d+)/i);
   if (nitsMatch && location.technicalRequirements) {
     location.technicalRequirements.minimumNits = parseInt(nitsMatch[1]);
@@ -377,7 +377,7 @@ function formatLocationForIngestion(loc: RFPDisplayLocation): string {
     ``,
     `**Dimensions:** ${loc.dimensions?.widthFeet ?? 'N/A'}' × ${loc.dimensions?.heightFeet ?? 'N/A'}'`,
     `**Pixel Pitch:** ${loc.pitchRequirement?.preferred ?? 'Not specified'}`,
-    `**Minimum Brightness:** ${loc.technicalRequirements?.minimumNits ?? 'Not specified'} nits`,
+    `**Minimum Brightness:** ${loc.technicalRequirements?.minimumNits ?? 'Not specified'}`,
     `**IP Rating:** ${loc.technicalRequirements?.ipRating ?? 'Not specified'}`,
     `**Service Access:** ${loc.serviceRequirements?.accessMethod ?? 'Not specified'}`,
     ``,
@@ -411,11 +411,11 @@ export function validateProductAgainstRFP(
     }
   }
 
-  // Check brightness (nits)
+  // Check brightness
   if (location.technicalRequirements?.minimumNits && product.brightness_nits) {
     const productNits = parseFloat(product.brightness_nits);
     if (productNits < location.technicalRequirements.minimumNits) {
-      gaps.push(`Brightness ${product.brightness_nits} nits below requirement of ${location.technicalRequirements.minimumNits} nits`);
+      gaps.push(`Brightness ${product.brightness_nits} below requirement of ${location.technicalRequirements.minimumNits}`);
       score -= 30;
     }
   }

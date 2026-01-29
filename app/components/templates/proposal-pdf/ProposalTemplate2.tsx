@@ -28,9 +28,29 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     const internalAudit = details?.internalAudit as any;
     const totals = internalAudit?.totals;
 
-    const isLOI = (details as any).documentType === "LOI";
-    const pricingType = (details as any).pricingType;
-    const docLabel = isLOI ? "SALES QUOTATION" : pricingType === "Hard Quoted" ? "SALES QUOTATION" : "BUDGET ESTIMATE";
+    const documentType = (details as any).documentType as "LOI" | "First Round" | undefined;
+    const pricingType = (details as any).pricingType as "Hard Quoted" | "Budget" | undefined;
+    const headerType = documentType === "LOI" ? "LOI" : pricingType === "Hard Quoted" ? "PROPOSAL" : "BUDGET";
+    const docLabel = headerType === "BUDGET" ? "BUDGET ESTIMATE" : "SALES QUOTATION";
+
+    const purchaserName = receiver?.name || "Client Name";
+    const purchaserAddress =
+        details?.venue === "Milan Puskar Stadium"
+            ? "1 Ira Errett Rodgers Drive, Morgantown, WV 26505"
+            : details?.venue === "WVU Coliseum"
+                ? "3450 Monongahela Blvd, Morgantown, WV 26505"
+                : (() => {
+                    const address = receiver?.address;
+                    const city = receiver?.city;
+                    const zip = receiver?.zipCode;
+                    const parts = [address, city, zip].filter(Boolean) as string[];
+                    if (parts.length === 0) return "[CLIENT ADDRESS]";
+                    if (parts.length === 1) return parts[0];
+                    if (parts.length === 2) return `${parts[0]}, ${parts[1]}`;
+                    return `${parts[0]}, ${parts[1]}, ${parts[2]}`;
+                })();
+
+    const ancAddress = sender?.address || "2 Manhattanville Road, Suite 402, Purchase, NY 10577";
 
     // Helper for Section Title
     const SectionHeader = ({ title }: { title: string }) => (
@@ -82,7 +102,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     <tr className="bg-gray-100">
                         <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">
-                            {screen.brightnessNits ? `${formatNumberWithCommas(screen.brightnessNits)} nits` : "Standard"}
+                            {screen.brightnessNits ? `${formatNumberWithCommas(screen.brightnessNits)}` : "Standard"}
                         </td>
                     </tr>
                     <tr className="bg-white">
@@ -184,7 +204,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     };
 
     return (
-        <ProposalLayout data={data}>
+        <ProposalLayout data={data} disableFixedFooter>
             {/* 1. HEADER (Summary Page) - Refined for ABCDE Layout */}
             <div className="flex justify-between items-start mb-10 px-4 pt-4 break-inside-avoid">
                 {/* Logo Left */}
@@ -204,9 +224,19 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
             {/* Intro Paragraph */}
             <div className="mb-10 text-[11px] text-gray-700 text-justify leading-relaxed px-4">
-                <p>
-                    This Sales Quotation will set forth the terms by which {receiver?.name || "Purchaser"} (“Purchaser”) located at {receiver?.address || "[Client Address]"} and ANC Sports Enterprises, LLC (“ANC”) located at {sender?.address || "2 Manhattanville Road, Suite 402, Purchase, NY 10577"} (collectively, the “Parties”) agree that ANC will provide following LED Display and services (the “Display System”) described below for {details?.location || details?.proposalName || "the project"}.
-                </p>
+                {headerType === "LOI" ? (
+                    <p>
+                        This Sales Quotation will set forth the terms by which {purchaserName} (“Purchaser”) located at {purchaserAddress} and ANC Sports Enterprises, LLC (“ANC”) located at {ancAddress} (collectively, the “Parties”) agree that ANC will provide following LED Display and services (the “Display System”) described below for {details?.location || details?.proposalName || "the project"}.
+                    </p>
+                ) : headerType === "PROPOSAL" ? (
+                    <p>
+                        ANC is pleased to present the following LED Display proposal to {purchaserName} per the specifications and pricing below.
+                    </p>
+                ) : (
+                    <p>
+                        ANC is pleased to present the following LED Display budget to {purchaserName} per the specifications and pricing below.
+                    </p>
+                )}
             </div>
 
             {/* 2. SPECIFICATIONS SECTION */}
@@ -332,13 +362,28 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
             {/* 7. SIGNATURES - FORCED TO END */}
             <div className="break-before-page px-4">
+                {/* REQ-112: Footer moved BEFORE signatures to ensure signatures are absolute final element */}
+                <div className="mb-12 pb-6 border-b border-gray-100 text-center">
+                    <p className="text-[9px] text-gray-400 font-bold tracking-[0.2em] uppercase mb-1">ANC SPORTS ENTERPRISES, LLC</p>
+                    <p className="text-[8px] text-gray-400 font-medium">2 Manhattanville Road, Suite 402, Purchase, NY 10577  |  www.anc.com</p>
+                    <div className="flex justify-center mt-6 opacity-20">
+                        <BrandSlashes count={3} width={50} height={15} />
+                    </div>
+                </div>
+
+                {/* REQ-112: Signature Block as Absolute Final Element - No content renders below this point */}
                 <div className="mt-12 break-inside-avoid">
+                    <p className="text-[10px] text-gray-600 leading-relaxed text-justify mb-10" style={{ fontFamily: "'Helvetica Condensed', sans-serif" }}>
+                        Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.
+                        <br /><br />
+                        If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties.
+                    </p>
                     <h4 className="font-bold text-[11px] uppercase mb-8 border-b-2 border-black pb-1">Agreed To And Accepted:</h4>
 
                     <div className="space-y-10">
                         {/* ANC Signature Block */}
                         <div>
-                            <p className="font-bold text-[11px] text-[#0A52EF] mb-4">ANC SPORTS ENTERPRISES, LLC (“ANC”)</p>
+                            <p className="font-bold text-[11px] text-[#0A52EF] mb-4">ANC SPORTS ENTERPRISES, LLC ("ANC")</p>
                             <p className="text-[10px] text-gray-500 mb-4">2 Manhattanville Road, Suite 402, Purchase, NY 10577</p>
                             <div className="flex gap-6">
                                 <div className="flex-[2]">
@@ -358,12 +403,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
                         {/* Purchaser Signature Block */}
                         <div>
-                            <p className="font-bold text-[11px] text-[#0A52EF] mb-4">{receiver?.name || "Purchaser"} (“PURCHASER”)</p>
-                            <p className="text-[10px] text-gray-500 mb-4">
-                                {details?.venue === 'Milan Puskar Stadium' ? '1 Ira Errett Rodgers Drive, Morgantown, WV 26505' :
-                                 details?.venue === 'WVU Coliseum' ? '3450 Monongahela Blvd, Morgantown, WV 26505' :
-                                 `${receiver?.address || "Address Line 1"}, ${receiver?.city || "City"}, ${receiver?.zipCode || "Zip"}`}
-                            </p>
+                            <p className="font-bold text-[11px] text-[#0A52EF] mb-4">{receiver?.name || "Purchaser"} ("PURCHASER")</p>
+                            <p className="text-[10px] text-gray-500 mb-4">{purchaserAddress}</p>
                             <div className="flex gap-6">
                                 <div className="flex-[2]">
                                     <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">By:</p>
@@ -379,15 +420,6 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                {/* ANC STANDARDIZED FOOTER */}
-                <div className="mt-16 pt-6 border-t border-gray-100 text-center">
-                    <p className="text-[9px] text-gray-400 font-bold tracking-[0.2em] uppercase mb-1">ANC SPORTS ENTERPRISES, LLC</p>
-                    <p className="text-[8px] text-gray-400 font-medium">2 Manhattanville Road, Suite 402, Purchase, NY 10577  |  www.anc.com</p>
-                    <div className="flex justify-center mt-6 opacity-20">
-                        <BrandSlashes count={3} width={50} height={15} />
                     </div>
                 </div>
             </div>
