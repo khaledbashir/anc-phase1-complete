@@ -38,3 +38,8 @@ next-env.d.ts
 /.cache
 *.db
 .env
+
+# VPS cleanup scripts (server-only)
+vps-cleanup.sh
+clean-vps
+VPS_CLEANUP_README.md

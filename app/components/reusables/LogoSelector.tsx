@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 type LogoSelectorProps = {
@@ -21,7 +22,7 @@ const LogoSelector = ({ theme = "light", width = 160, height = 80, className = "
 
     return (
         <div className={cn("p-4 inline-flex items-center justify-center", className)}>
-            <img
+            <Image
                 src={logoSrc}
                 width={width}
                 height={height}

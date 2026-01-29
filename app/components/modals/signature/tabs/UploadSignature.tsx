@@ -2,6 +2,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 
+// Next.js
+import Image from "next/image";
+
 // Components
 import { BaseButton } from "@/app/components";
 
@@ -32,14 +35,16 @@ const UploadSignature = ({ handleSaveSignature }: UploadSignatureProps) => {
                 <CardContent className="space-y-2 p-0">
                     <div style={{ height: "15rem" }}>
                         {uploadSignatureImg ? (
-                            <img
+                            <Image
                                 style={{
                                     borderRadius: "10px",
                                     width: "100%",
                                     height: "15rem",
                                 }}
                                 width={300}
+                                height={240}
                                 src={uploadSignatureImg}
+                                alt="Uploaded signature"
                             />
                         ) : (
                             <div>Upload image</div>

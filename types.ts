@@ -66,3 +66,10 @@ export enum CalculationMode {
     MIRROR = "MIRROR",
     INTELLIGENCE = "INTELLIGENCE",
 }
+
+export enum Venue {
+    STADIUM = "Milan Puskar Stadium",
+    COLISEUM = "WVU Coliseum",
+    GENERIC = "Generic",
+}
+

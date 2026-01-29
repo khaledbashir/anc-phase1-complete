@@ -2,6 +2,9 @@
 
 import { ChangeEvent, useRef, useState } from "react";
 
+// Next.js
+import Image from "next/image";
+
 // RHF
 import { useFormContext, useWatch } from "react-hook-form";
 
@@ -18,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { BaseButton } from "@/app/components";
 
 // Icons
-import { ImageMinus, Image } from "lucide-react";
+import { ImageMinus, Image as ImageIcon } from "lucide-react";
 
 // Types
 import { NameType } from "@/types";
@@ -71,14 +74,17 @@ const FormFile = ({ name, label, placeholder }: FormFileProps) => {
                     <FormItem>
                         <Label>{label}:</Label>
                         {base64Image ? (
-                            <img
+                            <Image
                                 id="logoImage"
                                 src={base64Image}
+                                width={160}
+                                height={112}
                                 style={{
                                     objectFit: "contain",
                                     width: "10rem",
                                     height: "7rem",
                                 }}
+                                alt="Logo preview"
                             />
                         ) : (
                             <div
@@ -94,7 +100,7 @@ const FormFile = ({ name, label, placeholder }: FormFileProps) => {
                                 >
                                     <>
                                         <div className="flex flex-col items-center">
-                                            <Image />
+                                            <ImageIcon />
                                             <p>{placeholder}</p>
                                         </div>
                                         <FormControl>

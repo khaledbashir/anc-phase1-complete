@@ -185,18 +185,28 @@ function buildFormulaicAudit(sheet: ExcelJS.Worksheet, screens: any[], options?:
         sheet.getCell(`I${currentRow}`).numFmt = '"$"#,##0.00';
 
         currentRow++;
+        const boTaxRow = currentRow; // Morgantown 2% Tax (REQ-48)
+        sheet.getCell(`A${currentRow}`).value = 'CITY B&O TAX (2%)';
+        sheet.getCell(`D${currentRow}`).value = '(Sell Price + Bond) * B&O Rate';
+        sheet.getCell(`H${currentRow}`).value = 0.02; // Default 2%
+        sheet.getCell(`H${currentRow}`).numFmt = '0.0%';
+        sheet.getCell(`H${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }; // Yellow Input
+        sheet.getCell(`I${currentRow}`).value = { formula: `(G${sellPriceRow}+I${bondRow})*H${boTaxRow}` };
+        sheet.getCell(`I${currentRow}`).numFmt = '"$"#,##0.00';
+
+        currentRow++;
         const taxRow = currentRow;
         sheet.getCell(`A${currentRow}`).value = 'SALES TAX';
-        sheet.getCell(`D${currentRow}`).value = '(Sell Price + Bond) * Tax Rate';
+        sheet.getCell(`D${currentRow}`).value = '(Sell Price + Bond + B&O) * Tax Rate';
         sheet.getCell(`H${currentRow}`).value = 0.095; // Default 9.5% tax
         sheet.getCell(`H${currentRow}`).numFmt = '0.0%';
         sheet.getCell(`H${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }; // Yellow Input
-        sheet.getCell(`I${currentRow}`).value = { formula: `(G${sellPriceRow}+I${bondRow})*H${taxRow}` }; // Tax on (Sell + Bond)
+        sheet.getCell(`I${currentRow}`).value = { formula: `(G${sellPriceRow}+I${bondRow}+I${boTaxRow})*H${taxRow}` }; // Tax on (Sell + Bond + B&O)
         sheet.getCell(`I${currentRow}`).numFmt = '"$"#,##0.00';
 
         currentRow++;
         sheet.getCell(`A${currentRow}`).value = 'FINAL CLIENT TOTAL';
-        sheet.getCell(`I${currentRow}`).value = { formula: `G${sellPriceRow}+I${bondRow}+I${taxRow}` }; // Total = Sell + Bond + Tax
+        sheet.getCell(`I${currentRow}`).value = { formula: `G${sellPriceRow}+I${bondRow}+I${boTaxRow}+I${taxRow}` }; // Total = Sell + Bond + B&O + Tax
         sheet.getCell(`I${currentRow}`).font = { bold: true, size: 12 };
         sheet.getCell(`I${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD4EDDA' } };
         sheet.getCell(`I${currentRow}`).numFmt = '"$"#,##0.00';

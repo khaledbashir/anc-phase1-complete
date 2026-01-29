@@ -1,5 +1,8 @@
 import { ReactNode } from "react";
 
+// Next.js
+import Image from "next/image";
+
 // Types
 import { ProposalType } from "@/types";
 
@@ -18,18 +21,21 @@ export default function ProposalLayout({ data, children }: ProposalLayoutProps) 
 
     const head = (
         <>
+            {/* eslint-disable-next-line @next/next/no-page-custom-font */}
             <link rel="preconnect" href="https://fonts.googleapis.com" />
             <link
                 rel="preconnect"
                 href="https://fonts.gstatic.com"
                 crossOrigin="anonymous"
             />
+            {/* eslint-disable-next-line @next/next/no-page-custom-font */}
             <link
                 href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap"
                 rel="stylesheet"
             ></link>
             {details.signature?.fontFamily && (
                 <>
+                    {/* eslint-disable-next-line @next/next/no-page-custom-font */}
                     <link href={fontHref} rel="stylesheet" />
                 </>
             )}
@@ -59,7 +65,7 @@ export default function ProposalLayout({ data, children }: ProposalLayoutProps) 
                             <p className="text-[9px] font-bold text-[#0A52EF] tracking-wide">www.anc.com/contact</p>
                             <p className="text-[7px] text-zinc-400 tracking-wider">NY 914.696.2100 TX 940.464.2320</p>
                         </div>
-                        <img src="/ANC_Logo_2023_blue.png" alt="ANC" className="w-12 h-6 object-contain" />
+                        <Image src="/ANC_Logo_2023_blue.png" alt="ANC" width={48} height={24} className="w-12 h-6 object-contain" />
                     </div>
                 </div>
             </section>

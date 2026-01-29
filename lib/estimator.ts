@@ -72,6 +72,9 @@ export function calculateScreenPrice(
   };
 }
 
+export const MORGANTOWN_BO_TAX = 0.02; // 2% West Virginia B&O Tax (REQ-48)
+export const STEEL_PRICE_PER_TON = 4500; // Default estimate $4500/ton installed
+
 /**
  * Calculate multiple screens in a proposal
  * @param screens Array of screen configurations
@@ -199,8 +202,9 @@ export type ScreenAudit = {
     bondCost: number; // Sell Price * 1.5%
     marginAmount: number; // Alias for ancMargin (backwards compatibility)
     totalCost: number; // Sum of all costs EXCLUDING bond
-    finalClientTotal: number; // Sell Price + Bond Cost
+    finalClientTotal: number; // Sell Price + Bond Cost + boTax
     sellingPricePerSqFt: number; // Final Client Total / Sq Ft
+    boTaxCost: number; // REQ-48
   };
 };
 
@@ -226,7 +230,8 @@ export type InternalAudit = {
     bondCost: number; // Sell Price * 1.5%
     margin: number;   // Alias for ancMargin
     totalCost: number; // Sum of screen costs
-    finalClientTotal: number; // Total with Bond
+    boTaxCost: number; // Total B&O Tax
+    finalClientTotal: number; // Total with Bond and B&O
     sellingPricePerSqFt: number; // Weighted average
   };
 };
@@ -283,6 +288,8 @@ export function calculatePerScreenAudit(
     permitsFixed?: number;
     cmsPct?: number;
     bondPct?: number;
+    structuralTonnage?: number; // REQ-46
+    reinforcingTonnage?: number; // REQ-46
   }
 ): ScreenAudit {
   // Load catalog for VLOOKUP
@@ -307,6 +314,12 @@ export function calculatePerScreenAudit(
   const CMS_PCT = options?.cmsPct ?? 0.02;
   const BOND_PCT = options?.bondPct ?? 0.015;
   const DEMOLITION_FIXED = 5000;
+
+  // REQ-46 Structural Tonnage Defaults
+  const structuralTonnage = options?.structuralTonnage ?? 0;
+  const reinforcingTonnage = options?.reinforcingTonnage ?? 0;
+  const totalTonnage = structuralTonnage + reinforcingTonnage;
+  const tonnageCost = totalTonnage * STEEL_PRICE_PER_TON;
 
   const qty = s.quantity ?? 1;
   const pitch = s.pitchMm ?? DEFAULT_PITCH_MM;
@@ -372,7 +385,9 @@ export function calculatePerScreenAudit(
   const structureMultiplier = isCurved ? 1.25 : 1.0;
   const laborMultiplier = isCurved ? 1.15 : 1.0;
 
-  const structure = roundToCents(hardware * STRUCTURE_PCT * structureMultiplier);
+  // REQ-46: If tonnage exists, use it for structure cost
+  const baseStructure = tonnageCost > 0 ? tonnageCost : (hardware * STRUCTURE_PCT);
+  const structure = roundToCents(baseStructure * structureMultiplier);
   const install = roundToCents(INSTALL_FLAT * laborMultiplier);
   const labor = roundToCents(hardware * LABOR_PCT * laborMultiplier);
   const power = roundToCents(hardware * POWER_PCT);
@@ -414,7 +429,11 @@ export function calculatePerScreenAudit(
 
   // Bond Fee: 1.5% applied ON TOP of the Sell Price (calculated against Sell Price)
   const bondCost = roundToCents(sellPrice * BOND_PCT);
-  const finalClientTotal = roundToCents(sellPrice + bondCost);
+
+  // REQ-48: Morgantown B&O Tax (2% of Sell Price + Bond)
+  const boTaxCost = roundToCents((sellPrice + bondCost) * MORGANTOWN_BO_TAX);
+
+  const finalClientTotal = roundToCents(sellPrice + bondCost + boTaxCost);
 
   // ANC Margin (Profit): Sell Price - Total Cost
   const ancMargin = roundToCents(sellPrice - totalCost);
@@ -451,6 +470,7 @@ export function calculatePerScreenAudit(
       bondCost,
       finalClientTotal,
       sellingPricePerSqFt,
+      boTaxCost,
       marginAmount: ancMargin, // Alias for backwards compatibility
     },
   };
@@ -516,15 +536,22 @@ export function calculateANCProject(
  */
 export function calculateProposalAudit(
   screens: ScreenInput[],
-  options?: { 
-    defaultCostPerSqFt?: number; 
-    defaultPitchMm?: number; 
+  options?: {
+    defaultCostPerSqFt?: number;
+    defaultPitchMm?: number;
     defaultDesiredMargin?: number;
     taxRate?: number; // Override default 9.5%
     bondPct?: number; // Override default 1.5%
+    structuralTonnage?: number;
+    reinforcingTonnage?: number;
   }
 ): { clientSummary: ClientSummary; internalAudit: InternalAudit } {
-  const perScreen = screens.map((s) => calculatePerScreenAudit(s, { ...options, bondPct: options?.bondPct }));
+  const perScreen = screens.map((s) => calculatePerScreenAudit(s, {
+    ...options,
+    bondPct: options?.bondPct,
+    structuralTonnage: options?.structuralTonnage,
+    reinforcingTonnage: options?.reinforcingTonnage
+  }));
 
   const totals = {
     hardware: 0,
@@ -545,6 +572,7 @@ export function calculateProposalAudit(
     bondCost: 0,
     margin: 0,
     totalCost: 0,
+    boTaxCost: 0,
     finalClientTotal: 0,
     sellingPricePerSqFt: 0,
     demolition: 0,
@@ -568,6 +596,7 @@ export function calculateProposalAudit(
     totals.ancMargin += b.ancMargin;
     totals.sellPrice += b.sellPrice;
     totals.bondCost += b.bondCost;
+    totals.boTaxCost += b.boTaxCost || 0;
     totals.totalCost += b.totalCost;
     totals.finalClientTotal += b.finalClientTotal;
     totals.sellingPricePerSqFt += b.sellingPricePerSqFt * ps.areaSqFt; // Weighted average later

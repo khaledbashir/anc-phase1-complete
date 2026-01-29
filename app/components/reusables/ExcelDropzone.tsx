@@ -12,7 +12,7 @@ export function ExcelDropzone({ onFileParsed, onError }: ExcelDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleFile = async (file: File) => {
+  const handleFile = useCallback(async (file: File) => {
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
       onError?.('Please upload an Excel file (.xlsx or .xls)');
       return;
@@ -40,7 +40,7 @@ export function ExcelDropzone({ onFileParsed, onError }: ExcelDropzoneProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [onFileParsed, onError]);
 
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -48,7 +48,7 @@ export function ExcelDropzone({ onFileParsed, onError }: ExcelDropzoneProps) {
     
     const file = e.dataTransfer.files[0];
     if (file) handleFile(file);
-  }, [onFileParsed, onError]);
+  }, [handleFile]);
 
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();

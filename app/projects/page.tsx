@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Clock, DollarSign, User, ChevronRight, Loader2, Upload } from "lucide-react";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
@@ -33,11 +33,7 @@ export default function ProjectsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
 
-    useEffect(() => {
-        fetchProjects();
-    }, [searchQuery, statusFilter]);
-
-    const fetchProjects = async () => {
+    const fetchProjects = useCallback(async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
@@ -54,7 +50,11 @@ export default function ProjectsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [searchQuery, statusFilter]);
+
+    useEffect(() => {
+        fetchProjects();
+    }, [fetchProjects]);
 
     const createNewProject = async () => {
         const clientName = prompt("Enter Client Name:");

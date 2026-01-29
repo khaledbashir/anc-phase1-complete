@@ -185,6 +185,7 @@ const ScreenAuditSchema = z.object({
         totalCost: z.number(),
         finalClientTotal: z.number(),
         sellingPricePerSqFt: z.number(),
+        boTaxCost: z.number().optional(), // REQ-48
     }),
 });
 
@@ -212,6 +213,7 @@ const InternalAuditSchema = z.object({
         totalCost: z.number(),
         finalClientTotal: z.number(),
         sellingPricePerSqFt: z.number(),
+        boTaxCost: z.number().optional(), // REQ-48
     }),
 });
 
@@ -281,7 +283,10 @@ const ProposalDetailsSchema = z.object({
     metadata: z.object({
         filledByAI: z.array(z.string()).optional(),
         risks: z.array(z.string()).optional(), // Store IDs of detected risks
+        structuralTonnage: z.number().optional(), // REQ-46
+        reinforcingTonnage: z.number().optional(), // REQ-46
     }).optional(),
+    venue: z.enum(["Milan Puskar Stadium", "WVU Coliseum", "Generic"]).default("Generic"), // REQ-47
 });
 
 const ProposalSchema = z.object({

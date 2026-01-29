@@ -158,7 +158,8 @@ export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> 
                     totalCost: formatCurrencyInternal(totalCostBeforeMargin),
                     finalClientTotal: finalClientTotal,
                     sellingPricePerSqFt: heightFt && widthFt ? finalClientTotal / (parseFloat(heightFt) * parseFloat(widthFt)) : 0,
-                    marginAmount: ancMargin
+                    marginAmount: ancMargin,
+                    boTaxCost: 0
                 }
             };
 
@@ -249,14 +250,16 @@ function aggregateTotals(audits: ScreenAudit[]) {
             finalClientTotal: acc.finalClientTotal + b.finalClientTotal,
             demolition: (acc.demolition || 0) + (b.demolition || 0),
             margin: acc.margin + (b.marginAmount || 0),
-            sellingPricePerSqFt: 0
+            sellingPricePerSqFt: 0,
+            boTaxCost: (acc.boTaxCost || 0) + (b.boTaxCost || 0)
         };
     }, {
         hardware: 0, structure: 0, install: 0, labor: 0, power: 0, shipping: 0, pm: 0,
         generalConditions: 0, travel: 0, submittals: 0, engineering: 0, permits: 0, cms: 0,
         ancMargin: 0, sellPrice: 0, bondCost: 0, totalCost: 0, finalClientTotal: 0, margin: 0,
         demolition: 0,
-        sellingPricePerSqFt: 0
+        sellingPricePerSqFt: 0,
+        boTaxCost: 0
     });
 
     const totalArea = audits.reduce((sum, s) => sum + s.areaSqFt, 0);

@@ -39,35 +39,27 @@ export class RfpExtractionService {
       3. SPARE PARTS: Is there a "Minimum 5% Spare Parts" requirement? (Mapped to includeSpareParts)
       4. REPLACEMENT: Is this a replacement project? (Mapped to isReplacement)
       5. HDR/BRIGHTNESS: Extract required Nits (brightness) and HDR support from Section 11 63 10.
+      6. STRUCTURAL (Thornton Tomasetti): Does the RFP include a structural report from "Thornton Tomasetti" or "TTE"? 
+         If so, extract the Tonnage estimates:
+         - Search for "reinforcing steel" tonnage (e.g., 17 tons).
+         - Search for "new steel columns/beams" tonnage (e.g., 17 tons).
+         - Map these to metadata fields structuralTonnage and reinforcingTonnage.
       
       OUTPUT FORMAT: Return ONLY a valid JSON object. No markdown, no conversational text.
       
       {
         "clientName": "...",
         "projectTitle": "...",
+        "venue": "Milan Puskar Stadium" | "WVU Coliseum" | "Generic",
         "extractionAccuracy": "High" | "Standard",
-        "screens": [
-          {
-            "name": "Internal shorthand (e.g. Ribbon 1)",
-            "externalName": "Client-facing professional name",
-            "widthFt": 0.0,
-            "heightFt": 0.0,
-            "pitchMm": 0.0,
-            "pixelsH": 0,
-            "pixelsW": 0,
-            "brightness": "...",
-            "quantity": 1,
-            "serviceType": "Top" | "Front/Rear",
-            "isReplacement": boolean,
-            "useExistingStructure": boolean,
-            "includeSpareParts": boolean
-          }
-        ],
+        "screens": [ ... ],
         "rulesDetected": {
            "requiresUnionLabor": boolean,
            "isWtcLocation": boolean,
            "requiresSpareParts": boolean,
-           "requiresBond": boolean
+           "requiresBond": boolean,
+           "structuralTonnage": number,
+           "reinforcingTonnage": number
         }
       }
     `;

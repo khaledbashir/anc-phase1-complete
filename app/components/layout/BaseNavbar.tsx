@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Settings, LogOut } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -45,9 +46,11 @@ const BaseNavbar = () => {
         <Card className="flex items-center justify-between px-6 py-3">
           {/* Left: ANC Logo */}
           <Link href="/" className="flex items-center">
-            <img
+            <Image
               src="/anc-logo-blue.png"
               alt="ANC Proposal Engine"
+              width={40}
+              height={40}
               className="h-10 w-auto"
             />
           </Link>

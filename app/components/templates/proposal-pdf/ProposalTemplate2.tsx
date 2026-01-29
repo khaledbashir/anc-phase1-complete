@@ -99,7 +99,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         // REQ-28: Security - If shared view, we MUST NOT use internal audit data directly if it contains costs/margins
         const auditRow = isSharedView ? null : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
         const b = auditRow?.breakdown;
-        
+
         // Fallback for shared view where internalAudit might be missing/sanitized
         const getPrice = (category: string) => {
             if (b) return b[category] || 0;
@@ -114,7 +114,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         const pmTravelPrice = b ? (b.pm + b.travel + b.generalConditions) : getPrice("PM");
         const engineeringPrice = b ? (b.engineering + b.permits + b.submittals) : getPrice("Engineering");
         const cmsPrice = b ? b.cms : getPrice("CMS");
-        
+
         const subtotal = b ? b.finalClientTotal : (hardwarePrice + structurePrice + installPrice + powerPrice + pmTravelPrice + engineeringPrice + cmsPrice);
         const taxRate = 0.095; // 9.5% fallback
         const taxAmount = subtotal * taxRate;
@@ -243,6 +243,54 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 </div>
             </div>
 
+            {/* 6. PROJECT CONSTRAINTS (VENUE-SPECIFIC) */}
+            <div className="px-4 mb-8">
+                <h3 className="text-[#0A52EF] font-bold text-[12px] border-b border-[#0A52EF] pb-1 mb-4 uppercase tracking-widest">
+                    Project Constraints & Schedule
+                </h3>
+                <div className="grid grid-cols-2 gap-8 text-[10px]">
+                    <section className="break-inside-avoid">
+                        <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">VENUE SPECIFICATIONS</h4>
+                        <div className="px-2 space-y-2">
+                            <p><span className="font-bold">Venue:</span> {details?.venue || "Generic Site"}</p>
+                            <p><span className="font-bold">Substantial Completion:</span> {
+                                details?.venue === 'Milan Puskar Stadium' ? 'July 30, 2020' :
+                                    details?.venue === 'WVU Coliseum' ? 'August 28, 2020' :
+                                        'TBD'
+                            }</p>
+                            <p><span className="font-bold">Liquidated Damages:</span> {
+                                details?.venue === 'Milan Puskar Stadium' ? '$2,500 per day' :
+                                    details?.venue === 'WVU Coliseum' ? '$5,000 per day' :
+                                        'N/A'
+                            }</p>
+                        </div>
+                    </section>
+
+                    <section className="break-inside-avoid">
+                        <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">SITE LOGISTICS</h4>
+                        <div className="px-2 space-y-2">
+                            {details?.venue === 'Milan Puskar Stadium' && (
+                                <p className="text-red-600 font-bold">WARNING: Concourse flooring capacity unknown. Heavy lifts require field verification.</p>
+                            )}
+                            <p>ANC assumes all base building structure is to be provided by others or is existing and is of sufficient capacity to support the proposed display systems.</p>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            {/* Existing Assumptions section - consolidated into above if needed, but let's keep separate for now or merge */}
+            <div className="px-4 mb-8 opacity-50">
+                <h3 className="text-gray-400 font-bold text-[10px] border-b border-gray-200 pb-1 mb-4 uppercase">General Technical Assumptions</h3>
+                <div className="grid grid-cols-2 gap-8 text-[9px] text-gray-500">
+                    <section className="break-inside-avoid">
+                        <div className="px-2 space-y-1">
+                            <p>ANC assumes reasonable access will be provided to the installation team.</p>
+                            <p>Electrical: Primary power feed by others within 5' of display.</p>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
             {/* 6. STATEMENT OF WORK */}
             <div className="break-before-page px-4">
                 <SectionHeader title="STATEMENT OF WORK" />
@@ -286,7 +334,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             <div className="break-before-page px-4">
                 <div className="mt-12 break-inside-avoid">
                     <h4 className="font-bold text-[11px] uppercase mb-8 border-b-2 border-black pb-1">Agreed To And Accepted:</h4>
-                    
+
                     <div className="space-y-10">
                         {/* ANC Signature Block */}
                         <div>
@@ -312,7 +360,9 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         <div>
                             <p className="font-bold text-[11px] text-[#0A52EF] mb-4">{receiver?.name || "Purchaser"} (“PURCHASER”)</p>
                             <p className="text-[10px] text-gray-500 mb-4">
-                                {receiver?.address || "Address Line 1"}, {receiver?.city || "City"}, {receiver?.zipCode || "Zip"}
+                                {details?.venue === 'Milan Puskar Stadium' ? '1 Ira Errett Rodgers Drive, Morgantown, WV 26505' :
+                                 details?.venue === 'WVU Coliseum' ? '3450 Monongahela Blvd, Morgantown, WV 26505' :
+                                 `${receiver?.address || "Address Line 1"}, ${receiver?.city || "City"}, ${receiver?.zipCode || "Zip"}`}
                             </p>
                             <div className="flex gap-6">
                                 <div className="flex-[2]">

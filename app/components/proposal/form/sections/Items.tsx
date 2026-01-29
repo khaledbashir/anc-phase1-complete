@@ -91,7 +91,7 @@ const Items = () => {
                 move(oldIndex, newIndex);
             }
         },
-        [fields, setValue]
+        [fields, move]
     );
 
     return (

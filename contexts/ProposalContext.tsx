@@ -288,6 +288,7 @@ export const ProposalContextProvider = ({
           additionalNotes: details.additionalNotes || "",
           paymentTerms: details.paymentTerms || "Net 30", // Default if missing
           pdfTemplate: details.pdfTemplate || 1,
+          venue: details.venue || "Generic",
           subTotal: details.subTotal || 0,
           totalAmount: details.totalAmount || 0,
           totalAmountInWords: details.totalAmountInWords || "",
@@ -1338,11 +1339,23 @@ export const ProposalContextProvider = ({
               // Apply AI extracted data if available
               if (data.extractedData) {
                 const ext = data.extractedData;
+                const aiPopulated: string[] = [];
                 if (ext.receiver?.name) setValue("receiver.name", ext.receiver.name);
                 if (ext.details?.proposalName) setValue("details.proposalName", ext.details.proposalName);
+                if (ext.venue) {
+                  setValue("details.venue", ext.venue);
+                  aiPopulated.push("details.venue");
+                }
+                if (ext.rulesDetected?.structuralTonnage) {
+                  setValue("details.metadata.structuralTonnage", Number(ext.rulesDetected.structuralTonnage));
+                  aiPopulated.push("details.metadata.structuralTonnage");
+                }
+                if (ext.rulesDetected?.reinforcingTonnage) {
+                  setValue("details.metadata.reinforcingTonnage", Number(ext.rulesDetected.reinforcingTonnage));
+                  aiPopulated.push("details.metadata.reinforcingTonnage");
+                }
 
                 if (ext.details?.screens && Array.isArray(ext.details.screens)) {
-                  const aiPopulated: string[] = [];
                   const normalized = ext.details.screens.map((s: any, idx: number) => {
                     const prefix = `details.screens[${idx}]`;
                     if (s.name) aiPopulated.push(`${prefix}.name`);
@@ -1386,6 +1399,8 @@ export const ProposalContextProvider = ({
                     const { clientSummary, internalAudit } = calculateProposalAudit(normalized, {
                       taxRate: getValues("details.taxRateOverride"),
                       bondPct: getValues("details.bondRateOverride"),
+                      structuralTonnage: ext.rulesDetected?.structuralTonnage,
+                      reinforcingTonnage: ext.rulesDetected?.reinforcingTonnage
                     });
                     setValue("details.internalAudit", internalAudit);
                     setValue("details.clientSummary", clientSummary);

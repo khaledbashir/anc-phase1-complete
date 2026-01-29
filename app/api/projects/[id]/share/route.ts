@@ -97,6 +97,7 @@ export async function POST(
                 subTotal: 0,
                 mirrorMode: false,
                 calculationMode: "INTELLIGENCE",
+                venue: "Generic", // REQ-47 default
                 // SECURITY: Strictly nullify internal financial logic
                 bondRateOverride: undefined,
                 taxRateOverride: undefined,

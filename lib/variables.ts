@@ -192,6 +192,7 @@ export const FORM_DEFAULT_VALUES = {
     calculationMode: "INTELLIGENCE" as "MIRROR" | "INTELLIGENCE",
     taxRateOverride: 0,
     bondRateOverride: 0,
+    venue: "Generic" as "Milan Puskar Stadium" | "WVU Coliseum" | "Generic",
   },
 };
 
@@ -277,5 +278,6 @@ export const FORM_FILL_VALUES = {
     documentType: "First Round" as "LOI" | "First Round",
     pricingType: "Hard Quoted" as "Hard Quoted" | "Budget",
     pdfTemplate: 1,
+    venue: "Generic" as "Milan Puskar Stadium" | "WVU Coliseum" | "Generic",
   },
 };

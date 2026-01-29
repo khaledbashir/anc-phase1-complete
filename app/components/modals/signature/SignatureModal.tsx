@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 // RHF
 import { useFormContext, useWatch } from "react-hook-form";
 
+// Next.js
+import Image from "next/image";
+
 // ShadCn
 import {
     Dialog,
@@ -117,7 +120,7 @@ const SignatureModal = ({}: SignatureModalProps) => {
                 }
             }, 50);
         }
-    }, [open, tab]);
+    }, [open, tab, signatureData, signatureRef]);
 
     return (
         <>
@@ -129,11 +132,12 @@ const SignatureModal = ({}: SignatureModalProps) => {
                         </Label>
 
                         {signature && isDataUrl(signature) ? (
-                            <img
+                            <Image
                                 className="border border-black rounded-md hover:border-blue-500 bg-white"
                                 src={signature}
                                 width={300}
-                                alt=""
+                                height={155}
+                                alt="Signature preview"
                             />
                         ) : signature && typedSignature ? (
                             <div className="flex justify-center items-center w-[300px]">
