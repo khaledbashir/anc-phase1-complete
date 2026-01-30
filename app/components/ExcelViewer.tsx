@@ -93,6 +93,10 @@ export default function ExcelViewer({
     return getLedHeaderRowIndex(activeSheet.grid);
   }, [activeSheet]);
 
+  const highlightedRowsSet = useMemo(() => {
+    return new Set((highlightedRows || []).filter((r) => Number.isFinite(r)));
+  }, [highlightedRows]);
+
   const mergeMaps = useMemo(() => {
     if (!activeSheet) return null;
     return makeMergeMaps(activeSheet.merges);
@@ -201,10 +205,6 @@ export default function ExcelViewer({
     if (colIndex === LED_BRIGHTNESS_COL_INDEX) return "AI-Extracted Brightness Field";
     return "AI-Extracted Field";
   };
-
-  const highlightedRowsSet = useMemo(() => {
-    return new Set((highlightedRows || []).filter((r) => Number.isFinite(r)));
-  }, [highlightedRows]);
 
   return (
     <div className="h-full w-full rounded-2xl border border-zinc-800 bg-zinc-950/40 overflow-hidden flex flex-col">
