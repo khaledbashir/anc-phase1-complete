@@ -8,11 +8,19 @@ import { SlashBox } from "@/app/components/reusables/BrandGraphics";
 import ExcelViewer from "@/app/components/ExcelViewer";
 import { AiWand, FormInput } from "@/app/components";
 import { Button } from "@/components/ui/button";
+import { useFormContext, useWatch } from "react-hook-form";
 
 const Step1Ingestion = () => {
     const { importANCExcel, excelImportLoading, excelPreview, excelPreviewLoading, excelValidationOk, uploadRfpDocument, rfpDocuments, deleteRfpDocument, aiWorkspaceSlug } = useProposalContext();
+    const { control, setValue } = useFormContext();
+    const mirrorMode = useWatch({ name: "details.mirrorMode", control });
     const [selectedPath, setSelectedPath] = useState<"MIRROR" | "INTELLIGENCE" | null>(null);
     const [rfpUploading, setRfpUploading] = useState(false);
+
+    useEffect(() => {
+        if (selectedPath) return;
+        setSelectedPath(mirrorMode ? "MIRROR" : "INTELLIGENCE");
+    }, [mirrorMode, selectedPath]);
 
     return (
         <div className="h-full flex flex-col p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -96,7 +104,10 @@ const Step1Ingestion = () => {
                 {/* Path 1: Mirror Mode (Excel-to-PDF) */}
                 <SlashBox className="group">
                     <div
-                        onClick={() => setSelectedPath("MIRROR")}
+                        onClick={() => {
+                            setSelectedPath("MIRROR");
+                            setValue("details.mirrorMode", true, { shouldDirty: true, shouldValidate: true });
+                        }}
                         className={`p-6 rounded-2xl border cursor-pointer transition-all duration-300 h-full flex flex-col ${selectedPath === "MIRROR"
                             ? "bg-brand-blue/10 border-brand-blue shadow-2xl shadow-brand-blue/10"
                             : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"
@@ -127,7 +138,10 @@ const Step1Ingestion = () => {
 
                 {/* Path 2: Intelligence Mode (RAG/AI) */}
                 <div
-                    onClick={() => setSelectedPath("INTELLIGENCE")}
+                    onClick={() => {
+                        setSelectedPath("INTELLIGENCE");
+                        setValue("details.mirrorMode", false, { shouldDirty: true, shouldValidate: true });
+                    }}
                     className={`p-6 rounded-2xl border cursor-pointer transition-all duration-300 h-full flex flex-col ${selectedPath === "INTELLIGENCE"
                         ? "bg-brand-blue/10 border-brand-blue shadow-2xl shadow-brand-blue/10"
                         : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"

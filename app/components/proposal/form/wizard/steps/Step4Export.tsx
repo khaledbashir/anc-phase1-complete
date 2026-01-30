@@ -92,6 +92,9 @@ const Step4Export = () => {
     }, [allScreensValid, effectiveExceptions.length, excelPreview, excelSourceData, hasOptionPlaceholder, internalAudit, reconciliation]);
 
     const isMirrorReadyToExport = mirrorBlockingIssues.length === 0;
+    const isPdfPreviewBlocked = mirrorMode
+        ? !allScreensValid || hasOptionPlaceholder || !internalAudit
+        : !allScreensValid;
 
     const handleGlobalExport = async () => {
         if (mirrorMode && !isMirrorReadyToExport) return;
@@ -484,7 +487,11 @@ const Step4Export = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <button 
                             onClick={previewPdfInTab}
-                            className="flex items-center justify-between p-5 bg-zinc-900 border border-zinc-800 rounded-2xl hover:border-brand-blue/50 transition-all group"
+                            disabled={mirrorMode && isPdfPreviewBlocked}
+                            className={cn(
+                                "flex items-center justify-between p-5 bg-zinc-900 border border-zinc-800 rounded-2xl transition-all group",
+                                mirrorMode && isPdfPreviewBlocked ? "opacity-60 cursor-not-allowed" : "hover:border-brand-blue/50"
+                            )}
                         >
                             <div className="flex items-center gap-4">
                                 <div className="p-3 rounded-xl bg-zinc-800 text-zinc-400 group-hover:text-brand-blue transition-colors">
@@ -539,10 +546,10 @@ const Step4Export = () => {
                             <button
                                 type="button"
                                 onClick={ensurePdfPreview}
-                                disabled={mirrorMode && !allScreensValid}
+                                disabled={mirrorMode && isPdfPreviewBlocked}
                                 className={cn(
                                     "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
-                                    (proposalPdfLoading || (mirrorMode && !allScreensValid))
+                                    (proposalPdfLoading || (mirrorMode && isPdfPreviewBlocked))
                                         ? "border-zinc-800 bg-zinc-950/40 text-zinc-500 cursor-not-allowed"
                                         : "border-zinc-800 bg-zinc-950/40 text-zinc-300 hover:border-brand-blue/40 hover:text-white"
                                 )}
@@ -552,10 +559,10 @@ const Step4Export = () => {
                             <button
                                 type="button"
                                 onClick={runVerification}
-                                disabled={mirrorMode && (hasOptionPlaceholder || !allScreensValid)}
+                                disabled={verificationLoading}
                                 className={cn(
                                     "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
-                                    (verificationLoading || (mirrorMode && (hasOptionPlaceholder || !allScreensValid)))
+                                    verificationLoading
                                         ? "border-zinc-800 bg-zinc-950/40 text-zinc-500 cursor-not-allowed"
                                         : "border-brand-blue/40 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
                                 )}
@@ -609,7 +616,11 @@ const Step4Export = () => {
                                         <button
                                             type="button"
                                             onClick={previewPdfInTab}
-                                            className="text-[11px] font-bold text-brand-blue hover:text-brand-blue/90"
+                                            disabled={mirrorMode && isPdfPreviewBlocked}
+                                            className={cn(
+                                                "text-[11px] font-bold text-brand-blue",
+                                                mirrorMode && isPdfPreviewBlocked ? "opacity-60 cursor-not-allowed" : "hover:text-brand-blue/90"
+                                            )}
                                         >
                                             Open
                                         </button>

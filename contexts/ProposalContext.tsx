@@ -802,23 +802,20 @@ export const ProposalContextProvider = ({
     }
     
     if (pdfBlob instanceof Blob && pdfBlob.size > 0) {
-      const url = window.URL.createObjectURL(pdfBlob);
+      const url = pdfUrl ?? window.URL.createObjectURL(pdfBlob);
       console.log("Opening blob URL:", url);
-      
-      // Create a hidden link and click it - better for popup blockers
-      const link = document.createElement('a');
+
+      const link = document.createElement("a");
       link.href = url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
       document.body.appendChild(link);
       link.click();
-      
-      // Cleanup after a delay to ensure the browser has time to open it
+
       setTimeout(() => {
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      }, 100);
-      
+        if (!pdfUrl) window.URL.revokeObjectURL(url);
+      }, 60_000);
     } else {
         console.error("Failed to generate PDF blob for preview - blob is empty or null");
     }

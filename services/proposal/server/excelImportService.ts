@@ -51,10 +51,14 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
 
     const headerText = headers.map((h) => (h ?? "").toString().trim().toUpperCase());
     const isLedCostSheetFormat = headerText.includes("OPTION") && headerText.includes("PITCH") && headerText.includes("OF SCREENS");
+    const nameHeaderIndex = headers.findIndex((h) => {
+        const t = (h ?? "").toString().trim().toUpperCase();
+        return t === "DISPLAY NAME" || t === "DISPLAY";
+    });
 
     const colIdx: any = isLedCostSheetFormat
         ? {
-            name: 0,
+            name: nameHeaderIndex >= 0 ? nameHeaderIndex : 0,
             quantity: headers.findIndex((h) => (h ?? "").toString().trim().toUpperCase() === "OF SCREENS"),
             pitch: headers.findIndex((h) => (h ?? "").toString().trim().toUpperCase() === "PITCH"),
             height: 5,
@@ -74,7 +78,7 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             finalTotal: -1,
         }
         : {
-            name: 0,
+            name: nameHeaderIndex >= 0 ? nameHeaderIndex : 0,
             quantity: 2,
             pitch: 4,
             height: 5,
@@ -120,10 +124,22 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
 
         // Valid project row usually has a name and numeric dimensions/pitch
         const normalizedName = typeof projectName === "string" ? projectName.trim().toLowerCase() : "";
-        const firstColValue = (row[0] ?? "").toString().trim().toUpperCase();
-        
-        // Skip header-like rows that might contain "OPTION" or are clearly not data rows
-        if (firstColValue === "OPTION" || firstColValue === "DISPLAY NAME") {
+        const nameCellUpper = (row[colIdx.name] ?? "").toString().trim().toUpperCase();
+        const firstNonEmptyCellUpper = (() => {
+            for (const c of row) {
+                const t = (c ?? "").toString().trim();
+                if (t.length > 0) return t.toUpperCase();
+            }
+            return "";
+        })();
+
+        if (
+            nameCellUpper === "OPTION" ||
+            nameCellUpper === "DISPLAY NAME" ||
+            firstNonEmptyCellUpper === "OPTION" ||
+            firstNonEmptyCellUpper === "DISPLAY NAME" ||
+            row.some((c) => (c ?? "").toString().trim().toUpperCase() === "DISPLAY NAME")
+        ) {
             continue;
         }
 
