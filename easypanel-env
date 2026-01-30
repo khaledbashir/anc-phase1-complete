@@ -1,5 +1,0 @@
-DATABASE_URL=postgres://postgres:32e4654c47db3b3f2a1e@basheer_natadb:5432/nata?sslmode=disable
-ANYTHING_LLM_URL=https://basheer-anything-llm.prd42b.easypanel.host/api/v1
-ANYTHING_LLM_KEY=7YMK7HD-B1KMNBZ-PPQ3DSV-9RGQDT7
-ANYTHING_LLM_WORKSPACE=nata-estimator
-ANYTHING_LLM_MASTER_CATALOG_URL=https://basheer-invo.c9tnyg.easypanel.host/assets/data/anc_catalog.csv
