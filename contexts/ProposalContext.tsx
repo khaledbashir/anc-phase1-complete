@@ -98,7 +98,7 @@ const defaultProposalContext = {
   lowMarginAlerts: [] as any[],
   // RFP functions
   rfpDocumentUrl: null as string | null,
-  rfpDocuments: [] as Array<{ id: string; name: string; url: string; createdAt: string }>,
+  rfpDocuments: [] as { id: string, name: string, url: string, createdAt: string }[],
   refreshRfpDocuments: async () => { },
   deleteRfpDocument: (id: string) => Promise.resolve(false),
   aiWorkspaceSlug: null as string | null,
@@ -201,6 +201,28 @@ export const ProposalContextProvider = ({
       console.error("Failed to refresh RFP docs:", e);
     }
   }, [getValues]);
+
+  // RFP Vault Delete
+  const deleteRfpDocument = useCallback(async (id: string) => {
+    try {
+        const res = await fetch(`/api/rfp/upload?id=${id}`, {
+            method: "DELETE",
+        });
+
+        if (res.ok) {
+            setRfpDocuments(prev => prev.filter(doc => doc.id !== id));
+            // Reset active URL if we deleted the current one
+            if (rfpDocumentUrl && rfpDocuments.find(d => d.id === id)?.url === rfpDocumentUrl) {
+                setRfpDocumentUrl(null);
+            }
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error("Failed to delete RFP document:", error);
+        return false;
+    }
+  }, [rfpDocumentUrl, rfpDocuments]);
 
   // Calculation Mode - THE PRIMARY BRANCH DECISION GATE
   const [calculationMode, setCalculationMode] = useState<"MIRROR" | "INTELLIGENCE">("INTELLIGENCE");

@@ -1,6 +1,9 @@
 import * as xlsx from 'xlsx';
 import { InternalAudit, ScreenAudit } from '@/lib/estimator';
 import { formatDimension, formatCurrencyInternal } from '@/lib/math';
+import { computeManifest } from '@/lib/verification';
+import { detectExceptions } from '@/lib/exceptions';
+import { VerificationManifest } from '@/types/verification';
 
 interface ParsedANCProposal {
     formData: any; // Matches ProposalType structure
@@ -195,9 +198,33 @@ export async function parseANCExcel(buffer: Buffer): Promise<ParsedANCProposal> 
         }
     };
 
+    // VERIFICATION INTEGRATION: Compute manifest during Excel import
+    // This captures control totals at the source (Excel) stage
+    const excelData = {
+        proposalId: 'pending', // Will be set when proposal is created
+        fileName: 'import.xlsx', // Will be updated with actual filename
+        screens,
+        rowCount: ledData.length,
+        screenCount: screens.length,
+        altRowsSkipped: 0, // TODO: Track ALT rows skipped
+        blankRowsSkipped: 0, // TODO: Track blank rows skipped
+        headerRowIndex,
+        sheetsRead: ['LED Sheet', 'Margin Analysis'].filter(Boolean),
+    };
+
+    const verificationManifest: VerificationManifest = computeManifest(
+        excelData,
+        internalAudit
+    );
+
+    // Detect exceptions early
+    const exceptions = detectExceptions(verificationManifest);
+
     return {
         formData,
-        internalAudit
+        internalAudit,
+        verificationManifest, // NEW: Include verification manifest
+        exceptions, // NEW: Include detected exceptions
     };
 }
 
