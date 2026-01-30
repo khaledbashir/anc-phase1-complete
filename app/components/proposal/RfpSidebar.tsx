@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { BaseButton } from "@/app/components";
-import { Send, Sparkles, MessageSquare, Info, History, X, AlertCircle } from "lucide-react";
+import { Send, Sparkles, MessageSquare, Info, History, X, AlertCircle, Upload, FileText, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFormContext } from "react-hook-form";
 import { analyzeGaps, calculateCompletionRate } from "@/lib/gap-analysis";
@@ -21,9 +21,10 @@ const QUICK_PROMPTS = [
 ];
 
 const RfpSidebar = () => {
-    const { aiWorkspaceSlug, aiMessages, aiLoading, executeAiCommand } = useProposalContext();
+    const { aiWorkspaceSlug, aiMessages, aiLoading, executeAiCommand, uploadRfpDocument, rfpDocumentUrl } = useProposalContext();
     const { watch } = useFormContext();
     const [input, setInput] = useState("");
+    const [isUploading, setIsUploading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const formValues = watch();
@@ -43,6 +44,20 @@ const RfpSidebar = () => {
 
         setInput("");
         await executeAiCommand(messageText);
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            await uploadRfpDocument(file);
+        } catch (error) {
+            console.error("Upload failed", error);
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     return (
@@ -77,6 +92,27 @@ const RfpSidebar = () => {
                 </div>
             </div>
 
+            {/* RFP Document Status */}
+            <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900/50 flex items-center justify-between">
+                <div className="flex items-center gap-2 overflow-hidden">
+                    <FileText className={cn("w-3.5 h-3.5 shrink-0", rfpDocumentUrl ? "text-emerald-400" : "text-zinc-500")} />
+                    <span className="text-[10px] font-medium text-zinc-400 truncate">
+                        {rfpDocumentUrl ? "RFP Document Loaded" : "No RFP Uploaded"}
+                    </span>
+                </div>
+                <label className="cursor-pointer group">
+                    <input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleFileUpload} disabled={isUploading} />
+                    {isUploading ? (
+                        <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
+                    ) : (
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-blue-500 hover:text-blue-400 transition-colors">
+                            <Upload className="w-3 h-3" />
+                            {rfpDocumentUrl ? "REPLACE" : "UPLOAD"}
+                        </div>
+                    )}
+                </label>
+            </div>
+
             {/* Chat Area */}
             <div
                 ref={scrollRef}
@@ -89,8 +125,23 @@ const RfpSidebar = () => {
                         </div>
                         <div className="space-y-1">
                             <p className="font-bold text-zinc-900 dark:text-zinc-100 text-sm">ANC Document Brain</p>
-                            <p className="text-xs text-zinc-500 max-w-[200px] mx-auto">Ask anything about the uploaded RFP documents or add screens directly via chat.</p>
+                            <p className="text-xs text-zinc-500 max-w-[200px] mx-auto">
+                                {rfpDocumentUrl 
+                                    ? "Ask anything about the uploaded RFP or add screens directly via chat." 
+                                    : "Upload an RFP document to begin context-aware analysis."}
+                            </p>
                         </div>
+                        {!rfpDocumentUrl && (
+                            <BaseButton 
+                                variant="outline" 
+                                size="sm" 
+                                className="mx-auto"
+                                onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}
+                            >
+                                <Upload className="w-3 h-3 mr-2" />
+                                Upload RFP
+                            </BaseButton>
+                        )}
                     </div>
                 )}
 

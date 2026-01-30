@@ -39,9 +39,9 @@ export function StudioLayout({
     const [isAiExpanded, setIsAiExpanded] = useState(false);
 
     const navItems = [
-        { id: "form", icon: LayoutDashboard, label: "Proposal Builder" },
-        { id: "ai", icon: MessageSquare, label: "Intelligence Engine" },
-        { id: "audit", icon: Table, label: "Financial Audit" },
+        { id: "form", icon: LayoutDashboard, label: "Edit Proposal" },
+        { id: "ai", icon: MessageSquare, label: "AI Assistant" },
+        { id: "audit", icon: Table, label: "Pricing Breakdown" },
     ];
 
     return (
@@ -118,7 +118,7 @@ export function StudioLayout({
                                         viewMode === "form" ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
                                     )}
                                 >
-                                    <div className="min-h-full animate-in fade-in slide-in-from-left-4 duration-500">
+                                    <div className="min-h-full animate-in fade-in slide-in-from-left-4 duration-150">
                                         {formContent}
                                     </div>
                                 </div>
@@ -130,7 +130,7 @@ export function StudioLayout({
                                         viewMode === "ai" ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
                                     )}
                                 >
-                                    <div className="min-h-full animate-in fade-in slide-in-from-left-4 duration-500 p-6">
+                                    <div className="min-h-full animate-in fade-in slide-in-from-left-4 duration-150 p-6">
                                         {aiContent || (
                                             <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-zinc-900/20 rounded-2xl border border-zinc-800 border-dashed">
                                                 <MessageSquare className="w-12 h-12 text-zinc-700 mb-4" />
@@ -148,7 +148,7 @@ export function StudioLayout({
                                         viewMode === "audit" ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
                                     )}
                                 >
-                                    <div className="min-h-full animate-in fade-in slide-in-from-left-4 duration-500 p-6">
+                                    <div className="min-h-full animate-in fade-in slide-in-from-left-4 duration-150 p-6">
                                         {auditContent || (
                                             <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-zinc-900/20 rounded-2xl border border-zinc-800 border-dashed">
                                                 <Table className="w-12 h-12 text-zinc-700 mb-4" />

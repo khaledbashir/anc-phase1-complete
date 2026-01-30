@@ -100,21 +100,40 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
         }
       }
       // Use thread endpoint if threadSlug available, else fallback to simple chat
-      const endpoint = effectiveThreadSlug
-        ? `${ANYTHING_LLM_BASE_URL}/workspace/${wsSlug}/thread/${effectiveThreadSlug}/chat`
-        : `${ANYTHING_LLM_BASE_URL}/workspace/${wsSlug}/chat`;
-      const r = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
-        body: JSON.stringify(chatPayload),
-      });
-      const text = await r.text();
-      // Try parse
-      try {
-        return { status: r.status, body: JSON.parse(text) };
-      } catch (e) {
-        return { status: r.status, bodyText: text };
+      const base = ANYTHING_LLM_BASE_URL;
+      const altBase = base.replace("/api/v1", "/v1");
+      const endpoints = effectiveThreadSlug
+        ? [
+          `${base}/workspace/${wsSlug}/thread/${effectiveThreadSlug}/chat`,
+          `${base}/workspace/${wsSlug}/thread/${effectiveThreadSlug}/stream-chat`,
+          `${altBase}/workspace/${wsSlug}/thread/${effectiveThreadSlug}/chat`,
+          `${altBase}/workspace/${wsSlug}/thread/${effectiveThreadSlug}/stream-chat`,
+        ]
+        : [
+          `${base}/workspace/${wsSlug}/chat`,
+          `${base}/workspace/${wsSlug}/stream-chat`,
+          `${altBase}/workspace/${wsSlug}/chat`,
+          `${altBase}/workspace/${wsSlug}/stream-chat`,
+        ];
+
+      let lastResult: { status: number; body?: any; bodyText?: string } | null = null;
+      for (const endpoint of endpoints) {
+        const r = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
+          body: JSON.stringify(chatPayload),
+        });
+        const text = await r.text();
+        try {
+          const parsed = JSON.parse(text);
+          lastResult = { status: r.status, body: parsed };
+          if (r.ok && parsed?.type !== "abort") return lastResult;
+        } catch (e) {
+          lastResult = { status: r.status, bodyText: text };
+          if (r.ok && text) return lastResult;
+        }
       }
+      return lastResult || { status: 500, bodyText: "No response from AnythingLLM" };
     };
 
     // Try chat with thread support; if workspace invalid, try to create it and retry

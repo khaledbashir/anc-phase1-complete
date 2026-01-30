@@ -16,8 +16,12 @@ import { useProposalContext } from "@/contexts/ProposalContext";
 // Icons
 import { Plus } from "lucide-react";
 
+// Toast
+import { toast } from "@/components/ui/use-toast";
+import { ProposalType } from "@/types";
+
 const Screens = () => {
-    const { control } = useFormContext();
+    const { control, getValues } = useFormContext<ProposalType>();
     const { _t } = useTranslationContext();
 
     const SCREENS_NAME = "details.screens";
@@ -36,11 +40,39 @@ const Screens = () => {
             pitchMm: 10,
             costPerSqFt: 120,
             desiredMargin: 0.25,
+            isReplacement: false,
+            useExistingStructure: false,
+            includeSpareParts: false,
         });
     };
 
     const removeScreen = (index: number) => {
+        // Store the screen data for potential undo
+        const screens = getValues(SCREENS_NAME);
+        if (!screens) return;
+        
+        const deletedScreen = screens[index];
+
+        // Remove the screen
         remove(index);
+
+        // Show toast with undo action
+        toast({
+            title: "Screen removed",
+            description: `"${deletedScreen?.name || 'Untitled Screen'}" has been deleted.`,
+            action: {
+                altText: "Undo",
+                onClick: () => {
+                    // Restore the screen at the original index
+                    append(deletedScreen, { shouldFocus: false });
+                    // Move it back to the original position if needed
+                    const currentScreens = getValues(SCREENS_NAME);
+                    if (currentScreens && index < currentScreens.length - 1) {
+                        move(currentScreens.length - 1, index);
+                    }
+                }
+            },
+        });
     };
 
     const moveScreenUp = (index: number) => {

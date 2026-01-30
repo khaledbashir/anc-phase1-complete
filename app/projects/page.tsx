@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Search, Clock, DollarSign, User, ChevronRight, Loader2, Upload } from "lucide-react";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
+import NewProjectModal from "@/app/components/modals/NewProjectModal";
 
 interface Project {
     id: string;
@@ -56,29 +57,7 @@ export default function ProjectsPage() {
         fetchProjects();
     }, [fetchProjects]);
 
-    const createNewProject = async () => {
-        const clientName = prompt("Enter Client Name:");
-        if (!clientName) return;
 
-        try {
-            const res = await fetch("/api/projects", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    workspaceId: "default", // TODO: Get from session
-                    clientName,
-                    proposalName: `${clientName} - LED Display Proposal`,
-                }),
-            });
-
-            if (res.ok) {
-                const data = await res.json();
-                router.push(`/projects/${data.project.id}`);
-            }
-        } catch (error) {
-            console.error("Failed to create project:", error);
-        }
-    };
 
     const openProject = (projectId: string) => {
         router.push(`/projects/${projectId}`);
@@ -128,13 +107,12 @@ export default function ProjectsPage() {
                         <div className="h-8 w-px bg-zinc-200" />
                         <h1 className="text-xl font-bold text-zinc-800">Project Vault</h1>
                     </div>
-                    <button
-                        onClick={createNewProject}
-                        className="flex items-center gap-2 px-4 py-2 bg-[#0A52EF] text-white rounded-lg font-medium hover:bg-[#0A52EF]/90 transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                        New Project
-                    </button>
+                    <NewProjectModal>
+                        <button className="flex items-center gap-2 px-4 py-2 bg-[#0A52EF] text-white rounded-lg font-medium hover:bg-[#0A52EF]/90 transition-colors">
+                            <Plus className="w-4 h-4" />
+                            New Project
+                        </button>
+                    </NewProjectModal>
                 </div>
             </header>
 
@@ -171,12 +149,11 @@ export default function ProjectsPage() {
                 ) : projects.length === 0 ? (
                     <div className="text-center py-20">
                         <div className="text-zinc-400 mb-4">No projects found</div>
-                        <button
-                            onClick={createNewProject}
-                            className="text-[#0A52EF] font-medium hover:underline"
-                        >
-                            Create your first project
-                        </button>
+                        <NewProjectModal>
+                            <button className="text-[#0A52EF] font-medium hover:underline">
+                                Create your first project
+                            </button>
+                        </NewProjectModal>
                     </div>
                 ) : (
                     <div className="grid gap-4">

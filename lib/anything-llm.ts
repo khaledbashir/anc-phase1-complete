@@ -99,26 +99,51 @@ export async function queryVault(
     message: string,
     mode: "query" | "chat" = "query"
 ): Promise<string> {
-    try {
-        const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/chat`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
-            },
-            body: JSON.stringify({
-                message,
-                mode,
-            }),
-        });
+    const payload = JSON.stringify({ message, mode });
+    const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
+    } as Record<string, string>;
 
-        if (!res.ok) {
-            throw new Error(`AnythingLLM Error: ${res.statusText}`);
+    // Primary endpoint (most installs)
+    const primary = `${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/chat`;
+
+    // Fallbacks used by some deployments and versions
+    const altBase = ANYTHING_LLM_BASE_URL.replace("/api/v1", "/v1");
+    const fallbacks = [
+        `${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/stream-chat`,
+        `${altBase}/workspace/${workspaceSlug}/chat`,
+        `${altBase}/workspace/${workspaceSlug}/stream-chat`,
+    ];
+
+    const tryEndpoint = async (endpoint: string) => {
+        const res = await fetch(endpoint, { method: "POST", headers, body: payload });
+        const text = await res.text();
+        try {
+            const data = JSON.parse(text);
+            return { ok: res.ok, data, text: undefined as string | undefined };
+        } catch {
+            return { ok: res.ok, data: undefined, text };
+        }
+    };
+
+    try {
+        let attempt = await tryEndpoint(primary);
+        if (!attempt.ok || (attempt.data && attempt.data.type === "abort" && attempt.data.error)) {
+            for (const ep of fallbacks) {
+                attempt = await tryEndpoint(ep);
+                if (attempt.ok && attempt.data && attempt.data.type !== "abort") break;
+            }
         }
 
-        const data = await res.json();
-        // Use textResponse for direct answer
-        return data.textResponse || "";
+        if (attempt.data) {
+            const d: any = attempt.data;
+            return d.textResponse || d.text || "";
+        }
+        if (attempt.text) {
+            return attempt.text;
+        }
+        throw new Error("No response from AnythingLLM");
     } catch (error: any) {
         console.error("queryVault failed:", error);
         return `Error retrieving data from ${workspaceSlug}: ${error.message}`;

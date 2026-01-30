@@ -114,7 +114,7 @@ const SingleScreen = ({
                         <p className="font-medium text-zinc-100">
                             #{index + 1} - {screenName || "Untitled Screen"}
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-zinc-400">
                             {width > 0 && height > 0 ? `${formatDimension(Number(width))}' × ${formatDimension(Number(height))}'` : "No dimensions"}
                             {quantity > 1 && ` × ${quantity}`}
                             {pitch > 0 && ` • ${pitch}mm pitch`}
@@ -183,13 +183,13 @@ const SingleScreen = ({
                                 : "$0"
                             }
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-zinc-400">
                             {(desiredMargin * 100 || 0).toFixed(0)}% margin
                         </p>
                     </div>
 
                     <ChevronRight className={cn(
-                        "w-5 h-5 text-zinc-500 transition-transform duration-200",
+                        "w-5 h-5 text-zinc-400 transition-transform duration-200",
                         isExpanded && "rotate-90"
                     )} />
                 </div>
@@ -425,11 +425,11 @@ const SingleScreen = ({
                     {/* Live Stats Footer */}
                     <div className="flex items-center gap-6 pt-3 border-t border-zinc-700/30 text-xs">
                         <div className="flex items-center gap-2">
-                            <span className="text-zinc-500">Area:</span>
+                            <span className="text-zinc-400">Area:</span>
                             <span className="font-medium text-zinc-300">{area} sq ft</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-zinc-500">Price/SqFt:</span>
+                            <span className="text-zinc-400">Price/SqFt:</span>
                             <span className="font-medium text-blue-400">
                                 {sellingPricePerSqFt > 0
                                     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(sellingPricePerSqFt)
