@@ -50,9 +50,9 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
     const step4Valid = !errors.details?.paymentInformation;
 
     const steps: WizardStepType[] = [
-        { id: 0, label: "Parties", isValid: step1Valid },
-        { id: 1, label: "Specs", isValid: step2Valid },
-        { id: 2, label: "Pricing", isValid: step3Valid },
+        { id: 0, label: "Ingest", isValid: step1Valid },
+        { id: 1, label: "Screens", isValid: step2Valid },
+        { id: 2, label: "Math", isValid: step3Valid },
         { id: 3, label: "Export", isValid: step4Valid },
     ];
 

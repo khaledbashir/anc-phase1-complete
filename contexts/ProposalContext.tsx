@@ -1230,8 +1230,8 @@ export const ProposalContextProvider = ({
   const exportAudit = async () => {
     const formValues = getValues();
     const id = formValues?.details?.proposalId ?? formValues?.details?.proposalNumber ?? "";
-    if (!id) {
-      console.warn("No proposal id set for exportAudit");
+    if (!id || id === "new") {
+      exportProposalDataAs(ExportTypes.XLSX);
       return;
     }
 

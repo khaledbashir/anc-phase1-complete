@@ -3,7 +3,7 @@
 import React from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useWizard } from "react-use-wizard";
-import { Download, Share2, Upload, Loader2, CheckCircle2 } from "lucide-react";
+import { Download, Share2, Upload, Loader2, CheckCircle2, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
@@ -32,7 +32,7 @@ export function StudioHeader({
 }: StudioHeaderProps) {
     const wizard = useWizard();
     const { control, getValues } = useFormContext<ProposalType>();
-    const { excelValidationOk } = useProposalContext();
+    const { excelValidationOk, exportAudit } = useProposalContext();
     
     // Watch form values for real-time gap analysis
     const formValues = useWatch({ control });
@@ -152,6 +152,16 @@ export function StudioHeader({
                 >
                     <Download className="w-3.5 h-3.5 mr-2" />
                     PDF
+                </Button>
+
+                <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 font-bold uppercase tracking-widest text-[10px] px-3 h-9"
+                    onClick={exportAudit}
+                >
+                    <FileSpreadsheet className="w-3.5 h-3.5 mr-2 text-emerald-500" />
+                    Audit
                 </Button>
             </div>
         </div>

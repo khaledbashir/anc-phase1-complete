@@ -1,14 +1,15 @@
 "use client";
 
-import { Upload, FileSpreadsheet, Sparkles, Shield, ArrowRight, Zap, Search } from "lucide-react";
+import { Upload, FileSpreadsheet, Sparkles, Shield, ArrowRight, Zap, Search, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { SlashBox } from "@/app/components/reusables/BrandGraphics";
 import ExcelViewer from "@/app/components/ExcelViewer";
+import { AiWand, FormInput } from "@/app/components";
 
 const Step1Ingestion = () => {
-    const { importANCExcel, excelImportLoading, excelPreview, excelPreviewLoading } = useProposalContext();
+    const { importANCExcel, excelImportLoading, excelPreview, excelPreviewLoading, excelValidationOk } = useProposalContext();
     const [selectedPath, setSelectedPath] = useState<"MIRROR" | "INTELLIGENCE" | null>(null);
 
     return (
@@ -24,6 +25,69 @@ const Step1Ingestion = () => {
                     Begin the ANC Studio journey by feeding the system your project data. 
                     Choose your workflow below to activate the Intelligence Engine.
                 </p>
+            </div>
+
+            {/* Project + Client (always first) */}
+            <div className="p-6 rounded-2xl border border-zinc-800 bg-zinc-900/40">
+                <div className="flex items-start justify-between gap-6">
+                    <div className="min-w-0">
+                        <div className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em]">Project & Client</div>
+                        <div className="text-white font-semibold mt-2">Fill this first (it fixes the PDF placeholders)</div>
+                        <div className="text-zinc-500 text-xs mt-1 max-w-xl">
+                            These fields drive the opening sentence, purchaser block, and the proposal header in the client PDF.
+                        </div>
+                    </div>
+                    <div className="hidden md:flex items-center gap-2 rounded-full border border-zinc-800 bg-zinc-950/40 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                        Live-sync to PDF
+                    </div>
+                </div>
+
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <FormInput
+                        vertical
+                        name="details.proposalName"
+                        label="Project Name"
+                        placeholder="e.g., WVU Athletics LED Upgrade"
+                    />
+                    <FormInput
+                        vertical
+                        name="receiver.name"
+                        label="Client Name"
+                        placeholder="e.g., WVU Athletics"
+                        rightElement={
+                            <AiWand
+                                fieldName="receiver.name"
+                                targetFields={["receiver.address", "receiver.city", "receiver.zipCode", "details.venue"]}
+                            />
+                        }
+                    />
+                    <FormInput
+                        vertical
+                        name="receiver.address"
+                        label="Client Address"
+                        placeholder="Street address"
+                    />
+                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <FormInput
+                            vertical
+                            name="receiver.city"
+                            label="City"
+                            placeholder="City"
+                        />
+                        <FormInput
+                            vertical
+                            name="receiver.zipCode"
+                            label="Zip"
+                            placeholder="Zip code"
+                        />
+                        <FormInput
+                            vertical
+                            name="details.venue"
+                            label="Venue"
+                            placeholder="e.g., Milan Puskar Stadium"
+                        />
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -125,8 +189,57 @@ const Step1Ingestion = () => {
                     </div>
 
                     {(excelPreviewLoading || excelPreview) && (
-                        <div className="h-[520px] max-h-[60vh] overflow-hidden">
-                            <ExcelViewer />
+                        <div className="space-y-3">
+                            <div className="h-[520px] max-h-[60vh] overflow-hidden">
+                                <ExcelViewer />
+                            </div>
+
+                            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-5 py-4">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="min-w-0">
+                                        <div className="text-white font-semibold text-sm">What happens next</div>
+                                        <div className="text-zinc-500 text-xs mt-1">
+                                            The Excel has been ingested into the draft and synced into your proposal data.
+                                        </div>
+                                    </div>
+                                    <div
+                                        className={`shrink-0 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${excelValidationOk
+                                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                                            : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                                            }`}
+                                    >
+                                        {excelValidationOk ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                        {excelValidationOk ? "LED Sheet Valid" : "Review LED Sheet"}
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+                                        <div className="text-zinc-300 font-semibold">1) Verify</div>
+                                        <div className="text-zinc-500 mt-1">
+                                            Confirm the LED sheet rows have real width/height values (no TBD).
+                                        </div>
+                                    </div>
+                                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+                                        <div className="text-zinc-300 font-semibold">2) Next Step</div>
+                                        <div className="text-zinc-500 mt-1">
+                                            Click <span className="text-zinc-300 font-semibold">Next Step</span> to review the extracted screens and specs.
+                                        </div>
+                                    </div>
+                                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+                                        <div className="text-zinc-300 font-semibold">3) Export</div>
+                                        <div className="text-zinc-500 mt-1">
+                                            Generate the branded PDF once the screens look right.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {!excelValidationOk && (
+                                    <div className="mt-4 text-[11px] text-zinc-500">
+                                        Tip: If this is a real ANC master file, the LED sheet should include numeric dimensions for active rows.
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
