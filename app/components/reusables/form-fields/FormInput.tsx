@@ -61,6 +61,7 @@ const FormInput = ({
                         <FormControl>
                             <Input
                                 {...field}
+                                value={field.value ?? ""}
                                 placeholder={placeholder}
                                 className={cn(
                                     "w-full bg-zinc-950/50 border-zinc-800 transition-all duration-300",
@@ -94,6 +95,7 @@ const FormInput = ({
                             <FormControl>
                                 <Input
                                     {...field}
+                                    value={field.value ?? ""}
                                     placeholder={placeholder}
                                     className={cn(
                                         "w-full bg-zinc-950/50 border-zinc-800 transition-all duration-300",
