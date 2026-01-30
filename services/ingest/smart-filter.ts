@@ -1,4 +1,6 @@
-const pdfParse = require('pdf-parse');
+const pdfParseLib = require('pdf-parse');
+// Handle both default export and named export (for v2.4.5+)
+const pdfParse = pdfParseLib.PDFParse || pdfParseLib.default || pdfParseLib;
 
 // Keywords that indicate "Signal" (Technical/Pricing content)
 const SIGNAL_KEYWORDS = [
