@@ -705,7 +705,7 @@ export const ProposalContextProvider = ({
    * Downloads a PDF file.
    */
   const downloadPdf = async () => {
-    let pdfBlob = proposalPdf;
+    let pdfBlob: Blob | null = proposalPdf;
     if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
       pdfBlob = await generatePdf(getValues());
     }
@@ -1466,36 +1466,57 @@ export const ProposalContextProvider = ({
         const isReceiverPlaceholder =
           currentReceiverName.length === 0 ||
           currentReceiverName === FORM_DEFAULT_VALUES.receiver.name ||
-          currentReceiverName.toLowerCase() === "new project";
+          currentReceiverName.toLowerCase() === "new project" ||
+          currentReceiverName.toLowerCase() === "placeholder";
 
         const isImportedReceiverPlaceholder =
           importedReceiverName.length === 0 ||
           importedReceiverName === FORM_DEFAULT_VALUES.receiver.name ||
-          importedReceiverName.toLowerCase() === "new project";
-
-        const nextReceiverName = !isReceiverPlaceholder
-          ? currentReceiverName
-          : (!isImportedReceiverPlaceholder ? importedReceiverName : currentReceiverName);
+          importedReceiverName.toLowerCase() === "new project" ||
+          importedReceiverName.toLowerCase() === "placeholder";
 
         const isProposalPlaceholder =
           currentProposalName.length === 0 ||
-          currentProposalName.toLowerCase() === "new project";
+          currentProposalName.toLowerCase() === "new project" ||
+          currentProposalName.toLowerCase() === "placeholder";
 
         const isImportedProposalPlaceholder =
           importedProposalName.length === 0 ||
           importedProposalName.toLowerCase() === "anc led display proposal" ||
-          importedProposalName.toLowerCase() === "new project";
+          importedProposalName.toLowerCase() === "new project" ||
+          importedProposalName.toLowerCase() === "placeholder";
 
-        const nextProposalName = !isProposalPlaceholder
-          ? currentProposalName
-          : (!isImportedProposalPlaceholder ? importedProposalName : currentProposalName);
+        // Only overwrite if current is placeholder AND imported is NOT placeholder
+        if (isReceiverPlaceholder && !isImportedReceiverPlaceholder) {
+          setValue("receiver.name", importedReceiverName, { shouldValidate: true, shouldDirty: true });
+        }
 
-        if (nextReceiverName !== currentReceiverName) {
-          setValue("receiver.name", nextReceiverName, { shouldValidate: true, shouldDirty: true });
+        if (isProposalPlaceholder && !isImportedProposalPlaceholder) {
+          setValue("details.proposalName", importedProposalName, { shouldValidate: true, shouldDirty: true });
         }
-        if (nextProposalName !== currentProposalName) {
-          setValue("details.proposalName", nextProposalName, { shouldValidate: true, shouldDirty: true });
-        }
+
+        // Also preserve address/city/zip if they exist locally
+        const fieldsToPreserve = [
+          "receiver.address",
+          "receiver.city",
+          "receiver.zipCode",
+          "details.venue",
+          "details.location"
+        ] as const;
+
+        fieldsToPreserve.forEach((field) => {
+          const current = (getValues(field) ?? "").toString().trim();
+          const imported = (formData.receiver?.[field.split(".")[1] as keyof typeof formData.receiver] ?? 
+                            formData.details?.[field.split(".")[1] as keyof typeof formData.details] ?? "").toString().trim();
+          
+          const isCurrentEmpty = current.length === 0 || current.toLowerCase() === "placeholder";
+          const isImportedNotEmpty = imported.length > 0 && imported.toLowerCase() !== "placeholder";
+
+          if (isCurrentEmpty && isImportedNotEmpty) {
+            setValue(field, imported, { shouldValidate: true, shouldDirty: true });
+          }
+        });
+
         if (formData.details?.mirrorMode !== undefined) setValue("details.mirrorMode", formData.details.mirrorMode, { shouldValidate: true, shouldDirty: true });
 
         // 2. Handle Screens & Line Items

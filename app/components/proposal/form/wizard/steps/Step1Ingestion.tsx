@@ -1,16 +1,25 @@
 "use client";
 
-import { Upload, FileSpreadsheet, Sparkles, Shield, ArrowRight, Zap, Search, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Upload, FileSpreadsheet, Sparkles, Shield, ArrowRight, Zap, Search, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
 import { useProposalContext } from "@/contexts/ProposalContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { SlashBox } from "@/app/components/reusables/BrandGraphics";
 import ExcelViewer from "@/app/components/ExcelViewer";
 import { AiWand, FormInput } from "@/app/components";
+import { Button } from "@/components/ui/button";
 
 const Step1Ingestion = () => {
     const { importANCExcel, excelImportLoading, excelPreview, excelPreviewLoading, excelValidationOk } = useProposalContext();
     const [selectedPath, setSelectedPath] = useState<"MIRROR" | "INTELLIGENCE" | null>(null);
+    const [isUploadCollapsed, setIsUploadCollapsed] = useState(false);
+
+    // Auto-collapse upload area after successful import
+    useEffect(() => {
+        if (excelPreview && !excelImportLoading) {
+            setIsUploadCollapsed(true);
+        }
+    }, [excelPreview, excelImportLoading]);
 
     return (
         <div className="h-full flex flex-col p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -147,45 +156,71 @@ const Step1Ingestion = () => {
             {/* Upload Area for Mirror Mode */}
             {selectedPath === "MIRROR" && (
                 <div className="space-y-6 animate-in zoom-in-95 duration-300">
-                    <div className="p-8 bg-zinc-900/80 border border-brand-blue/30 rounded-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                            <Shield className="w-32 h-32 text-brand-blue" />
-                        </div>
-
-                        <div className="text-center space-y-4 relative z-10">
-                            <div className="mx-auto w-12 h-12 rounded-full bg-brand-blue/10 flex items-center justify-center mb-2">
-                                <Upload className="w-6 h-6 text-brand-blue" />
-                            </div>
-                            <div>
-                                <h4 className="text-white font-semibold">Upload ANC Estimator Excel</h4>
-                                <p className="text-zinc-500 text-xs mt-1">Supports standard .xlsx formats from the Estimating Team</p>
-                            </div>
-
-                            <div className="flex items-center justify-center gap-4 pt-2">
-                                <input
-                                    type="file"
-                                    id="excel-upload"
-                                    className="hidden"
-                                    accept=".xlsx, .xls"
-                                    onChange={async (e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                            await importANCExcel(file);
-                                        }
-                                    }}
-                                />
-                                <label
-                                    htmlFor="excel-upload"
-                                    className={`px-6 py-2.5 rounded-xl bg-brand-blue text-white font-bold text-sm cursor-pointer hover:bg-brand-blue/90 transition-all flex items-center gap-2 shadow-lg shadow-brand-blue/20 ${excelImportLoading ? "opacity-50 pointer-events-none" : ""}`}
-                                >
-                                    {excelImportLoading ? (
-                                        <><Zap className="w-4 h-4 animate-pulse" /> Processing...</>
-                                    ) : (
-                                        <><FileSpreadsheet className="w-4 h-4" /> Select Master File</>
+                    <div className={`p-0 bg-zinc-900/80 border border-brand-blue/30 rounded-2xl relative overflow-hidden transition-all duration-500 ${isUploadCollapsed ? "max-h-16" : "max-h-[500px]"}`}>
+                        {/* Accordion Header */}
+                        <div 
+                            className="flex items-center justify-between p-4 cursor-pointer hover:bg-zinc-800/50 transition-colors"
+                            onClick={() => setIsUploadCollapsed(!isUploadCollapsed)}
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${excelPreview ? "bg-emerald-500/10 text-emerald-400" : "bg-brand-blue/10 text-brand-blue"}`}>
+                                    <FileSpreadsheet className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h4 className="text-white font-semibold text-sm">
+                                        {excelPreview ? "Excel Ingested" : "Upload ANC Estimator Excel"}
+                                    </h4>
+                                    {isUploadCollapsed && (
+                                        <p className="text-zinc-500 text-[10px] mt-0.5">Click to change file or re-upload</p>
                                     )}
-                                </label>
+                                </div>
                             </div>
+                            <Button variant="ghost" size="sm" className="text-zinc-500">
+                                {isUploadCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                            </Button>
                         </div>
+
+                        {!isUploadCollapsed && (
+                            <div className="p-8 pt-4 border-t border-zinc-800/50">
+                                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                                    <Shield className="w-32 h-32 text-brand-blue" />
+                                </div>
+
+                                <div className="text-center space-y-4 relative z-10">
+                                    <div className="mx-auto w-12 h-12 rounded-full bg-brand-blue/10 flex items-center justify-center mb-2">
+                                        <Upload className="w-6 h-6 text-brand-blue" />
+                                    </div>
+                                    <div>
+                                        <p className="text-zinc-500 text-xs mt-1">Supports standard .xlsx formats from the Estimating Team</p>
+                                    </div>
+
+                                    <div className="flex items-center justify-center gap-4 pt-2">
+                                        <input
+                                            type="file"
+                                            id="excel-upload"
+                                            className="hidden"
+                                            accept=".xlsx, .xls"
+                                            onChange={async (e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    await importANCExcel(file);
+                                                }
+                                            }}
+                                        />
+                                        <label
+                                            htmlFor="excel-upload"
+                                            className={`px-6 py-2.5 rounded-xl bg-brand-blue text-white font-bold text-sm cursor-pointer hover:bg-brand-blue/90 transition-all flex items-center gap-2 shadow-lg shadow-brand-blue/20 ${excelImportLoading ? "opacity-50 pointer-events-none" : ""}`}
+                                        >
+                                            {excelImportLoading ? (
+                                                <><Zap className="w-4 h-4 animate-pulse" /> Processing...</>
+                                            ) : (
+                                                <><FileSpreadsheet className="w-4 h-4" /> Select Master File</>
+                                            )}
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {(excelPreviewLoading || excelPreview) && (

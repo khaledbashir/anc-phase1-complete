@@ -122,47 +122,30 @@ export function StudioHeader({
                     onClick={handleShare}
                 >
                     <Share2 className="w-3.5 h-3.5 mr-2 text-brand-blue" />
-                    Share Link
+                    Share
                 </Button>
 
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 font-bold uppercase tracking-widest text-[10px] px-3 h-9"
-                    onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = '.xlsx, .xls';
-                        input.onchange = (e: any) => {
-                            const file = e.target.files?.[0];
-                            if (file) onImportExcel(file);
-                        };
-                        input.click();
-                    }}
-                    disabled={excelImportLoading}
-                >
-                    {excelImportLoading ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Upload className="w-3 h-3 mr-2 text-brand-blue" />}
-                    Import
-                </Button>
-
-                <Button
-                    size="sm"
-                    onClick={onExportPdf}
-                    className="bg-brand-blue hover:bg-brand-blue/90 text-white font-bold h-9 px-4 rounded-lg transition-all shadow-lg shadow-brand-blue/20 active:scale-[0.98] uppercase tracking-wider text-[10px]"
-                >
-                    <Download className="w-3.5 h-3.5 mr-2" />
-                    PDF
-                </Button>
-
-                <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 font-bold uppercase tracking-widest text-[10px] px-3 h-9"
-                    onClick={exportAudit}
-                >
-                    <FileSpreadsheet className="w-3.5 h-3.5 mr-2 text-emerald-500" />
-                    Audit
-                </Button>
+                <div className="flex items-center gap-1 bg-zinc-900/50 border border-zinc-800 p-1 rounded-lg">
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-zinc-400 hover:text-white font-bold uppercase tracking-widest text-[10px] px-3 h-7"
+                        onClick={exportAudit}
+                    >
+                        <FileSpreadsheet className="w-3 h-3 mr-2 text-emerald-500" />
+                        Audit
+                    </Button>
+                    <div className="h-4 w-px bg-zinc-800" />
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-zinc-400 hover:text-white font-bold uppercase tracking-widest text-[10px] px-3 h-7"
+                        onClick={onExportPdf}
+                    >
+                        <Download className="w-3 h-3 mr-2 text-brand-blue" />
+                        PDF
+                    </Button>
+                </div>
             </div>
         </div>
     );

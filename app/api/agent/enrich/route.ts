@@ -38,9 +38,23 @@ export async function POST(req: NextRequest) {
         };
 
         const keysJson = JSON.stringify(fields);
-        const prompt = `@agent search for the professional corporate headquarters details of "${query}". Return ONLY a JSON object. The JSON MUST have exactly these keys: ${keysJson}. Each value MUST be a string. If a value is unknown, use an empty string. Do not include any other keys. Return only JSON starting with { and ending with }.`;
+        const prompt = `@agent search for the official corporate headquarters address and location details of "${query}". 
+        
+Return the results as a JSON object with these exact keys: ${keysJson}. 
+Each value must be a string. If you cannot find a specific detail, return an empty string for that key.
+Do not include any text other than the JSON object itself.
 
+Example output format:
+{
+  "receiver.address": "123 Main St",
+  "receiver.city": "New York",
+  "receiver.zipCode": "10001",
+  "details.venue": "Madison Square Garden"
+}`;
+
+        console.log(`[Enrich] Querying AnythingLLM for: ${query}`);
         const textResponse = await queryVault(workspace, prompt, "chat");
+        console.log(`[Enrich] Raw response: ${textResponse}`);
 
         try {
             const jsonText = extractJson(textResponse);
