@@ -11,9 +11,10 @@ export interface ExtractionResult {
 export class DrawingService {
     private visionClient: Glm4VisionClient;
 
-    constructor(config?: { apiKey?: string; baseUrl?: string }) {
+    constructor(config?: { apiKey?: string; baseUrl?: string; modelName?: string }) {
         const apiKey = config?.apiKey || process.env.Z_AI_API_KEY || "";
         const baseUrl = config?.baseUrl || process.env.Z_AI_BASE_URL;
+        const modelName = config?.modelName || process.env.Z_AI_MODEL_NAME || "glm-4v";
 
         if (!apiKey) {
             console.warn("DrawingService initialized without API Key. Vision features will fail.");
@@ -22,7 +23,7 @@ export class DrawingService {
         this.visionClient = new Glm4VisionClient({
             apiKey: apiKey,
             baseUrl: baseUrl,
-            modelName: "glm-4v"
+            modelName: modelName
         });
     }
 
