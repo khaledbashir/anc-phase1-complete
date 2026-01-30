@@ -89,7 +89,7 @@ const Step4Export = () => {
         if (rec && rec.isMatch === false) issues.push({ id: "variance", label: "Totals do not match Excel" });
         if (effectiveExceptions.length > 0) {
             // In Mirror Mode, only block if there are actual critical exceptions
-            // Layer 2-4 exceptions are expected until those layers are run
+            // Layer 2-4 exceptions are expected until those layers are run  
             const criticalExceptions = effectiveExceptions.filter((ex: any) => 
                 ex.severity === 'CRITICAL' || ex.category === 'DATA_INTEGRITY'
             );
