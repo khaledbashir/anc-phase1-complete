@@ -44,7 +44,7 @@ model Proposal {
   workspaceId          String
   clientName           String
   status               String              @default("DRAFT")
-  calculationMode      String              @default("INTELLIGENCE")
+  calculationMode      CalculationMode     @default(INTELLIGENCE)
   internalAudit        String?
   clientSummary        String?
   aiThreadId           String?
