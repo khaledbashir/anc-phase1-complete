@@ -118,26 +118,20 @@ export default function ExcelViewer({
     const nameColIndex = headerRow.findIndex(cell => {
       const c = normalizeValue(cell).toLowerCase();
       return c === "display name" || c === "display";
-    }) !== -1 ? headerRow.findIndex(cell => {
-      const c = normalizeValue(cell).toLowerCase();
-      return c === "display name" || c === "display";
-    }) : 0;
+    });
+    const finalNameColIndex = nameColIndex !== -1 ? nameColIndex : 0;
 
     const heightColIndex = headerRow.findIndex(cell => {
       const c = normalizeValue(cell).toLowerCase();
       return c === "height" || c === "h";
-    }) !== -1 ? headerRow.findIndex(cell => {
-      const c = normalizeValue(cell).toLowerCase();
-      return c === "height" || c === "h";
-    }) : 5;
+    });
+    const finalHeightColIndex = heightColIndex !== -1 ? heightColIndex : 5;
 
     const widthColIndex = headerRow.findIndex(cell => {
       const c = normalizeValue(cell).toLowerCase();
       return c === "width" || c === "w";
-    }) !== -1 ? headerRow.findIndex(cell => {
-      const c = normalizeValue(cell).toLowerCase();
-      return c === "width" || c === "w";
-    }) : 6;
+    });
+    const finalWidthColIndex = widthColIndex !== -1 ? widthColIndex : 6;
 
     let foundActive = 0;
     let foundNumeric = 0;
@@ -151,13 +145,13 @@ export default function ExcelViewer({
       const isHidden = !!hiddenRows[r];
       if (isAlt || isHidden) continue;
 
-      const nameCell = normalizeValue(row[nameColIndex] || "");
+      const nameCell = normalizeValue(row[finalNameColIndex] || "");
       if (!nameCell) continue;
       foundActive++;
 
       const errors: string[] = [];
-      const h = normalizeValue(row[heightColIndex] || "");
-      const w = normalizeValue(row[widthColIndex] || "");
+      const h = normalizeValue(row[finalHeightColIndex] || "");
+      const w = normalizeValue(row[finalWidthColIndex] || "");
       const isBad = (v: string) => !v || v.toUpperCase().includes("TBD");
       if (isBad(nameCell)) errors.push("Missing Display Name");
       if (isBad(h)) errors.push("Missing/Invalid Height");
