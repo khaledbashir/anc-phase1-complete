@@ -12,8 +12,6 @@ import {
 import { JSONLD, ROOTKEYWORDS } from "@/lib/seo";
 // Variables
 import { BASE_URL, GOOGLE_SC_VERIFICATION } from "@/lib/variables";
-// Vercel Analytics
-import { Analytics } from "@vercel/analytics/react";
 import type { Metadata } from "next";
 // Next Intl
 import { NextIntlClientProvider } from "next-intl";
@@ -81,9 +79,6 @@ export default function RootLayout({
 
                         {/* Toast component */}
                         <Toaster />
-
-                        {/* Vercel analytics */}
-                        <Analytics />
                     </Providers>
                 </NextIntlClientProvider>
             </body>
