@@ -20,10 +20,18 @@ import { ProposalType } from "@/types";
 
 const WizardNavigation = () => {
     const { isFirstStep, isLastStep, nextStep, previousStep, activeStep } = useWizard();
-    const { watch } = useFormContext<ProposalType>();
+    const { watch, trigger } = useFormContext<ProposalType>();
+    const [proposalName, receiverName] = watch(["details.proposalName", "receiver.name"]);
+    const isStep1Ready = Boolean(proposalName?.toString().trim()) && Boolean(receiverName?.toString().trim());
+    const isNextDisabled = isLastStep || (activeStep === 0 && !isStep1Ready);
 
-    // Watch client name to enable Next step from Step 1
-    const isNextDisabled = isLastStep;
+    const handleNext = async () => {
+        if (activeStep === 0) {
+            const ok = await trigger(["details.proposalName", "receiver.name"]);
+            if (!ok) return;
+        }
+        nextStep();
+    };
 
     const { _t } = useTranslationContext();
     return (
@@ -40,7 +48,7 @@ const WizardNavigation = () => {
             <BaseButton
                 tooltipLabel="Go to the next step"
                 disabled={isNextDisabled}
-                onClick={nextStep}
+                onClick={handleNext}
             >
                 {_t("form.wizard.next")}
                 <ArrowRight />

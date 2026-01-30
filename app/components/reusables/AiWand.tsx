@@ -28,22 +28,20 @@ export default function AiWand({ fieldName, searchQuery, targetFields }: AiWandP
 
         setLoading(true);
         try {
-            console.log("Enriching client:", query, "Targeting:", targetFields);
             const res = await fetch("/api/agent/enrich", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ query, targetFields }),
             });
 
-            if (res.status === 404) {
-                console.error("Enrichment API not found (404). Check route deployment.");
-                showError("Enrichment service currently unavailable (404).");
+            const data = await res.json().catch(() => null);
+
+            if (!res.ok) {
+                showError(data?.error || "AI enrichment failed.");
                 return;
             }
 
-            const data = await res.json();
-
-            if (data.ok && data.results) {
+            if (data?.ok && data?.results) {
                 Object.entries(data.results).forEach(([field, value]) => {
                     if (value) setValue(field, value);
                 });

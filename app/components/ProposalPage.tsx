@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import { Wizard, useWizard } from "react-use-wizard";
 
 // Components
@@ -9,9 +9,6 @@ import StudioLayout from "@/app/components/layout/StudioLayout";
 import { StudioHeader } from "@/app/components/layout/StudioHeader";
 import PdfViewer from "@/app/components/proposal/actions/PdfViewer";
 import RfpSidebar from "@/app/components/proposal/RfpSidebar";
-import LogoSelector from "@/app/components/reusables/LogoSelector";
-import SaveIndicator from "@/app/components/reusables/SaveIndicator";
-import WizardStepper from "@/app/components/proposal/form/wizard/WizardProgress";
 import ActionToolbar from "@/app/components/ActionToolbar";
 import { WizardStep } from "@/app/components";
 import {
@@ -21,17 +18,11 @@ import {
   Step4Export
 } from "@/app/components/proposal/form/wizard/steps";
 
-// ShadCn
-import { Form } from "@/components/ui/form";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-
 // Context
 import { useProposalContext } from "@/contexts/ProposalContext";
 
-// Icons
-import { Download, Share2, Upload, Loader2 } from "lucide-react";
 import AuditTable from "@/app/components/proposal/AuditTable";
+import { Badge } from "@/components/ui/badge";
 
 // Types
 import { ProposalType } from "@/types";
@@ -166,8 +157,11 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
  */
 const ProposalPage = ({ initialData, projectId }: ProposalPageProps) => {
   return (
-    <Wizard>
-      <WizardWrapper initialData={initialData} projectId={projectId} />
+    <Wizard header={<WizardWrapper initialData={initialData} projectId={projectId} />}>
+      <div className="hidden" />
+      <div className="hidden" />
+      <div className="hidden" />
+      <div className="hidden" />
     </Wizard>
   );
 };

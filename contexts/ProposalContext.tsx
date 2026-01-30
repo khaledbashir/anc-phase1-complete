@@ -71,9 +71,9 @@ const defaultProposalContext = {
   onFormSubmit: (values: ProposalType) => { },
   newProposal: () => { },
   resetProposal: () => { },
-  generatePdf: async (data: ProposalType) => { },
+  generatePdf: async (data: ProposalType) => new Blob(),
   removeFinalPdf: () => { },
-  downloadPdf: () => { },
+  downloadPdf: async () => { },
   printPdf: () => { },
   previewPdfInTab: () => { },
   saveProposalData: () => { },
@@ -632,6 +632,7 @@ export const ProposalContextProvider = ({
    */
   const generatePdf = useCallback(async (data: ProposalType) => {
     setProposalPdfLoading(true);
+    let generated: Blob | null = null;
 
     try {
       // Sanitize screens into the estimator's expected shape
@@ -668,6 +669,7 @@ export const ProposalContextProvider = ({
       });
 
       const result = await response.blob();
+      generated = result;
       setProposalPdf(result);
 
       if (result.size > 0) {
@@ -679,6 +681,7 @@ export const ProposalContextProvider = ({
     } finally {
       setProposalPdfLoading(false);
     }
+    return generated;
   }, []);
 
   /**
@@ -701,11 +704,14 @@ export const ProposalContextProvider = ({
   /**
    * Downloads a PDF file.
    */
-  const downloadPdf = () => {
-    // Only download if there is a pdf
-    if (proposalPdf instanceof Blob && proposalPdf.size > 0) {
-      // Create a blob URL to trigger the download
-      const url = window.URL.createObjectURL(proposalPdf);
+  const downloadPdf = async () => {
+    let pdfBlob = proposalPdf;
+    if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
+      pdfBlob = await generatePdf(getValues());
+    }
+
+    if (pdfBlob instanceof Blob && pdfBlob.size > 0) {
+      const url = window.URL.createObjectURL(pdfBlob);
 
       // Create an anchor element to initiate the download
       const a = document.createElement("a");
@@ -1229,7 +1235,12 @@ export const ProposalContextProvider = ({
    */
   const exportAudit = async () => {
     const formValues = getValues();
+    const screens = formValues?.details?.screens || [];
     const id = formValues?.details?.proposalId ?? formValues?.details?.proposalNumber ?? "";
+    if (screens.length > 0) {
+      exportProposalDataAs(ExportTypes.XLSX);
+      return;
+    }
     if (!id || id === "new") {
       exportProposalDataAs(ExportTypes.XLSX);
       return;
@@ -1447,8 +1458,44 @@ export const ProposalContextProvider = ({
         const { formData, internalAudit } = data;
 
         // 1. Batch update main form fields
-        if (formData.receiver?.name) setValue("receiver.name", formData.receiver.name, { shouldValidate: true, shouldDirty: true });
-        if (formData.details?.proposalName) setValue("details.proposalName", formData.details.proposalName, { shouldValidate: true, shouldDirty: true });
+        const currentReceiverName = (getValues("receiver.name") ?? "").toString().trim();
+        const importedReceiverName = (formData.receiver?.name ?? "").toString().trim();
+        const currentProposalName = (getValues("details.proposalName") ?? "").toString().trim();
+        const importedProposalName = (formData.details?.proposalName ?? "").toString().trim();
+
+        const isReceiverPlaceholder =
+          currentReceiverName.length === 0 ||
+          currentReceiverName === FORM_DEFAULT_VALUES.receiver.name ||
+          currentReceiverName.toLowerCase() === "new project";
+
+        const isImportedReceiverPlaceholder =
+          importedReceiverName.length === 0 ||
+          importedReceiverName === FORM_DEFAULT_VALUES.receiver.name ||
+          importedReceiverName.toLowerCase() === "new project";
+
+        const nextReceiverName = !isReceiverPlaceholder
+          ? currentReceiverName
+          : (!isImportedReceiverPlaceholder ? importedReceiverName : currentReceiverName);
+
+        const isProposalPlaceholder =
+          currentProposalName.length === 0 ||
+          currentProposalName.toLowerCase() === "new project";
+
+        const isImportedProposalPlaceholder =
+          importedProposalName.length === 0 ||
+          importedProposalName.toLowerCase() === "anc led display proposal" ||
+          importedProposalName.toLowerCase() === "new project";
+
+        const nextProposalName = !isProposalPlaceholder
+          ? currentProposalName
+          : (!isImportedProposalPlaceholder ? importedProposalName : currentProposalName);
+
+        if (nextReceiverName !== currentReceiverName) {
+          setValue("receiver.name", nextReceiverName, { shouldValidate: true, shouldDirty: true });
+        }
+        if (nextProposalName !== currentProposalName) {
+          setValue("details.proposalName", nextProposalName, { shouldValidate: true, shouldDirty: true });
+        }
         if (formData.details?.mirrorMode !== undefined) setValue("details.mirrorMode", formData.details.mirrorMode, { shouldValidate: true, shouldDirty: true });
 
         // 2. Handle Screens & Line Items
