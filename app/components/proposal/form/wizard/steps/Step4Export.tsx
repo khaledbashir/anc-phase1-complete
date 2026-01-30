@@ -581,17 +581,10 @@ const Step4Export = () => {
                         </TabsList>
 
                         <TabsContent value="studio" className="mt-4">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                <div className="h-[520px] max-h-[65vh] overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/30">
-                                    <ExcelViewer
-                                        highlightedRows={highlightedRows}
-                                        focusedRow={focusedRow}
-                                        onFocusedRowChange={setFocusedRow}
-                                    />
-                                </div>
-                                <div className="h-[520px] max-h-[65vh] overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/30 flex flex-col">
-                                    <div className="shrink-0 px-3 py-2 border-b border-zinc-800/70 flex items-center justify-between">
-                                        <div className="text-[11px] font-semibold text-zinc-300 uppercase tracking-widest">Client PDF</div>
+                            <div className="space-y-4">
+                                <div className="rounded-2xl border border-zinc-800 bg-zinc-950/30 overflow-hidden">
+                                    <div className="shrink-0 px-4 py-3 border-b border-zinc-800/70 flex items-center justify-between">
+                                        <div className="text-[11px] font-semibold text-zinc-300 uppercase tracking-widest">Excel Verification</div>
                                         <button
                                             type="button"
                                             onClick={previewPdfInTab}
@@ -601,22 +594,20 @@ const Step4Export = () => {
                                                 mirrorMode && isPdfPreviewBlocked ? "opacity-60 cursor-not-allowed" : "hover:text-brand-blue/90"
                                             )}
                                         >
-                                            Open
+                                            Open PDF
                                         </button>
                                     </div>
-                                    <div className="flex-1">
-                                        {pdfUrl ? (
-                                            <iframe
-                                                title="Proposal PDF Preview"
-                                                src={pdfUrl}
-                                                className="w-full h-full"
-                                            />
-                                        ) : (
-                                            <div className="h-full w-full flex items-center justify-center text-zinc-600 text-sm">
-                                                Generate a PDF preview to view it here.
-                                            </div>
-                                        )}
+                                    <div className="h-[520px] max-h-[65vh] overflow-hidden">
+                                        <ExcelViewer
+                                            highlightedRows={highlightedRows}
+                                            focusedRow={focusedRow}
+                                            onFocusedRowChange={setFocusedRow}
+                                        />
                                     </div>
+                                </div>
+
+                                <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-4 py-3 text-xs text-zinc-500">
+                                    Use the live PDF preview on the right panel to compare against Excel.
                                 </div>
                             </div>
 
