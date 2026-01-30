@@ -125,13 +125,13 @@ const Step1Ingestion = () => {
                             </div>
                         </div>
                         
-                        <h3 className={`text-lg font-bold mb-2 ${selectedPath === "MIRROR" ? "text-white" : "text-zinc-300"}`}>Mirror Mode</h3>
+                        <h3 className="text-lg font-bold mb-2 text-zinc-300">Excel Import</h3>
                         <p className="text-zinc-500 text-xs leading-relaxed mb-6 flex-1">
-                            Direct pass-through for estimation. Converts Estimator Excel sheets into branded PDF proposals with 1:1 numerical accuracy.
+                            Upload your LED cost sheet to extract screen data and generate proposals.
                         </p>
 
-                        <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${selectedPath === "MIRROR" ? "text-brand-blue" : "text-zinc-600"}`}>
-                            Excel Pass-Through <ArrowRight className="w-3 h-3" />
+                        <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-zinc-600`}>
+                            Excel Upload <ArrowRight className="w-3 h-3" />
                         </div>
                     </div>
                 </SlashBox>
@@ -159,13 +159,13 @@ const Step1Ingestion = () => {
                         </div>
                     </div>
                     
-                    <h3 className={`text-lg font-bold mb-2 ${selectedPath === "INTELLIGENCE" ? "text-white" : "text-zinc-300"}`}>Intelligence Engine</h3>
+                    <h3 className="text-lg font-bold mb-2 text-zinc-300">AI Intelligence</h3>
                     <p className="text-zinc-500 text-xs leading-relaxed mb-6 flex-1">
-                        Utilize RAG to scan 2,500+ page construction manuals. Extract "Division 11" specs and display schedules automatically via AI.
+                        Upload RFP documents for AI-powered spec extraction and analysis.
                     </p>
 
-                    <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${selectedPath === "INTELLIGENCE" ? "text-brand-blue" : "text-zinc-600"}`}>
-                        RAG Spec Extraction <ArrowRight className="w-3 h-3" />
+                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-zinc-600">
+                        Document Analysis <ArrowRight className="w-3 h-3" />
                     </div>
                 </div>
             </div>
