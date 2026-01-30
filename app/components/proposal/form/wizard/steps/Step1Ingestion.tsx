@@ -1,6 +1,6 @@
 "use client";
 
-import { Upload, FileSpreadsheet, Sparkles, Shield, ArrowRight, Zap, Search, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Upload, FileSpreadsheet, Sparkles, Shield, ArrowRight, Zap, Search, CheckCircle2, AlertTriangle, FileText, ExternalLink, Trash2 } from "lucide-react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -10,8 +10,9 @@ import { AiWand, FormInput } from "@/app/components";
 import { Button } from "@/components/ui/button";
 
 const Step1Ingestion = () => {
-    const { importANCExcel, excelImportLoading, excelPreview, excelPreviewLoading, excelValidationOk } = useProposalContext();
+    const { importANCExcel, excelImportLoading, excelPreview, excelPreviewLoading, excelValidationOk, uploadRfpDocument, rfpDocuments, deleteRfpDocument, aiWorkspaceSlug } = useProposalContext();
     const [selectedPath, setSelectedPath] = useState<"MIRROR" | "INTELLIGENCE" | null>(null);
+    const [rfpUploading, setRfpUploading] = useState(false);
 
     return (
         <div className="h-full flex flex-col p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -105,7 +106,12 @@ const Step1Ingestion = () => {
                             <div className={`p-3 rounded-xl ${selectedPath === "MIRROR" ? "bg-brand-blue text-white" : "bg-zinc-800 text-zinc-500"}`}>
                                 <FileSpreadsheet className="w-6 h-6" />
                             </div>
-                            {selectedPath === "MIRROR" && <Badge className="bg-brand-blue text-white border-none">Selected</Badge>}
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px] border-zinc-800 text-emerald-400 font-bold uppercase tracking-widest">
+                                    Live
+                                </Badge>
+                                {selectedPath === "MIRROR" && <Badge className="bg-brand-blue text-white border-none">Selected</Badge>}
+                            </div>
                         </div>
                         
                         <h3 className={`text-lg font-bold mb-2 ${selectedPath === "MIRROR" ? "text-white" : "text-zinc-300"}`}>Mirror Mode</h3>
@@ -131,7 +137,12 @@ const Step1Ingestion = () => {
                         <div className={`p-3 rounded-xl ${selectedPath === "INTELLIGENCE" ? "bg-brand-blue text-white" : "bg-zinc-800 text-zinc-500"}`}>
                             <Sparkles className="w-6 h-6" />
                         </div>
-                        {selectedPath === "INTELLIGENCE" && <Badge className="bg-brand-blue text-white border-none">Active</Badge>}
+                        <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px] border-zinc-800 text-emerald-400 font-bold uppercase tracking-widest">
+                                Live
+                            </Badge>
+                            {selectedPath === "INTELLIGENCE" && <Badge className="bg-brand-blue text-white border-none">Active</Badge>}
+                        </div>
                     </div>
                     
                     <h3 className={`text-lg font-bold mb-2 ${selectedPath === "INTELLIGENCE" ? "text-white" : "text-zinc-300"}`}>Intelligence Engine</h3>
@@ -253,18 +264,116 @@ const Step1Ingestion = () => {
                 </div>
             )}
 
-            {/* RAG Placeholder for Intelligence Mode */}
+            {/* Upload Area for Intelligence Mode */}
             {selectedPath === "INTELLIGENCE" && (
-                <div className="p-8 bg-zinc-900/80 border border-zinc-800 rounded-2xl animate-in zoom-in-95 duration-300 flex items-center justify-center gap-6 group hover:border-brand-blue/20 transition-all">
-                    <div className="p-4 rounded-2xl bg-zinc-800 text-zinc-500 group-hover:bg-brand-blue/10 group-hover:text-brand-blue transition-all">
-                        <Search className="w-8 h-8" />
+                <div className="space-y-6 animate-in zoom-in-95 duration-300">
+                    <div className="p-6 bg-zinc-900/80 border border-brand-blue/30 rounded-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                            <Sparkles className="w-32 h-32 text-brand-blue" />
+                        </div>
+
+                        <div className="text-center space-y-4 relative z-10">
+                            <div className="flex items-center justify-center gap-3 mb-4">
+                                <div className={`p-2 rounded-lg ${aiWorkspaceSlug ? "bg-emerald-500/10 text-emerald-400" : "bg-brand-blue/10 text-brand-blue"}`}>
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <h4 className="text-white font-semibold">Upload RFP PDFs</h4>
+                            </div>
+
+                            <div className="mx-auto w-12 h-12 rounded-full bg-brand-blue/10 flex items-center justify-center mb-2">
+                                <Upload className="w-6 h-6 text-brand-blue" />
+                            </div>
+
+                            <p className="text-zinc-500 text-xs">
+                                Upload the display schedule / Division 11 PDFs. The system will index them per project workspace.
+                            </p>
+
+                            <div className="flex items-center justify-center gap-4 pt-2">
+                                <input
+                                    type="file"
+                                    id="rfp-upload"
+                                    className="hidden"
+                                    accept=".pdf"
+                                    multiple
+                                    onChange={async (e) => {
+                                        const files = Array.from(e.target.files || []);
+                                        if (files.length === 0) return;
+                                        setRfpUploading(true);
+                                        try {
+                                            for (const f of files) {
+                                                await uploadRfpDocument(f);
+                                            }
+                                        } finally {
+                                            setRfpUploading(false);
+                                            e.target.value = "";
+                                        }
+                                    }}
+                                />
+                                <label
+                                    htmlFor="rfp-upload"
+                                    className={`px-6 py-2.5 rounded-xl bg-brand-blue text-white font-bold text-sm cursor-pointer hover:bg-brand-blue/90 transition-all flex items-center gap-2 shadow-lg shadow-brand-blue/20 ${(rfpUploading) ? "opacity-50 pointer-events-none" : ""}`}
+                                >
+                                    {rfpUploading ? (
+                                        <><Zap className="w-4 h-4 animate-pulse" /> Indexing…</>
+                                    ) : (
+                                        <><FileText className="w-4 h-4" /> Select PDF(s)</>
+                                    )}
+                                </label>
+                            </div>
+
+                            <div className="flex items-center justify-center gap-2 pt-2">
+                                <Badge variant="outline" className="text-[10px] border-zinc-800 text-zinc-400 font-bold uppercase tracking-widest">
+                                    {aiWorkspaceSlug ? "Workspace Ready" : "Workspace Pending"}
+                                </Badge>
+                                <Badge variant="outline" className="text-[10px] border-zinc-800 text-zinc-500">Division 11</Badge>
+                                <Badge variant="outline" className="text-[10px] border-zinc-800 text-zinc-500">Display Schedule</Badge>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <h4 className="text-white font-semibold">Drop RFP Documents or Links</h4>
-                        <p className="text-zinc-500 text-xs mt-1">RAG Engine will automatically index and extract Display Schedules.</p>
-                        <div className="mt-4 flex gap-2">
-                            <Badge variant="outline" className="text-[10px] border-zinc-800 text-zinc-500">Division 11</Badge>
-                            <Badge variant="outline" className="text-[10px] border-zinc-800 text-zinc-500">Section 11 63 10</Badge>
+
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 overflow-hidden">
+                        <div className="px-5 py-4 border-b border-zinc-800/70 flex items-center justify-between">
+                            <div className="text-white font-semibold text-sm">RFP Vault</div>
+                            <div className="text-[11px] text-zinc-500 font-semibold">{(rfpDocuments || []).length} docs</div>
+                        </div>
+                        <div className="max-h-[280px] overflow-auto custom-scrollbar">
+                            {(rfpDocuments || []).length === 0 ? (
+                                <div className="px-5 py-6 text-sm text-zinc-600">No RFP documents uploaded yet.</div>
+                            ) : (
+                                <div className="divide-y divide-zinc-800/60">
+                                    {(rfpDocuments || []).map((doc) => (
+                                        <div key={doc.id} className="px-5 py-3 flex items-center justify-between gap-4">
+                                            <div className="min-w-0 flex items-center gap-3">
+                                                <FileText className="w-4 h-4 text-zinc-500 shrink-0" />
+                                                <div className="min-w-0">
+                                                    <div className="text-sm text-white font-semibold truncate">{doc.name}</div>
+                                                    <div className="text-[11px] text-zinc-500 truncate">{new Date(doc.createdAt).toLocaleString()}</div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => window.open(doc.url, "_blank")}
+                                                    className="px-3 py-1.5 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-300 hover:text-white hover:border-brand-blue/40 transition-colors text-xs font-bold flex items-center gap-2"
+                                                >
+                                                    <ExternalLink className="w-4 h-4" />
+                                                    Open
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        await deleteRfpDocument(doc.id);
+                                                    }}
+                                                    className="p-2 rounded-lg border border-zinc-800 bg-zinc-900/40 text-zinc-500 hover:text-red-300 hover:border-red-500/30 transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
-import { LayoutDashboard, MessageSquare, Table, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Table, PanelLeftClose, PanelLeftOpen, Folder } from "lucide-react";
 import AiCommandBar from "@/app/components/proposal/AiCommandBar";
 import ModeToggle from "@/app/components/reusables/ModeToggle";
 import { IntelligenceSidebar } from "@/app/components/proposal/IntelligenceSidebar";
@@ -87,6 +88,21 @@ export function StudioLayout({
                                 </button>
                             );
                         })}
+                    </div>
+
+                    <div className="px-2 pb-4">
+                        <Link
+                            href="/projects"
+                            className={cn(
+                                "h-10 px-3 rounded-lg flex items-center gap-3 transition-all group",
+                                "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+                            )}
+                        >
+                            <Folder className="w-4 h-4 shrink-0 group-hover:text-brand-blue" />
+                            {!isSidebarCollapsed && (
+                                <span className="text-sm font-medium truncate">Projects</span>
+                            )}
+                        </Link>
                     </div>
 
                     {/* Collapse Toggle */}

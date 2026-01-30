@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadDocument, addToWorkspace, queryVault } from "@/lib/anything-llm";
 import { prisma } from "@/lib/prisma";
+import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { smartFilterPdf } from "@/services/ingest/smart-filter";
 import { screenshotPdfPage } from "@/services/ingest/pdf-screenshot";
 import { DrawingService } from "@/services/vision/drawing-service";
@@ -55,7 +56,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "No file provided" }, { status: 400 });
     }
 
-    const workspaceSlug = process.env.ANYTHING_LLM_WORKSPACE || "anc-estimator";
+    let workspaceSlug = process.env.ANYTHING_LLM_WORKSPACE || "anc-estimator";
+
+    if (proposalId && proposalId !== "new") {
+      try {
+        const proposal = await prisma.proposal.findUnique({
+          where: { id: proposalId },
+          select: { aiWorkspaceSlug: true, clientName: true },
+        });
+
+        if (proposal?.aiWorkspaceSlug) {
+          workspaceSlug = proposal.aiWorkspaceSlug;
+        } else if (ANYTHING_LLM_BASE_URL && ANYTHING_LLM_KEY) {
+          const safeNameBase = (proposal?.clientName || proposalId)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 24);
+          const requestedName = `${safeNameBase || "project"}-${proposalId.slice(-6)}`;
+
+          const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/new`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${ANYTHING_LLM_KEY}`,
+            },
+            body: JSON.stringify({ name: requestedName }),
+          });
+
+          if (res.ok) {
+            const created = await res.json();
+            const slug = created?.workspace?.slug || created?.slug || null;
+            if (slug) {
+              workspaceSlug = slug;
+              await prisma.proposal.update({
+                where: { id: proposalId },
+                data: { aiWorkspaceSlug: slug },
+              });
+            }
+          } else {
+            const text = await res.text();
+            console.warn(`[RFP Upload] AnythingLLM workspace creation failed: ${res.status} ${text}`);
+          }
+        }
+      } catch (e) {
+        console.warn("[RFP Upload] Failed to resolve per-project workspace, falling back to default.", e);
+      }
+    }
     
     // SMART INGEST PIPELINE
     let fileToEmbed: Buffer | File = file;
