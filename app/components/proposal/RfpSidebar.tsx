@@ -4,10 +4,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { BaseButton } from "@/app/components";
-import { Send, Sparkles, MessageSquare, Info, History, X, AlertCircle, Upload, FileText, Loader2, Trash2 } from "lucide-react";
+import { Send, Sparkles, MessageSquare, Info, History, X, AlertCircle, Upload, FileText, Loader2, Trash2, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFormContext } from "react-hook-form";
 import { analyzeGaps, calculateCompletionRate } from "@/lib/gap-analysis";
+import { DrawingService } from "@/services/vision/drawing-service";
 
 type Message = {
     role: "user" | "ai";
@@ -25,6 +26,7 @@ const RfpSidebar = () => {
     const { watch } = useFormContext();
     const [input, setInput] = useState("");
     const [isUploading, setIsUploading] = useState(false);
+    const [isVisionAnalyzing, setIsVisionAnalyzing] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const formValues = watch();
@@ -57,6 +59,53 @@ const RfpSidebar = () => {
             console.error("Upload failed", error);
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleVisionUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsVisionAnalyzing(true);
+        try {
+            // 1. Convert to Base64
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64Image = reader.result as string;
+                
+                // 2. Add user message
+                const userMsg = { role: "user" as const, content: "Analyzing attached drawing for display tags..." };
+                // We'll just update local state for UI feedback, the context handles the actual list
+                // Note: Ideally expose setAiMessages from context or just rely on executeAiCommand response
+                
+                // 3. Call Vision API (via our new route to keep keys server-side)
+                const formData = new FormData();
+                formData.append("file", file);
+                
+                const res = await fetch("/api/vision/analyze", {
+                    method: "POST",
+                    body: formData
+                });
+                
+                const data = await res.json();
+                
+                if (data.success && data.results.length > 0) {
+                    const extractedText = data.results.map((r: any) => 
+                        `Found ${r.field}: ${r.value} (${Math.round(r.confidence * 100)}% confidence)`
+                    ).join("\n");
+                    
+                    // 4. Inject result into Chat
+                    await executeAiCommand(`I analyzed the drawing. Here is what I found:\n${extractedText}\n\nPlease update the proposal details accordingly.`);
+                } else {
+                    await executeAiCommand("I analyzed the drawing but couldn't find any standard display tags (A, AV, etc).");
+                }
+            };
+        } catch (error) {
+            console.error("Vision analysis failed", error);
+            await executeAiCommand("Error analyzing the drawing.");
+        } finally {
+            setIsVisionAnalyzing(false);
         }
     };
 
@@ -108,6 +157,19 @@ const RfpSidebar = () => {
                         <div className="flex items-center gap-1 text-[10px] font-bold text-blue-500 hover:text-blue-400 transition-colors">
                             <Upload className="w-3 h-3" />
                             {rfpDocumentUrl ? "REPLACE" : "UPLOAD"}
+                        </div>
+                    )}
+                </label>
+                
+                {/* Vision Upload Button */}
+                <label className="cursor-pointer group ml-4 pl-4 border-l border-zinc-700">
+                    <input type="file" className="hidden" accept="image/*" onChange={handleVisionUpload} disabled={isVisionAnalyzing} />
+                    {isVisionAnalyzing ? (
+                        <Loader2 className="w-3.5 h-3.5 text-purple-500 animate-spin" />
+                    ) : (
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-purple-500 hover:text-purple-400 transition-colors" title="Analyze Drawing">
+                            <Eye className="w-3 h-3" />
+                            SCAN DRAWING
                         </div>
                     )}
                 </label>
