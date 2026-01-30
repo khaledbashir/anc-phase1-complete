@@ -1,4 +1,4 @@
-import pdf from 'pdf-parse';
+const pdf = require('pdf-parse');
 
 // Keywords that indicate "Signal" (Technical/Pricing content)
 const SIGNAL_KEYWORDS = [
