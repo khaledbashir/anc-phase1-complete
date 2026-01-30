@@ -5,7 +5,6 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { useWizard } from "react-use-wizard";
 import { Download, Share2, Upload, Loader2, CheckCircle2, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
 import SaveIndicator from "@/app/components/reusables/SaveIndicator";
 import WizardStepper from "@/app/components/proposal/form/wizard/WizardProgress";
@@ -89,24 +88,15 @@ export function StudioHeader({
                 <div className="hidden md:block h-8 w-px bg-zinc-800 mx-1" />
                 
                 <div className="hidden md:flex items-center gap-2">
-                    <Badge
-                        className="bg-[#0A52EF] hover:bg-[#0A52EF]/90 text-white font-['Work_Sans'] border-none px-3 py-1 flex items-center gap-2"
-                    >
+                    <span className="inline-flex items-center gap-1.5 rounded-md bg-[#0A52EF]/15 px-2.5 py-1 text-[10px] font-semibold text-brand-blue uppercase tracking-wide">
                         <CheckCircle2 className="w-3 h-3" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider">
-                            {Math.round(completionRate)}% Match
-                        </span>
-                    </Badge>
-
+                        {Math.round(completionRate)}% Match
+                    </span>
                     {excelValidationOk && (
-                        <Badge
-                            className="bg-emerald-500/15 hover:bg-emerald-500/20 text-emerald-300 font-['Work_Sans'] border border-emerald-500/20 px-3 py-1 flex items-center gap-2"
-                        >
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-400 uppercase tracking-wide">
                             <CheckCircle2 className="w-3 h-3" />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">
-                                Excel Verified
-                            </span>
-                        </Badge>
+                            Excel Verified
+                        </span>
                     )}
                 </div>
             </div>

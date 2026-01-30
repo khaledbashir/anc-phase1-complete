@@ -49,6 +49,54 @@ export async function POST(req: NextRequest) {
 
         const normalizedQuery = normalizeQuery(query);
 
+        // DEMO OVERRIDE: Indiana Fever / Gainbridge Fieldhouse (avoids LLM wait)
+        if (normalizedQuery.includes("indiana fever") || normalizedQuery.includes("indiana fevr") || (normalizedQuery.includes("indiana") && normalizedQuery.includes("fever"))) {
+            const indianaCandidates = [
+                {
+                    label: "Indiana Fever (WNBA) – Gainbridge Fieldhouse",
+                    confidence: 0.98,
+                    notes: "Primary venue: Gainbridge Fieldhouse, Indianapolis.",
+                    results: {
+                        "receiver.name": "Indiana Fever",
+                        "receiver.address": "125 S Pennsylvania St",
+                        "receiver.city": "Indianapolis",
+                        "receiver.zipCode": "46204",
+                        "details.venue": "Gainbridge Fieldhouse",
+                    },
+                },
+                {
+                    label: "Pacers Sports & Entertainment (Gainbridge Fieldhouse)",
+                    confidence: 0.92,
+                    notes: "Arena operator; same building as Indiana Fever.",
+                    results: {
+                        "receiver.name": "Pacers Sports & Entertainment",
+                        "receiver.address": "125 S Pennsylvania St",
+                        "receiver.city": "Indianapolis",
+                        "receiver.zipCode": "46204",
+                        "details.venue": "Gainbridge Fieldhouse",
+                    },
+                },
+                {
+                    label: "Gainbridge Fieldhouse",
+                    confidence: 0.88,
+                    notes: "Venue only; use for project/display schedule context.",
+                    results: {
+                        "receiver.name": "Gainbridge Fieldhouse",
+                        "receiver.address": "125 S Pennsylvania St",
+                        "receiver.city": "Indianapolis",
+                        "receiver.zipCode": "46204",
+                        "details.venue": "Gainbridge Fieldhouse",
+                    },
+                },
+            ];
+            return NextResponse.json({
+                ok: true,
+                correctedQuery: "Indiana Fever",
+                candidates: indianaCandidates,
+                results: undefined,
+            });
+        }
+
         // DEMO OVERRIDE: Garden Square (Brampton)
         if (normalizedQuery.includes("garden square") || normalizedQuery.includes("gardn square")) {
              const candidates = [

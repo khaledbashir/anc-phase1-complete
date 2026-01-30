@@ -62,12 +62,17 @@ export default function AiWand({ fieldName, searchQuery, targetFields }: AiWandP
 
         setLoading(true);
         setLastQuery(String(query));
+        const controller = new AbortController();
+        let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => controller.abort(), 25000);
         try {
             const res = await fetch("/api/agent/enrich", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ query, targetFields }),
+                signal: controller.signal,
             });
+            if (timeoutId) clearTimeout(timeoutId);
+            timeoutId = null;
 
             const data = await res.json().catch(() => null);
 
@@ -102,8 +107,13 @@ export default function AiWand({ fieldName, searchQuery, targetFields }: AiWandP
             setPickerOpen(true);
         } catch (e) {
             console.error("Enrichment error:", e);
-            showError("AI Enrichment failed.");
+            if ((e as Error)?.name === "AbortError") {
+                showError("Lookup timed out. Check your connection or try again.");
+            } else {
+                showError("AI Enrichment failed.");
+            }
         } finally {
+            if (timeoutId) clearTimeout(timeoutId);
             setLoading(false);
         }
     };

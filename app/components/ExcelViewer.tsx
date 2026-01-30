@@ -106,8 +106,8 @@ export default function ExcelViewer({
     if (!activeSheet) return [];
     return activeSheet.colWidths.map((w) => {
       if (w === 0) return "0px";
-      if (typeof w === "number") return `${Math.max(36, w * 7)}px`;
-      return "120px";
+      if (typeof w === "number") return `${Math.max(44, w * 8)}px`;
+      return "140px";
     });
   }, [activeSheet]);
 
@@ -207,11 +207,11 @@ export default function ExcelViewer({
   };
 
   return (
-    <div className="h-full w-full rounded-2xl border border-zinc-800 bg-zinc-950/40 overflow-hidden flex flex-col">
-      <div className="shrink-0 border-b border-zinc-800/80 bg-zinc-950/60 px-3 py-2 flex items-center justify-between gap-3">
+    <div className="h-full w-full rounded-2xl border-0 bg-transparent overflow-hidden flex flex-col">
+      <div className="shrink-0 border-b border-zinc-800/60 bg-zinc-900/40 px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
-          <FileSpreadsheet className="w-4 h-4 text-brand-blue shrink-0" />
-          <div className="text-[11px] text-zinc-300 font-semibold uppercase tracking-widest truncate font-['Work_Sans']">
+          <FileSpreadsheet className="w-5 h-5 text-brand-blue shrink-0" />
+          <div className="text-xs text-zinc-300 font-semibold tracking-wide truncate font-['Work_Sans']">
             {excelPreview.fileName}
           </div>
         </div>
@@ -235,7 +235,7 @@ export default function ExcelViewer({
         )}
       </div>
 
-      <div className="shrink-0 border-b border-zinc-800/80 bg-zinc-950/40 px-3 py-2 flex items-center gap-2 overflow-x-auto custom-scrollbar">
+      <div className="shrink-0 border-b border-zinc-800/60 bg-zinc-900/30 px-4 py-2.5 flex items-center gap-2 overflow-x-auto custom-scrollbar">
         {sheets.map((s) => {
           const isActive = s.name === activeSheet.name;
           const showIssue = s.validationIssue && (s.name.toLowerCase().includes("led") || s.name.toLowerCase().includes("cost"));
@@ -246,13 +246,13 @@ export default function ExcelViewer({
               key={s.name}
               onClick={() => setActiveSheetName(s.name)}
               className={cn(
-                "px-3 py-1.5 rounded-lg border text-[11px] font-semibold font-['Work_Sans'] whitespace-nowrap flex items-center gap-2 transition-colors",
+                "px-4 py-2 rounded-lg border text-xs font-medium font-['Work_Sans'] whitespace-nowrap flex items-center gap-2 transition-colors",
                 isActive
-                  ? "bg-[#0A52EF]/15 border-[#0A52EF]/60 text-white"
-                  : "bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                  ? "bg-[#0A52EF]/15 border-[#0A52EF]/50 text-white"
+                  : "bg-zinc-800/30 border-zinc-700/60 text-zinc-400 hover:text-zinc-200 hover:border-zinc-600"
               )}
             >
-              <span className="truncate max-w-[240px]">{s.name}</span>
+              <span className="truncate max-w-[260px]">{s.name}</span>
               {showIssue && <AlertTriangle className="w-3.5 h-3.5 text-red-500" />}
               {showOk && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />}
             </button>
@@ -260,7 +260,7 @@ export default function ExcelViewer({
         })}
       </div>
 
-      <div className="flex-1 overflow-auto custom-scrollbar">
+      <div className="flex-1 overflow-auto custom-scrollbar min-h-0">
         <TooltipProvider delayDuration={150}>
           <table className="min-w-full border-separate border-spacing-0 font-['Work_Sans']">
             <colgroup>
@@ -308,8 +308,8 @@ export default function ExcelViewer({
                       const cellValue = normalizeValue(cell);
 
                       const baseClass = cn(
-                        "text-[11px] text-zinc-200 align-top px-2 py-1 border-b border-zinc-900/60",
-                        "border-r border-zinc-900/60",
+                        "text-xs text-zinc-200 align-top px-3 py-2 border-b border-zinc-800/50",
+                        "border-r border-zinc-800/50",
                         isGhosted && "line-through",
                         isHighlightedCol && "bg-blue-50/5",
                         isHighlightedCol && "border-r-[#0A52EF]/35",
