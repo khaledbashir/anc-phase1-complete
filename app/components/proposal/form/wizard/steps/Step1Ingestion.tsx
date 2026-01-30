@@ -13,7 +13,14 @@ import { useFormContext, useWatch } from "react-hook-form";
 const Step1Ingestion = () => {
     const { importANCExcel, excelImportLoading, excelPreview, excelPreviewLoading, excelValidationOk, uploadRfpDocument, rfpDocuments, deleteRfpDocument, aiWorkspaceSlug } = useProposalContext();
     const { control, setValue } = useFormContext();
+    const mirrorMode = useWatch({ name: "details.mirrorMode", control });
+    const [selectedPath, setSelectedPath] = useState<"MIRROR" | "INTELLIGENCE" | null>(null);
     const [rfpUploading, setRfpUploading] = useState(false);
+
+    useEffect(() => {
+        if (selectedPath) return;
+        setSelectedPath(mirrorMode ? "MIRROR" : "INTELLIGENCE");
+    }, [mirrorMode, selectedPath]);
 
     return (
         <div className="h-full flex flex-col p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -93,29 +100,85 @@ const Step1Ingestion = () => {
                 </div>
             </div>
 
-            {/* Excel Upload Section */}
-            <div className="space-y-6">
-                <div className="p-6 rounded-2xl border bg-zinc-900/50 border-zinc-800">
-                    <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-3 rounded-xl bg-zinc-800 text-zinc-400">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Path 1: Mirror Mode (Excel-to-PDF) */}
+                <SlashBox className="group">
+                    <div
+                        onClick={() => {
+                            setSelectedPath("MIRROR");
+                            setValue("details.mirrorMode", true, { shouldDirty: true, shouldValidate: true });
+                        }}
+                        className={`p-6 rounded-2xl border cursor-pointer transition-all duration-300 h-full flex flex-col ${selectedPath === "MIRROR"
+                            ? "bg-brand-blue/10 border-brand-blue shadow-2xl shadow-brand-blue/10"
+                            : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"
+                            }`}
+                    >
+                        <div className="flex items-center justify-between mb-6">
+                            <div className={`p-3 rounded-xl ${selectedPath === "MIRROR" ? "bg-brand-blue text-white" : "bg-zinc-800 text-zinc-500"}`}>
                                 <FileSpreadsheet className="w-6 h-6" />
                             </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-white">Excel Import</h3>
-                                <p className="text-zinc-500 text-xs">Upload your LED cost sheet to extract screen data</p>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px] border-zinc-800 text-emerald-400 font-bold uppercase tracking-widest">
+                                    Live
+                                </Badge>
+                                {selectedPath === "MIRROR" && <Badge className="bg-brand-blue text-white border-none">Selected</Badge>}
                             </div>
                         </div>
-                    </div>
+                        
+                        <h3 className={`text-lg font-bold mb-2 ${selectedPath === "MIRROR" ? "text-white" : "text-zinc-300"}`}>Mirror Mode</h3>
+                        <p className="text-zinc-500 text-xs leading-relaxed mb-6 flex-1">
+                            Direct pass-through for estimation. Converts Estimator Excel sheets into branded PDF proposals with 1:1 numerical accuracy.
+                        </p>
 
-            {/* Excel Upload Section */}
-            <div className="space-y-6">
-                <div className="p-6 bg-zinc-900/80 border border-brand-blue/30 rounded-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                        <Shield className="w-32 h-32 text-brand-blue" />
+                        <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${selectedPath === "MIRROR" ? "text-brand-blue" : "text-zinc-600"}`}>
+                            Excel Pass-Through <ArrowRight className="w-3 h-3" />
+                        </div>
                     </div>
+                </SlashBox>
 
-                    <div className="text-center space-y-4 relative z-10">
+                {/* Path 2: Intelligence Mode (RAG/AI) */}
+                <div
+                    onClick={() => {
+                        setSelectedPath("INTELLIGENCE");
+                        setValue("details.mirrorMode", false, { shouldDirty: true, shouldValidate: true });
+                    }}
+                    className={`p-6 rounded-2xl border cursor-pointer transition-all duration-300 h-full flex flex-col ${selectedPath === "INTELLIGENCE"
+                        ? "bg-brand-blue/10 border-brand-blue shadow-2xl shadow-brand-blue/10"
+                        : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"
+                        }`}
+                >
+                    <div className="flex items-center justify-between mb-6">
+                        <div className={`p-3 rounded-xl ${selectedPath === "INTELLIGENCE" ? "bg-brand-blue text-white" : "bg-zinc-800 text-zinc-500"}`}>
+                            <Sparkles className="w-6 h-6" />
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[10px] border-zinc-800 text-emerald-400 font-bold uppercase tracking-widest">
+                                Live
+                            </Badge>
+                            {selectedPath === "INTELLIGENCE" && <Badge className="bg-brand-blue text-white border-none">Active</Badge>}
+                        </div>
+                    </div>
+                    
+                    <h3 className={`text-lg font-bold mb-2 ${selectedPath === "INTELLIGENCE" ? "text-white" : "text-zinc-300"}`}>Intelligence Engine</h3>
+                    <p className="text-zinc-500 text-xs leading-relaxed mb-6 flex-1">
+                        Utilize RAG to scan 2,500+ page construction manuals. Extract "Division 11" specs and display schedules automatically via AI.
+                    </p>
+
+                    <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${selectedPath === "INTELLIGENCE" ? "text-brand-blue" : "text-zinc-600"}`}>
+                        RAG Spec Extraction <ArrowRight className="w-3 h-3" />
+                    </div>
+                </div>
+            </div>
+
+            {/* Upload Area for Mirror Mode */}
+            {selectedPath === "MIRROR" && (
+                <div className="space-y-6 animate-in zoom-in-95 duration-300">
+                    <div className="p-6 bg-zinc-900/80 border border-brand-blue/30 rounded-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                            <Shield className="w-32 h-32 text-brand-blue" />
+                        </div>
+
+                        <div className="text-center space-y-4 relative z-10">
                             <div className="flex items-center justify-center gap-3 mb-4">
                                 <div className={`p-2 rounded-lg ${excelPreview ? "bg-emerald-500/10 text-emerald-400" : "bg-brand-blue/10 text-brand-blue"}`}>
                                     <FileSpreadsheet className="w-5 h-5" />
@@ -213,12 +276,14 @@ const Step1Ingestion = () => {
                         </div>
                     )}
                 </div>
+            )}
 
-            {/* RFP Intelligence Section */}
-            <div className="space-y-6">
-                <div className="p-6 bg-zinc-900/80 border border-brand-blue/30 rounded-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                        <Sparkles className="w-32 h-32 text-brand-blue" />
+            {/* Upload Area for Intelligence Mode */}
+            {selectedPath === "INTELLIGENCE" && (
+                <div className="space-y-6 animate-in zoom-in-95 duration-300">
+                    <div className="p-6 bg-zinc-900/80 border border-brand-blue/30 rounded-2xl relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                            <Sparkles className="w-32 h-32 text-brand-blue" />
                         </div>
 
                         <div className="text-center space-y-4 relative z-10">
@@ -326,6 +391,7 @@ const Step1Ingestion = () => {
                         </div>
                     </div>
                 </div>
+            )}
         </div>
     );
 };
