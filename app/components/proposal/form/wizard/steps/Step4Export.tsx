@@ -288,6 +288,49 @@ const Step4Export = () => {
                             </div>
                         </div>
 
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <div className={cn(
+                                "rounded-xl border px-4 py-3",
+                                reconciliation?.isMatch ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                            )}>
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 1</div>
+                                <div className="mt-2 text-sm font-semibold text-white">Excel ↔ Audit</div>
+                                <div className="mt-1 text-[11px] text-zinc-500">
+                                    {reconciliation?.isMatch ? "Match" : "Not verified"}
+                                </div>
+                            </div>
+                            <div className={cn(
+                                "rounded-xl border px-4 py-3",
+                                pdfUrl && internalAudit ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                            )}>
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 2</div>
+                                <div className="mt-2 text-sm font-semibold text-white">PDF ↔ Ugly Sheet</div>
+                                <div className="mt-1 text-[11px] text-zinc-500">
+                                    {pdfUrl && internalAudit ? "Ready" : "Generate PDF + audit"}
+                                </div>
+                            </div>
+                            <div className={cn(
+                                "rounded-xl border px-4 py-3",
+                                effectiveVerification?.roundingCompliance?.isCompliant ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                            )}>
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 3</div>
+                                <div className="mt-2 text-sm font-semibold text-white">Rounding</div>
+                                <div className="mt-1 text-[11px] text-zinc-500">
+                                    {effectiveVerification?.roundingCompliance?.isCompliant ? "Compliant" : "Not checked"}
+                                </div>
+                            </div>
+                            <div className={cn(
+                                "rounded-xl border px-4 py-3",
+                                (playbackItems?.length ?? 0) > 0 ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                            )}>
+                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 4</div>
+                                <div className="mt-2 text-sm font-semibold text-white">Line‑By‑Line Scan</div>
+                                <div className="mt-1 text-[11px] text-zinc-500">
+                                    {(playbackItems?.length ?? 0) > 0 ? "Available" : "Run verification"}
+                                </div>
+                            </div>
+                        </div>
+
                         {!isMirrorReadyToExport && mirrorBlockingIssues.length > 0 && (
                             <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
                                 <div className="text-[10px] font-bold uppercase tracking-widest text-amber-200">Blocked Because</div>

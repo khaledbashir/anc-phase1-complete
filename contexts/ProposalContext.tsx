@@ -769,9 +769,13 @@ export const ProposalContextProvider = ({
   /**
    * Generates a preview of a PDF file and opens it in a new browser tab.
    */
-  const previewPdfInTab = () => {
-    if (proposalPdf) {
-      const url = window.URL.createObjectURL(proposalPdf);
+  const previewPdfInTab = async () => {
+    let pdfBlob: Blob | null = proposalPdf;
+    if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
+      pdfBlob = await generatePdf(getValues());
+    }
+    if (pdfBlob instanceof Blob && pdfBlob.size > 0) {
+      const url = window.URL.createObjectURL(pdfBlob);
       window.open(url, "_blank");
     }
   };
@@ -1326,21 +1330,22 @@ export const ProposalContextProvider = ({
     const formValues = getValues();
     const screens = formValues?.details?.screens || [];
     const id = formValues?.details?.proposalId ?? formValues?.details?.proposalNumber ?? "";
-    if (!id || id === "new") {
-      exportProposalDataAs(ExportTypes.XLSX);
-      return;
-    }
+    const isMirror = !!formValues?.details?.mirrorMode || formValues?.details?.calculationMode === "MIRROR";
 
     try {
       const res = await fetch("/api/proposals/export/audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          proposalId: id,
+          proposalId: id || "new",
           projectAddress: `${formValues?.receiver?.address ?? ""} ${formValues?.receiver?.city ?? ""} ${formValues?.receiver?.zipCode ?? ""} ${formValues?.details?.location ?? ""}`.trim(),
           venue: formValues?.details?.venue ?? "",
           internalAudit: formValues?.details?.internalAudit ?? null,
           screens,
+          calculationMode: isMirror ? "MIRROR" : (formValues?.details?.calculationMode ?? "INTELLIGENCE"),
+          mirrorMode: isMirror,
+          clientName: formValues?.receiver?.name ?? "",
+          projectName: formValues?.details?.proposalName ?? "",
         }),
       });
 
@@ -1615,7 +1620,13 @@ export const ProposalContextProvider = ({
 
         // 2. Handle Screens & Line Items
         if (formData.details?.screens && internalAudit) {
-          const screens = formData.details.screens;
+          const screens = formData.details.screens.filter((s: any) => {
+            const name = (s?.name ?? "").toString().trim().toUpperCase();
+            const w = Number(s?.widthFt ?? s?.width ?? 0);
+            const h = Number(s?.heightFt ?? s?.height ?? 0);
+            if (name.includes("OPTION") && (w <= 0 || h <= 0)) return false;
+            return true;
+          });
 
           // Sync line items for PDF template (Injecting pricing from Audit into Screen Objects)
           const screensWithLineItems = syncLineItemsFromAudit(screens, internalAudit);

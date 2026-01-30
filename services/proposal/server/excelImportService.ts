@@ -49,32 +49,65 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     const headers = ledData[headerRowIndex];
     if (!headers) throw new Error("Could not find header row in LED Sheet");
 
-    // REQ-111: Fixed Column Index Mapping for "Master Truth" precision
-    // Using explicit column indices to prevent fuzzy matching errors
-    const colIdx = {
-        name: 0,           // Column A - Display Name
-        pitch: 4,          // Column E - Pixel Pitch
-        height: 5,         // Column F - Height
-        width: 6,          // Column G - Width
-        pixelsH: 7,        // Column H - Pixel H (Resolution Height)
-        pixelsW: 9,        // Column J - Pixel W (Resolution Width)
-        brightnessNits: 12, // Column M - Brightness (formerly "Nits")
-        hdrStatus: -1,     // HDR column (search dynamically)
-        hardwareCost: 16,  // LED Price
-        installCost: 17,   // Install
-        otherCost: 18,     // Other
-        shippingCost: 19,  // Shipping
-        totalCost: 20,     // Total Cost
-        sellPrice: 22,     // Sell Price
-        ancMargin: 23,     // Margin
-        bondCost: 24,      // Bond
-        finalTotal: 25,    // Total (Final)
-    };
+    const headerText = headers.map((h) => (h ?? "").toString().trim().toUpperCase());
+    const isLedCostSheetFormat = headerText.includes("OPTION") && headerText.includes("PITCH") && headerText.includes("OF SCREENS");
 
-    // Dynamic search for HDR column if not at fixed position
+    const colIdx: any = isLedCostSheetFormat
+        ? {
+            name: 0,
+            quantity: headers.findIndex((h) => (h ?? "").toString().trim().toUpperCase() === "OF SCREENS"),
+            pitch: headers.findIndex((h) => (h ?? "").toString().trim().toUpperCase() === "PITCH"),
+            height: 5,
+            width: 6,
+            pixelsH: 7,
+            pixelsW: 9,
+            brightnessNits: headers.findIndex((h) => /NIT|BRIGHT/i.test((h ?? "").toString())),
+            hdrStatus: -1,
+            hardwareCost: headers.findIndex((h) => /DISPLAY\s*COST/i.test((h ?? "").toString())),
+            installCost: -1,
+            otherCost: -1,
+            shippingCost: -1,
+            totalCost: -1,
+            sellPrice: -1,
+            ancMargin: -1,
+            bondCost: -1,
+            finalTotal: -1,
+        }
+        : {
+            name: 0,
+            quantity: 2,
+            pitch: 4,
+            height: 5,
+            width: 6,
+            pixelsH: 7,
+            pixelsW: 9,
+            brightnessNits: 12,
+            hdrStatus: -1,
+            hardwareCost: 16,
+            installCost: 17,
+            otherCost: 18,
+            shippingCost: 19,
+            totalCost: 20,
+            sellPrice: 22,
+            ancMargin: 23,
+            bondCost: 24,
+            finalTotal: 25,
+        };
+
     if (colIdx.hdrStatus === -1) {
-        colIdx.hdrStatus = headers.findIndex(h => typeof h === 'string' && h.toLowerCase().includes('hdr'));
+        colIdx.hdrStatus = headers.findIndex((h) => typeof h === "string" && h.toLowerCase().includes("hdr"));
     }
+    if (colIdx.brightnessNits === -1) {
+        colIdx.brightnessNits = headers.findIndex((h) => typeof h === "string" && /nit|bright/i.test(h));
+    }
+    if (isLedCostSheetFormat) {
+        if (colIdx.quantity === -1) colIdx.quantity = 11;
+        if (colIdx.pitch === -1) colIdx.pitch = 4;
+        if (colIdx.hardwareCost === -1) colIdx.hardwareCost = 16;
+    }
+
+    const marginRows = marginSheet ? parseMarginAnalysisRows(marginData) : [];
+    const subTotalRow = marginRows.find((r) => r.name.toLowerCase().includes("sub total") && r.name.toLowerCase().includes("bid form")) || null;
 
     const screens: any[] = [];
     const perScreenAudits: ScreenAudit[] = [];
@@ -124,18 +157,20 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             const hdrValue = colIdx.hdrStatus !== -1 ? row[colIdx.hdrStatus] : null;
             const isHDR = hdrValue === true || String(hdrValue).toLowerCase() === 'yes' || String(hdrValue).toLowerCase() === 'true';
 
+            const safeNumAt = (idx: number) => (idx >= 0 ? (Number(row[idx]) || 0) : 0);
+
             // Financial fields
-            const hardwareCost = Number(row[colIdx.hardwareCost] || 0);
-            const installCost = Number(row[colIdx.installCost] || 0);
-            const otherCost = Number(row[colIdx.otherCost] || 0);
-            const structureCost = Number(row[colIdx.installCost] || 0) * 0.5; // Heuristic
-            const laborCost = Number(row[colIdx.installCost] || 0) * 0.5 + Number(row[colIdx.otherCost] || 0);
-            const shippingCost = Number(row[colIdx.shippingCost] || 0);
-            const totalCostBeforeMargin = Number(row[colIdx.totalCost] || 0);
-            const sellPrice = Number(row[colIdx.sellPrice] || 0);
-            const ancMargin = Number(row[colIdx.ancMargin] || 0);
-            const bondCost = Number(row[colIdx.bondCost] || 0);
-            const finalClientTotal = Number(row[colIdx.finalTotal] || 0);
+            const hardwareCost = safeNumAt(colIdx.hardwareCost);
+            const installCost = safeNumAt(colIdx.installCost);
+            const otherCost = safeNumAt(colIdx.otherCost);
+            const structureCost = safeNumAt(colIdx.installCost) * 0.5;
+            const laborCost = safeNumAt(colIdx.installCost) * 0.5 + safeNumAt(colIdx.otherCost);
+            const shippingCost = safeNumAt(colIdx.shippingCost);
+            const totalCostBeforeMargin = safeNumAt(colIdx.totalCost) || hardwareCost + installCost + otherCost;
+            const sellPrice = safeNumAt(colIdx.sellPrice);
+            const ancMargin = safeNumAt(colIdx.ancMargin);
+            const bondCost = safeNumAt(colIdx.bondCost);
+            const finalClientTotal = safeNumAt(colIdx.finalTotal);
 
             const screen: any = {
                 name: projectName,
@@ -147,7 +182,7 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
                 pixelsW: parseInt(pixelsW) || 0,
                 brightnessNits: brightness,
                 isHDR: isHDR,
-                quantity: 1,
+                quantity: Number(colIdx.quantity >= 0 ? row[colIdx.quantity] : 1) || 1,
                 lineItems: [],
                 hardwareCost,
                 installCost,
@@ -166,33 +201,28 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             }
             screen.description = description;
 
-            // MIRRORING LOGIC: Find this project in "Margin Analysis"
-            if (marginSheet) {
-                const mirroredItems = findMirrorItems(marginData, projectName);
-                if (mirroredItems.length > 0) {
-                    screen.lineItems = mirroredItems.map((item, idx) => ({
-                        id: `mi-${i}-${idx}`,
-                        category: item.name,
-                        price: item.sellPrice,
-                        description: screen.description
-                    }));
-                }
+            const marginRow = marginRows.length > 0 ? pickBestMarginRow(marginRows, projectName) : null;
+            if (marginRow) {
+                screen.totalCost = marginRow.cost;
+                screen.sellPrice = marginRow.sell;
+                screen.ancMargin = marginRow.marginAmount;
+                screen.finalTotal = marginRow.sell;
             }
 
             const audit: ScreenAudit = {
                 name: projectName,
                 productType: 'LED Display',
-                quantity: 1,
+                quantity: Number(colIdx.quantity >= 0 ? row[colIdx.quantity] : 1) || 1,
                 areaSqFt: formatDimension((parseFloat(heightFt) || 0) * (parseFloat(widthFt) || 0)),
                 pixelResolution: (parseInt(pixelsH) || 0) * (parseInt(pixelsW) || 0),
                 pixelMatrix: `${pixelsH} x ${pixelsW} @ ${pitch}mm`,
                 breakdown: {
-                    hardware: formatCurrencyInternal(hardwareCost),
-                    structure: formatCurrencyInternal(structureCost),
+                    hardware: formatCurrencyInternal(marginRow?.cost ?? hardwareCost),
+                    structure: 0,
                     install: 0,
-                    labor: formatCurrencyInternal(laborCost),
+                    labor: 0,
                     power: 0,
-                    shipping: formatCurrencyInternal(shippingCost),
+                    shipping: 0,
                     pm: 0,
                     generalConditions: 0,
                     travel: 0,
@@ -201,13 +231,13 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
                     permits: 0,
                     cms: 0,
                     demolition: 0,
-                    ancMargin: formatCurrencyInternal(ancMargin),
-                    sellPrice: formatCurrencyInternal(sellPrice),
-                    bondCost: formatCurrencyInternal(bondCost),
-                    totalCost: formatCurrencyInternal(totalCostBeforeMargin),
-                    finalClientTotal: finalClientTotal,
-                    sellingPricePerSqFt: heightFt && widthFt ? finalClientTotal / (parseFloat(heightFt) * parseFloat(widthFt)) : 0,
-                    marginAmount: ancMargin,
+                    ancMargin: formatCurrencyInternal(marginRow?.marginAmount ?? ancMargin),
+                    sellPrice: formatCurrencyInternal(marginRow?.sell ?? sellPrice),
+                    bondCost: 0,
+                    totalCost: formatCurrencyInternal(marginRow?.cost ?? totalCostBeforeMargin),
+                    finalClientTotal: marginRow?.sell ?? finalClientTotal,
+                    sellingPricePerSqFt: heightFt && widthFt ? (marginRow?.sell ?? finalClientTotal) / (parseFloat(heightFt) * (parseFloat(widthFt) || 1)) : 0,
+                    marginAmount: marginRow?.marginAmount ?? ancMargin,
                     boTaxCost: 0
                 }
             };
@@ -220,6 +250,12 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     }
 
     const totals = aggregateTotals(perScreenAudits);
+    if (subTotalRow) {
+        totals.totalCost = Number(subTotalRow.cost || totals.totalCost);
+        totals.sellPrice = Number(subTotalRow.sell || totals.sellPrice);
+        totals.ancMargin = Number(subTotalRow.marginAmount || totals.ancMargin);
+        totals.finalClientTotal = Number(subTotalRow.sell || totals.finalClientTotal);
+    }
     const internalAudit: InternalAudit = {
         perScreen: perScreenAudits,
         totals: totals
@@ -270,36 +306,110 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     };
 }
 
-function findMirrorItems(data: any[][], projectName: string): { name: string, sellPrice: number }[] {
-    const items: { name: string, sellPrice: number }[] = [];
-    let found = false;
+function parseMarginAnalysisRows(data: any[][]) {
+    const rows: Array<{
+        name: string;
+        cost: number;
+        sell: number;
+        marginAmount: number;
+        marginPct: number;
+        rowIndex: number;
+        section: string | null;
+        isAlternate: boolean;
+        isTotalLike: boolean;
+    }> = [];
 
-    // Normalize match name
-    const target = projectName.toLowerCase().trim();
+    const norm = (s: any) => String(s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
 
-    for (let i = 0; i < data.length; i++) {
-        const row = data[i];
-        const cellA = row[0];
-
-        if (typeof cellA === 'string' && cellA.toLowerCase().includes(target)) {
-            found = true;
-            for (let j = i + 1; j < data.length; j++) {
-                const subRow = data[j];
-                const label = subRow[0];
-                const sellPrice = subRow[5];
-
-                if (!label || (typeof label === 'string' && (label.toUpperCase().includes('TOTAL') || label.includes('RB.')))) {
-                    break;
-                }
-
-                if (typeof sellPrice === 'number' && sellPrice > 0) {
-                    items.push({ name: label, sellPrice });
-                }
-            }
+    let headerRow = -1;
+    for (let i = 0; i < Math.min(data.length, 40); i++) {
+        const row = data[i] || [];
+        const rowText = row.map(norm);
+        const hasCost = rowText.includes("cost");
+        const hasSell = rowText.includes("selling price") || rowText.includes("sell price");
+        if (hasCost && hasSell) {
+            headerRow = i;
             break;
         }
     }
-    return items;
+
+    if (headerRow === -1) return rows;
+
+    let currentSection: string | null = null;
+    let isInAlternates = false;
+
+    for (let i = headerRow + 1; i < data.length; i++) {
+        const row = data[i] || [];
+        const labelRaw = row[0];
+        const label = typeof labelRaw === "string" ? labelRaw.trim() : "";
+        const labelNorm = norm(labelRaw);
+
+        const cost = Number(row[1]);
+        const sell = Number(row[2]);
+        const marginAmount = Number(row[3]);
+        const marginPct = Number(row[4]);
+
+        const numericRow =
+            Number.isFinite(cost) &&
+            Number.isFinite(sell) &&
+            label.length > 0;
+
+        const isTotalLike =
+            labelNorm.includes("total") ||
+            labelNorm.includes("sub total") ||
+            labelNorm.includes("subtotal") ||
+            labelNorm === "tax" ||
+            labelNorm === "bond";
+
+        if (!numericRow) {
+            if (label.length > 0) {
+                if (labelNorm.includes("alternates")) isInAlternates = true;
+                if (labelNorm.includes("alternate") && labelNorm.includes("cost")) isInAlternates = true;
+                if (!labelNorm.includes("revision") && !labelNorm.includes("project name")) {
+                    currentSection = label;
+                }
+            }
+            continue;
+        }
+
+        const isAlternate = isInAlternates || labelNorm.startsWith("alt") || labelNorm.startsWith("alternate");
+
+        rows.push({
+            name: label,
+            cost: Number.isFinite(cost) ? cost : 0,
+            sell: Number.isFinite(sell) ? sell : 0,
+            marginAmount: Number.isFinite(marginAmount) ? marginAmount : 0,
+            marginPct: Number.isFinite(marginPct) ? marginPct : 0,
+            rowIndex: i + 1,
+            section: currentSection,
+            isAlternate,
+            isTotalLike,
+        });
+    }
+
+    return rows;
+}
+
+function pickBestMarginRow(marginRows: ReturnType<typeof parseMarginAnalysisRows>, screenName: string) {
+    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+    const s = norm(screenName);
+    if (!s) return null;
+
+    let best: { row: (typeof marginRows)[number]; score: number } | null = null;
+
+    for (const row of marginRows) {
+        if (row.isAlternate) continue;
+        if (row.isTotalLike) continue;
+        const r = norm(row.name);
+        let score = 0;
+        if (r.includes(s)) score = s.length;
+        else if (s.includes(r)) score = r.length;
+        if (score > 0 && (!best || score > best.score)) best = { row, score };
+    }
+
+    if (!best) return null;
+    if (best.score < Math.min(10, s.length)) return null;
+    return best.row;
 }
 
 function aggregateTotals(audits: ScreenAudit[]) {

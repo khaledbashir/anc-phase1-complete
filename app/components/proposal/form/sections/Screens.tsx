@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React from "react";
 
 // RHF
 import { useFieldArray, useFormContext } from "react-hook-form";
@@ -89,10 +89,35 @@ const Screens = () => {
     };
 
     const { duplicateScreen } = useProposalContext();
+    const screens = getValues(SCREENS_NAME) || [];
+    const mirrorMode = !!getValues("details.mirrorMode");
+    const optionIndices = screens
+        .map((s: any, idx: number) => {
+            const name = (s?.name ?? "").toString().trim().toUpperCase();
+            const w = Number(s?.widthFt ?? s?.width ?? 0);
+            const h = Number(s?.heightFt ?? s?.height ?? 0);
+            const isOptionPlaceholder = name.includes("OPTION") && (w <= 0 || h <= 0);
+            return isOptionPlaceholder ? idx : -1;
+        })
+        .filter((idx: number) => idx >= 0);
 
     return (
         <section className="flex flex-col gap-2 w-full">
             <Subheading>{_t("form.steps.screens.heading")}:</Subheading>
+
+            {mirrorMode && optionIndices.length > 0 && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <div className="text-xs font-bold text-amber-200 uppercase tracking-widest">OPTION placeholder detected</div>
+                        <div className="mt-1 text-[11px] text-zinc-500">
+                            This is a header/placeholder row from the estimator sheet, not a real screen.
+                        </div>
+                    </div>
+                    <BaseButton tooltipLabel="Remove placeholder rows" onClick={() => remove(optionIndices)} className="shrink-0">
+                        Remove
+                    </BaseButton>
+                </div>
+            )}
 
             <div className="space-y-3">
                 {fields.map((field, index) => (
