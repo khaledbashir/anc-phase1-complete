@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateAuditExcelBuffer } from "@/services/proposal/server/exportFormulaicExcel";
+import { generateMirrorUglySheetExcelBuffer } from "@/services/proposal/server/exportMirrorUglySheetExcel";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,6 +9,8 @@ export async function POST(req: NextRequest) {
     const proposalId = body.proposalId;
     const projectAddress = typeof body.projectAddress === "string" ? body.projectAddress : "";
     const venue = typeof body.venue === "string" ? body.venue : "";
+    const bodyInternalAudit = body.internalAudit;
+    const bodyScreens = Array.isArray(body.screens) ? body.screens : null;
 
     if (!proposalId) {
       return NextResponse.json({ error: "proposalId is required" }, { status: 400 });
@@ -31,18 +34,42 @@ export async function POST(req: NextRequest) {
         internalAudit = null;
       }
     }
+    if (!internalAudit && bodyInternalAudit) {
+      internalAudit = bodyInternalAudit;
+    }
+    const effectiveScreens = bodyScreens
+      ? bodyScreens.map((s: any) => ({
+        name: s.name,
+        pixelPitch: Number(s.pixelPitch || s.pitchMm || 0),
+        width: Number(s.width || s.widthFt || 0),
+        height: Number(s.height || s.heightFt || 0),
+      }))
+      : (proposal.screens || []).map((s: any) => ({
+        name: s.name,
+        pixelPitch: Number(s.pixelPitch || 0),
+        width: Number(s.width || 0),
+        height: Number(s.height || 0),
+      }));
+
     const screensWithAudit = (proposal.screens || []).map((screen, idx) => ({
       ...screen,
       internalAudit: internalAudit?.perScreen?.[idx] || null,
     }));
 
     const proposalName = proposal.clientName || "Proposal";
-    const buffer = await generateAuditExcelBuffer(screensWithAudit, {
-      proposalName,
-      clientName: proposal.clientName,
-      status: proposal.status as any,
-      boTaxApplies: /morgantown|wvu|milan\s+puskar/i.test(`${projectAddress} ${venue}`),
-    });
+    const buffer = proposal.calculationMode === "MIRROR"
+      ? await generateMirrorUglySheetExcelBuffer({
+        clientName: proposal.clientName,
+        projectName: proposal.clientName,
+        screens: effectiveScreens,
+        internalAudit,
+      })
+      : await generateAuditExcelBuffer(screensWithAudit, {
+        proposalName,
+        clientName: proposal.clientName,
+        status: proposal.status as any,
+        boTaxApplies: /morgantown|wvu|milan\s+puskar/i.test(`${projectAddress} ${venue}`),
+      });
 
     return new Response(buffer as any, {
       status: 200,

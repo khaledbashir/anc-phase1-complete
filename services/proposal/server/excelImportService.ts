@@ -30,10 +30,17 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     const marginData: any[][] = marginSheet ? xlsx.utils.sheet_to_json(marginSheet, { header: 1 }) : [];
 
     // --- ROBUST COLUMN MAPPING ---
-    // Find the header row (typically row 1 or 2, but let's be safe)
+    // Find the header row (the first real table header row, not a title row)
     let headerRowIndex = 1;
-    for (let i = 0; i < Math.min(ledData.length, 5); i++) {
-        if (ledData[i].includes('Display Name') || ledData[i].includes('Display')) {
+    const headerSearchLimit = Math.min(ledData.length, 20);
+    for (let i = 0; i < headerSearchLimit; i++) {
+        const row = ledData[i] || [];
+        const first = (row[0] ?? "").toString().trim().toUpperCase();
+        const hasOption = first === "OPTION" || row.some((c) => (c ?? "").toString().trim().toUpperCase() === "OPTION");
+        const hasPitch = row.some((c) => (c ?? "").toString().trim().toUpperCase() === "PITCH");
+        const hasDisplayName = row.some((c) => (c ?? "").toString().trim().toUpperCase() === "DISPLAY NAME");
+
+        if ((hasOption && hasPitch) || hasDisplayName) {
             headerRowIndex = i;
             break;
         }
@@ -78,11 +85,25 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
         const row = ledData[i];
         const projectName = row[colIdx.name];
 
-        // Valid project row usually has a name and dimensions
-        if (typeof projectName === 'string' && projectName.trim() !== "" && row[colIdx.pitch]) {
+        // Valid project row usually has a name and numeric dimensions/pitch
+        const normalizedName = typeof projectName === "string" ? projectName.trim().toLowerCase() : "";
+        const pitchNum = Number(row[colIdx.pitch]);
+        const heightNum = Number(row[colIdx.height]);
+        const widthNum = Number(row[colIdx.width]);
+
+        if (
+            typeof projectName === 'string' &&
+            projectName.trim() !== "" &&
+            normalizedName !== "option" &&
+            Number.isFinite(pitchNum) &&
+            pitchNum > 0 &&
+            Number.isFinite(heightNum) &&
+            heightNum > 0 &&
+            Number.isFinite(widthNum) &&
+            widthNum > 0
+        ) {
             // REQ-111: Alternate Row Filter - Use startsWith to avoid false positives
             // Prevents "Altitude Display" from being incorrectly skipped
-            const normalizedName = projectName.trim().toLowerCase();
             if (normalizedName.startsWith('alt') || normalizedName.startsWith('alternate')) {
                 altRowsSkipped++;
                 continue;

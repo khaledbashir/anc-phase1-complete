@@ -1326,10 +1326,6 @@ export const ProposalContextProvider = ({
     const formValues = getValues();
     const screens = formValues?.details?.screens || [];
     const id = formValues?.details?.proposalId ?? formValues?.details?.proposalNumber ?? "";
-    if (screens.length > 0) {
-      exportProposalDataAs(ExportTypes.XLSX);
-      return;
-    }
     if (!id || id === "new") {
       exportProposalDataAs(ExportTypes.XLSX);
       return;
@@ -1343,6 +1339,8 @@ export const ProposalContextProvider = ({
           proposalId: id,
           projectAddress: `${formValues?.receiver?.address ?? ""} ${formValues?.receiver?.city ?? ""} ${formValues?.receiver?.zipCode ?? ""} ${formValues?.details?.location ?? ""}`.trim(),
           venue: formValues?.details?.venue ?? "",
+          internalAudit: formValues?.details?.internalAudit ?? null,
+          screens,
         }),
       });
 
@@ -1610,7 +1608,10 @@ export const ProposalContextProvider = ({
           }
         });
 
-        if (formData.details?.mirrorMode !== undefined) setValue("details.mirrorMode", formData.details.mirrorMode, { shouldValidate: true, shouldDirty: true });
+        if (formData.details?.mirrorMode !== undefined) {
+          setValue("details.mirrorMode", formData.details.mirrorMode, { shouldValidate: true, shouldDirty: true });
+          setValue("details.calculationMode", formData.details.mirrorMode ? "MIRROR" : "INTELLIGENCE", { shouldValidate: true, shouldDirty: true });
+        }
 
         // 2. Handle Screens & Line Items
         if (formData.details?.screens && internalAudit) {

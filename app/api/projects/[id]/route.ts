@@ -55,6 +55,8 @@ export async function PATCH(
             proposalName, 
             status, 
             calculationMode, 
+            internalAudit,
+            clientSummary,
             screens,
             taxRateOverride,
             bondRateOverride,
@@ -73,6 +75,8 @@ export async function PATCH(
         if (calculationMode !== undefined) updateData.calculationMode = calculationMode;
         if (taxRateOverride !== undefined) updateData.taxRateOverride = taxRateOverride;
         if (bondRateOverride !== undefined) updateData.bondRateOverride = bondRateOverride;
+        if (internalAudit !== undefined) updateData.internalAudit = typeof internalAudit === "string" ? internalAudit : JSON.stringify(internalAudit);
+        if (clientSummary !== undefined) updateData.clientSummary = typeof clientSummary === "string" ? clientSummary : JSON.stringify(clientSummary);
 
         const project = await prisma.$transaction(async (tx) => {
             // Handle snapshot creation if requested

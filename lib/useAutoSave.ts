@@ -78,7 +78,11 @@ export function useAutoSave({
                     proposalName: formData.details?.proposalName,
                     status: formData.details?.status,
                     calculationMode: formData.details?.calculationMode,
+                    internalAudit: formData.details?.internalAudit,
+                    clientSummary: formData.details?.clientSummary,
                     screens: formData.details?.screens, // Deep sync screens
+                    taxRateOverride: formData.details?.taxRateOverride,
+                    bondRateOverride: formData.details?.bondRateOverride,
                 }),
             });
 
