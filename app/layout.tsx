@@ -79,6 +79,13 @@ export default function RootLayout({
 
                         {/* Toast component */}
                         <Toaster />
+
+                        {/* Umami Analytics */}
+                        <script 
+                            defer 
+                            src="https://basheer-umami.prd42b.easypanel.host/script.js" 
+                            data-website-id="004671e9-1b1b-4108-8e03-6610a03ee9dc"
+                        ></script>
                     </Providers>
                 </NextIntlClientProvider>
             </body>
