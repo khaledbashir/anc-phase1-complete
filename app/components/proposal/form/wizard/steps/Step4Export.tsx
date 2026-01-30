@@ -484,30 +484,7 @@ const Step4Export = () => {
                     </div>
 
                     {/* Secondary Artifact Options */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button 
-                            onClick={previewPdfInTab}
-                            disabled={mirrorMode && isPdfPreviewBlocked}
-                            title={mirrorMode && isPdfPreviewBlocked ? "Run verification first to unlock preview" : "Open PDF in new tab"}
-                            className={cn(
-                                "flex items-center justify-between p-5 bg-zinc-900 border border-zinc-800 rounded-2xl transition-all group",
-                                mirrorMode && isPdfPreviewBlocked ? "opacity-60 cursor-not-allowed" : "hover:border-brand-blue/50"
-                            )}
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 rounded-xl bg-zinc-800 text-zinc-400 group-hover:text-brand-blue transition-colors">
-                                    <Eye className="w-5 h-5" />
-                                </div>
-                                <div className="text-left">
-                                    <h4 className="text-sm font-bold text-white">Live PDF Preview</h4>
-                                    <p className="text-[10px] text-zinc-500 font-medium">
-                                        {mirrorMode && isPdfPreviewBlocked ? "⚠️ Run verification to unlock" : "Verify layout before export"}
-                                    </p>
-                                </div>
-                            </div>
-                            <ArrowLeft className="w-4 h-4 text-zinc-700 group-hover:text-brand-blue rotate-180 transition-all" />
-                        </button>
-
+                    <div className="grid grid-cols-1 gap-4">
                         <button 
                             onClick={exportAudit}
                             disabled={mirrorMode && !isMirrorReadyToExport}
@@ -548,17 +525,18 @@ const Step4Export = () => {
                         <div className="flex items-center gap-2 shrink-0">
                             <button
                                 type="button"
-                                onClick={ensurePdfPreview}
+                                onClick={previewPdfInTab}
                                 disabled={mirrorMode && isPdfPreviewBlocked}
-                                title={mirrorMode && isPdfPreviewBlocked ? "Complete verification first" : "Generate PDF for side-by-side comparison"}
+                                title={mirrorMode && isPdfPreviewBlocked ? "Complete verification first" : "Open PDF preview in new tab"}
                                 className={cn(
-                                    "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
+                                    "px-3 py-2 rounded-xl border text-xs font-bold transition-all inline-flex items-center gap-2",
                                     (proposalPdfLoading || (mirrorMode && isPdfPreviewBlocked))
                                         ? "border-zinc-800 bg-zinc-950/40 text-zinc-500 cursor-not-allowed"
                                         : "border-zinc-800 bg-zinc-950/40 text-zinc-300 hover:border-brand-blue/40 hover:text-white"
                                 )}
                             >
-                                {proposalPdfLoading ? "Generating…" : pdfUrl ? "PDF Ready" : mirrorMode && isPdfPreviewBlocked ? "🔒 Blocked" : "Generate PDF Preview"}
+                                <Eye className="w-4 h-4" />
+                                {proposalPdfLoading ? "Generating…" : pdfUrl ? "View PDF" : mirrorMode && isPdfPreviewBlocked ? "🔒 Blocked" : "Generate PDF"}
                             </button>
                             <button
                                 type="button"
