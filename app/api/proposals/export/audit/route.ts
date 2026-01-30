@@ -58,9 +58,17 @@ export async function POST(req: NextRequest) {
         height: Number(s.height || 0),
       }));
 
-    const screensWithAudit = ((proposal?.screens || []) as any[]).map((screen, idx) => ({
+    // Use body screens for new/draft so Excel has data; otherwise use proposal.screens
+    const baseScreens = (bodyScreens?.length ? bodyScreens : (proposal?.screens || []) as any[]);
+    const screensWithAudit = baseScreens.map((screen: any, idx: number) => ({
       ...screen,
-      internalAudit: internalAudit?.perScreen?.[idx] || null,
+      name: screen.name,
+      width: Number(screen.width ?? screen.widthFt ?? 0),
+      height: Number(screen.height ?? screen.heightFt ?? 0),
+      widthFt: Number(screen.widthFt ?? screen.width ?? 0),
+      heightFt: Number(screen.heightFt ?? screen.height ?? 0),
+      pixelPitch: Number(screen.pixelPitch ?? screen.pitchMm ?? 0),
+      internalAudit: internalAudit?.perScreen?.[idx] ?? null,
     }));
 
     const effectiveMode = (bodyMode === "MIRROR" || bodyMode === "INTELLIGENCE")
@@ -71,7 +79,8 @@ export async function POST(req: NextRequest) {
           ? "INTELLIGENCE"
           : proposal?.calculationMode ?? "INTELLIGENCE";
 
-    const proposalName = proposal?.clientName || body.projectName || body.clientName || "Proposal";
+    const proposalName = (body.projectName || proposal?.clientName || body.clientName || "Proposal").toString();
+    const safeFilename = proposalName.replace(/\s+/g, "_").replace(/[^\w\-_.]/g, "") || "Proposal";
     const buffer = effectiveMode === "MIRROR"
       ? await generateMirrorUglySheetExcelBuffer({
         clientName: proposal?.clientName || body.clientName,
@@ -90,7 +99,7 @@ export async function POST(req: NextRequest) {
       status: 200,
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename=${proposalName.replace(/\s+/g, '_')}_Audit.xlsx`,
+        "Content-Disposition": `attachment; filename="${safeFilename}_Audit.xlsx"`,
       },
     });
   } catch (err) {

@@ -123,7 +123,7 @@ const defaultProposalContext = {
   headerType: "PROPOSAL" as "LOI" | "PROPOSAL" | "BUDGET",
   setHeaderType: (type: "LOI" | "PROPOSAL" | "BUDGET") => { },
   // Calculation Mode
-  calculationMode: "INTELLIGENCE" as "MIRROR" | "INTELLIGENCE",
+  calculationMode: "MIRROR" as "MIRROR" | "INTELLIGENCE",
   setCalculationMode: (mode: "MIRROR" | "INTELLIGENCE") => { },
   // Risk State
   risks: [] as RiskItem[],
@@ -232,7 +232,12 @@ export const ProposalContextProvider = ({
   }, [rfpDocumentUrl, rfpDocuments]);
 
   // Calculation Mode - THE PRIMARY BRANCH DECISION GATE
-  const [calculationMode, setCalculationMode] = useState<"MIRROR" | "INTELLIGENCE">("INTELLIGENCE");
+  const [calculationMode, setCalculationModeState] = useState<"MIRROR" | "INTELLIGENCE">(FORM_DEFAULT_VALUES.details.calculationMode);
+  const setCalculationMode = useCallback((mode: "MIRROR" | "INTELLIGENCE") => {
+    setCalculationModeState(mode);
+    setValue("details.calculationMode", mode, { shouldValidate: true, shouldDirty: true });
+    setValue("details.mirrorMode", mode === "MIRROR", { shouldValidate: true, shouldDirty: true });
+  }, [setValue]);
 
   // AI Ghost Effect - Track recently modified fields with timestamps
   const trackAiFieldModification = useCallback((fieldNames: string[]) => {
@@ -441,7 +446,7 @@ export const ProposalContextProvider = ({
       setValue("details.aiWorkspaceSlug", d.aiWorkspaceSlug);
 
       // Hydrate calculation mode from database
-      setCalculationMode(d.calculationMode || "INTELLIGENCE");
+      setCalculationModeState(d.calculationMode || FORM_DEFAULT_VALUES.details.calculationMode);
 
       // Cleanup AI state on project switch
       setAiMessages([]);
@@ -833,17 +838,13 @@ export const ProposalContextProvider = ({
 
     if (pdfBlob instanceof Blob && pdfBlob.size > 0) {
       const url = window.URL.createObjectURL(pdfBlob);
-
-      // Create an anchor element to initiate the download
+      const proposalName = (getValues("details.proposalName") || "proposal").toString().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-_().]/g, "") || "proposal";
       const a = document.createElement("a");
       a.href = url;
-      a.download = "proposal.pdf";
+      a.download = `${proposalName}.pdf`;
       document.body.appendChild(a);
-
-      // Trigger the download
       a.click();
-
-      // Clean up the URL object
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     }
   };
@@ -1392,15 +1393,28 @@ export const ProposalContextProvider = ({
       });
 
       if (!res.ok) {
-        console.error("Audit export failed", await res.text());
+        const errText = await res.text();
+        console.error("Audit export failed", errText);
+        return;
+      }
+
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const err = await res.json().catch(() => ({}));
+        console.error("Audit export returned JSON error", err);
         return;
       }
 
       const blob = await res.blob();
+      if (blob.size === 0) {
+        console.error("Audit export returned empty file");
+        return;
+      }
+
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `proposal-${id}-audit.xlsx`;
+      a.download = `${(formValues?.details?.proposalName || id || "proposal").toString().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-_]/g, "")}-audit.xlsx`;
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (e) {

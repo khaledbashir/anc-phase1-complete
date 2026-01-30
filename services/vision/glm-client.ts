@@ -87,8 +87,8 @@ export class Glm4VisionClient {
             top_p: 0.7
         };
 
-        try {
-            const response = await fetch(endpoint, {
+    try {
+        const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -104,17 +104,19 @@ export class Glm4VisionClient {
 
             const data = await response.json();
             const content = data.choices[0]?.message?.content || "{}";
-            
+
             // Clean up content if it contains markdown code blocks
             const jsonString = content.replace(/```json/g, '').replace(/```/g, '').trim();
-            
-            // Parse and Validate with Zod
+
             const parsed = JSON.parse(jsonString);
             return ArchitecturalLabelSchema.parse(parsed);
-
-        } catch (error) {
-            console.error("Vision Extraction Failed:", error);
-            throw error;
+        } catch (parseError) {
+            // Return safe default so pipeline does not fail; caller can still use text-only context
+            console.warn("Vision Extraction parse/validation failed, returning empty labels:", parseError);
+            return { labels: [], notes: "" };
         }
+    } catch (error: unknown) {
+        console.error("Vision Extraction Failed:", error);
+        throw error;
     }
 }

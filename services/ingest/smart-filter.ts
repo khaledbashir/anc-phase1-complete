@@ -1,6 +1,4 @@
-const pdfParseLib = require('pdf-parse');
-// Handle both default export and named export (for v2.4.5+)
-const pdfParse = pdfParseLib.default || pdfParseLib;
+const { PDFParse } = require("pdf-parse");
 
 // Keywords that indicate "Signal" (Technical/Pricing content)
 const SIGNAL_KEYWORDS = [
@@ -39,108 +37,93 @@ export interface FilterResult {
  * Analyzes PDF content and filters out "noise" pages (legal, boilerplate)
  * while retaining "signal" pages (specs, pricing, drawings).
  */
+/** Max pages to parse in one run; avoids OOM/timeouts on very large PDFs */
+const MAX_PAGES_TO_PARSE = 300;
+
 export async function smartFilterPdf(fileBuffer: Buffer): Promise<FilterResult> {
-  const pages: PageContent[] = [];
-  
-  // Custom render function to capture text per page
-  const renderPage = (pageData: any) => {
-    // Extract text from the page
-    const text = pageData.getTextContent();
-    
-    return text.then((textContent: any) => {
-      let lastY, textStr = '';
-      for (let item of textContent.items) {
-        if (lastY == item.transform[5] || !lastY){
-          textStr += item.str;
-        }  
-        else{
-          textStr += '\n' + item.str;
-        }    
-        lastY = item.transform[5];
-      }
-      
-      return textStr;
-    });
-  };
-
-  const options = {
-    pagerender: renderPage
-  }
-
-  // NOTE: pdf-parse's default behavior concatenates everything.
-  // To get per-page control, we might need a more advanced parser like 'pdfjs-dist' directly.
-  // However, 'pdf-parse' exposes a 'max' option and 'version' info, but the 'pagerender' 
-  // returns a string that gets concatenated.
-  
-  // WORKAROUND: We will use the main text and try to split by standard PDF page breaks if possible,
-  // OR we rely on a custom implementation. 
-  // Since 'pdf-parse' is limited for per-page extraction without hacking, 
-  // we will try to implement a simple scoring on the *whole* text first, 
-  // OR use the 'pagerender' to build our own array via side-effects.
-
-  const pageTexts: string[] = [];
-  
-  const optionsWithSideEffect = {
-    pagerender: async (pageData: any) => {
-        const textContent = await pageData.getTextContent();
-        let pageText = '';
-        for (let item of textContent.items) {
-            pageText += item.str + ' ';
-        }
-        
-        // Side effect: store page text
-        pageTexts.push(pageText);
-        
-        return pageText;
-    }
-  };
-
   try {
-    const data = await pdfParse(fileBuffer, optionsWithSideEffect);
-    
-    // Now we have pageTexts populated
-    let filteredContent = "";
-    let retainedCount = 0;
-    const drawingCandidates: number[] = [];
+    const { PDFParse } = require("pdf-parse");
+    const parser = new PDFParse({ data: fileBuffer, verbosity: 0 });
 
-    pageTexts.forEach((text, index) => {
+    const info = await parser.getInfo();
+    const totalPagesFromDoc = Number(info?.total) || 0;
+    const parseOpts = totalPagesFromDoc > MAX_PAGES_TO_PARSE ? { first: MAX_PAGES_TO_PARSE } : undefined;
+
+    const data = await parser.getText(parseOpts);
+    await parser.destroy();
+
+    const pageTexts: string[] = Array.isArray(data.pages)
+      ? data.pages.map((p: { text?: string }) => String(p?.text ?? ""))
+      : [];
+
+    const pages: PageContent[] = pageTexts.map((text, index) => {
       const lowerText = text.toLowerCase();
       let score = 0;
 
-      // Scoring Logic
-      SIGNAL_KEYWORDS.forEach(kw => {
-        if (lowerText.includes(kw)) score += 10;
-      });
-
-      NOISE_KEYWORDS.forEach(kw => {
-        if (lowerText.includes(kw)) score -= 5;
-      });
-
-      // Drawing Detection Heuristic:
-      // Low text count (< 200 chars) but contains keywords like "scale", "detail", "dwg"
-      const isDrawing = text.length < 500 && 
-                        (lowerText.includes("scale") || lowerText.includes("detail") || lowerText.includes("elevation") || lowerText.includes("drawing"));
-      
-      if (isDrawing) {
-        drawingCandidates.push(index + 1); // 1-based index
-        score += 20; // Boost drawings
+      for (const kw of SIGNAL_KEYWORDS) {
+        if (lowerText.includes(kw)) score += 6;
+      }
+      for (const kw of NOISE_KEYWORDS) {
+        if (lowerText.includes(kw)) score -= 3;
       }
 
-      // Threshold
-      if (score > 0) {
-        filteredContent += `\n--- PAGE ${index + 1} (Score: ${score}) ---\n${text}\n`;
-        retainedCount++;
-      }
+      const hasMeasurements =
+        /\b\d+(\.\d+)?\s?(ft|feet|in|inch|inches|mm|cm|m|v|vac|amp|amps|hz|w|kw)\b/i.test(text) ||
+        /\b\d{2,4}\s?x\s?\d{2,4}\b/i.test(text) ||
+        /\b\d+(\.\d+)?\s?'\s?[x×]\s?\d+(\.\d+)?\s?'\b/i.test(text);
+      if (hasMeasurements) score += 8;
+
+      const looksLikeDrawing =
+        text.trim().length < 350 &&
+        (lowerText.includes("scale") ||
+          lowerText.includes("detail") ||
+          lowerText.includes("elevation") ||
+          lowerText.includes("section") ||
+          lowerText.includes("plan") ||
+          lowerText.includes("drawing") ||
+          lowerText.includes("dwg"));
+
+      const isDrawingCandidate = looksLikeDrawing;
+      if (isDrawingCandidate) score += 15;
+
+      return { pageIndex: index, text, score, isDrawingCandidate };
     });
 
-    return {
-      fullText: data.text,
-      filteredText: filteredContent,
-      retainedPages: retainedCount,
-      totalPages: data.numpages,
-      drawingCandidates
-    };
+    const totalPages = Number.isFinite(totalPagesFromDoc) && totalPagesFromDoc > 0
+      ? totalPagesFromDoc
+      : (Number.isFinite(Number(data.total)) ? Number(data.total) : pages.length);
 
+    const drawingCandidates = pages
+      .filter((p) => p.isDrawingCandidate)
+      .map((p) => p.pageIndex + 1);
+
+    const MIN_SCORE_TO_KEEP = 8;
+    const MAX_PAGES_TO_KEEP = totalPages > 250 ? 80 : 120;
+    const MAX_CHARS_TO_KEEP = 350_000;
+
+    const retained = pages
+      .filter((p) => p.isDrawingCandidate || p.score >= MIN_SCORE_TO_KEEP)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, MAX_PAGES_TO_KEEP)
+      .sort((a, b) => a.pageIndex - b.pageIndex);
+
+    let filteredContent = `SMART_FILTER\nTOTAL_PAGES=${totalPages}\nRETAINED_PAGES=${retained.length}\nPAGES=${retained.map((p) => p.pageIndex + 1).join(",")}\n\n`;
+    let used = filteredContent.length;
+
+    for (const p of retained) {
+      const block = `--- PAGE ${p.pageIndex + 1} (Score: ${p.score}) ---\n${p.text}\n\n`;
+      if (used + block.length > MAX_CHARS_TO_KEEP) break;
+      filteredContent += block;
+      used += block.length;
+    }
+
+    return {
+      fullText: String(data.text ?? ""),
+      filteredText: filteredContent,
+      retainedPages: retained.length,
+      totalPages,
+      drawingCandidates,
+    };
   } catch (error) {
     console.error("Smart Filter Error:", error);
     throw error;

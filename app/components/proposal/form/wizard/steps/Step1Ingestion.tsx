@@ -88,28 +88,29 @@ const Step1Ingestion = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                    <div className="p-6 bg-zinc-900/80 border border-brand-blue/30 rounded-2xl relative overflow-hidden">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Excel first and larger — default workflow */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="p-8 bg-zinc-900/80 border border-brand-blue/30 rounded-2xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                            <Shield className="w-32 h-32 text-brand-blue" />
+                            <Shield className="w-40 h-40 text-brand-blue" />
                         </div>
 
-                        <div className="text-center space-y-4 relative z-10">
+                        <div className="text-center space-y-5 relative z-10">
                             <div className="flex items-center justify-center gap-3 mb-4">
-                                <div className={`p-2 rounded-lg ${excelPreview ? "bg-emerald-500/10 text-emerald-400" : "bg-brand-blue/10 text-brand-blue"}`}>
-                                    <FileSpreadsheet className="w-5 h-5" />
+                                <div className={`p-3 rounded-xl ${excelPreview ? "bg-emerald-500/10 text-emerald-400" : "bg-brand-blue/10 text-brand-blue"}`}>
+                                    <FileSpreadsheet className="w-7 h-7" />
                                 </div>
-                                <h4 className="text-white font-semibold">
+                                <h4 className="text-white font-semibold text-lg">
                                     {excelPreview ? "Excel File Uploaded" : "Upload Estimator Excel"}
                                 </h4>
                             </div>
 
-                            <div className="mx-auto w-12 h-12 rounded-full bg-brand-blue/10 flex items-center justify-center mb-2">
-                                <Upload className="w-6 h-6 text-brand-blue" />
+                            <div className="mx-auto w-14 h-14 rounded-full bg-brand-blue/10 flex items-center justify-center mb-2">
+                                <Upload className="w-7 h-7 text-brand-blue" />
                             </div>
 
-                            <p className="text-zinc-500 text-xs">Supports standard .xlsx formats from the Estimating Team</p>
+                            <p className="text-zinc-500 text-sm">Supports standard .xlsx formats from the Estimating Team</p>
 
                             <div className="flex items-center justify-center gap-4 pt-2">
                                 <input
@@ -137,63 +138,9 @@ const Step1Ingestion = () => {
                             </div>
                         </div>
                     </div>
-
-                    {(excelPreviewLoading || excelPreview) && (
-                        <div className="space-y-3">
-                            <div className="h-[520px] max-h-[60vh] overflow-hidden">
-                                <ExcelViewer />
-                            </div>
-
-                            <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-5 py-4">
-                                <div className="flex items-start justify-between gap-4">
-                                    <div className="min-w-0">
-                                        <div className="text-white font-semibold text-sm">What happens next</div>
-                                        <div className="text-zinc-500 text-xs mt-1">
-                                            The Excel has been ingested into the draft and synced into your proposal data.
-                                        </div>
-                                    </div>
-                                    <div
-                                        className={`shrink-0 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${excelValidationOk
-                                            ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                                            : "border-amber-500/30 bg-amber-500/10 text-amber-200"
-                                            }`}
-                                    >
-                                        {excelValidationOk ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                                        {excelValidationOk ? "LED Sheet Valid" : "Review LED Sheet"}
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
-                                        <div className="text-zinc-300 font-semibold">1) Verify</div>
-                                        <div className="text-zinc-500 mt-1">
-                                            Confirm the LED sheet rows have real width/height values (no TBD).
-                                        </div>
-                                    </div>
-                                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
-                                        <div className="text-zinc-300 font-semibold">2) Next Step</div>
-                                        <div className="text-zinc-500 mt-1">
-                                            Click <span className="text-zinc-300 font-semibold">Next Step</span> to review the extracted screens and specs.
-                                        </div>
-                                    </div>
-                                    <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
-                                        <div className="text-zinc-300 font-semibold">3) Export</div>
-                                        <div className="text-zinc-500 mt-1">
-                                            Generate the branded PDF once the screens look right.
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {!excelValidationOk && (
-                                    <div className="mt-4 text-[11px] text-zinc-500">
-                                        Tip: If this is a real ANC master file, the LED sheet should include numeric dimensions for active rows.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
+                {/* RFP PDFs — secondary */}
                 <div className="space-y-6">
                     <div className="p-6 bg-zinc-900/80 border border-brand-blue/30 rounded-2xl relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
@@ -306,6 +253,61 @@ const Step1Ingestion = () => {
                     </div>
                 </div>
             </div>
+
+            {(excelPreviewLoading || excelPreview) && (
+                <div className="space-y-3">
+                    <div className="h-[72vh] min-h-[640px] overflow-hidden">
+                        <ExcelViewer />
+                    </div>
+
+                    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-5 py-4">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                                <div className="text-white font-semibold text-sm">What happens next</div>
+                                <div className="text-zinc-500 text-xs mt-1">
+                                    The Excel has been ingested into the draft and synced into your proposal data.
+                                </div>
+                            </div>
+                            <div
+                                className={`shrink-0 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest ${excelValidationOk
+                                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                                    : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                                    }`}
+                            >
+                                {excelValidationOk ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                {excelValidationOk ? "LED Sheet Valid" : "Review LED Sheet"}
+                            </div>
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                            <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+                                <div className="text-zinc-300 font-semibold">1) Verify</div>
+                                <div className="text-zinc-500 mt-1">
+                                    Confirm the LED sheet rows have real width/height values (no TBD).
+                                </div>
+                            </div>
+                            <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+                                <div className="text-zinc-300 font-semibold">2) Next Step</div>
+                                <div className="text-zinc-500 mt-1">
+                                    Click <span className="text-zinc-300 font-semibold">Next Step</span> to review the extracted screens and specs.
+                                </div>
+                            </div>
+                            <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+                                <div className="text-zinc-300 font-semibold">3) Export</div>
+                                <div className="text-zinc-500 mt-1">
+                                    Generate the branded PDF once the screens look right.
+                                </div>
+                            </div>
+                        </div>
+
+                        {!excelValidationOk && (
+                            <div className="mt-4 text-[11px] text-zinc-500">
+                                Tip: If this is a real ANC master file, the LED sheet should include numeric dimensions for active rows.
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
