@@ -188,7 +188,7 @@ export const FORM_DEFAULT_VALUES = {
     screens: [],
     internalAudit: {},
     clientSummary: {},
-    mirrorMode: false,
+    mirrorMode: true,
     calculationMode: "MIRROR" as "MIRROR" | "INTELLIGENCE",
     taxRateOverride: 0,
     bondRateOverride: 0,

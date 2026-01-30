@@ -35,21 +35,21 @@ export async function screenshotPdfPage(pdfBuffer: Buffer, pageNumber: number): 
         }
 
         const page = await browser.newPage();
+        await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
         
         // 3. Open PDF
         // Note: Chrome's PDF viewer URL syntax: file:///path/to.pdf#page=N
         const fileUrl = `file://${tempPdfPath}#page=${pageNumber}`;
         console.log(`[PdfScreenshot] Opening ${fileUrl}`);
         
-        await page.goto(fileUrl, { waitUntil: 'networkidle0' });
-
-        // 4. Config Viewport
-        // Set a high resolution viewport for clear text/lines
-        await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
+        await page.goto(fileUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
         // Wait for PDF viewer to render (it's inside an <embed> usually)
         // We might need a small delay as 'networkidle0' can fire before PDF rendering completes
-        await new Promise(r => setTimeout(r, 1500));
+        try {
+            await page.waitForSelector("embed, iframe", { timeout: 10_000 });
+        } catch { }
+        await new Promise(r => setTimeout(r, 1200));
 
         // 5. Screenshot
         // We screenshot the viewport, assuming the PDF viewer fills it
