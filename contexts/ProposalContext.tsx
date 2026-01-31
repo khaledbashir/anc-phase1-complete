@@ -83,6 +83,7 @@ const defaultProposalContext = {
   printPdf: () => { },
   previewPdfInTab: () => { },
   saveProposalData: () => { },
+  saveDraft: (): Promise<{ created: boolean; projectId?: string; error?: string }> => Promise.resolve({ created: false }),
   deleteProposalData: (index: number) => { },
   // Backwards-compatible alias
   deleteProposal: (index: number) => { },
@@ -330,6 +331,8 @@ export const ProposalContextProvider = ({
   useEffect(() => {
     const subscription = watch(() => {
       const currentValues = getValues();
+      if (!currentValues?.details) return; // Defensive check
+
       const detected = detectRisks(currentValues, rulesDetected);
       
       // Simple deep equality check to prevent loops
@@ -338,7 +341,7 @@ export const ProposalContextProvider = ({
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, rulesDetected, risks]);
+  }, [watch, rulesDetected, risks, getValues]);
 
   // Hydrate from initialData if provided (Server Component support)
   useEffect(() => {
@@ -600,22 +603,6 @@ export const ProposalContextProvider = ({
       console.warn("Real-time calculation failed:", e);
     }
   }, [screens, setValue, getValues]);
-
-  // AUTO-DETECT RISKS
-  // Whenever the form values change (specifically location, screens, or if rules exist)
-  // We re-run the risk detector.
-  // We use the full form values for this.
-  const formValues = watch(); // Watch everything for risk detection
-  useEffect(() => {
-    if (!formValues) return;
-    // We only run this if we have some data
-    const detected = detectRisks(formValues, rulesDetected);
-
-    // Only update if changed to avoid loops
-    if (JSON.stringify(detected) !== JSON.stringify(risks)) {
-      setRisks(detected);
-    }
-  }, [formValues, rulesDetected]); // Dependencies: full form or new rules
 
   const duplicateScreen = useCallback((index: number) => {
     const values = getValues();
@@ -985,6 +972,72 @@ export const ProposalContextProvider = ({
       }
     }
   };
+
+  /**
+   * Save Draft: for /projects/new creates workspace + proposal and redirects; for existing project PATCHes.
+   * Use this to persist without completing all wizard steps.
+   */
+  const saveDraft = useCallback(async (): Promise<{ created: boolean; projectId?: string; error?: string }> => {
+    if (!getValues) return { created: false, error: "Form not ready" };
+    const formValues = getValues();
+    const effectiveId = (formValues?.details?.proposalId as string) || "";
+
+    if (!effectiveId || effectiveId === "new") {
+      try {
+        const clientName = formValues?.receiver?.name || formValues?.details?.clientName || formValues?.details?.proposalName || "Untitled Project";
+        const resp = await fetch("/api/workspaces/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: clientName,
+            userEmail: formValues?.receiver?.email || "noreply@anc.com",
+            createInitialProposal: true,
+            clientName,
+          }),
+        });
+        const json = await resp.json();
+        if (!resp.ok) {
+          return { created: false, error: json?.error || "Create failed" };
+        }
+        if (json?.proposal?.id) {
+          router.push(`/projects/${json.proposal.id}`);
+          return { created: true, projectId: json.proposal.id };
+        }
+        return { created: false, error: "No proposal ID returned" };
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Create failed";
+        return { created: false, error: msg };
+      }
+    }
+
+    try {
+      const payload = {
+        clientName: formValues?.receiver?.name || formValues?.details?.clientName || "Unnamed Client",
+        proposalName: formValues?.details?.proposalName,
+        status: formValues?.details?.status,
+        calculationMode: calculationMode,
+        internalAudit: formValues?.details?.internalAudit,
+        clientSummary: formValues?.details?.clientSummary,
+        screens: formValues?.details?.screens,
+        taxRateOverride: formValues?.details?.taxRateOverride,
+        bondRateOverride: formValues?.details?.bondRateOverride,
+      };
+      const res = await fetch(`/api/projects/${effectiveId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        return { created: false, error: text || "Save failed" };
+      }
+      modifiedProposalSuccess();
+      return { created: false };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Save failed";
+      return { created: false, error: msg };
+    }
+  }, [getValues, router, calculationMode, aiFields, modifiedProposalSuccess]);
 
   /**
    * Delete a proposal from local storage based on the given index.
@@ -1830,6 +1883,7 @@ export const ProposalContextProvider = ({
         printPdf,
         previewPdfInTab,
         saveProposalData,
+        saveDraft,
         deleteProposalData,
         // Backwards-compatible alias
         deleteProposal: deleteProposalData,
@@ -1858,8 +1912,9 @@ export const ProposalContextProvider = ({
     uploadRfpDocument: async (file: File) => {
           const formData = new FormData();
           formData.append("file", file);
-          if (getValues().details.proposalId) {
-            formData.append("proposalId", getValues().details.proposalId as string);
+          const currentDetails = getValues().details;
+          if (currentDetails?.proposalId) {
+            formData.append("proposalId", currentDetails.proposalId as string);
           }
           try {
             const res = await fetch("/api/rfp/upload", { method: "POST", body: formData });
@@ -1962,7 +2017,7 @@ export const ProposalContextProvider = ({
           }
         },
         answerRfpQuestion: async (questionId: string, answer: string) => {
-          const proposalId = getValues().details.proposalId;
+          const proposalId = getValues().details?.proposalId;
           try {
             const res = await fetch("/api/rfp/answer", {
               method: "POST",

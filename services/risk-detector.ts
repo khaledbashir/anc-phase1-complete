@@ -16,6 +16,11 @@ export interface RiskItem {
 export function detectRisks(data: ProposalType, rulesDetected?: any): RiskItem[] {
     const risks: RiskItem[] = [];
 
+    // Defensive check to prevent "Cannot read properties of undefined (reading 'location')"
+    if (!data || !data.details) {
+        return risks;
+    }
+
     // 1. UNION LABOR (CRITICAL)
     if (rulesDetected?.requiresUnionLabor) {
         risks.push({
@@ -29,7 +34,7 @@ export function detectRisks(data: ProposalType, rulesDetected?: any): RiskItem[]
     }
 
     // 2. WTC / HIGH COMPLEXITY (CRITICAL)
-    if (rulesDetected?.isWtcLocation || (data.details.location || "").toLowerCase().includes("world trade")) {
+    if (rulesDetected?.isWtcLocation || (data.details?.location || "").toLowerCase().includes("world trade")) {
         risks.push({
             id: "risk-wtc",
             risk: "High-Security Site (WTC)",
