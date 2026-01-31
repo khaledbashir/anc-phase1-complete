@@ -112,11 +112,12 @@ export async function POST(
                     citations: undefined
                 })) as any,
                 // SANITIZATION: Strip all AI tracking from public share
+                // Only include fields that exist in the metadata type
                 metadata: {
                     filledByAI: undefined,
-                    aiFields: undefined,
-                    citations: undefined,
-                    extractionAccuracy: undefined
+                    risks: undefined,
+                    structuralTonnage: undefined,
+                    reinforcingTonnage: undefined,
                 },
                 totalAmount: 0, // Will be calculated by template
                 totalAmountInWords: "",
