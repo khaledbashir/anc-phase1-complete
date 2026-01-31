@@ -41,10 +41,20 @@ model Workspace {
   users           User[]
 }
 
+// REQ-120: User Roles & Permissions (PRD Section 2, Table 2)
+enum UserRole {
+  ADMIN           // Full access - create workspaces, edit branding, all exports
+  ESTIMATOR       // Edit proposals, run AI, generate all exports
+  FINANCE         // View costs, generate Internal Audit Excel ONLY, no branding edit
+  VIEWER          // Read-only access to proposals
+  OUTSIDER        // Subcontractor - NO access to margins, costs, or total selling price
+}
+
 model User {
   id          String    @id @default(cuid())
   email       String    @unique
   name        String?
+  role        UserRole  @default(VIEWER)
   workspaceId String
   workspace   Workspace @relation(fields: [workspaceId], references: [id])
 }
