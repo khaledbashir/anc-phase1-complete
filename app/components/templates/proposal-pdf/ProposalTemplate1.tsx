@@ -5,7 +5,7 @@ import ProposalLayout from './ProposalLayout';
 import LogoSelectorServer from '@/app/components/reusables/LogoSelectorServer';
 
 // Helpers
-import { formatNumberWithCommas, isDataUrl } from "@/lib/helpers";
+import { formatNumberWithCommas, isDataUrl, formatCurrencyForPdf } from "@/lib/helpers";
 import { generateSOWContent } from '@/lib/sowTemplate';
 import { convertToLineItems, ScreenItem } from '@/lib/groupedPricing';
 
@@ -99,37 +99,141 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				</div>
 
 				<div className="w-full">
-					{mainItems.map((item, index) => (
-						<div key={index} className='flex justify-between items-center py-2 px-2 odd:bg-white even:bg-zinc-50 border-b border-zinc-100'>
-							<div className='text-[10px] text-zinc-700 font-medium' style={{ fontFamily: "'Work Sans', sans-serif" }}>
-								<div className="font-bold text-black uppercase">{item.name}</div>
-								<div className="text-zinc-500">{item.description}</div>
+					{/* REQ-User-Feedback: Mirror Mode (Margin Analysis Structure) */}
+					{(details as any)?.marginAnalysis && (details as any).marginAnalysis.length > 0 ? (
+						(details as any).marginAnalysis.map((section: any, sIdx: number) => (
+							<div key={sIdx} className="mb-4">
+								{/* Section Header */}
+								{section.name !== "General" && (
+									<div className="bg-zinc-100 py-1 px-2 text-[10px] font-bold text-black uppercase border-y border-zinc-200 mt-2" style={{ fontFamily: "Work Sans, sans-serif" }}>
+										{section.name}
+									</div>
+								)}
+								{/* Section Items */}
+								{section.items.map((item: any, iIdx: number) => (
+									<div key={iIdx} className='flex justify-between items-center py-2 px-2 odd:bg-white even:bg-zinc-50 border-b border-zinc-100'>
+										<div className='text-[10px] text-zinc-700 font-medium' style={{ fontFamily: "'Work Sans', sans-serif" }}>
+											<div className="text-black uppercase">{item.name}</div>
+										</div>
+										<div className='text-[10px] font-bold text-zinc-900'>
+											{item.isIncluded ? "INCLUDED" : formatCurrencyForPdf(Math.round(item.sellingPrice), "[PRICE MISSING]")}
+										</div>
+									</div>
+								))}
 							</div>
-							<div className='text-[10px] font-bold text-zinc-900'>
-								{formatCurrencyForPdf(Math.round(item.total), "INCLUDED")}
+						))
+					) : (
+						/* Fallback to legacy grouping if no Margin Analysis */
+						mainItems.map((item, index) => (
+							<div key={index} className='flex justify-between items-center py-2 px-2 odd:bg-white even:bg-zinc-50 border-b border-zinc-100'>
+								<div className='text-[10px] text-zinc-700 font-medium' style={{ fontFamily: "'Work Sans', sans-serif" }}>
+									<div className="font-bold text-black uppercase">{item.name}</div>
+									<div className="text-zinc-500">{item.description}</div>
+								</div>
+								<div className='text-[10px] font-bold text-zinc-900'>
+									{formatCurrencyForPdf(Math.round(item.total), "INCLUDED")}
+								</div>
 							</div>
-						</div>
-					))}
+						))
+					)}
 				</div>
 
-				{/* SUBTOTAL, TAX, TOTAL FOR MAIN ITEMS - REQ-125: Context-bound rates */}
+				{/* SUBTOTAL, BOND, B&O, TAX, TOTAL */}
 				<div className="mt-2 space-y-1">
+					{/* SUBTOTAL */}
 					<div className="flex justify-between items-center">
 						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-500" style={{ fontFamily: "Work Sans, sans-serif" }}>SUBTOTAL:</div>
 						<div className="text-[10px] font-bold text-zinc-700 min-w-[80px] text-right">
-							${formatNumberWithCommas(Math.round(Number(details?.subTotal || 0)))}
+							{(() => {
+								const subTotal = (details as any)?.marginAnalysis 
+									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
+									: Number(details?.subTotal || 0);
+								return `$${formatNumberWithCommas(Math.round(subTotal))}`;
+							})()}
 						</div>
 					</div>
+
+					{/* PERFORMANCE BOND */}
+					<div className="flex justify-between items-center">
+						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-500" style={{ fontFamily: "Work Sans, sans-serif" }}>PERFORMANCE BOND ({(bondRate * 100).toFixed(1)}%):</div>
+						<div className="text-[10px] font-bold text-zinc-700 min-w-[80px] text-right">
+							{(() => {
+								const subTotal = (details as any)?.marginAnalysis 
+									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
+									: Number(details?.subTotal || 0);
+								return `$${formatNumberWithCommas(Math.round(subTotal * bondRate))}`;
+							})()}
+						</div>
+					</div>
+
+					{/* B&O TAX (Conditional) */}
+					{(() => {
+						const subTotal = (details as any)?.marginAnalysis 
+							? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
+							: Number(details?.subTotal || 0);
+						const bondCost = subTotal * bondRate;
+						// Check for Morgantown/WVU triggers
+						const loc = (details?.location || "").toLowerCase();
+						const name = (details?.proposalName || "").toLowerCase();
+						const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") || 
+											 name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
+						const boTaxRate = (details as any)?.boTaxRate ?? (isMorgantown ? 0.02 : 0);
+						
+						if (boTaxRate > 0) {
+							return (
+								<div className="flex justify-between items-center">
+									<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-500" style={{ fontFamily: "Work Sans, sans-serif" }}>
+										CITY B&O TAX ({(boTaxRate * 100).toFixed(1)}%):
+									</div>
+									<div className="text-[10px] font-bold text-zinc-700 min-w-[80px] text-right">
+										${formatNumberWithCommas(Math.round((subTotal + bondCost) * boTaxRate))}
+									</div>
+								</div>
+							);
+						}
+						return null;
+					})()}
+
+					{/* SALES TAX */}
 					<div className="flex justify-between items-center">
 						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-400 italic" style={{ fontFamily: "Work Sans, sans-serif" }}>TAX ({taxRatePercent}%):</div>
 						<div className="text-[10px] font-bold text-zinc-400 min-w-[80px] text-right">
-							${formatNumberWithCommas(Math.round(Number(details?.subTotal || 0) * taxRate))}
+							{(() => {
+								const subTotal = (details as any)?.marginAnalysis 
+									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
+									: Number(details?.subTotal || 0);
+								const bondCost = subTotal * bondRate;
+								const loc = (details?.location || "").toLowerCase();
+								const name = (details?.proposalName || "").toLowerCase();
+								const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") || 
+													 name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
+								const boTaxRate = (details as any)?.boTaxRate ?? (isMorgantown ? 0.02 : 0);
+								const boTaxCost = (subTotal + bondCost) * boTaxRate;
+								
+								return `$${formatNumberWithCommas(Math.round((subTotal + bondCost + boTaxCost) * taxRate))}`;
+							})()}
 						</div>
 					</div>
+
+					{/* PROJECT TOTAL */}
 					<div className="flex justify-between items-center pt-1 border-t-2 border-black">
 						<div className="text-right w-full text-xs font-bold mr-4" style={{ fontFamily: "Work Sans, sans-serif" }}>PROJECT TOTAL:</div>
 						<div className="text-xs font-bold text-[#0A52EF] min-w-[80px] text-right">
-							${formatNumberWithCommas(Math.round(Number(details?.subTotal || 0) * (1 + taxRate)))}
+							{(() => {
+								const subTotal = (details as any)?.marginAnalysis 
+									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
+									: Number(details?.subTotal || 0);
+								const bondCost = subTotal * bondRate;
+								const loc = (details?.location || "").toLowerCase();
+								const name = (details?.proposalName || "").toLowerCase();
+								const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") || 
+													 name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
+								const boTaxRate = (details as any)?.boTaxRate ?? (isMorgantown ? 0.02 : 0);
+								const boTaxCost = (subTotal + bondCost) * boTaxRate;
+								const taxCost = (subTotal + bondCost + boTaxCost) * taxRate;
+								
+								return `$${formatNumberWithCommas(Math.round(subTotal + bondCost + boTaxCost + taxCost))}`;
+							})()}
 						</div>
 					</div>
 				</div>

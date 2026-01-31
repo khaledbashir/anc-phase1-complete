@@ -107,6 +107,8 @@ export async function POST(
                         cost: 0,
                         margin: 0
                     })),
+                    // CALCULATED: Sum up line item prices for screen total (Allowlist: sellingPrice)
+                    sellPrice: s.lineItems.reduce((sum, li) => sum + Number(li.price || 0), 0),
                     // SANITIZATION: Strip AI metadata (Blue Glow, citations) from public view
                     aiSource: undefined,
                     citations: undefined

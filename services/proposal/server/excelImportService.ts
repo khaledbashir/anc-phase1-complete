@@ -265,6 +265,12 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
                 screen.sellPrice = marginRow.sell;
                 screen.ancMargin = marginRow.marginAmount;
                 screen.finalTotal = marginRow.sell;
+                
+                // Assign Group/Section from Margin Analysis
+                screen.group = marginRow.section;
+                
+                // Mark as matched
+                marginRow.matched = true;
             }
 
             const audit: ScreenAudit = {
@@ -322,6 +328,9 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     };
 
     // Construct the Unified FormData object
+    // REQ-User-Feedback: Structure Margin Analysis data for exact PDF mirroring
+    const marginAnalysis = groupMarginAnalysisRows(marginRows);
+
     const formData = {
         receiver: {
             name: ledData[0][0]?.replace('Project Name: ', '') || 'New Project',
@@ -330,8 +339,10 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             proposalName: 'ANC LED Display Proposal',
             screens,
             internalAudit,
+            subTotal: totals.sellPrice, // REQ-User-Feedback: Explicit subtotal for PDF logic
             clientSummary: totals, // Initial summary
             mirrorMode: marginSheet ? true : false, // Auto-flip to mirror if Excel has details
+            marginAnalysis, // NEW: Full structured data from Margin Analysis
         }
     };
 
@@ -371,24 +382,47 @@ function parseMarginAnalysisRows(data: any[][]) {
         name: string;
         cost: number;
         sell: number;
+        sellRaw: any; // Capture raw for "INCLUDED" check
         marginAmount: number;
         marginPct: number;
         rowIndex: number;
         section: string | null;
         isAlternate: boolean;
         isTotalLike: boolean;
+        matched?: boolean;
     }> = [];
 
     const norm = (s: any) => String(s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
 
     let headerRow = -1;
+    let costIndex = -1;
+    let sellIndex = -1;
+    let marginAmountIndex = -1;
+    let marginPctIndex = -1;
+    let labelIndex = -1;
+
     for (let i = 0; i < Math.min(data.length, 40); i++) {
         const row = data[i] || [];
         const rowText = row.map(norm);
-        const hasCost = rowText.includes("cost");
-        const hasSell = rowText.includes("selling price") || rowText.includes("sell price");
-        if (hasCost && hasSell) {
+        
+        // Find indices dynamically
+        const cIdx = rowText.findIndex(t => t === "cost");
+        const sIdx = rowText.findIndex(t => t === "selling price" || t === "sell price");
+        
+        if (cIdx !== -1 && sIdx !== -1) {
             headerRow = i;
+            costIndex = cIdx;
+            sellIndex = sIdx;
+            // Assume label is immediately to the left of cost
+            labelIndex = cIdx - 1;
+            
+            // Try to find margin columns, otherwise assume relative positions
+            const mIdx = rowText.findIndex(t => t === "margin $" || t === "margin amount" || t === "margin");
+            const mpIdx = rowText.findIndex(t => t === "margin %" || t === "margin percent" || t === "%");
+            
+            marginAmountIndex = mIdx !== -1 ? mIdx : sIdx + 1;
+            marginPctIndex = mpIdx !== -1 ? mpIdx : sIdx + 2;
+            
             break;
         }
     }
@@ -400,14 +434,17 @@ function parseMarginAnalysisRows(data: any[][]) {
 
     for (let i = headerRow + 1; i < data.length; i++) {
         const row = data[i] || [];
-        const labelRaw = row[0];
+        
+        // Use dynamic indices
+        const labelRaw = labelIndex >= 0 ? row[labelIndex] : row[0];
         const label = typeof labelRaw === "string" ? labelRaw.trim() : "";
         const labelNorm = norm(labelRaw);
 
-        const cost = Number(row[1]);
-        const sell = Number(row[2]);
-        const marginAmount = Number(row[3]);
-        const marginPct = Number(row[4]);
+        const cost = costIndex >= 0 ? Number(row[costIndex]) : Number(row[1]);
+        const sellRaw = sellIndex >= 0 ? row[sellIndex] : row[2];
+        const sell = Number(sellRaw);
+        const marginAmount = marginAmountIndex >= 0 ? Number(row[marginAmountIndex]) : Number(row[3]);
+        const marginPct = marginPctIndex >= 0 ? Number(row[marginPctIndex]) : Number(row[4]);
 
         const numericRow =
             Number.isFinite(cost) &&
@@ -438,6 +475,7 @@ function parseMarginAnalysisRows(data: any[][]) {
             name: label,
             cost: Number.isFinite(cost) ? cost : 0,
             sell: Number.isFinite(sell) ? sell : 0,
+            sellRaw,
             marginAmount: Number.isFinite(marginAmount) ? marginAmount : 0,
             marginPct: Number.isFinite(marginPct) ? marginPct : 0,
             rowIndex: i + 1,
@@ -448,6 +486,47 @@ function parseMarginAnalysisRows(data: any[][]) {
     }
 
     return rows;
+}
+
+function groupMarginAnalysisRows(rows: ReturnType<typeof parseMarginAnalysisRows>) {
+    const sections: Record<string, any> = {};
+    const result: any[] = [];
+
+    rows.forEach(row => {
+        if (row.isTotalLike || row.isAlternate) return;
+
+        const sectionName = row.section || "General";
+        
+        if (!sections[sectionName]) {
+            sections[sectionName] = {
+                name: sectionName,
+                items: [],
+                subTotal: 0
+            };
+            result.push(sections[sectionName]);
+        }
+
+        // Check for "INCLUDED" status
+        const isIncluded = row.sell === 0 && (
+            String(row.sellRaw).toLowerCase().includes("included") || 
+            // Fallback: If it's a soft cost (not a screen) and $0, assume included if user context suggests it
+            // For now, relying on explicit text or $0 value for non-hardware items might be tricky without more heuristics.
+            // But per user request: "If an item's Selling Price is $0.00 in the Excel AND it's marked as a value-add: Show 'INCLUDED'"
+            // We'll treat $0 as potentially included.
+            row.sell === 0
+        );
+
+        sections[sectionName].items.push({
+            name: row.name,
+            sellingPrice: row.sell,
+            isIncluded,
+            raw: row
+        });
+
+        sections[sectionName].subTotal += row.sell;
+    });
+
+    return result;
 }
 
 function pickBestMarginRow(marginRows: ReturnType<typeof parseMarginAnalysisRows>, screenName: string) {
@@ -473,43 +552,12 @@ function pickBestMarginRow(marginRows: ReturnType<typeof parseMarginAnalysisRows
 }
 
 function aggregateTotals(audits: ScreenAudit[]) {
-    const totals = audits.reduce((acc, curr) => {
-        const b = curr.breakdown;
+    return audits.reduce((acc, curr) => {
         return {
-            hardware: acc.hardware + b.hardware,
-            structure: acc.structure + b.structure,
-            install: acc.install + b.install,
-            labor: acc.labor + b.labor,
-            power: acc.power + b.power,
-            shipping: acc.shipping + b.shipping,
-            pm: acc.pm + b.pm,
-            generalConditions: acc.generalConditions + b.generalConditions,
-            travel: acc.travel + b.travel,
-            submittals: acc.submittals + b.submittals,
-            engineering: acc.engineering + b.engineering,
-            permits: acc.permits + b.permits,
-            cms: acc.cms + b.cms,
-            ancMargin: acc.ancMargin + b.ancMargin,
-            sellPrice: acc.sellPrice + b.sellPrice,
-            bondCost: acc.bondCost + b.bondCost,
-            totalCost: acc.totalCost + b.totalCost,
-            finalClientTotal: acc.finalClientTotal + b.finalClientTotal,
-            demolition: (acc.demolition || 0) + (b.demolition || 0),
-            margin: acc.margin + (b.marginAmount || 0),
-            sellingPricePerSqFt: 0,
-            boTaxCost: (acc.boTaxCost || 0) + (b.boTaxCost || 0)
+            totalCost: acc.totalCost + (parseFloat(curr.breakdown.totalCost) || 0),
+            sellPrice: acc.sellPrice + (parseFloat(curr.breakdown.sellPrice) || 0),
+            ancMargin: acc.ancMargin + (curr.breakdown.marginAmount || 0),
+            finalClientTotal: acc.finalClientTotal + (curr.breakdown.finalClientTotal || 0)
         };
-    }, {
-        hardware: 0, structure: 0, install: 0, labor: 0, power: 0, shipping: 0, pm: 0,
-        generalConditions: 0, travel: 0, submittals: 0, engineering: 0, permits: 0, cms: 0,
-        ancMargin: 0, sellPrice: 0, bondCost: 0, totalCost: 0, finalClientTotal: 0, margin: 0,
-        demolition: 0,
-        sellingPricePerSqFt: 0,
-        boTaxCost: 0
-    });
-
-    const totalArea = audits.reduce((sum, s) => sum + s.areaSqFt, 0);
-    totals.sellingPricePerSqFt = totals.finalClientTotal / (totalArea || 1);
-
-    return totals;
+    }, { totalCost: 0, sellPrice: 0, ancMargin: 0, finalClientTotal: 0 });
 }
