@@ -172,23 +172,38 @@ export default function AiWand({ fieldName, searchQuery, targetFields }: AiWandP
                                         type="button"
                                         onClick={() => setSelectedCandidate(c.label)}
                                         className={cn(
-                                            "w-full text-left rounded-xl border px-4 py-4 transition-colors",
+                                            "w-full text-left rounded-xl border-2 px-4 py-4 transition-all duration-200",
                                             isSelected
-                                                ? "border-brand-blue/50 bg-brand-blue/10"
-                                                : "border-zinc-800 bg-zinc-950/30 hover:border-brand-blue/25"
+                                                ? "border-primary bg-primary/10 ring-2 ring-primary/20 shadow-[0_0_15px_rgba(10,82,239,0.1)]"
+                                                : "border-zinc-800 bg-zinc-950/30 hover:border-zinc-700 hover:bg-zinc-900/50"
                                         )}
                                     >
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0 flex-1">
-                                                <div className="font-semibold text-sm text-white">{c.label}</div>
-                                                {hint ? <div className="text-xs text-zinc-300/70 mt-2 leading-relaxed break-words">{hint}</div> : null}
-                                                {c.notes ? <div className="text-xs text-zinc-500 mt-2">{c.notes}</div> : null}
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <div className={cn(
+                                                        "font-bold text-sm",
+                                                        isSelected ? "text-primary-foreground bg-primary px-2 py-0.5 rounded-md text-[10px] uppercase tracking-wider" : "text-white"
+                                                    )}>
+                                                        {isSelected ? "Selected" : c.label}
+                                                    </div>
+                                                    {isSelected && <div className="font-bold text-sm text-white">{c.label}</div>}
+                                                </div>
+                                                {hint ? <div className="text-xs text-zinc-300/70 leading-relaxed break-words">{hint}</div> : null}
+                                                {c.notes ? <div className="text-xs text-zinc-500 mt-2 italic">{c.notes}</div> : null}
                                             </div>
-                                            <div className={cn(
-                                                "shrink-0 text-[11px] font-bold uppercase tracking-widest ml-2",
-                                                isSelected ? "text-brand-blue" : "text-zinc-200/80"
-                                            )}>
-                                                {conf}%
+                                            <div className="flex flex-col items-end gap-1">
+                                                <div className={cn(
+                                                    "shrink-0 text-[11px] font-bold uppercase tracking-widest",
+                                                    isSelected ? "text-primary" : "text-zinc-500"
+                                                )}>
+                                                    {conf}% Match
+                                                </div>
+                                                {isSelected && (
+                                                    <div className="h-5 w-5 bg-primary rounded-full flex items-center justify-center text-white">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </button>
