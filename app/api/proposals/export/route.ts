@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { Builder as XMLBuilder } from "xml2js";
 
@@ -30,7 +31,7 @@ const SANITIZATION_DENYLIST = [
 function sanitizeForExport(data: any): any {
   // Deep clone to avoid mutating original
   const clone = JSON.parse(JSON.stringify(data));
-  
+
   // Recursively remove denylist fields
   function stripFields(obj: any): any {
     if (Array.isArray(obj)) {
@@ -47,7 +48,7 @@ function sanitizeForExport(data: any): any {
     }
     return obj;
   }
-  
+
   return stripFields(clone);
 }
 
@@ -58,6 +59,30 @@ export async function POST(req: NextRequest) {
     // REQ-125: Check if this is an internal (admin/finance) export
     const isInternalExport = url.searchParams.get("internal") === "true";
     const body = await req.json();
+    const proposalId = body.details?.proposalId;
+
+    // --- NATALIA GATEKEEPER: AI Verification Guardrail ---
+    if (proposalId && proposalId !== "new") {
+      const dbProposal = await prisma.proposal.findUnique({
+        where: { id: proposalId },
+        select: { aiFilledFields: true, verifiedFields: true }
+      });
+
+      if (dbProposal) {
+        const aiFilledFields = (dbProposal.aiFilledFields as string[]) || [];
+        const verifiedFields = (dbProposal.verifiedFields as Record<string, any>) || {};
+        const unverifiedFields = aiFilledFields.filter(f => !verifiedFields[f]);
+
+        if (unverifiedFields.length > 0) {
+          return NextResponse.json({
+            error: "AI Guardrail Block: This proposal contains unverified AI data.",
+            code: "UNVERIFIED_AI_DATA",
+            blockingFields: unverifiedFields
+          }, { status: 422 });
+        }
+      }
+    }
+    // ---------------------------------------------------
 
     // REQ-125: Sanitize data unless explicitly marked as internal export
     const sanitizedBody = isInternalExport ? body : sanitizeForExport(body);

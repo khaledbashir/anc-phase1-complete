@@ -11,6 +11,8 @@ import { convertToLineItems, ScreenItem } from '@/lib/groupedPricing';
 
 // Variables
 import { DATE_OPTIONS } from "@/lib/variables";
+import ExhibitA_SOW from "./exhibits/ExhibitA_SOW";
+import ExhibitB_CostSchedule from "./exhibits/ExhibitB_CostSchedule";
 
 // Types
 import { ProposalType } from "@/types";
@@ -39,17 +41,17 @@ const ProposalTemplate1 = (data: ProposalType) => {
 			return width > 0 && height > 0 && pitch > 0;
 		})
 		.map((s: any) => ({
-		id: s.id || Math.random().toString(),
-		name: s.name || "Display",
-		group: s.name?.includes("-") ? s.name.split("-")[0].trim() : undefined,
-		sellPrice: s.sellPrice || s.finalClientTotal || (s.lineItems || []).reduce((acc: number, li: any) => acc + (li.price || 0), 0) || 0,
-		specs: {
-			width: s.widthFt ?? s.width ?? 0,
-			height: s.heightFt ?? s.height ?? 0,
-			pitch: s.pitchMm ?? s.pixelPitch ?? 0,
-			quantity: s.quantity || 1
-		}
-	}));
+			id: s.id || Math.random().toString(),
+			name: s.name || "Display",
+			group: s.name?.includes("-") ? s.name.split("-")[0].trim() : undefined,
+			sellPrice: s.sellPrice || s.finalClientTotal || (s.lineItems || []).reduce((acc: number, li: any) => acc + (li.price || 0), 0) || 0,
+			specs: {
+				width: s.widthFt ?? s.width ?? 0,
+				height: s.heightFt ?? s.height ?? 0,
+				pitch: s.pitchMm ?? s.pixelPitch ?? 0,
+				quantity: s.quantity || 1
+			}
+		}));
 
 	const displayLineItems = convertToLineItems(screensForGrouping);
 	const hasGroups = displayLineItems.some(i => i.isGroup);
@@ -57,8 +59,8 @@ const ProposalTemplate1 = (data: ProposalType) => {
 	// REQ-User-Feedback: Construct SOW Options for Context Fusion
 	const loc = (details?.location || "").toLowerCase();
 	const name = (details?.proposalName || "").toLowerCase();
-	const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") || 
-						 name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
+	const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") ||
+		name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
 
 	const sowOptions = {
 		documentType: (details as any).documentType || (isLOI ? "LOI" : "BUDGET"),
@@ -167,7 +169,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-500" style={{ fontFamily: "Work Sans, sans-serif" }}>SUBTOTAL:</div>
 						<div className="text-[10px] font-bold text-zinc-700 min-w-[80px] text-right">
 							{(() => {
-								const subTotal = (details as any)?.marginAnalysis 
+								const subTotal = (details as any)?.marginAnalysis
 									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
 									: Number(details?.subTotal || 0);
 								return `$${formatNumberWithCommas(Math.round(subTotal))}`;
@@ -180,7 +182,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-500" style={{ fontFamily: "Work Sans, sans-serif" }}>PERFORMANCE BOND ({(bondRate * 100).toFixed(1)}%):</div>
 						<div className="text-[10px] font-bold text-zinc-700 min-w-[80px] text-right">
 							{(() => {
-								const subTotal = (details as any)?.marginAnalysis 
+								const subTotal = (details as any)?.marginAnalysis
 									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
 									: Number(details?.subTotal || 0);
 								return `$${formatNumberWithCommas(Math.round(subTotal * bondRate))}`;
@@ -190,17 +192,17 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 					{/* B&O TAX (Conditional) */}
 					{(() => {
-						const subTotal = (details as any)?.marginAnalysis 
+						const subTotal = (details as any)?.marginAnalysis
 							? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
 							: Number(details?.subTotal || 0);
 						const bondCost = subTotal * bondRate;
 						// Check for Morgantown/WVU triggers
 						const loc = (details?.location || "").toLowerCase();
 						const name = (details?.proposalName || "").toLowerCase();
-						const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") || 
-											 name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
+						const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") ||
+							name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
 						const boTaxRate = (details as any)?.boTaxRate ?? (isMorgantown ? 0.02 : 0);
-						
+
 						if (boTaxRate > 0) {
 							return (
 								<div className="flex justify-between items-center">
@@ -221,17 +223,17 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-400 italic" style={{ fontFamily: "Work Sans, sans-serif" }}>TAX ({taxRatePercent}%):</div>
 						<div className="text-[10px] font-bold text-zinc-400 min-w-[80px] text-right">
 							{(() => {
-								const subTotal = (details as any)?.marginAnalysis 
+								const subTotal = (details as any)?.marginAnalysis
 									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
 									: Number(details?.subTotal || 0);
 								const bondCost = subTotal * bondRate;
 								const loc = (details?.location || "").toLowerCase();
 								const name = (details?.proposalName || "").toLowerCase();
-								const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") || 
-													 name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
+								const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") ||
+									name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
 								const boTaxRate = (details as any)?.boTaxRate ?? (isMorgantown ? 0.02 : 0);
 								const boTaxCost = (subTotal + bondCost) * boTaxRate;
-								
+
 								return `$${formatNumberWithCommas(Math.round((subTotal + bondCost + boTaxCost) * taxRate))}`;
 							})()}
 						</div>
@@ -242,18 +244,18 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						<div className="text-right w-full text-xs font-bold mr-4" style={{ fontFamily: "Work Sans, sans-serif" }}>PROJECT TOTAL:</div>
 						<div className="text-xs font-bold text-[#0A52EF] min-w-[80px] text-right">
 							{(() => {
-								const subTotal = (details as any)?.marginAnalysis 
+								const subTotal = (details as any)?.marginAnalysis
 									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
 									: Number(details?.subTotal || 0);
 								const bondCost = subTotal * bondRate;
 								const loc = (details?.location || "").toLowerCase();
 								const name = (details?.proposalName || "").toLowerCase();
-								const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") || 
-													 name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
+								const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") ||
+									name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
 								const boTaxRate = (details as any)?.boTaxRate ?? (isMorgantown ? 0.02 : 0);
 								const boTaxCost = (subTotal + bondCost) * boTaxRate;
 								const taxCost = (subTotal + bondCost + boTaxCost) * taxRate;
-								
+
 								return `$${formatNumberWithCommas(Math.round(subTotal + bondCost + boTaxCost + taxCost))}`;
 							})()}
 						</div>
@@ -330,101 +332,6 @@ const ProposalTemplate1 = (data: ProposalType) => {
 					If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Additional sales tax will be included in ANC’s proposal. Payment is due within thirty (30) days of ANC’s proposal(s).
 				</p>
 			</div>
-
-			{/* PAGE BREAK FOR SPECS */}
-			<div className="break-before-page px-8 pt-8">
-				<div className="text-center mb-8">
-					<h2 className="text-[#0A52EF] font-bold text-lg uppercase" style={{ fontFamily: "Work Sans, sans-serif" }}>{receiver?.name || 'CLIENT'}</h2>
-					<h3 className="text-zinc-500 text-sm uppercase tracking-widest" style={{ fontFamily: "Work Sans, sans-serif" }}>SPECIFICATIONS</h3>
-				</div>
-
-				<div className="space-y-8">
-					{(() => {
-						return (details?.screens || []).map((screen: any, idx: number) => (
-							<div key={idx} className="break-inside-avoid">
-								{/* REQ: French Blue and Work Sans Bold for Headlines */}
-								<h4 className="text-xs font-bold mb-1 uppercase text-[#0A52EF]" style={{ fontFamily: "Work Sans, sans-serif" }}>{screen.name || "[DISPLAY NAME MISSING]"}</h4>
-								<div className="w-full border-t border-black">
-									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
-										{/* REQ: Work Sans SemiBold for Labels */}
-										<span className="text-[9px] font-semibold pl-2 text-zinc-600" style={{ fontFamily: "'Work Sans', sans-serif" }}>MM Pitch</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px] font-medium">{screen.pitchMm || screen.pixelPitch || "[PITCH]"}mm</span>
-									</div>
-									
-									<div className="flex justify-between items-center py-1 bg-zinc-50 border-b border-zinc-200">
-										<span className="text-[9px] font-semibold pl-2 text-zinc-600" style={{ fontFamily: "'Work Sans', sans-serif" }}>Brightness</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px] font-medium">{screen.brightness || "[BRIGHTNESS]"}</span>
-									</div>
-
-									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
-										<span className="text-[9px] font-semibold pl-2 text-zinc-600" style={{ fontFamily: "'Work Sans', sans-serif" }}>Quantity</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px] font-medium">{screen.quantity || 1}</span>
-									</div>
-									
-									<div className="flex justify-between items-center py-1 bg-zinc-50 border-b border-zinc-200">
-										<span className="text-[9px] font-semibold pl-2 text-zinc-600" style={{ fontFamily: "'Work Sans', sans-serif" }}>Active Display Height (ft.)</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px] font-medium">{Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'</span>
-									</div>
-									
-									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
-										<span className="text-[9px] font-semibold pl-2 text-zinc-600" style={{ fontFamily: "'Work Sans', sans-serif" }}>Active Display Width (ft.)</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px] font-medium">{Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'</span>
-									</div>
-									
-									<div className="flex justify-between items-center py-1 bg-zinc-50 border-b border-zinc-200">
-										<span className="text-[9px] font-semibold pl-2 text-zinc-600" style={{ fontFamily: "'Work Sans', sans-serif" }}>Pixel Resolution (H)</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px] font-medium">{screen.pixelsH || "[RESOLUTION]"} p</span>
-									</div>
-									
-									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
-										<span className="text-[9px] font-semibold pl-2 text-zinc-600" style={{ fontFamily: "'Work Sans', sans-serif" }}>Pixel Resolution (W)</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px] font-medium">{screen.pixelsW || "[RESOLUTION]"} p</span>
-									</div>
-
-									{/* REQ: Service Type (Gap Fill) */}
-									<div className="flex justify-between items-center py-1 bg-zinc-50 border-b border-zinc-200">
-										<span className="text-[9px] font-semibold pl-2 text-zinc-600" style={{ fontFamily: "'Work Sans', sans-serif" }}>Service Type</span>
-										<span className="text-[9px] pr-2 text-right min-w-[100px] font-medium">{screen.serviceType || "[FRONT/REAR/TOP]"}</span>
-									</div>
-
-									{/* REQ: Structural Tonnage (Optional) */}
-									{screen.structuralTonnage && (
-										<div className="flex justify-between items-center py-1 border-b border-black">
-											<span className="text-[9px] font-semibold pl-2 text-zinc-600" style={{ fontFamily: "'Work Sans', sans-serif" }}>Structural Tonnage (TTE)</span>
-											<span className="text-[9px] pr-2 text-right min-w-[100px] font-medium">{screen.structuralTonnage} Tons</span>
-										</div>
-									)}
-									{!screen.structuralTonnage && (
-										<div className="border-b border-black h-[1px] w-full"></div>
-									)}
-								</div>
-							</div>
-						));
-					})()}
-				</div>
-			</div>
-
-			{/* SOW Page - MUST COME BEFORE SIGNATURES */}
-			{(details?.additionalNotes || (details as any).forceSowPage) && (
-				<div className="break-before-page px-8 pt-8">
-					<div className="text-center mb-8">
-						<h2 className="text-[#0A52EF] font-bold text-lg uppercase" style={{ fontFamily: "Work Sans, sans-serif" }}>{receiver?.name || 'CLIENT'}</h2>
-						<h3 className="text-zinc-500 text-sm uppercase tracking-widest" style={{ fontFamily: "Work Sans, sans-serif" }}>STATEMENT OF WORK</h3>
-					</div>
-
-					<div className="space-y-6">
-						{generateSOWContent(sowOptions).map((section: any, idx: number) => (
-							<div key={idx} className="break-inside-avoid">
-								<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2 uppercase" style={{ fontFamily: "Work Sans, sans-serif" }}>{section.title}</h4>
-								<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "'Work Sans', sans-serif" }}>
-									{section.content}
-								</div>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
-
 			{/* SIGNATURES - STRICTLY FINAL ELEMENT (REQ-119) */}
 			{/* Uses break-inside-avoid to prevent orphaned signatures on blank page */}
 			<div className="break-before-page px-8 pt-8 mb-8 break-inside-avoid">
@@ -481,10 +388,20 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				{/* Legal Footer - Ensures context before signatures */}
 				<div className="mt-12 pt-4 border-t border-zinc-200">
 					<p className="text-[8px] text-zinc-400 text-center italic">
-						This document constitutes a binding agreement upon signature by both parties. 
+						This document constitutes a binding agreement upon signature by both parties.
 						© {new Date().getFullYear()} ANC Sports Enterprises, LLC. All Rights Reserved.
 					</p>
 				</div>
+			</div>
+
+			{/* EXHIBIT A: SOW & TECH SPECS (AUTO-GENERATED) */}
+			<div className="break-before-page px-8">
+				<ExhibitA_SOW data={data} />
+			</div>
+
+			{/* EXHIBIT B: COST SCHEDULE (AUTO-GENERATED) */}
+			<div className="break-before-page px-8">
+				<ExhibitB_CostSchedule data={data} />
 			</div>
 		</ProposalLayout>
 	);

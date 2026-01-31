@@ -32,16 +32,18 @@ import type { ProposalType } from "@/types";
 
 const Step4Export = () => {
     const {
+        generatePdf,
         downloadPdf,
         previewPdfInTab,
         exportAudit,
         pdfUrl,
         proposalPdfLoading,
-        generatePdf,
         excelPreview,
         excelSourceData,
         verificationManifest,
         verificationExceptions,
+        isGatekeeperLocked,
+        unverifiedAiFields,
     } = useProposalContext();
     const { watch, getValues } = useFormContext<ProposalType>();
     const [exporting, setExporting] = useState(false);
@@ -88,25 +90,27 @@ const Step4Export = () => {
         if (!rec) issues.push({ id: "no-reconciliation", label: "Verification not run" });
         if (rec && rec.isMatch === false) issues.push({ id: "variance", label: "Totals do not match Excel" });
         if (effectiveExceptions.length > 0) {
-            // In Mirror Mode, only block if there are actual critical exceptions
-            // Layer 2-4 exceptions are expected until those layers are run  
-            const criticalExceptions = effectiveExceptions.filter((ex: any) => 
+            const criticalExceptions = effectiveExceptions.filter((ex: any) =>
                 ex.severity === 'CRITICAL' || ex.category === 'DATA_INTEGRITY'
             );
             if (criticalExceptions.length > 0) {
                 issues.push({ id: "exceptions", label: `${criticalExceptions.length} critical exceptions found` });
             }
         }
+        if (isGatekeeperLocked) {
+            issues.push({ id: "gatekeeper", label: `Unverified AI Data (${unverifiedAiFields.length})` });
+        }
         return issues;
-    }, [allScreensValid, effectiveExceptions, excelPreview, excelSourceData, hasOptionPlaceholder, internalAudit, reconciliation]);
+    }, [allScreensValid, effectiveExceptions, excelPreview, excelSourceData, hasOptionPlaceholder, internalAudit, reconciliation, isGatekeeperLocked, unverifiedAiFields]);
 
     const isMirrorReadyToExport = mirrorBlockingIssues.length === 0;
     const isPdfPreviewBlocked = mirrorMode
-        ? !allScreensValid || hasOptionPlaceholder || !internalAudit
-        : !allScreensValid;
+        ? !allScreensValid || hasOptionPlaceholder || !internalAudit || isGatekeeperLocked
+        : !allScreensValid || isGatekeeperLocked;
 
     const handleGlobalExport = async () => {
-        if (mirrorMode && !isMirrorReadyToExport) return;
+        const isBlocked = mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked);
+        if (isBlocked) return;
         setExporting(true);
         try {
             // Trigger both exports as requested
@@ -124,7 +128,7 @@ const Step4Export = () => {
     };
 
     const canRunVerification = !!(proposalId && excelSourceData && internalAudit);
-    
+
     const runVerification = async () => {
         if (!proposalId) {
             setVerificationError("Save the project first to enable verification.");
@@ -222,571 +226,619 @@ const Step4Export = () => {
 
     return (
         <TooltipProvider>
-        <div className="h-full flex flex-col p-8 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Phase 4 Header */}
-            <div className="flex flex-col items-center text-center mb-12">
-                <div className="w-16 h-16 rounded-2xl bg-brand-blue/10 flex items-center justify-center mb-6 relative group">
-                    <div className="absolute inset-0 bg-brand-blue/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all" />
-                    <Zap className="w-8 h-8 text-brand-blue relative z-10" />
-                </div>
-                
-                <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Review & Export</h2>
-                <p className="text-zinc-500 text-sm max-w-md font-medium">
-                    Final review of your proposal. Verify data accuracy and export professional documents.
-                </p>
-            </div>
+            <div className="h-full flex flex-col p-8 max-w-5xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Phase 4 Header */}
+                <div className="flex flex-col items-center text-center mb-12">
+                    <div className="w-16 h-16 rounded-2xl bg-brand-blue/10 flex items-center justify-center mb-6 relative group">
+                        <div className="absolute inset-0 bg-brand-blue/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all" />
+                        <Zap className="w-8 h-8 text-brand-blue relative z-10" />
+                    </div>
 
-            {mirrorMode && (
-                <Card className="bg-zinc-900/40 border border-zinc-800/60 overflow-hidden mb-10">
+                    <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Review & Export</h2>
+                    <p className="text-zinc-500 text-sm max-w-md font-medium">
+                        Final review of your proposal. Verify data accuracy and export professional documents.
+                    </p>
+                </div>
+
+                {mirrorMode && (
+                    <Card className="bg-zinc-900/40 border border-zinc-800/60 overflow-hidden mb-10">
+                        <CardHeader className="border-b border-zinc-800/60">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                    <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em]">
+                                        Mirror Mode Flight Checklist
+                                    </CardTitle>
+                                    <CardDescription className="text-xs text-zinc-500">
+                                        Export unlocks only when all gates pass (Master Truth).
+                                    </CardDescription>
+                                </div>
+                                <div className={cn(
+                                    "shrink-0 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest",
+                                    isMirrorReadyToExport
+                                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                                        : "border-amber-500/30 bg-amber-500/10 text-amber-200"
+                                )}>
+                                    {isMirrorReadyToExport ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                    {isMirrorReadyToExport ? "Good To Go" : "Blocked"}
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div className={cn(
+                                    "rounded-xl border px-4 py-3",
+                                    excelPreview && excelSourceData ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                                )}>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">1) Ingest</div>
+                                    <div className="mt-2 text-sm font-semibold text-white">Excel Imported</div>
+                                    <div className="mt-1 text-[11px] text-zinc-500">
+                                        {excelPreview?.fileName ? excelPreview.fileName : "Upload estimator Excel"}
+                                    </div>
+                                </div>
+                                <div className={cn(
+                                    "rounded-xl border px-4 py-3",
+                                    allScreensValid && !hasOptionPlaceholder ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                                )}>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">2) Populate</div>
+                                    <div className="mt-2 text-sm font-semibold text-white">Screens Valid</div>
+                                    <div className="mt-1 text-[11px] text-zinc-500">
+                                        {hasOptionPlaceholder ? "OPTION row detected" : `${screenCount} screens`}
+                                    </div>
+                                </div>
+                                <div className={cn(
+                                    "rounded-xl border px-4 py-3",
+                                    internalAudit ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                                )}>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">3) Audit</div>
+                                    <div className="mt-2 text-sm font-semibold text-white">Math Ready</div>
+                                    <div className="mt-1 text-[11px] text-zinc-500">
+                                        {internalAudit?.totals?.finalClientTotal ? formatCurrency(Number(internalAudit.totals.finalClientTotal)) : "Compute internal audit"}
+                                    </div>
+                                </div>
+                                <div className={cn(
+                                    "rounded-xl border px-4 py-3",
+                                    isMirrorReadyToExport ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                                )}>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">4) Export</div>
+                                    <div className="mt-2 text-sm font-semibold text-white">Verified</div>
+                                    <div className="mt-1 text-[11px] text-zinc-500">
+                                        {reconciliation?.isMatch ? "Totals match Excel" : "Run verification"}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div className={cn(
+                                    "rounded-xl border px-4 py-3",
+                                    reconciliation?.isMatch ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                                )}>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 1</div>
+                                    <div className="mt-2 text-sm font-semibold text-white">Excel ↔ Audit</div>
+                                    <div className="mt-1 text-[11px] text-zinc-500">
+                                        {reconciliation?.isMatch ? "Match" : "Not verified"}
+                                    </div>
+                                </div>
+                                <div className={cn(
+                                    "rounded-xl border px-4 py-3",
+                                    pdfUrl && internalAudit ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                                )}>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 2</div>
+                                    <div className="mt-2 text-sm font-semibold text-white">PDF ↔ Ugly Sheet</div>
+                                    <div className="mt-1 text-[11px] text-zinc-500">
+                                        {pdfUrl && internalAudit ? "Ready" : "Generate PDF + audit"}
+                                    </div>
+                                </div>
+                                <div className={cn(
+                                    "rounded-xl border px-4 py-3",
+                                    effectiveVerification?.roundingCompliance?.isCompliant ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                                )}>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 3</div>
+                                    <div className="mt-2 text-sm font-semibold text-white">Rounding</div>
+                                    <div className="mt-1 text-[11px] text-zinc-500">
+                                        {effectiveVerification?.roundingCompliance?.isCompliant ? "Compliant" : "Not checked"}
+                                    </div>
+                                </div>
+                                <div className={cn(
+                                    "rounded-xl border px-4 py-3",
+                                    (playbackItems?.length ?? 0) > 0 ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
+                                )}>
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 4</div>
+                                    <div className="mt-2 text-sm font-semibold text-white">Line‑By‑Line Scan</div>
+                                    <div className="mt-1 text-[11px] text-zinc-500">
+                                        {(playbackItems?.length ?? 0) > 0 ? "Available" : "Run verification"}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {!isMirrorReadyToExport && mirrorBlockingIssues.length > 0 && (
+                                <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-amber-200">Blocked Because</div>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                        {mirrorBlockingIssues.slice(0, 6).map((it) => (
+                                            <Badge key={it.id} variant="outline" className="text-[10px] border-amber-500/20 text-amber-200">
+                                                {it.label}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                    <div className="mt-3 flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={runVerification}
+                                            className={cn(
+                                                "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
+                                                verificationLoading
+                                                    ? "border-zinc-800 bg-zinc-950/40 text-zinc-500 cursor-not-allowed"
+                                                    : "border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/15"
+                                            )}
+                                        >
+                                            {verificationLoading ? "Verifying…" : <span className="inline-flex items-center gap-2"><RefreshCw className="w-4 h-4" />Run Verification</span>}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+                    {/* Left Column: Summary & Status */}
+                    <div className="lg:col-span-1 space-y-6">
+                        <Card className="bg-zinc-900/50 border-zinc-800 overflow-hidden relative">
+                            {/* 55° Slash Decorative Pattern */}
+                            <div className="absolute top-0 right-0 w-32 h-32 opacity-10 pointer-events-none overflow-hidden">
+                                <div className="absolute top-0 right-0 w-full h-full transform rotate-[55deg] translate-x-8 -translate-y-8 bg-gradient-to-b from-brand-blue to-transparent" />
+                            </div>
+
+                            <CardHeader className="pb-4">
+                                <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em]">Project Status</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                <div>
+                                    <h3 className="text-lg font-bold text-white mb-1 truncate">{proposalName}</h3>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-[10px] border-zinc-800 text-zinc-400 font-bold uppercase tracking-widest">
+                                            {screenCount} Screens
+                                        </Badge>
+                                        <Badge className="bg-brand-blue/10 text-brand-blue border-none text-[10px] font-bold uppercase tracking-widest">
+                                            {formatCurrency(totalValue)}
+                                        </Badge>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3 pt-4 border-t border-zinc-800/50">
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-zinc-500 font-medium">Calculation Mode</span>
+                                        <span className="text-zinc-300 font-bold">{mirrorMode ? "Mirror Mode" : "Strategic AI"}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs">
+                                        <span className="text-zinc-500 font-medium">Data Integrity</span>
+                                        {allScreensValid ? (
+                                            <span className="text-emerald-500 font-bold flex items-center gap-1">
+                                                <CheckCircle2 className="w-3 h-3" /> Verified
+                                            </span>
+                                        ) : (
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-amber-500 font-bold flex items-center gap-1">
+                                                    <AlertTriangle className="w-3 h-3" /> Issues Found
+                                                </span>
+                                                <span className="text-[10px] text-amber-500/70">
+                                                    Check screen dimensions
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800 flex items-center gap-3">
+                            <Clock className="w-4 h-4 text-zinc-600" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Last Vault Sync</span>
+                                <span className="text-xs text-zinc-400 font-medium">{lastSaved ? new Date(lastSaved as any).toLocaleString() : "Pending sync..."}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Global Export Action */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* The Global Export Button - Primary Call to Action */}
+                        <div
+                            onClick={(mirrorMode ? isMirrorReadyToExport : allScreensValid) ? handleGlobalExport : undefined}
+                            className={cn(
+                                "group relative overflow-hidden rounded-3xl p-10 transition-all duration-500",
+                                (mirrorMode ? isMirrorReadyToExport : (allScreensValid && !isGatekeeperLocked))
+                                    ? "bg-brand-blue cursor-pointer hover:shadow-[0_0_40px_rgba(10,82,239,0.3)] hover:-translate-y-1"
+                                    : "bg-zinc-800/50 cursor-not-allowed opacity-60"
+                            )}
+                        >
+                            {/* 55° Slash Pattern for Brand Consistency */}
+                            <div className="absolute inset-0 opacity-20 pointer-events-none">
+                                {[...Array(6)].map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className="absolute h-[200%] w-px bg-white transform rotate-[55deg]"
+                                        style={{ left: `${i * 20}%`, top: '-50%' }}
+                                    />
+                                ))}
+                            </div>
+
+                            <div className="relative z-10 flex flex-col items-center text-center gap-6">
+                                <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform duration-500">
+                                    {exporting ? (
+                                        <Zap className="w-10 h-10 text-white animate-pulse" />
+                                    ) : (
+                                        <Download className="w-10 h-10 text-white" />
+                                    )}
+                                </div>
+
+                                <div>
+                                    <h3 className="text-2xl font-bold text-white mb-2">Global Export Bundle</h3>
+                                    <p className="text-white/70 text-sm max-w-sm mx-auto font-medium leading-relaxed">
+                                        Generates both the <span className="text-white font-bold">Client-Facing PDF</span> and the <span className="text-white font-bold">Internal Audit Excel</span> in a single operation.
+                                    </p>
+                                </div>
+
+                                {!(mirrorMode ? (isMirrorReadyToExport && !isGatekeeperLocked) : (allScreensValid && !isGatekeeperLocked)) && (
+                                    <div className="mt-2 px-4 py-2 bg-black/20 backdrop-blur-sm rounded-lg text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                                        <Lock className="w-3 h-3" /> Resolve Gates To Unlock
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* NATALIA GATEKEEPER ADVISORY */}
+                        {isGatekeeperLocked && (
+                            <Card className="border-brand-blue/30 bg-brand-blue/5 overflow-hidden">
+                                <CardHeader className="py-4 bg-brand-blue/10 border-b border-brand-blue/20">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-brand-blue text-sm font-bold">
+                                            <Shield className="w-4 h-4" />
+                                            <span>NATALIA GATEKEEPER ADVISORY</span>
+                                        </div>
+                                        <Badge variant="outline" className="text-[10px] bg-brand-blue/20 border-brand-blue/30 text-brand-blue animate-pulse">
+                                            {unverifiedAiFields.length} FIELDS PENDING
+                                        </Badge>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-4 space-y-4">
+                                    <AlertTriangle className="w-5 h-5 text-brand-blue/70 float-left mr-3 mb-1" />
+                                    <p className="text-xs text-zinc-400 leading-relaxed italic">
+                                        Export blocked. The "Trust but Verify" mandate requires manual confirmation of all AI-generated fields before client release.
+                                    </p>
+
+                                    <div className="grid grid-cols-2 gap-2 mt-4">
+                                        {unverifiedAiFields.slice(0, 6).map(field => (
+                                            <div key={field} className="flex items-center gap-2 p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-[10px] text-zinc-300 font-medium">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-brand-blue" />
+                                                {field.split('.').pop()?.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                            </div>
+                                        ))}
+                                        {unverifiedAiFields.length > 6 && (
+                                            <div className="flex items-center justify-center p-2 rounded-lg bg-zinc-900/50 border border-zinc-800/50 text-[10px] text-zinc-500 font-bold">
+                                                +{unverifiedAiFields.length - 6} MORE
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="pt-4 border-t border-zinc-800 flex gap-3">
+                                        <BaseButton
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full text-[10px] gap-2 border-brand-blue/30 text-brand-blue hover:bg-brand-blue/10"
+                                            onClick={() => {/* Link to Intelligence Sidebar logic */ }}
+                                        >
+                                            <Zap className="w-3 h-3" /> Ask AI to find data
+                                        </BaseButton>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Individual Export Options */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <button
+                                onClick={downloadPdf}
+                                disabled={mirrorMode ? isPdfPreviewBlocked : (!allScreensValid || isGatekeeperLocked)}
+                                className={cn(
+                                    "flex items-center justify-between p-4 bg-zinc-900 border rounded-xl transition-all group",
+                                    (mirrorMode ? isPdfPreviewBlocked : (!allScreensValid || isGatekeeperLocked))
+                                        ? "border-zinc-800 opacity-60 cursor-not-allowed"
+                                        : "border-zinc-800 hover:border-brand-blue/50"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-zinc-800 text-zinc-400 group-hover:text-brand-blue transition-colors">
+                                        <Eye className="w-4 h-4" />
+                                    </div>
+                                    <div className="text-left">
+                                        <h4 className="text-xs font-bold text-white">PDF Only</h4>
+                                        <p className="text-[10px] text-zinc-500">Client-facing proposal</p>
+                                    </div>
+                                </div>
+                            </button>
+                            <button
+                                onClick={exportAudit}
+                                disabled={(mirrorMode && !isMirrorReadyToExport) || isGatekeeperLocked}
+                                className={cn(
+                                    "flex items-center justify-between p-4 bg-zinc-900 border rounded-xl transition-all group",
+                                    ((mirrorMode && !isMirrorReadyToExport) || isGatekeeperLocked)
+                                        ? "border-zinc-800 opacity-60 cursor-not-allowed"
+                                        : "border-zinc-800 hover:border-emerald-500/50"
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-zinc-800 text-zinc-400 group-hover:text-emerald-500 transition-colors">
+                                        <FileSpreadsheet className="w-4 h-4" />
+                                    </div>
+                                    <div className="text-left">
+                                        <h4 className="text-xs font-bold text-white">Excel Only</h4>
+                                        <p className="text-[10px] text-zinc-500">Internal audit workbook</p>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <Card className="bg-zinc-900/40 border border-zinc-800/60 overflow-hidden">
                     <CardHeader className="border-b border-zinc-800/60">
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
-                                <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em]">
-                                    Mirror Mode Flight Checklist
+                                <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                                    <Columns className="w-4 h-4 text-brand-blue" />
+                                    Verification Studio
                                 </CardTitle>
                                 <CardDescription className="text-xs text-zinc-500">
-                                    Export unlocks only when all gates pass (Master Truth).
+                                    Review Excel vs PDF and watch verification scan screen-by-screen.
                                 </CardDescription>
                             </div>
-                            <div className={cn(
-                                "shrink-0 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-widest",
-                                isMirrorReadyToExport
-                                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                                    : "border-amber-500/30 bg-amber-500/10 text-amber-200"
-                            )}>
-                                {isMirrorReadyToExport ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                                {isMirrorReadyToExport ? "Good To Go" : "Blocked"}
+                            <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                    type="button"
+                                    onClick={previewPdfInTab}
+                                    disabled={mirrorMode && isPdfPreviewBlocked}
+                                    title={mirrorMode && isPdfPreviewBlocked ? "Complete verification first" : "Open PDF preview in new tab"}
+                                    className={cn(
+                                        "px-3 py-2 rounded-xl border text-xs font-bold transition-all inline-flex items-center gap-2",
+                                        (proposalPdfLoading || (mirrorMode && isPdfPreviewBlocked))
+                                            ? "border-zinc-800 bg-zinc-950/40 text-zinc-500 cursor-not-allowed"
+                                            : "border-zinc-800 bg-zinc-950/40 text-zinc-300 hover:border-brand-blue/40 hover:text-white"
+                                    )}
+                                >
+                                    <Eye className="w-4 h-4" />
+                                    {proposalPdfLoading ? "Generating…" : pdfUrl ? "Open Preview" : mirrorMode && isPdfPreviewBlocked ? "🔒 Blocked" : "Preview PDF"}
+                                </button>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            type="button"
+                                            onClick={runVerification}
+                                            disabled={verificationLoading || !canRunVerification}
+                                            className={cn(
+                                                "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
+                                                (verificationLoading || !canRunVerification)
+                                                    ? "border-zinc-800 bg-zinc-950/40 text-zinc-500 cursor-not-allowed"
+                                                    : "border-brand-blue/40 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
+                                            )}
+                                        >
+                                            {verificationLoading ? "Verifying…" : <span className="inline-flex items-center gap-2"><RefreshCw className="w-4 h-4" />Run Verification</span>}
+                                        </button>
+                                    </TooltipTrigger>
+                                    {!canRunVerification && (
+                                        <TooltipContent side="bottom" className="bg-zinc-800 border-zinc-700 text-white text-xs max-w-xs">
+                                            {!proposalId ? "Save the project first" : !excelSourceData ? "Import an Excel file first" : "Add screens with dimensions first"}
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (isPlaying) {
+                                                    setIsPlaying(false);
+                                                    return;
+                                                }
+                                                setPlayIndex(-1);
+                                                setIsPlaying(true);
+                                            }}
+                                            disabled={playbackItems.length === 0}
+                                            className={cn(
+                                                "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
+                                                playbackItems.length === 0
+                                                    ? "border-zinc-800 bg-zinc-950/40 text-zinc-600 cursor-not-allowed"
+                                                    : isPlaying
+                                                        ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15"
+                                                        : "border-zinc-800 bg-zinc-950/40 text-zinc-300 hover:border-amber-500/40 hover:text-white"
+                                            )}
+                                        >
+                                            {isPlaying ? <span className="inline-flex items-center gap-2"><Pause className="w-4 h-4" />Pause</span> : <span className="inline-flex items-center gap-2"><Play className="w-4 h-4" />Play Scan</span>}
+                                        </button>
+                                    </TooltipTrigger>
+                                    {playbackItems.length === 0 && (
+                                        <TooltipContent side="bottom" className="bg-zinc-800 border-zinc-700 text-white text-xs">
+                                            Run verification first to enable scan playback
+                                        </TooltipContent>
+                                    )}
+                                </Tooltip>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent className="p-4">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                            <div className={cn(
-                                "rounded-xl border px-4 py-3",
-                                excelPreview && excelSourceData ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
-                            )}>
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">1) Ingest</div>
-                                <div className="mt-2 text-sm font-semibold text-white">Excel Imported</div>
-                                <div className="mt-1 text-[11px] text-zinc-500">
-                                    {excelPreview?.fileName ? excelPreview.fileName : "Upload estimator Excel"}
-                                </div>
-                            </div>
-                            <div className={cn(
-                                "rounded-xl border px-4 py-3",
-                                allScreensValid && !hasOptionPlaceholder ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
-                            )}>
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">2) Populate</div>
-                                <div className="mt-2 text-sm font-semibold text-white">Screens Valid</div>
-                                <div className="mt-1 text-[11px] text-zinc-500">
-                                    {hasOptionPlaceholder ? "OPTION row detected" : `${screenCount} screens`}
-                                </div>
-                            </div>
-                            <div className={cn(
-                                "rounded-xl border px-4 py-3",
-                                internalAudit ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
-                            )}>
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">3) Audit</div>
-                                <div className="mt-2 text-sm font-semibold text-white">Math Ready</div>
-                                <div className="mt-1 text-[11px] text-zinc-500">
-                                    {internalAudit?.totals?.finalClientTotal ? formatCurrency(Number(internalAudit.totals.finalClientTotal)) : "Compute internal audit"}
-                                </div>
-                            </div>
-                            <div className={cn(
-                                "rounded-xl border px-4 py-3",
-                                isMirrorReadyToExport ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
-                            )}>
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">4) Export</div>
-                                <div className="mt-2 text-sm font-semibold text-white">Verified</div>
-                                <div className="mt-1 text-[11px] text-zinc-500">
-                                    {reconciliation?.isMatch ? "Totals match Excel" : "Run verification"}
-                                </div>
-                            </div>
-                        </div>
+                        <Tabs defaultValue="studio">
+                            <TabsList className="bg-zinc-950/40">
+                                <TabsTrigger value="studio">Side-by-side</TabsTrigger>
+                                <TabsTrigger value="results">Results</TabsTrigger>
+                            </TabsList>
 
-                        <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
-                            <div className={cn(
-                                "rounded-xl border px-4 py-3",
-                                reconciliation?.isMatch ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
-                            )}>
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 1</div>
-                                <div className="mt-2 text-sm font-semibold text-white">Excel ↔ Audit</div>
-                                <div className="mt-1 text-[11px] text-zinc-500">
-                                    {reconciliation?.isMatch ? "Match" : "Not verified"}
-                                </div>
-                            </div>
-                            <div className={cn(
-                                "rounded-xl border px-4 py-3",
-                                pdfUrl && internalAudit ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
-                            )}>
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 2</div>
-                                <div className="mt-2 text-sm font-semibold text-white">PDF ↔ Ugly Sheet</div>
-                                <div className="mt-1 text-[11px] text-zinc-500">
-                                    {pdfUrl && internalAudit ? "Ready" : "Generate PDF + audit"}
-                                </div>
-                            </div>
-                            <div className={cn(
-                                "rounded-xl border px-4 py-3",
-                                effectiveVerification?.roundingCompliance?.isCompliant ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
-                            )}>
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 3</div>
-                                <div className="mt-2 text-sm font-semibold text-white">Rounding</div>
-                                <div className="mt-1 text-[11px] text-zinc-500">
-                                    {effectiveVerification?.roundingCompliance?.isCompliant ? "Compliant" : "Not checked"}
-                                </div>
-                            </div>
-                            <div className={cn(
-                                "rounded-xl border px-4 py-3",
-                                (playbackItems?.length ?? 0) > 0 ? "border-emerald-500/20 bg-emerald-500/5" : "border-zinc-800 bg-zinc-950/30"
-                            )}>
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Layer 4</div>
-                                <div className="mt-2 text-sm font-semibold text-white">Line‑By‑Line Scan</div>
-                                <div className="mt-1 text-[11px] text-zinc-500">
-                                    {(playbackItems?.length ?? 0) > 0 ? "Available" : "Run verification"}
-                                </div>
-                            </div>
-                        </div>
+                            <TabsContent value="studio" className="mt-4">
+                                <div className="space-y-4">
+                                    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/30 overflow-hidden">
+                                        <div className="shrink-0 px-4 py-3 border-b border-zinc-800/70 flex items-center justify-between">
+                                            <div className="text-[11px] font-semibold text-zinc-300 uppercase tracking-widest">Excel Verification</div>
+                                            <button
+                                                type="button"
+                                                onClick={previewPdfInTab}
+                                                disabled={mirrorMode && isPdfPreviewBlocked}
+                                                className={cn(
+                                                    "text-[11px] font-bold text-brand-blue",
+                                                    mirrorMode && isPdfPreviewBlocked ? "opacity-60 cursor-not-allowed" : "hover:text-brand-blue/90"
+                                                )}
+                                            >
+                                                Open PDF
+                                            </button>
+                                        </div>
+                                        <div className="h-[520px] max-h-[65vh] overflow-hidden">
+                                            <ExcelViewer
+                                                highlightedRows={highlightedRows}
+                                                focusedRow={focusedRow}
+                                                onFocusedRowChange={setFocusedRow}
+                                            />
+                                        </div>
+                                    </div>
 
-                        {!isMirrorReadyToExport && mirrorBlockingIssues.length > 0 && (
-                            <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-                                <div className="text-[10px] font-bold uppercase tracking-widest text-amber-200">Blocked Because</div>
-                                <div className="mt-2 flex flex-wrap gap-2">
-                                    {mirrorBlockingIssues.slice(0, 6).map((it) => (
-                                        <Badge key={it.id} variant="outline" className="text-[10px] border-amber-500/20 text-amber-200">
-                                            {it.label}
-                                        </Badge>
-                                    ))}
+                                    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-4 py-3 text-xs text-zinc-500">
+                                        Use the live PDF preview on the right panel to compare against Excel.
+                                    </div>
                                 </div>
-                                <div className="mt-3 flex items-center gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={runVerification}
-                                        className={cn(
-                                            "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
-                                            verificationLoading
-                                                ? "border-zinc-800 bg-zinc-950/40 text-zinc-500 cursor-not-allowed"
-                                                : "border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/15"
+
+                                {playIndex >= 0 && playIndex < playbackItems.length && (
+                                    <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950/40 px-4 py-3 flex items-center justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <div className="text-xs font-bold text-white truncate">
+                                                Scanning: {playbackItems[playIndex]?.name}
+                                            </div>
+                                            <div className="text-[11px] text-zinc-500">
+                                                Excel row {Number(playbackItems[playIndex]?.rowIndex || 0)} • Variance {formatCurrency(Number(playbackItems[playIndex]?.variance || 0))}
+                                            </div>
+                                        </div>
+                                        <div className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                                            {playIndex + 1}/{playbackItems.length}
+                                        </div>
+                                    </div>
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="results" className="mt-4">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                    <div className="lg:col-span-1 space-y-3">
+                                        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-4 py-3">
+                                            <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Reconciliation</div>
+                                            {reconciliation ? (
+                                                <div className="mt-2 space-y-2 text-xs">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-zinc-500">Excel Total</span>
+                                                        <span className="text-zinc-200 font-bold">{formatCurrency(reconciliation.sourceFinalTotal)}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-zinc-500">Natalia Total</span>
+                                                        <span className="text-zinc-200 font-bold">{formatCurrency(reconciliation.calculatedFinalTotal)}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-zinc-500">Variance</span>
+                                                        <span className={cn("font-bold", reconciliation.isMatch ? "text-emerald-400" : "text-amber-300")}>
+                                                            {formatCurrency(reconciliation.variance)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-zinc-500">Match</span>
+                                                        <span className={cn("font-bold", reconciliation.isMatch ? "text-emerald-400" : "text-amber-300")}>
+                                                            {reconciliation.matchType}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="mt-2 text-xs text-zinc-600">Run verification to populate totals.</div>
+                                            )}
+                                        </div>
+
+                                        <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-4 py-3">
+                                            <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Exceptions</div>
+                                            <div className="mt-2 text-xs text-zinc-400 font-semibold">
+                                                {effectiveExceptions.length} found
+                                            </div>
+                                        </div>
+
+                                        {verificationError && (
+                                            <div className="rounded-2xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-xs text-red-200">
+                                                {verificationError}
+                                            </div>
                                         )}
-                                    >
-                                        {verificationLoading ? "Verifying…" : <span className="inline-flex items-center gap-2"><RefreshCw className="w-4 h-4" />Run Verification</span>}
-                                    </button>
+                                    </div>
+
+                                    <div className="lg:col-span-2 rounded-2xl border border-zinc-800 bg-zinc-950/40 overflow-hidden">
+                                        <div className="px-4 py-3 border-b border-zinc-800/70 flex items-center justify-between">
+                                            <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Findings</div>
+                                            {effectiveReport?.status && (
+                                                <div className={cn(
+                                                    "text-[10px] font-bold uppercase tracking-widest",
+                                                    effectiveReport.status === "VERIFIED"
+                                                        ? "text-emerald-400"
+                                                        : effectiveReport.status === "WARNING"
+                                                            ? "text-amber-300"
+                                                            : "text-red-400"
+                                                )}>
+                                                    {effectiveReport.status}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="max-h-[360px] overflow-auto custom-scrollbar">
+                                            {playbackItems.length === 0 ? (
+                                                <div className="px-4 py-6 text-sm text-zinc-600">No per-screen data available yet.</div>
+                                            ) : (
+                                                <div className="divide-y divide-zinc-800/60">
+                                                    {playbackItems.slice(0, 50).map((it: any, idx: number) => {
+                                                        const variance = Number(it.variance || 0);
+                                                        const row = Number(it.rowIndex || 0);
+                                                        return (
+                                                            <button
+                                                                key={`${it.name}-${idx}`}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setIsPlaying(false);
+                                                                    setPlayIndex(idx);
+                                                                    if (row) setFocusedRow(row - 1);
+                                                                }}
+                                                                className="w-full text-left px-4 py-3 hover:bg-zinc-900/40 transition-colors"
+                                                            >
+                                                                <div className="flex items-center justify-between gap-4">
+                                                                    <div className="min-w-0">
+                                                                        <div className="text-sm font-semibold text-white truncate">{it.name}</div>
+                                                                        <div className="text-[11px] text-zinc-500">Excel row {row || "—"}</div>
+                                                                    </div>
+                                                                    <div className={cn(
+                                                                        "text-xs font-bold",
+                                                                        Math.abs(variance) <= 0.01 ? "text-emerald-400" : "text-amber-300"
+                                                                    )}>
+                                                                        {formatCurrency(variance)}
+                                                                    </div>
+                                                                </div>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            </TabsContent>
+                        </Tabs>
                     </CardContent>
                 </Card>
-            )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                {/* Left Column: Summary & Status */}
-                <div className="lg:col-span-1 space-y-6">
-                    <Card className="bg-zinc-900/50 border-zinc-800 overflow-hidden relative">
-                        {/* 55° Slash Decorative Pattern */}
-                        <div className="absolute top-0 right-0 w-32 h-32 opacity-10 pointer-events-none overflow-hidden">
-                            <div className="absolute top-0 right-0 w-full h-full transform rotate-[55deg] translate-x-8 -translate-y-8 bg-gradient-to-b from-brand-blue to-transparent" />
-                        </div>
-
-                        <CardHeader className="pb-4">
-                            <CardTitle className="text-xs font-bold text-zinc-500 uppercase tracking-[0.2em]">Project Status</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            <div>
-                                <h3 className="text-lg font-bold text-white mb-1 truncate">{proposalName}</h3>
-                                <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-[10px] border-zinc-800 text-zinc-400 font-bold uppercase tracking-widest">
-                                        {screenCount} Screens
-                                    </Badge>
-                                    <Badge className="bg-brand-blue/10 text-brand-blue border-none text-[10px] font-bold uppercase tracking-widest">
-                                        {formatCurrency(totalValue)}
-                                    </Badge>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 pt-4 border-t border-zinc-800/50">
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="text-zinc-500 font-medium">Calculation Mode</span>
-                                    <span className="text-zinc-300 font-bold">{mirrorMode ? "Mirror Mode" : "Strategic AI"}</span>
-                                </div>
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="text-zinc-500 font-medium">Data Integrity</span>
-                                    {allScreensValid ? (
-                                        <span className="text-emerald-500 font-bold flex items-center gap-1">
-                                            <CheckCircle2 className="w-3 h-3" /> Verified
-                                        </span>
-                                    ) : (
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-amber-500 font-bold flex items-center gap-1">
-                                                <AlertTriangle className="w-3 h-3" /> Issues Found
-                                            </span>
-                                            <span className="text-[10px] text-amber-500/70">
-                                                Check screen dimensions
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <div className="p-4 rounded-xl bg-zinc-900/30 border border-zinc-800 flex items-center gap-3">
-                        <Clock className="w-4 h-4 text-zinc-600" />
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Last Vault Sync</span>
-                        <span className="text-xs text-zinc-400 font-medium">{lastSaved ? new Date(lastSaved as any).toLocaleString() : "Pending sync..."}</span>
-                        </div>
+                {/* Support Footer */}
+                <div className="mt-auto pt-8 border-t border-zinc-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-zinc-600" />
+                        <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.2em]">ANC Identity Protection System Active</span>
                     </div>
-                </div>
-
-                {/* Right Column: Global Export Action */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* The Global Export Button - Primary Call to Action */}
-                    <div 
-                        onClick={(mirrorMode ? isMirrorReadyToExport : allScreensValid) ? handleGlobalExport : undefined}
-                        className={cn(
-                            "group relative overflow-hidden rounded-3xl p-10 transition-all duration-500",
-                            (mirrorMode ? isMirrorReadyToExport : allScreensValid) 
-                                ? "bg-brand-blue cursor-pointer hover:shadow-[0_0_40px_rgba(10,82,239,0.3)] hover:-translate-y-1" 
-                                : "bg-zinc-800/50 cursor-not-allowed opacity-60"
-                        )}
-                    >
-                        {/* 55° Slash Pattern for Brand Consistency */}
-                        <div className="absolute inset-0 opacity-20 pointer-events-none">
-                            {[...Array(6)].map((_, i) => (
-                                <div 
-                                    key={i}
-                                    className="absolute h-[200%] w-px bg-white transform rotate-[55deg]"
-                                    style={{ left: `${i * 20}%`, top: '-50%' }}
-                                />
-                            ))}
-                        </div>
-
-                        <div className="relative z-10 flex flex-col items-center text-center gap-6">
-                            <div className="w-20 h-20 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 group-hover:scale-110 transition-transform duration-500">
-                                {exporting ? (
-                                    <Zap className="w-10 h-10 text-white animate-pulse" />
-                                ) : (
-                                    <Download className="w-10 h-10 text-white" />
-                                )}
-                            </div>
-                            
-                            <div>
-                                <h3 className="text-2xl font-bold text-white mb-2">Global Export Bundle</h3>
-                                <p className="text-white/70 text-sm max-w-sm mx-auto font-medium leading-relaxed">
-                                    Generates both the <span className="text-white font-bold">Client-Facing PDF</span> and the <span className="text-white font-bold">Internal Audit Excel</span> in a single operation.
-                                </p>
-                            </div>
-
-                            {!(mirrorMode ? isMirrorReadyToExport : allScreensValid) && (
-                                <div className="mt-2 px-4 py-2 bg-black/20 backdrop-blur-sm rounded-lg text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-                                    <Lock className="w-3 h-3" /> Resolve Gates To Unlock
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Individual Export Options */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <button 
-                            onClick={downloadPdf}
-                            disabled={mirrorMode ? isPdfPreviewBlocked : !allScreensValid}
-                            className={cn(
-                                "flex items-center justify-between p-4 bg-zinc-900 border rounded-xl transition-all group",
-                                (mirrorMode ? isPdfPreviewBlocked : !allScreensValid)
-                                    ? "border-zinc-800 opacity-60 cursor-not-allowed"
-                                    : "border-zinc-800 hover:border-brand-blue/50"
-                            )}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-zinc-800 text-zinc-400 group-hover:text-brand-blue transition-colors">
-                                    <Eye className="w-4 h-4" />
-                                </div>
-                                <div className="text-left">
-                                    <h4 className="text-xs font-bold text-white">PDF Only</h4>
-                                    <p className="text-[10px] text-zinc-500">Client-facing proposal</p>
-                                </div>
-                            </div>
-                        </button>
-                        <button 
-                            onClick={exportAudit}
-                            disabled={mirrorMode && !isMirrorReadyToExport}
-                            className={cn(
-                                "flex items-center justify-between p-4 bg-zinc-900 border rounded-xl transition-all group",
-                                mirrorMode && !isMirrorReadyToExport
-                                    ? "border-zinc-800 opacity-60 cursor-not-allowed"
-                                    : "border-zinc-800 hover:border-emerald-500/50"
-                            )}
-                        >
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 rounded-lg bg-zinc-800 text-zinc-400 group-hover:text-emerald-500 transition-colors">
-                                    <FileSpreadsheet className="w-4 h-4" />
-                                </div>
-                                <div className="text-left">
-                                    <h4 className="text-xs font-bold text-white">Excel Only</h4>
-                                    <p className="text-[10px] text-zinc-500">Internal audit workbook</p>
-                                </div>
-                            </div>
-                        </button>
+                    <div className="text-[10px] font-medium text-zinc-600">
+                        For branding approvals, contact <span className="text-zinc-500 underline">alison@anc.com</span>
                     </div>
                 </div>
             </div>
-
-            <Card className="bg-zinc-900/40 border border-zinc-800/60 overflow-hidden">
-                <CardHeader className="border-b border-zinc-800/60">
-                    <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                            <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
-                                <Columns className="w-4 h-4 text-brand-blue" />
-                                Verification Studio
-                            </CardTitle>
-                            <CardDescription className="text-xs text-zinc-500">
-                                Review Excel vs PDF and watch verification scan screen-by-screen.
-                            </CardDescription>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <button
-                                type="button"
-                                onClick={previewPdfInTab}
-                                disabled={mirrorMode && isPdfPreviewBlocked}
-                                title={mirrorMode && isPdfPreviewBlocked ? "Complete verification first" : "Open PDF preview in new tab"}
-                                className={cn(
-                                    "px-3 py-2 rounded-xl border text-xs font-bold transition-all inline-flex items-center gap-2",
-                                    (proposalPdfLoading || (mirrorMode && isPdfPreviewBlocked))
-                                        ? "border-zinc-800 bg-zinc-950/40 text-zinc-500 cursor-not-allowed"
-                                        : "border-zinc-800 bg-zinc-950/40 text-zinc-300 hover:border-brand-blue/40 hover:text-white"
-                                )}
-                            >
-                                <Eye className="w-4 h-4" />
-                                {proposalPdfLoading ? "Generating…" : pdfUrl ? "Open Preview" : mirrorMode && isPdfPreviewBlocked ? "🔒 Blocked" : "Preview PDF"}
-                            </button>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        type="button"
-                                        onClick={runVerification}
-                                        disabled={verificationLoading || !canRunVerification}
-                                        className={cn(
-                                            "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
-                                            (verificationLoading || !canRunVerification)
-                                                ? "border-zinc-800 bg-zinc-950/40 text-zinc-500 cursor-not-allowed"
-                                                : "border-brand-blue/40 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
-                                        )}
-                                    >
-                                        {verificationLoading ? "Verifying…" : <span className="inline-flex items-center gap-2"><RefreshCw className="w-4 h-4" />Run Verification</span>}
-                                    </button>
-                                </TooltipTrigger>
-                                {!canRunVerification && (
-                                    <TooltipContent side="bottom" className="bg-zinc-800 border-zinc-700 text-white text-xs max-w-xs">
-                                        {!proposalId ? "Save the project first" : !excelSourceData ? "Import an Excel file first" : "Add screens with dimensions first"}
-                                    </TooltipContent>
-                                )}
-                            </Tooltip>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            if (isPlaying) {
-                                                setIsPlaying(false);
-                                                return;
-                                            }
-                                            setPlayIndex(-1);
-                                            setIsPlaying(true);
-                                        }}
-                                        disabled={playbackItems.length === 0}
-                                        className={cn(
-                                            "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
-                                            playbackItems.length === 0
-                                                ? "border-zinc-800 bg-zinc-950/40 text-zinc-600 cursor-not-allowed"
-                                                : isPlaying
-                                                    ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15"
-                                                    : "border-zinc-800 bg-zinc-950/40 text-zinc-300 hover:border-amber-500/40 hover:text-white"
-                                        )}
-                                    >
-                                        {isPlaying ? <span className="inline-flex items-center gap-2"><Pause className="w-4 h-4" />Pause</span> : <span className="inline-flex items-center gap-2"><Play className="w-4 h-4" />Play Scan</span>}
-                                    </button>
-                                </TooltipTrigger>
-                                {playbackItems.length === 0 && (
-                                    <TooltipContent side="bottom" className="bg-zinc-800 border-zinc-700 text-white text-xs">
-                                        Run verification first to enable scan playback
-                                    </TooltipContent>
-                                )}
-                            </Tooltip>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                    <Tabs defaultValue="studio">
-                        <TabsList className="bg-zinc-950/40">
-                            <TabsTrigger value="studio">Side-by-side</TabsTrigger>
-                            <TabsTrigger value="results">Results</TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="studio" className="mt-4">
-                            <div className="space-y-4">
-                                <div className="rounded-2xl border border-zinc-800 bg-zinc-950/30 overflow-hidden">
-                                    <div className="shrink-0 px-4 py-3 border-b border-zinc-800/70 flex items-center justify-between">
-                                        <div className="text-[11px] font-semibold text-zinc-300 uppercase tracking-widest">Excel Verification</div>
-                                        <button
-                                            type="button"
-                                            onClick={previewPdfInTab}
-                                            disabled={mirrorMode && isPdfPreviewBlocked}
-                                            className={cn(
-                                                "text-[11px] font-bold text-brand-blue",
-                                                mirrorMode && isPdfPreviewBlocked ? "opacity-60 cursor-not-allowed" : "hover:text-brand-blue/90"
-                                            )}
-                                        >
-                                            Open PDF
-                                        </button>
-                                    </div>
-                                    <div className="h-[520px] max-h-[65vh] overflow-hidden">
-                                        <ExcelViewer
-                                            highlightedRows={highlightedRows}
-                                            focusedRow={focusedRow}
-                                            onFocusedRowChange={setFocusedRow}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-4 py-3 text-xs text-zinc-500">
-                                    Use the live PDF preview on the right panel to compare against Excel.
-                                </div>
-                            </div>
-
-                            {playIndex >= 0 && playIndex < playbackItems.length && (
-                                <div className="mt-4 rounded-2xl border border-zinc-800 bg-zinc-950/40 px-4 py-3 flex items-center justify-between gap-4">
-                                    <div className="min-w-0">
-                                        <div className="text-xs font-bold text-white truncate">
-                                            Scanning: {playbackItems[playIndex]?.name}
-                                        </div>
-                                        <div className="text-[11px] text-zinc-500">
-                                            Excel row {Number(playbackItems[playIndex]?.rowIndex || 0)} • Variance {formatCurrency(Number(playbackItems[playIndex]?.variance || 0))}
-                                        </div>
-                                    </div>
-                                    <div className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                                        {playIndex + 1}/{playbackItems.length}
-                                    </div>
-                                </div>
-                            )}
-                        </TabsContent>
-
-                        <TabsContent value="results" className="mt-4">
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                <div className="lg:col-span-1 space-y-3">
-                                    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-4 py-3">
-                                        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Reconciliation</div>
-                                        {reconciliation ? (
-                                            <div className="mt-2 space-y-2 text-xs">
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-zinc-500">Excel Total</span>
-                                                    <span className="text-zinc-200 font-bold">{formatCurrency(reconciliation.sourceFinalTotal)}</span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-zinc-500">Natalia Total</span>
-                                                    <span className="text-zinc-200 font-bold">{formatCurrency(reconciliation.calculatedFinalTotal)}</span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-zinc-500">Variance</span>
-                                                    <span className={cn("font-bold", reconciliation.isMatch ? "text-emerald-400" : "text-amber-300")}>
-                                                        {formatCurrency(reconciliation.variance)}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center justify-between">
-                                                    <span className="text-zinc-500">Match</span>
-                                                    <span className={cn("font-bold", reconciliation.isMatch ? "text-emerald-400" : "text-amber-300")}>
-                                                        {reconciliation.matchType}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="mt-2 text-xs text-zinc-600">Run verification to populate totals.</div>
-                                        )}
-                                    </div>
-
-                                    <div className="rounded-2xl border border-zinc-800 bg-zinc-950/40 px-4 py-3">
-                                        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Exceptions</div>
-                                        <div className="mt-2 text-xs text-zinc-400 font-semibold">
-                                            {effectiveExceptions.length} found
-                                        </div>
-                                    </div>
-
-                                    {verificationError && (
-                                        <div className="rounded-2xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-xs text-red-200">
-                                            {verificationError}
-                                        </div>
-                                    )}
-                                </div>
-
-                                <div className="lg:col-span-2 rounded-2xl border border-zinc-800 bg-zinc-950/40 overflow-hidden">
-                                    <div className="px-4 py-3 border-b border-zinc-800/70 flex items-center justify-between">
-                                        <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Findings</div>
-                                        {effectiveReport?.status && (
-                                            <div className={cn(
-                                                "text-[10px] font-bold uppercase tracking-widest",
-                                                effectiveReport.status === "VERIFIED"
-                                                    ? "text-emerald-400"
-                                                    : effectiveReport.status === "WARNING"
-                                                        ? "text-amber-300"
-                                                        : "text-red-400"
-                                            )}>
-                                                {effectiveReport.status}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="max-h-[360px] overflow-auto custom-scrollbar">
-                                        {playbackItems.length === 0 ? (
-                                            <div className="px-4 py-6 text-sm text-zinc-600">No per-screen data available yet.</div>
-                                        ) : (
-                                            <div className="divide-y divide-zinc-800/60">
-                                                {playbackItems.slice(0, 50).map((it: any, idx: number) => {
-                                                    const variance = Number(it.variance || 0);
-                                                    const row = Number(it.rowIndex || 0);
-                                                    return (
-                                                        <button
-                                                            key={`${it.name}-${idx}`}
-                                                            type="button"
-                                                            onClick={() => {
-                                                                setIsPlaying(false);
-                                                                setPlayIndex(idx);
-                                                                if (row) setFocusedRow(row - 1);
-                                                            }}
-                                                            className="w-full text-left px-4 py-3 hover:bg-zinc-900/40 transition-colors"
-                                                        >
-                                                            <div className="flex items-center justify-between gap-4">
-                                                                <div className="min-w-0">
-                                                                    <div className="text-sm font-semibold text-white truncate">{it.name}</div>
-                                                                    <div className="text-[11px] text-zinc-500">Excel row {row || "—"}</div>
-                                                                </div>
-                                                                <div className={cn(
-                                                                    "text-xs font-bold",
-                                                                    Math.abs(variance) <= 0.01 ? "text-emerald-400" : "text-amber-300"
-                                                                )}>
-                                                                    {formatCurrency(variance)}
-                                                                </div>
-                                                            </div>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-                </CardContent>
-            </Card>
-
-            {/* Support Footer */}
-            <div className="mt-auto pt-8 border-t border-zinc-800 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-zinc-600" />
-                    <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.2em]">ANC Identity Protection System Active</span>
-                </div>
-                <div className="text-[10px] font-medium text-zinc-600">
-                    For branding approvals, contact <span className="text-zinc-500 underline">alison@anc.com</span>
-                </div>
-            </div>
-        </div>
         </TooltipProvider>
     );
 };

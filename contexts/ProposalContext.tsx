@@ -121,6 +121,8 @@ const defaultProposalContext = {
   verifiedFields: {} as Record<string, { verifiedBy: string; verifiedAt: string }>,
   setFieldVerified: (fieldPath: string, userName: string) => { },
   aiFieldTimestamps: {} as Record<string, number>,
+  unverifiedAiFields: [] as string[],
+  isGatekeeperLocked: false,
   trackAiFieldModification: (fieldNames: string[]) => { },
   isFieldGhostActive: (fieldName: string) => false,
   rulesDetected: null as any,
@@ -200,7 +202,15 @@ export const ProposalContextProvider = ({
   const [risks, setRisks] = useState<RiskItem[]>([]);
   const [rulesDetected, setRulesDetected] = useState<any>(null);
 
-  const setFieldVerified = useCallback((fieldPath: string, userName: string) => {
+  // Computed Gatekeeper State
+  const unverifiedAiFields = useMemo(() => {
+    return aiFields.filter(field => !verifiedFields[field]);
+  }, [aiFields, verifiedFields]);
+
+  const isGatekeeperLocked = unverifiedAiFields.length > 0;
+
+  const setFieldVerified = useCallback(async (fieldPath: string, userName: string) => {
+    // Optimistic Update
     setVerifiedFields(prev => ({
       ...prev,
       [fieldPath]: {
@@ -208,7 +218,29 @@ export const ProposalContextProvider = ({
         verifiedAt: new Date().toISOString()
       }
     }));
-  }, []);
+
+    const pid = getValues("details.proposalId");
+    if (!pid || pid === "new") return;
+
+    try {
+      const res = await fetch(`/api/proposals/${pid}/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fieldPath, userName, verified: true })
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to sync verification");
+      }
+
+      const data = await res.json();
+      console.log("Verification synced to DB:", data);
+    } catch (error) {
+      console.error("Verification sync failed:", error);
+      // Revert on error if necessary, but for now we'll just log
+      // In a production app we might show a toast
+    }
+  }, [getValues]);
 
   // RFP Vault Refresh
   const refreshRfpDocuments = useCallback(async () => {
@@ -469,8 +501,8 @@ export const ProposalContextProvider = ({
 
       // Cleanup AI state on project switch
       setAiMessages([]);
-      setAiFields(details.metadata?.aiFilledFields || details.metadata?.filledByAI || []); // Hydrate AI fields
-      setVerifiedFields(details.metadata?.verifiedFields || {}); // Hydrate Verified fields
+      setAiFields(d.aiFilledFields || details.metadata?.aiFilledFields || details.metadata?.filledByAI || []); // Hydrate AI fields
+      setVerifiedFields((d.verifiedFields as any) || details.metadata?.verifiedFields || {}); // Hydrate Verified fields
       setProposalPdf(new Blob());
     }
   }, [initialData, reset, setValue]);
@@ -1915,6 +1947,8 @@ export const ProposalContextProvider = ({
         verifiedFields,
         setFieldVerified,
         aiFieldTimestamps,
+        unverifiedAiFields,
+        isGatekeeperLocked,
         trackAiFieldModification,
         isFieldGhostActive,
         rulesDetected,

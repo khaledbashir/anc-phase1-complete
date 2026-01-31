@@ -14,7 +14,6 @@ export async function POST(
     const { id } = await params;
 
     try {
-        // 1. Fetch Full Proposal Data
         const project = await prisma.proposal.findUnique({
             where: { id },
             include: {
@@ -31,6 +30,20 @@ export async function POST(
         // Parse summaries if they exist
         const clientSummary = project.clientSummary ? JSON.parse(project.clientSummary) : null;
         const internalAudit = project.internalAudit ? JSON.parse(project.internalAudit) : null;
+
+        // --- NATALIA GATEKEEPER: AI Verification Guardrail ---
+        const aiFilledFields = (project.aiFilledFields as string[]) || [];
+        const verifiedFields = (project.verifiedFields as Record<string, any>) || {};
+        const unverifiedFields = aiFilledFields.filter(f => !verifiedFields[f]);
+
+        if (unverifiedFields.length > 0) {
+            return NextResponse.json({
+                error: "AI Guardrail Block: This proposal contains unverified AI data.",
+                code: "UNVERIFIED_AI_DATA",
+                blockingFields: unverifiedFields
+            }, { status: 422 });
+        }
+        // ---------------------------------------------------
 
         // REQ-113: Deep clone project object before sanitization to prevent data leakage
         // This ensures internal cost/margin data is never accidentally logged or served
@@ -54,7 +67,7 @@ export async function POST(
         if (forceNewVersion || !project.shareHash) {
             shareHash = `${Math.random().toString(36).substring(2, 10)}-v${versionNumber}`;
             if (!project.shareHash) {
-                await prisma.proposal.update({
+                await (prisma.proposal as any).update({
                     where: { id },
                     data: {
                         shareHash,
@@ -126,14 +139,7 @@ export async function POST(
                     citations: undefined
                 })) as any,
                 // REQ-User-Feedback: Include marginAnalysis for PDF mirroring
-                marginAnalysis: clientSummary?.marginAnalysis || [],
-                // SANITIZATION: Strip all AI tracking from public share
-                metadata: {
-                    filledByAI: undefined,
-                    risks: undefined,
-                    structuralTonnage: Number(project.structuralTonnage) || undefined,
-                    reinforcingTonnage: Number(project.reinforcingTonnage) || undefined,
-                },
+                // Note: marginAnalysis is handled via clientSummary parsing
                 totalAmount: clientSummary?.finalClientTotal || 0,
                 totalAmountInWords: "",
                 documentType: clientSummary?.documentType || "First Round",
@@ -159,7 +165,7 @@ export async function POST(
 
         if (!existingSnapshot) {
             // Create new immutable snapshot for this version
-            await prisma.proposalSnapshot.create({
+            await (prisma.proposalSnapshot as any).create({
                 data: {
                     proposalId: id,
                     shareHash,

@@ -68,7 +68,7 @@ model Proposal {
   id                    String              @id @default(cuid())
   workspaceId          String
   clientName           String
-  status               String              @default("DRAFT")
+  status               ProposalStatus      @default(DRAFT)
   calculationMode      CalculationMode     @default(INTELLIGENCE)
   internalAudit        String?
   clientSummary        String?
@@ -98,12 +98,20 @@ model Proposal {
   verificationManifest   Json?
   reconciliationReport   Json?
   verificationStatus     VerificationStatus @default(PENDING)
-  lastVerifiedAt         DateTime?
-  
   // REQ-126: AI Verification State Persistence (Blue Glow tracking)
   // Stores which fields were auto-filled by AI and which have been human-verified
-  aiFilledFields         Json?               // Array of field paths filled by AI ["pitchMm", "brightness", etc.]
-  verifiedFields         Json?               // Array of {field, verifiedBy, verifiedAt} objects
+  aiFilledFields         String[]            // Array of field paths filled by AI ["pitchMm", "brightness", etc.]
+  verifiedFields         Json?               // Object of { [fieldPath]: { verifiedBy, verifiedAt } }
+  
+  lastVerifiedBy         String?
+  lastVerifiedAt         DateTime?           // Forensic audit of the most recent verification event
+  
+  // REQ-WVU: Contractual Handover specific fields
+  insuranceRateOverride  Decimal?            // Separate from Performance Bond
+  overheadRate           Decimal?            @default(0.10) // Change Order Overhead %
+  profitRate             Decimal?            @default(0.05) // Change Order Profit %
+  signerName             String?             // For consistent auto-population in Exhibits
+  signerTitle            String?             // For consistent auto-population in Exhibits
   
   // NEW: Manual overrides and versions
   manualOverrides       ManualOverride[]

@@ -39,7 +39,7 @@ export const ENVIRONMENT_SECTIONS = {
 ANC indoor displays are optimized for controlled environments with typical Brightness rating of 800-1500.`
     },
     OUTDOOR: {
-        title: "Outdoor Display Environment", 
+        title: "Outdoor Display Environment",
         content: `Outdoor Installation Requirements:
 • IP65 or higher weatherproofing rating
 • Operating temperature range: -22°F to 122°F (-30°C to 50°C)
@@ -112,11 +112,11 @@ Exclusions (unless specifically noted above):
     replacementClause: `Replacement Equipment: This proposal includes removal and disposal of existing display equipment. Disposal will be performed in accordance with applicable environmental regulations. Client is responsible for providing access and any required permits for removal operations.`,
 
     prevailingWageClause: `Prevailing Wage: Installation labor rates are based on applicable prevailing wage requirements for the project jurisdiction as published by the Department of Labor. Certified payroll documentation will be provided upon request.`,
-    
+
     sparePartsClause: `Spare Parts Inventory: Per RFP requirements, this proposal includes a minimum 5% spare parts inventory (attic stock) for LED modules and critical components. Spare parts will be delivered with the main shipment and stored on-site per client direction.`,
-    
+
     performanceBondClause: `Performance Bond: A 1.5% Performance Bond is included in this proposal as required by the RFP. Bond documentation will be provided upon contract execution.`,
-    
+
     structuralEngineeringClause: `Structural Engineering: This proposal includes structural engineering services by a licensed Professional Engineer (PE). Structural calculations and stamped drawings will be provided for permit submission. Steel tonnage estimates are based on preliminary analysis and subject to final engineering.`,
 };
 
@@ -124,10 +124,10 @@ export interface SOWOptions {
     // Document type (determines header)
     documentType?: "LOI" | "HARD_QUOTE" | "BUDGET";
     pricingRound?: "First Round" | "Final" | "Revision";
-    
+
     // Environment (Indoor vs Outdoor)
     environment?: "INDOOR" | "OUTDOOR" | "MIXED";
-    
+
     // AI-detected requirements from RFP
     includeUnionLabor?: boolean;
     includeReplacement?: boolean;
@@ -135,7 +135,7 @@ export interface SOWOptions {
     includeSpareParts?: boolean;
     includePerformanceBond?: boolean;
     includeStructuralEngineering?: boolean;
-    
+
     // Technical Attributes (Context Fusion)
     signalSupport?: string; // e.g., "3G-SDI 1080P"
     rossCarbonite?: boolean;
@@ -145,12 +145,12 @@ export interface SOWOptions {
     isOutdoor?: boolean;
     isMorgantown?: boolean;
     atticStockMentioned?: boolean;
-    
+
     // Custom content
     customExclusions?: string[];
     customInclusions?: string[];
     projectSpecificNotes?: string;
-    
+
     // Client/Project info for personalization
     clientName?: string;
     venueName?: string;
@@ -176,8 +176,8 @@ export function getDocumentHeader(type: "LOI" | "HARD_QUOTE" | "BUDGET" = "BUDGE
  * - Environment (Indoor vs Outdoor)
  * - AI-detected requirements (Union Labor, Spare Parts, etc.)
  */
-export function generateSOWContent(options: SOWOptions | string = {}): { title: string, content: string }[] {
-    const sections: { title: string, content: string }[] = [];
+export function generateSOWContent(options: SOWOptions | string = {}): { title: string, content: string; category?: "DESIGN" | "CONSTRUCTION" | "CONSTRAINTS" | "OTHER" }[] {
+    const sections: { title: string, content: string; category?: "DESIGN" | "CONSTRUCTION" | "CONSTRAINTS" | "OTHER" }[] = [];
     const opts = typeof options === 'string' ? { projectSpecificNotes: options } : options;
 
     // REQ: Sanitize content (Nits -> Brightness)
@@ -207,26 +207,29 @@ export function generateSOWContent(options: SOWOptions | string = {}): { title: 
     }
     sections.push({
         title: SOW_SECTIONS.physicalInstallation.title,
-        content: sanitize(installationContent)
+        content: sanitize(installationContent),
+        category: "CONSTRUCTION"
     });
-    
+
     sections.push({
         title: SOW_SECTIONS.electricalData.title,
-        content: sanitize(SOW_SECTIONS.electricalData.content)
+        content: sanitize(SOW_SECTIONS.electricalData.content),
+        category: "CONSTRUCTION"
     });
-    
-    let controlContent = SOW_SECTIONS.controlSystem.content;
-    if (opts.signalSupport) {
-        controlContent += `\n• Signal Support: ${opts.signalSupport} integration.`;
-    }
-    if (opts.rossCarbonite || opts.vdcpSupport) {
-        const protocols = [opts.rossCarbonite && "Ross Carbonite", opts.vdcpSupport && "VDCP"].filter(Boolean).join(" and ");
-        controlContent += `\n• Protocol Support: Native integration with ${protocols} broadcast standards.`;
-    }
+
     sections.push({
         title: SOW_SECTIONS.controlSystem.title,
-        content: sanitize(controlContent)
+        content: sanitize(controlContent),
+        category: "DESIGN"
     });
+
+    if (opts.peStampedDrawings || opts.includeStructuralEngineering) {
+        sections.push({
+            title: "Design Services: Engineering & Submittals",
+            content: "• Provision of PE-stamped structural drawings and electrical shop drawings.\n• Detailed signal flow and rack elevation documentation.\n• One (1) round of submittal revisions included.",
+            category: "DESIGN"
+        });
+    }
 
     // 3. Add AI-detected dynamic clauses based on RFP analysis
     if (opts.includeUnionLabor || opts.includePrevailingWage) {
@@ -246,18 +249,20 @@ export function generateSOWContent(options: SOWOptions | string = {}): { title: 
     if (opts.includeSpareParts || opts.atticStockMentioned) {
         const sparePct = opts.atticStockMentioned ? "5%" : "2%";
         sections.push({
-            title: `Spare Parts Inventory (${sparePct} Attic Stock)`,
-            content: `ANC will provide a ${sparePct} spare parts inventory (attic stock) including LED modules, power supplies, and receiving cards to ensure long-term serviceability.`
+            title: `Technical Logistics: Spare Parts Inventory (${sparePct} Attic Stock)`,
+            content: `ANC will provide a ${sparePct} spare parts inventory (attic stock) including LED modules, power supplies, and receiving cards to ensure long-term serviceability.`,
+            category: "CONSTRUCTION"
         });
     }
 
     if (opts.includePerformanceBond || opts.isMorgantown) {
         sections.push({
-            title: "Commercial & Compliance Terms",
+            title: "Project Constraints: Commercial & Compliance Terms",
             content: [
                 opts.includePerformanceBond && "• A 1.5% Performance Bond is included in this proposal.",
                 opts.isMorgantown && "• Morgantown City B&O Tax (2.0%) applied to all regional labor and materials."
-            ].filter(Boolean).join("\n")
+            ].filter(Boolean).join("\n"),
+            category: "CONSTRAINTS"
         });
     }
 
@@ -272,14 +277,16 @@ export function generateSOWContent(options: SOWOptions | string = {}): { title: 
     // 5. Add General Conditions (always last before exclusions)
     sections.push({
         title: SOW_SECTIONS.generalConditions.title,
-        content: sanitize(SOW_SECTIONS.generalConditions.content)
+        content: sanitize(SOW_SECTIONS.generalConditions.content),
+        category: "CONSTRAINTS"
     });
 
     // 6. Add custom exclusions
     if (opts.customExclusions?.length) {
         sections.push({
-            title: "Additional Exclusions",
-            content: sanitize(opts.customExclusions.map(e => `• ${e}`).join("\n"))
+            title: "Project Constraints: Additional Exclusions",
+            content: sanitize(opts.customExclusions.map(e => `• ${e}`).join("\n")),
+            category: "CONSTRAINTS"
         });
     }
 

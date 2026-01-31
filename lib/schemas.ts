@@ -282,6 +282,11 @@ const ProposalDetailsSchema = z.object({
     pdfTemplate: z.number(),
     taxRateOverride: z.number().optional(), // e.g., 0.095 for 9.5%
     bondRateOverride: z.number().optional(), // e.g., 0.015 for 1.5%
+    insuranceRateOverride: z.number().optional(), // REQ-WVU: Separate from Bond
+    overheadRate: z.number().optional().default(0.10), // REQ-WVU: 10%
+    profitRate: z.number().optional().default(0.05), // REQ-WVU: 5%
+    signerName: z.string().optional(), // REQ-WVU: Auto-pop names
+    signerTitle: z.string().optional(), // REQ-WVU: Auto-pop titles
     globalMargin: z.number().optional(),
     metadata: z.object({
         filledByAI: z.array(z.string()).optional(), // DEPRECATED: use aiFilledFields
