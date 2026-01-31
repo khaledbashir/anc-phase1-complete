@@ -23,6 +23,16 @@ enum VerificationStatus {
   BLOCKED
 }
 
+// REQ-114: Proposal Lifecycle State Machine (Section 4.14 & 9.2)
+enum ProposalStatus {
+  DRAFT           // Editable, not yet submitted
+  PENDING_REVIEW  // Submitted for internal review
+  APPROVED        // Approved, ready for client signature
+  SIGNED          // Client signed - IMMUTABLE
+  CLOSED          // Fully executed - IMMUTABLE
+  CANCELLED       // Cancelled/voided
+}
+
 model Workspace {
   id              String     @id @default(cuid())
   name            String
@@ -56,6 +66,13 @@ model Proposal {
   // REQ-86: Thornton Tomasetti Structural Steel Tonnage
   structuralTonnage    Decimal?            // New steel columns/beams tonnage (e.g., 17 tons)
   reinforcingTonnage   Decimal?            // Reinforcing steel tonnage (e.g., 17 tons)
+  
+  // REQ-114: Immutability & Lifecycle (Section 4.14 & 9.2)
+  isLocked             Boolean             @default(false)  // True when SIGNED/CLOSED
+  lockedAt             DateTime?                            // Timestamp of lock
+  documentHash         String?                              // SHA-256 hash at signing
+  parentProposalId     String?                              // If cloned from signed version
+  versionNumber        Int                 @default(1)      // v1, v2, etc.
 
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @default(now()) @updatedAt
@@ -69,6 +86,7 @@ model Proposal {
   // NEW: Manual overrides and versions
   manualOverrides       ManualOverride[]
   proposalVersions      ProposalVersion[]
+  signatureAuditTrail   SignatureAuditTrail[]
   
   // Existing relations
   versions             BidVersion[]
@@ -172,4 +190,32 @@ model CostLineItem {
   margin         Decimal
   price          Decimal
   screenConfig   ScreenConfig @relation(fields: [screenConfigId], references: [id])
+}
+
+// REQ-114: E-Signature Audit Trail (Section 9.2)
+model SignatureAuditTrail {
+  id              String   @id @default(cuid())
+  proposalId      String
+  proposal        Proposal @relation(fields: [proposalId], references: [id])
+  
+  // Signer Identity
+  signerEmail     String
+  signerName      String
+  signerTitle     String?
+  signerRole      String   // "ANC_REPRESENTATIVE" | "PURCHASER"
+  
+  // Authentication Evidence
+  ipAddress       String
+  userAgent       String?
+  authMethod      String   // "EMAIL_LINK" | "SSO" | "MANUAL"
+  
+  // Document Integrity
+  documentHash    String   // SHA-256 of proposal JSON at signing moment
+  pdfHash         String?  // SHA-256 of generated PDF
+  auditExcelHash  String?  // SHA-256 of Internal Audit Excel
+  
+  // Timestamps
+  signedAt        DateTime @default(now())
+  
+  @@index([proposalId])
 }
