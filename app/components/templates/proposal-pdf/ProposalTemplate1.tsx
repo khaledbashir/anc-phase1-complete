@@ -28,6 +28,9 @@ const ProposalTemplate1 = (data: ProposalType) => {
 	const bondRate = (details as any)?.bondRateOverride ?? 0.015; // Default 1.5%
 	const taxRatePercent = (taxRate * 100).toFixed(1);
 
+	// REQ: Margin Analysis from Excel - check root level first, then details
+	const marginAnalysis: any[] = (data as any).marginAnalysis || (details as any)?.marginAnalysis || [];
+
 	// Dynamic Intro Text (SAAS Platform Directive)
 	const headerText = `This Sales Quotation will set forth the terms by which ${receiver?.name || 'Purchaser'} ("Purchaser") located at ${receiver?.address || '[Client Address]'} and ANC Sports Enterprises, LLC ("ANC") located at ${sender?.address || '2 Manhattanville Road, Suite 402, Purchase, NY 10577'} (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for ${details?.location || details?.proposalName || 'the project'}.`;
 
@@ -124,8 +127,8 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 				<div className="w-full">
 					{/* REQ-User-Feedback: Mirror Mode (Margin Analysis Structure) */}
-					{(details as any)?.marginAnalysis && (details as any).marginAnalysis.length > 0 ? (
-						(details as any).marginAnalysis.map((section: any, sIdx: number) => (
+					{marginAnalysis && marginAnalysis.length > 0 ? (
+						marginAnalysis.map((section: any, sIdx: number) => (
 							<div key={sIdx} className="mb-4">
 								{/* Section Header */}
 								{section.name !== "General" && (
@@ -169,8 +172,8 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-500" style={{ fontFamily: "Work Sans, sans-serif" }}>SUBTOTAL:</div>
 						<div className="text-[10px] font-bold text-zinc-700 min-w-[80px] text-right">
 							{(() => {
-								const subTotal = (details as any)?.marginAnalysis
-									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
+								const subTotal = marginAnalysis.length > 0
+									? marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
 									: Number(details?.subTotal || 0);
 								return `$${formatNumberWithCommas(Math.round(subTotal))}`;
 							})()}
@@ -182,8 +185,8 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-500" style={{ fontFamily: "Work Sans, sans-serif" }}>PERFORMANCE BOND ({(bondRate * 100).toFixed(1)}%):</div>
 						<div className="text-[10px] font-bold text-zinc-700 min-w-[80px] text-right">
 							{(() => {
-								const subTotal = (details as any)?.marginAnalysis
-									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
+								const subTotal = marginAnalysis.length > 0
+									? marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
 									: Number(details?.subTotal || 0);
 								return `$${formatNumberWithCommas(Math.round(subTotal * bondRate))}`;
 							})()}
@@ -192,8 +195,8 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 					{/* B&O TAX (Conditional) */}
 					{(() => {
-						const subTotal = (details as any)?.marginAnalysis
-							? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
+						const subTotal = marginAnalysis.length > 0
+							? marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
 							: Number(details?.subTotal || 0);
 						const bondCost = subTotal * bondRate;
 						// Check for Morgantown/WVU triggers
@@ -223,8 +226,8 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-400 italic" style={{ fontFamily: "Work Sans, sans-serif" }}>TAX ({taxRatePercent}%):</div>
 						<div className="text-[10px] font-bold text-zinc-400 min-w-[80px] text-right">
 							{(() => {
-								const subTotal = (details as any)?.marginAnalysis
-									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
+								const subTotal = marginAnalysis.length > 0
+									? marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
 									: Number(details?.subTotal || 0);
 								const bondCost = subTotal * bondRate;
 								const loc = (details?.location || "").toLowerCase();
@@ -244,8 +247,8 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						<div className="text-right w-full text-xs font-bold mr-4" style={{ fontFamily: "Work Sans, sans-serif" }}>PROJECT TOTAL:</div>
 						<div className="text-xs font-bold text-[#0A52EF] min-w-[80px] text-right">
 							{(() => {
-								const subTotal = (details as any)?.marginAnalysis
-									? (details as any).marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
+								const subTotal = marginAnalysis.length > 0
+									? marginAnalysis.reduce((acc: number, s: any) => acc + s.subTotal, 0)
 									: Number(details?.subTotal || 0);
 								const bondCost = subTotal * bondRate;
 								const loc = (details?.location || "").toLowerCase();
