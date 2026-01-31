@@ -54,8 +54,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                     <table className="w-full text-[10px] border-collapse">
                         <thead>
                             <tr className="bg-gray-100 border-b border-gray-200 text-left">
-                                <th className="px-3 py-2 font-bold text-gray-700">Display Name</th>
-                                <th className="px-3 py-2 font-bold text-gray-700">Type</th>
+                                <th className="px-3 py-2 font-bold text-gray-700 w-[40%]">Display Name</th>
                                 <th className="px-3 py-2 font-bold text-gray-700">Dimensions (HxW)</th>
                                 <th className="px-3 py-2 font-bold text-gray-700">Pitch</th>
                                 <th className="px-3 py-2 font-bold text-gray-700">Resolution</th>
@@ -65,8 +64,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                         <tbody>
                             {screens.map((screen: any, idx: number) => (
                                 <tr key={idx} className="border-b border-gray-100 last:border-0 odd:bg-white even:bg-gray-50/50">
-                                    <td className="px-3 py-2 font-bold text-[#0A52EF]">{screen.name}</td>
-                                    <td className="px-3 py-2 text-gray-600">{screen.productType || "LED"}</td>
+                                    <td className="px-3 py-2 font-bold text-[#0A52EF] w-[40%]">{screen.name}</td>
                                     <td className="px-3 py-2 text-gray-600">
                                         {Number(screen.heightFt ?? 0).toFixed(2)}' x {Number(screen.widthFt ?? 0).toFixed(2)}'
                                     </td>
