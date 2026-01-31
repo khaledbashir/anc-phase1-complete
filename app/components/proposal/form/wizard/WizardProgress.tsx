@@ -77,20 +77,20 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
                             <button
                                 type="button"
                                 onClick={() => handleStepChange(step.id)}
-                                className="flex flex-col items-center gap-2 group"
+                                className="flex flex-col items-center gap-2 group relative z-10"
                             >
                                 {/* Circle */}
                                 <div
                                     className={cn(
-                                        "w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200",
-                                        isActive && "bg-[#0A52EF] text-white ring-4 ring-[#0A52EF]/30",
-                                        isPassed && !isError && "bg-emerald-500 text-white",
-                                        isError && "bg-red-500 text-white",
-                                        !isActive && !isPassed && "bg-zinc-800 text-zinc-400 group-hover:bg-zinc-700"
+                                        "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 shadow-sm",
+                                        isActive && "bg-[#0A52EF] text-white ring-4 ring-[#0A52EF]/20 scale-110",
+                                        isPassed && !isError && "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20",
+                                        isError && "bg-red-500/10 text-red-500 border border-red-500/20",
+                                        !isActive && !isPassed && "bg-zinc-900 border border-zinc-800 text-zinc-500 group-hover:border-zinc-700 group-hover:text-zinc-400"
                                     )}
                                 >
                                     {isPassed && !isError ? (
-                                        <Check className="w-5 h-5" />
+                                        <Check className="w-4 h-4" />
                                     ) : (
                                         step.id + 1
                                     )}
@@ -99,10 +99,10 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
                                 {/* Label */}
                                 <span
                                     className={cn(
-                                        "text-xs font-medium transition-colors",
+                                        "text-[10px] uppercase tracking-widest font-bold transition-colors absolute top-10 whitespace-nowrap",
                                         isActive && "text-[#0A52EF]",
-                                        isPassed && "text-emerald-400",
-                                        !isActive && !isPassed && "text-zinc-500 group-hover:text-zinc-300"
+                                        isPassed && "text-emerald-500",
+                                        !isActive && !isPassed && "text-zinc-600 group-hover:text-zinc-500"
                                     )}
                                 >
                                     {step.label}
@@ -113,8 +113,8 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
                             {idx < steps.length - 1 && (
                                 <div
                                     className={cn(
-                                        "flex-1 h-0.5 mx-3 transition-colors",
-                                        activeStep > idx ? "bg-emerald-500" : "bg-zinc-700"
+                                        "flex-1 h-[1px] mx-2 transition-colors relative top-[-10px]",
+                                        activeStep > idx ? "bg-emerald-500/50" : "bg-zinc-800"
                                     )}
                                 />
                             )}
