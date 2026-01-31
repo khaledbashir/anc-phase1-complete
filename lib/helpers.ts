@@ -210,18 +210,14 @@ const isDataUrl = (str: string) => str.startsWith("data:");
  * @throws {Error} Throws an error if there is an issue with the dynamic import or if a default template is not available.
  */
 const getProposalTemplate = async (templateId: number) => {
-    // Dynamic template component name
-    const componentName = `ProposalTemplate${templateId}`;
-
+    // Consolidated: Always use ProposalTemplate2 (the only production template)
     try {
         const module = await import(
-            `@/app/components/templates/proposal-pdf/${componentName}`
+            `@/app/components/templates/proposal-pdf/ProposalTemplate2`
         );
         return module.default;
     } catch (err) {
-        console.error(`Error importing template ${componentName}: ${err}`);
-
-        // Provide a default template
+        console.error(`Error importing ProposalTemplate2: ${err}`);
         return null;
     }
 };

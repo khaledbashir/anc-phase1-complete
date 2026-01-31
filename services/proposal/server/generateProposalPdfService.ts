@@ -29,6 +29,11 @@ export async function generateProposalPdfService(req: NextRequest) {
 		const ReactDOMServer = (await import("react-dom/server")).default;
 		const templateId = body.details?.pdfTemplate ?? 1; // Default to template 1
 		const ProposalTemplate = await getProposalTemplate(templateId);
+
+		if (!ProposalTemplate) {
+			throw new Error("Failed to load ProposalTemplate2");
+		}
+
 		const htmlTemplate = ReactDOMServer.renderToStaticMarkup(
 			ProposalTemplate(body)
 		);
