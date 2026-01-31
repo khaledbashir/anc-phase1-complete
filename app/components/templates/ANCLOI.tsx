@@ -2,7 +2,7 @@ import React from "react";
 import type { Proposal, ScreenConfig, CostLineItem } from "@prisma/client";
 
 import { formatNumberWithCommas } from "@/lib/helpers";
-import LogoSelector from "@/app/components/reusables/LogoSelector";
+import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 
 interface Props {
   proposal: Proposal & {
@@ -45,7 +45,7 @@ export default function SalesQuotation({ proposal }: Props) {
         <div className="px-12 pt-10 pb-8 flex-1">
           {/* Header */}
           <div className="flex justify-between items-start pb-4 border-b border-neutral-300">
-            <LogoSelector theme="light" width={120} height={60} />
+            <LogoSelectorServer theme="light" width={120} height={60} />
             <div className="text-right">
               <div className="text-[#0A52EF] text-xl font-bold">{proposal.clientName}</div>
               <div className="text-[11px] text-neutral-500 tracking-wide font-medium">Sales Quotation</div>
@@ -151,7 +151,7 @@ export default function SalesQuotation({ proposal }: Props) {
                   <span className="text-neutral-500">940.464.2320</span>
                 </div>
               </div>
-              <LogoSelector theme="light" width={80} height={40} />
+              <LogoSelectorServer theme="light" width={80} height={40} />
             </div>
           </div>
 

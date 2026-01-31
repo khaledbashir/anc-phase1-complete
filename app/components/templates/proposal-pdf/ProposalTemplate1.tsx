@@ -2,7 +2,7 @@ import React from "react";
 
 // Components
 import ProposalLayout from './ProposalLayout';
-import LogoSelector from '@/app/components/reusables/LogoSelector';
+import LogoSelectorServer from '@/app/components/reusables/LogoSelectorServer';
 
 // Helpers
 import { formatNumberWithCommas, isDataUrl } from "@/lib/helpers";
@@ -56,7 +56,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 			{/* HEADER: Logo Left | Client Info Right */}
 			<div className='flex justify-between items-start px-8 pt-8 pb-4'>
 				<div className="w-[40%]">
-					<LogoSelector theme="light" width={160} height={80} />
+					<LogoSelectorServer theme="light" width={160} height={80} />
 				</div>
 				<div className='w-[60%] text-right space-y-1'>
 					<h2 className='text-xl font-bold text-[#0A52EF]' style={{ fontFamily: "Work Sans, sans-serif" }}>
