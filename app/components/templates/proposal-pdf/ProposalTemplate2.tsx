@@ -17,6 +17,9 @@ import { ProposalType } from "@/types";
 import { PDF_COLORS, PDF_STYLES } from "./PdfStyles";
 import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
 
+// Placeholders
+import { PDF_PLACEHOLDERS } from "@/lib/pdfPlaceholders";
+
 interface ProposalTemplate2Props extends ProposalType {
     forceWhiteLogo?: boolean;
     screens?: any[];
@@ -282,7 +285,11 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         <div className="flex justify-between items-center py-2 border-b-2 border-black">
                             <span className="font-bold text-sm uppercase text-black">Project Grand Total</span>
                             <span className="font-bold text-lg text-black">
-                                {formatCurrency(isSharedView ? details?.totalAmount || 0 : totals?.finalClientTotal || details?.totalAmount || 0)}
+                                {(() => {
+                                    const amount = isSharedView ? details?.totalAmount : (totals?.finalClientTotal || details?.totalAmount);
+                                    // REQ-113: Show placeholder instead of $0.00 for missing data
+                                    return amount && amount > 0 ? formatCurrency(amount) : PDF_PLACEHOLDERS.TOTAL_PRICE;
+                                })()}
                             </span>
                         </div>
                     </div>
