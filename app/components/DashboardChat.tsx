@@ -15,6 +15,12 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from "@/components/ui/accordion";
 
 interface Message {
     role: "user" | "assistant";
@@ -29,7 +35,6 @@ export default function DashboardChat() {
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [showThinking, setShowThinking] = useState<{ [key: number]: boolean }>({});
     const inputRef = useRef<HTMLInputElement>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -93,9 +98,7 @@ export default function DashboardChat() {
         }
     };
 
-    const toggleThinking = (index: number) => {
-        setShowThinking(prev => ({ ...prev, [index]: !prev[index] }));
-    };
+
 
     return (
         <div className="relative w-full">
@@ -160,28 +163,25 @@ export default function DashboardChat() {
                                                 </div>
                                             ) : (
                                                 <div className="max-w-full space-y-3">
-                                                    {/* Thinking Toggle */}
+                                                    {/* Thinking Accordion */}
                                                     {msg.thinking && (
-                                                        <button
-                                                            onClick={() => toggleThinking(i)}
-                                                            className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900/50 border border-zinc-800 rounded-lg hover:bg-zinc-900 transition-colors text-xs"
-                                                        >
-                                                            <Brain className="w-3 h-3 text-purple-400" />
-                                                            <span className="font-medium text-zinc-400">
-                                                                {showThinking[i] ? "Hide" : "Show"} Thinking Process
-                                                            </span>
-                                                            <ChevronDown className={cn(
-                                                                "w-3 h-3 text-zinc-500 transition-transform",
-                                                                showThinking[i] && "rotate-180"
-                                                            )} />
-                                                        </button>
-                                                    )}
-
-                                                    {/* Thinking Content */}
-                                                    {msg.thinking && showThinking[i] && (
-                                                        <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-xl text-xs text-zinc-400 font-mono leading-relaxed">
-                                                            <ReactMarkdown>{msg.thinking}</ReactMarkdown>
-                                                        </div>
+                                                        <Accordion type="single" collapsible className="w-full">
+                                                            <AccordionItem value="thinking" className="border border-zinc-800 rounded-lg bg-zinc-900/50 px-4">
+                                                                <AccordionTrigger className="py-3 hover:no-underline">
+                                                                    <div className="flex items-center gap-2 text-xs">
+                                                                        <Brain className="w-3.5 h-3.5 text-purple-400" />
+                                                                        <span className="font-medium text-zinc-400">Thinking Process</span>
+                                                                    </div>
+                                                                </AccordionTrigger>
+                                                                <AccordionContent className="pb-4 pt-2">
+                                                                    <div className="text-xs text-zinc-400 leading-relaxed space-y-2">
+                                                                        {msg.thinking.split('\n').map((line, idx) => (
+                                                                            <p key={idx} className="">{line}</p>
+                                                                        ))}
+                                                                    </div>
+                                                                </AccordionContent>
+                                                            </AccordionItem>
+                                                        </Accordion>
                                                     )}
 
                                                     {/* Main Response */}

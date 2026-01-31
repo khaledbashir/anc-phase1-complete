@@ -77,30 +77,27 @@ export default function ProjectsPage() {
 
             <div className="flex-1 flex flex-col min-w-0 relative">
                 {/* Midday-Style Header */}
-                <header className="h-16 border-b border-zinc-900 flex items-center justify-between px-8 bg-[#000000]/80 backdrop-blur-md z-40">
+                <header className="h-16 border-b border-zinc-900 flex items-center justify-between px-8 bg-black z-40 shrink-0">
                     <div className="flex items-center gap-6 flex-1">
                         <div className="relative group max-w-sm w-full">
-                            <Search className="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-zinc-200 transition-colors" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 group-focus-within:text-zinc-400 transition-colors" />
                             <input
                                 type="text"
                                 placeholder="Find anything..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-7 pr-4 py-2 bg-transparent text-sm text-zinc-200 placeholder-zinc-600 outline-none"
+                                className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-all"
                             />
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-5">
-                        <button className="text-zinc-500 hover:text-zinc-200 transition-colors">
-                            <Bell className="w-4 h-4" />
-                        </button>
-                        <button className="text-zinc-500 hover:text-zinc-200 transition-colors">
-                            <Settings className="w-4 h-4" />
-                        </button>
-                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-400 border border-zinc-700">
-                            AH
-                        </div>
+                    <div className="flex items-center gap-3">
+                        <NewProjectModal>
+                            <button className="px-4 py-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors text-sm font-medium flex items-center gap-2">
+                                <Plus className="w-4 h-4" />
+                                New Project
+                            </button>
+                        </NewProjectModal>
                     </div>
                 </header>
 

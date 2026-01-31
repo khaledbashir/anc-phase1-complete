@@ -33,10 +33,9 @@ const BaseNavbar = () => {
 
   // Hide Navbar on:
   // 1. Root ("/") - The main editor
-  // 2. Project Editor ("/projects/[id]") - NOT "/projects" dashboard
-  // Logic: if pathname is "/" OR (starts with "/projects/" AND isn't just "/projects" or "/projects/new" if that existed)
-  // Actually, checking if segments > 2 for projects is safe if strictly /projects/[id].
-  const isEditor = pathname === "/" || (pathname.startsWith("/projects/") && pathname.split("/").filter(Boolean).length > 1);
+  // 2. Projects Dashboard ("/projects") - Dashboard view
+  // 3. Project Editor ("/projects/[id]") - Individual project
+  const isEditor = pathname === "/" || pathname.startsWith("/projects");
 
   if (isEditor) return null;
 
