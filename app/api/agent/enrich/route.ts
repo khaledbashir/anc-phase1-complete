@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryVault } from "@/lib/anything-llm";
 import { extractJson } from "@/lib/json-utils";
+import { searchVenueAddress } from "@/lib/serper";
 
 export async function POST(req: NextRequest) {
     try {
@@ -99,7 +100,7 @@ export async function POST(req: NextRequest) {
 
         // DEMO OVERRIDE: Garden Square (Brampton)
         if (normalizedQuery.includes("garden square") || normalizedQuery.includes("gardn square")) {
-             const candidates = [
+            const candidates = [
                 {
                     label: "Garden Square (Brampton)",
                     confidence: 0.98,
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
                     }
                 }
             ];
-            
+
             // If the query is very specific to Brampton, just return that one
             if (normalizedQuery.includes("brampton")) {
                 const b = candidates[0];
@@ -139,6 +140,59 @@ export async function POST(req: NextRequest) {
             }
 
             return NextResponse.json({ ok: true, correctedQuery: "Garden Square", candidates, results: undefined }); // undefined results forces picker
+        }
+
+        // DEMO OVERRIDE: Baltimore Ravens / M&T Bank Stadium
+        if (normalizedQuery.includes("baltimore ravens") || normalizedQuery.includes("ravens") ||
+            normalizedQuery.includes("m&t bank stadium") || normalizedQuery.includes("m&t bank") ||
+            (normalizedQuery.includes("baltimore") && (normalizedQuery.includes("stadium") || normalizedQuery.includes("ravens")))) {
+            const baltimoreCandidates = [
+                {
+                    label: "Baltimore Ravens (NFL) – M&T Bank Stadium",
+                    confidence: 0.98,
+                    notes: "Primary venue: M&T Bank Stadium, Baltimore.",
+                    results: {
+                        "receiver.name": "Baltimore Ravens",
+                        "receiver.address": "1101 Russell St",
+                        "receiver.city": "Baltimore",
+                        "receiver.state": "MD",
+                        "receiver.zipCode": "21230",
+                        "details.venue": "M&T Bank Stadium",
+                    },
+                },
+                {
+                    label: "M&T Bank Stadium",
+                    confidence: 0.95,
+                    notes: "Venue only; home of the Baltimore Ravens.",
+                    results: {
+                        "receiver.name": "M&T Bank Stadium",
+                        "receiver.address": "1101 Russell St",
+                        "receiver.city": "Baltimore",
+                        "receiver.state": "MD",
+                        "receiver.zipCode": "21230",
+                        "details.venue": "M&T Bank Stadium",
+                    },
+                },
+                {
+                    label: "Ravens Stadium Corporation",
+                    confidence: 0.88,
+                    notes: "Stadium operator entity.",
+                    results: {
+                        "receiver.name": "Ravens Stadium Corporation",
+                        "receiver.address": "1101 Russell St",
+                        "receiver.city": "Baltimore",
+                        "receiver.state": "MD",
+                        "receiver.zipCode": "21230",
+                        "details.venue": "M&T Bank Stadium",
+                    },
+                },
+            ];
+            return NextResponse.json({
+                ok: true,
+                correctedQuery: "Baltimore Ravens",
+                candidates: baltimoreCandidates,
+                results: undefined,
+            });
         }
 
         const keysJson = JSON.stringify(fields);
@@ -178,14 +232,31 @@ Search target: "${normalizedQuery}"`;
 
         try {
             if (!jsonText) {
-                return NextResponse.json({ ok: false, error: "AI response was not JSON" }, { status: 404 });
+                // LLM failed - try Serper web search fallback
+                console.log("[Enrich] LLM returned no JSON, trying Serper fallback for:", normalizedQuery);
+                const serperResults = await searchVenueAddress(normalizedQuery, fields);
+                if (serperResults && Object.keys(serperResults).length > 0) {
+                    const candidate = {
+                        label: normalizedQuery,
+                        confidence: 0.75,
+                        notes: "Found via web search",
+                        results: serperResults,
+                    };
+                    return NextResponse.json({
+                        ok: true,
+                        correctedQuery: normalizedQuery,
+                        candidates: [candidate],
+                        results: serperResults,
+                    });
+                }
+                return NextResponse.json({ ok: false, error: "Could not find venue details" }, { status: 404 });
             }
 
             // Attempt to repair truncated JSON if it looks like a tool call or just broken
             let safeJsonText = jsonText
                 .replace(/[“”]/g, '"')
                 .replace(/[‘’]/g, "'");
-            
+
             // Simple repair: if it ends with " or similar, try to close it
             // (This is a basic heuristic, better to rely on robust AI response)
 
@@ -196,12 +267,12 @@ Search target: "${normalizedQuery}"`;
                 console.warn("[Enrich] JSON parse failed, trying to repair...", safeJsonText);
                 // Try appending braces if it looks like it's missing them
                 try {
-                     parsed = JSON.parse(safeJsonText + "}");
+                    parsed = JSON.parse(safeJsonText + "}");
                 } catch (e2) {
                     try {
                         parsed = JSON.parse(safeJsonText + "}}");
                     } catch (e3) {
-                         throw e; // Original error
+                        throw e; // Original error
                     }
                 }
             }
@@ -209,7 +280,7 @@ Search target: "${normalizedQuery}"`;
             if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
                 // Check if it's a tool call response that we should ignore or handle
                 if ((parsed as any)?.name && (parsed as any)?.arguments) {
-                     return NextResponse.json({ ok: false, error: "AI is performing a search, please try again in a moment." }, { status: 404 });
+                    return NextResponse.json({ ok: false, error: "AI is performing a search, please try again in a moment." }, { status: 404 });
                 }
                 return NextResponse.json({ ok: false, error: "AI response was not an object" }, { status: 404 });
             }
@@ -253,7 +324,24 @@ Search target: "${normalizedQuery}"`;
                 .slice(0, 5);
 
             if (candidates.length === 0) {
-                return NextResponse.json({ ok: false, error: "AI could not find verified details" }, { status: 404 });
+                // LLM returned no usable candidates - try Serper fallback
+                console.log("[Enrich] LLM returned no candidates, trying Serper fallback for:", normalizedQuery);
+                const serperResults = await searchVenueAddress(normalizedQuery, fields);
+                if (serperResults && Object.keys(serperResults).length > 0) {
+                    const candidate = {
+                        label: normalizedQuery,
+                        confidence: 0.75,
+                        notes: "Found via web search",
+                        results: serperResults,
+                    };
+                    return NextResponse.json({
+                        ok: true,
+                        correctedQuery: normalizedQuery,
+                        candidates: [candidate],
+                        results: serperResults,
+                    });
+                }
+                return NextResponse.json({ ok: false, error: "Could not find venue details" }, { status: 404 });
             }
 
             const response: any = { ok: true, correctedQuery, candidates };
@@ -261,9 +349,26 @@ Search target: "${normalizedQuery}"`;
             return NextResponse.json(response);
         } catch (e) {
             console.error("AI Enrichment JSON Parse Error:", e);
+            // JSON parsing failed - try Serper fallback
+            console.log("[Enrich] JSON parse failed, trying Serper fallback for:", normalizedQuery);
+            const serperResults = await searchVenueAddress(normalizedQuery, fields);
+            if (serperResults && Object.keys(serperResults).length > 0) {
+                const candidate = {
+                    label: normalizedQuery,
+                    confidence: 0.70,
+                    notes: "Found via web search (LLM parsing failed)",
+                    results: serperResults,
+                };
+                return NextResponse.json({
+                    ok: true,
+                    correctedQuery: normalizedQuery,
+                    candidates: [candidate],
+                    results: serperResults,
+                });
+            }
         }
 
-        return NextResponse.json({ ok: false, error: "AI could not find verified details" }, { status: 404 });
+        return NextResponse.json({ ok: false, error: "Could not find venue details" }, { status: 404 });
     } catch (error: any) {
         console.error("Enrichment API error:", error);
         return NextResponse.json({ error: error?.message || String(error) }, { status: 500 });
