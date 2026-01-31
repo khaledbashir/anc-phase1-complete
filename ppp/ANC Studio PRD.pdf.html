@@ -1,0 +1,788 @@
+<p>Version: 1.0
+Date: January 30, 2026
+Owner: Natalia Kovaleva / ANC Sports Enterprises
+Document Status: Knowledge Base Consolidated — Ready for Coder Hando�
+ANC Studio is an AI-powered proposal generation system for large-format LED display
+projects (stadiums, arenas, entertainment venues). It transforms complex RFP documents
+and technical speci�cations into branded, client-ready sales proposals with:</p>
+<ol>
+<li>Manual data entry errors from 2,500-page RFP documents</li>
+<li>Financial misalignment between Excel calculations and client PDFs</li>
+<li>Unprofessional proposals that leak internal costs/margins to clients</li>
+<li>Lost bid history — no centralized vault for past proposals</li>
+<li>Slow turnaround — weeks to generate a single proposal manually</li>
+</ol>
+<h3 id="anc-studio-product-requirements">ANC Studio — Product Requirements</h3>
+<h3 id="document-master-truth">Document (Master Truth)</h3>
+<h4 id="1-product-vision-goals">1. PRODUCT VISION &amp; GOALS</h4>
+<p>1.1 What ANC Studio Is
+Automated extraction of technical specs (screen dimensions, resolutions, brightness,
+structural tonnage)
+*
+Financial modeling with Natalia&#39;s proprietary margin logic•
+Real-time preview of client-facing documents•
+Secure share links for client review and digital signature•
+Internal audit trails proving &#34;how we arrived at the numbers&#34;•
+1.2 Core Problems Solved
+1.3 Success Criteria
+80% AI auto-�ll rate (17/20 �elds) from RFP documents•
+$Zero math errors between Internal Audit Excel ↔ PDF ↔ Share Link•$
+&#34;Ferrari-grade&#34; client PDFs matching 2025 ANC Identity Guidelines•
+Sub-1-hour proposal generation from RFP upload to shareable link•
+15-year audit trail for all client interactions and signatures•</p>
+<h4 id="2-user-roles-permissions">2. USER ROLES &amp; PERMISSIONS</h4>
+<h5 id="role-description-primary-work-ows">Role Description Primary Work�ows</h5>
+<h5 id="admin-system-owner-director">Admin System owner/director</h5>
+<h5 id="e-g-natalia">(e.g., Natalia)</h5>
+<h5 id="branding-enforcement-math">Branding enforcement, math</h5>
+<h5 id="logic-approval-global">logic approval, global</h5>
+<h5 id="settings">settings</h5>
+<h5 id="estimator-technical-lead-e-g">Estimator Technical lead (e.g.,</h5>
+<h5 id="jeremy">Jeremy)</h5>
+<h5 id="upload-rfps-excels-run-rag">Upload RFPs/Excels, run RAG</h5>
+<h5 id="extraction-mirror-mode">extraction, Mirror Mode</h5>
+<h5 id="product">Product</h5>
+<h5 id="expert">Expert</h5>
+<h5 id="catalog-manager-e-g">Catalog manager (e.g.,</h5>
+<h5 id="eric">Eric)</h5>
+<h5 id="update-manufacturer">Update manufacturer</h5>
+<h5 id="catalogs-lg-yaham">catalogs (LG, Yaham),</h5>
+<h5 id="product-suggestibility">product suggestibility</h5>
+<h5 id="proposal">Proposal</h5>
+<h5 id="lead-day-to-day-drafter">Lead Day-to-day drafter</h5>
+<h5 id="gap-lling-drafting-table">Gap �lling, drafting table</h5>
+<h5 id="edits-client-facing-document">edits, client-facing document</h5>
+<h5 id="generation">generation</h5>
+<h5 id="finance-audit-reviewer-review-internal-audit-excel">Finance Audit reviewer Review Internal Audit Excel,</h5>
+<h5 id="verify-margin-logic">verify margin logic</h5>
+<h5 id="outsider-subcontractor-installer-restricted-technical-eld">Outsider Subcontractor/Installer Restricted technical �eld</h5>
+<h5 id="access-no-totals-margins">access, no totals/margins</h5>
+<h5 id="viewer">Viewer</h5>
+<h5 id="client-anonymous-public-access">(Client) Anonymous public access</h5>
+<h5 id="view-sanitized-share-link">View sanitized Share Link,</h5>
+<h5 id="download-pdf-digital">download PDF, digital</h5>
+<h5 id="signature">signature</h5>
+<p>Table 1: User roles and their primary work�ows
+2.1 Role De�nitions
+2.2 Permission Matrix</p>
+<h5 id="action-admin-estimator-product">Action Admin Estimator Product</h5>
+<h5 id="expert-2">Expert</h5>
+<h5 id="proposal-2">Proposal</h5>
+<h5 id="lead-finance">Lead Finance</h5>
+<h5 id="create">Create</h5>
+<h5 id="project-workspace">Project/Workspace ✅ ✅ ❌ ✅ ❌</h5>
+<h5 id="upload-files">Upload Files</h5>
+<h5 id="rfp-excel">(RFP/Excel) ✅ ✅ ❌ ✅ ❌</h5>
+<h5 id="run-rag">Run RAG</h5>
+<h5 id="extraction">Extraction ✅ ✅ ❌ ❌ ❌</h5>
+<h5 id="edit-screen-specs">Edit Screen Specs ✅ ✅ ✅ ✅ ❌</h5>
+<h5 id="edit-financial">Edit Financial</h5>
+<h5 id="inputs">Inputs ✅ ❌ ❌ ✅ ❌</h5>
+<h5 id="approve-export">Approve/Export</h5>
+<h5 id="pdf">PDF ✅ ❌ ❌ ✅ ❌</h5>
+<h5 id="generate-audit">Generate Audit</h5>
+<h5 id="excel">Excel ✅ ✅ ❌ ❌ ✅</h5>
+<h5 id="generate-share">Generate Share</h5>
+<h5 id="link">Link ✅ ❌ ❌ ✅ ❌</h5>
+<h5 id="revoke-share-link-view-internal">Revoke Share Link ✅ ❌ ❌ ✅ ❌ View Internal</h5>
+<h5 id="costs-margins-f">Costs/Margins ✅ ✅ ✅ ✅ ✅ F</h5>
+<h5 id="edit">Edit</h5>
+<h5 id="branding-identity">Branding/Identity ✅ ❌ ❌ ❌ ❌</h5>
+<h5 id="delete">Delete</h5>
+<h5 id="projects-files">Projects/Files ✅ ❌ ❌ ❌ ❌</h5>
+<p>Table 2: Permission matrix showing allowed actions by role
+Financial Inputs = margin %, steel cost basis ($3,000/ton), tax/bond overrides.</p>
+<h4 id="3-data-model-lifecycle">3. DATA MODEL &amp; LIFECYCLE</h4>
+<p>3.1 Entity De�nitions
+PROJECT
+De�nition: Top-level workspace/vault for a speci�c client engagement (e.g., &#34;Chicago
+Fire,&#34; &#34;Jacksonville Jaguars&#34;)
+*
+Purpose: Cloud-based history container for all bids (current + historical)•
+Required Fields:•
+Client Name–
+Client Address–
+Creation Date–
+Owner (Admin/Estimator/Proposal Lead)–
+PROPOSAL
+De�nition: The primary day-to-day object — a speci�c technical and �nancial bid
+(LOI, Budget, or Sales Quotation) within a Project
+*
+Purpose: The artifact users create, edit, version, export, and share•
+Required Fields:•
+Header Type (LOI / Budget / Quote)–
+Sales Tax Rate (default 9.5%)–
+Performance Bond Override (default 1.5%)–
+Payment Terms–
+Version Number (v1, v2, v3...)–
+Status (Draft, Pending Veri�cation, Audit, Approved, Shared, Signed, Archived)–
+SCREEN (Display)
+De�nition: Atomic technical unit within a Proposal (e.g., &#34;Center Hung,&#34; &#34;Locker
+Room Ribbon&#34;)
+*
+Purpose: One proposal may contain dozens of screens•
+Required Fields:•
+Display Name–
+MM Pitch–
+Quantity–
+Active Height (ft)–
+Active Width (ft)–
+Pixel Resolution (H × W)–
+Brightness (renamed from &#34;Nits&#34;)–
+Structural Tonnage (optional, per-screen or zone-level)–
+Service Type (Front/Rear/Top)–
+3.2 Lifecycle States</p>
+<h5 id="state-description-who-can">State Description Who Can</h5>
+<h5 id="transition">Transition</h5>
+<h5 id="allowed">Allowed</h5>
+<h5 id="outputs">Outputs</h5>
+<h5 id="ingest">Ingest</h5>
+<h5 id="pass-through-rag">Pass-through/RAG</h5>
+<h5 id="mode-uploading">mode: uploading</h5>
+<h5 id="excel-or-rfp">Excel or RFP</h5>
+<h5 id="estimator-none">Estimator None</h5>
+<h5 id="draft-active-editing-in">Draft Active editing in</h5>
+<h5 id="50-50-drafting-table">50/50 Drafting Table</h5>
+<h5 id="proposal-3">Proposal</h5>
+<h5 id="lead">Lead</h5>
+<h5 id="real-time">Real-time</h5>
+<h5 id="ui-preview">UI preview</h5>
+<h5 id="pending">Pending</h5>
+<h5 id="veri-cation">Veri�cation</h5>
+<h5 id="ai-populated-80">AI populated ~80%</h5>
+<h5 id="data-blue-glows">data; &#34;Blue Glows&#34;</h5>
+<h5 id="remain">remain</h5>
+<h5 id="proposal-4">Proposal</h5>
+<h5 id="lead-none">Lead None</h5>
+<h5 id="audit-internal-finance-reviews">Audit (Internal) Finance reviews</h5>
+<h5 id="natalia-math">Natalia Math</h5>
+<h5 id="admin">Admin,</h5>
+<h5 id="finance">Finance</h5>
+<h5 id="internal">Internal</h5>
+<h5 id="audit-excel">Audit Excel</h5>
+<h5 id="approved-exported-math-locked">Approved/Exported Math locked,</h5>
+<h5 id="branding-nalized">branding �nalized</h5>
+<h5 id="proposal-5">Proposal</h5>
+<h5 id="lead-2">Lead</h5>
+<h5 id="branded">Branded</h5>
+<h5 id="client-pdf">Client PDF</h5>
+<h5 id="shared-secure-public-hash">Shared Secure public hash</h5>
+<h5 id="generated">generated</h5>
+<h5 id="proposal-6">Proposal</h5>
+<h5 id="lead-3">Lead</h5>
+<h5 id="share-link">Share Link</h5>
+<h5 id="snapshot">Snapshot</h5>
+<h5 id="signed-closed-client-applied-digital">Signed/Closed Client applied digital</h5>
+<h5 id="signature-2">signature</h5>
+<h5 id="client">Client</h5>
+<h5 id="viewer-2">(Viewer)</h5>
+<h5 id="executed">Executed</h5>
+<h5 id="pdf-2">PDF</h5>
+<h5 id="contract">contract</h5>
+<h5 id="archived-historical-record-no">Archived Historical record, no</h5>
+<h5 id="longer-active-admin">longer active Admin</h5>
+<h5 id="read-only">Read-only</h5>
+<h5 id="access">access</h5>
+<p>Table 3: Proposal lifecycle states and transitions
+Resolution Hierarchy:</p>
+<ol>
+<li>Internal Audit Excel = Master Truth (contains live formulas showing &#34;how we
+arrived at the numbers&#34;)
+$2. If PDF disagrees with Audit Excel → regenerate PDF$
+$3. If Share Link disagrees → regenerate Share snapshot$
+Regeneration Triggers:
+Versioning:
+3.3 Source of Truth Rules
+Any change to Drafting Table data•
+Any change to �nancial inputs (margin, bond, tax)•
+Any change to branding/identity settings•
+Proposals are versioned (v1, v2, v3...)•
+New version created when user commits major changes•
+Share Links point to speci�c versioned snapshot (immutable)•
+Old versions remain accessible in Project Vault•
+Rule: Fixed-Viewport, No Double Scrolling
+Why: Prevents ergonomic disasters during high-speed multi-tasking
+Acceptance Criteria:
+Applies to: Internal UI
+Rule: Client-facing PDFs must be elite, professional, error-free
+Why: Maintains ANC&#39;s market positioning for high-value stadium bids
+Acceptance Criteria:
+Applies to: PDF, Share Link, Internal UI
+Rule: Visual brand assets are rigidly enforced
+Colors:
+Typography:
+Acceptance Criteria:</li>
+</ol>
+<h4 id="4-master-truth-non-negotiable-requirements">4. MASTER TRUTH — NON-NEGOTIABLE REQUIREMENTS</h4>
+<p>4.1 UI Architecture (P0 — Must)
+Entire app locked to 100vh•
+Left &#34;Drafting Table&#34; and right &#34;Gallery&#34; have independent scrollbars•
+No React lifecycle lag when toggling between panels•
+No horizontal scroll on standard 1920px displays•
+4.2 Branded PDF &#34;Ferrari&#34; De�nition (P0 — Must)
+PDF rendered as centered &#34;Paper Sheet&#34; with shadow-2xl against bg-slate-200•
+Empty �elds show professional placeholders (e.g., [PROJECT NAME]) instead of $0.00
+or Invalid Date
+*
+No internal costs, margins, or &#34;Blue Glow&#34; metadata visible•
+Typography matches 2025 Identity Guidelines exactly•
+4.3 2025 Identity Guidelines (P0 — Must)
+Primary: French Blue #0A52EF (buttons, steppers, active states)•
+Do NOT use any other blue•
+Headlines: Work Sans Bold (700)•
+Subheadlines: Work Sans SemiBold (600)•
+Body: Work Sans Regular (400)•
+Every button, stepper, link uses French Blue•
+All text rendered in Work Sans at correct weights•
+PDF exports match web UI typography exactly•
+Applies to: PDF, Share Link, Internal UI
+$Rule: &#34;Nits&#34; → &#34;Brightness&#34; everywhere$
+Why: Natalia strictly requires client-facing language that avoids technical confusion
+Acceptance Criteria:
+Every instance of &#34;Nits&#34; renamed to &#34;Brightness&#34; in:
+Applies to: PDF, Share Link, Internal UI, RAG, Audit Excel
+Rule: Professional divisor model (NOT markup model)
+Formula:
+Why: Ensures mathematical alignment with ANC �nance standards
+Validation:
+Acceptance Criteria:
+Applies to: Audit Excel, Internal UI
+Rule: Fixed calculation order
+Sequence:</p>
+<ol>
+<li>Cost Basis (sum of all per-screen + project costs)</li>
+<li>Selling Price = Cost / (1 - Margin)
+4.4 Global Nomenclature Sync (P0 — Must)
+UI tables and tooltips•
+PDF headers and data rows•
+RAG extraction �eld names•
+Internal Audit Excel column headers•
+Share Link displays•
+4.5 Natalia Math — Divisor Margin Engine (P0 — Must)
+Prevent desiredMargin &gt;= 1.0 (division by zero / In�nity error)•
+Display error message: &#34;Margin must be less than 100%&#34;•
+Formula implemented exactly as speci�ed•
+Input validation blocks invalid margins•
+$Test: Cost=$100k, Margin=0.20 → Sell=$125k•$
+$Test: Cost=$100k, Margin=1.0 → ERROR (blocked)•$
+4.6 Financial Calculation Sequence (P0 — Must)</li>
+<li>Bond Value = Selling Price × bondRate (default 1.5%)</li>
+<li>B&amp;O Tax Value = (Selling Price + Bond Value) × 0.02 [only when applicable]</li>
+<li>Sales Tax Value = (Selling Price + Bond Value + B&amp;O Tax) × salesTaxRate (default 9.5%)</li>
+<li>Final Total = Selling Price + Bond Value + B&amp;O Tax + Sales Tax
+Acceptance Criteria:
+Applies to: Audit Excel, PDF, Internal UI
+Rule: Standardized risk-based pricing
+Default Rate: 1.5% of Selling Price
+Override: Manual overrides allowed (Admin, Proposal Lead)
+Visibility:
+Acceptance Criteria:
+Applies to: Audit Excel, PDF, Share Link, Internal UI
+Rule: Site-speci�c tax for West Virginia University projects
+Trigger: Project location = Morgantown, WV
+Calculation:
+Sequence: Applied AFTER Bond, BEFORE Sales Tax
+Visibility:
+Sequence never violated•
+All intermediate values visible in Internal Audit Excel•
+PDF shows only: Selling Price, Bond, B&amp;O (if applicable), Sales Tax, Final Total•
+Rounding occurs at totals, not intermediate steps•
+Two decimal places for all currency (e.g., $125,000.00)•
+4.7 Performance Bond Logic (P0 — Must)
+Internal Audit Excel: shows rate and calculation•
+PDF: shows line item &#34;Performance Bond: $X&#34;•
+Share Link: shows line item•
+Default 1.5% applied automatically•
+Override �eld visible in drafting table•
+Override value persists in all outputs•
+4.8 Morgantown 2% B&amp;O Tax Rules (P0 — Must)
+Internal Audit Excel: yellow-highlighted input cell•
+PDF: distinct line item &#34;B&amp;O Tax (Morgantown): $X&#34;•
+Share Link: distinct line item•
+Acceptance Criteria:
+Applies to: PDF, Audit Excel, Share Link, Internal UI
+Rule: Hard-coded column indices for estimator Excel imports
+Why: Eliminates manual data entry errors
+Mapping:
+Special Handling:
+Acceptance Criteria:
+Applies to: Imports, Internal UI
+Rule: AI auto-�lls ~80% (17 out of 20 �elds) from RFP documents
+Why: High-con�dence extraction while requiring human veri�cation for edge cases
+Priority Source: Division 11 / Section 11 06 60 (LED Display Systems Schedule)
+Visual Signal:
+Acceptance Criteria:
+Only appears when location = Morgantown•
+Calculated in correct sequence•
+Editable override allowed•
+Shows as separate line item in all outputs•
+4.9 Mirror Mode — Fixed Column Mapping (P0 — Must)
+Column A = Display Name•
+Column E = MM Pitch•
+Column F = Active Height•
+Column G = Active Width•
+Column H or J = Pixel Resolution (H × W)•
+Column M = Brightness (formerly Nits)•
+$Rows labeled &#34;ALT&#34; or &#34;Alternate&#34; → SKIP (focus on Base Bid only)•$
+$Empty rows → SKIP•$
+$Header rows (detected by keywords) → SKIP•$
+Test with known estimator Excel (Jeremy&#39;s format)•
+All Base Bid rows imported correctly•
+All ALT rows skipped•
+Column mapping never violated•
+4.10 Intelligence Mode — &#34;17/20&#34; Rule (P1 — Should)
+AI-�lled �elds display &#34;Blue Glow&#34; until human veri�es•
+Glow stored in-memory (not persisted in DB schema)•
+Applies to: RAG, Internal UI
+Rule: Functional .xlsx with live formulas proving calculations
+Why: Finance team must verify &#34;how we arrived at the numbers&#34;
+Contents:
+Forbidden Contents:
+Acceptance Criteria:
+Applies to: Audit Excel
+Rule: Deep-clone proposal, strip all internal data before generating public hash
+Why: Prevents accidental leakage of proprietary margins/costs
+Sanitization Allowlist (what IS shown):
+Sanitization Denylist (MUST NEVER appear):
+Test on known RFP (e.g., Thornton Tomasetti structural report)•
+$Measure extraction accuracy: target ≥85% �eld accuracy•$
+$Fields with con�dence &lt;85% → trigger &#34;Gap Fill&#34; questions•$
+Human must verify before &#34;Approved/Exported&#34; state•
+4.11 Internal Audit Excel — &#34;Source of Truth&#34; (P0 — Must)
+All cost components (hardware, structural, labor, PM, pro services, CMS, spares)•
+$Live formulas for: Cost Basis → Selling Price → Bond → B&amp;O → Sales Tax → Final$
+Total</li>
+</ol>
+<ul>
+<li></li>
+</ul>
+<p>Yellow-highlighted input cells (margin %, steel basis, tax/bond overrides)•
+Row groupings matching Drafting Table structure•
+No static values where formulas should exist•
+No placeholder text (all numbers must be real or blank)•
+Open in Excel: all formulas functional•
+$Change margin % → see Selling Price recalculate•$
+Matches PDF totals exactly (Final Total, per-screen subtotals)•
+4.12 Share Link Sanitization &amp; Security (P0 — Must)
+Branding (ANC logo, French Blue, Work Sans typography)•
+Technical specs (Display Name, Pitch, Quantity, Height, Width, Resolution,
+Brightness)
+*
+Commercial terms (Total Selling Price, Sales Tax, Bond, Payment Terms)•
+Internal costs (hardware, labor, materials unit costs)•
+Margin percentages or divisor logic•
+Structural materials cost-basis ($3,000/ton)•
+Bond/tax override details (only show �nal amounts)•
+Security Requirements:
+Acceptance Criteria:
+Applies to: Share Link
+Rule: Historical bids never lost; clear audit trail as scope evolves
+Versioning Triggers:
+Version Behavior:
+Acceptance Criteria:
+Applies to: Internal UI, Share Link
+Rule: &#34;Agreed to and Accepted&#34; signature blocks convert proposal into legally binding
+contract
+Why: Authorizes production to commence
+Signature Blocks:
+&#34;Natalia Math&#34; formulas or audit breakdown•
+Raw source �les (RFP PDFs, estimator Excels)•
+AI metadata (&#34;Blue Glow&#34; indicators)•
+Expiration: YES (default duration TBD, e.g., 30 days)•
+Password protection: YES (optional, set by Proposal Lead)•
+Revocable: YES (instant revocation by Proposal Lead or Admin)•
+Access logging: YES (<a class="g3mark-shortlink" href="https://teams.googleplex.com/when/IP">who/when/IP</a> for every view/download)•
+Manual inspection: no internal data visible in Share Link•
+$Revoked link → 403 Forbidden (not 404)•$
+Access log shows IP, timestamp, action (view/download)•
+4.13 Versioning &amp; The Project Vault (P1 — Should)
+User commits major changes to Drafting Table•
+Financial inputs change (margin, bond, tax)•
+Move from &#34;Budget&#34; to &#34;Quote&#34; header type•
+Old versions remain read-only in Project Vault•
+Share Links point to speci�c version snapshot (immutable)•
+Can clone old version into new Draft•
+$Create proposal v1 → share link A•$
+$Modify proposal → save as v2 → share link B•$
+Link A still shows v1 data (unchanged)•
+Link B shows v2 data•
+4.14 Signature &amp; Contractual Acceptance (P1 — Should)
+Legal Language (required in PDF/Share):
+E-Signature Audit Trail (if digital signature enabled):
+Acceptance Criteria:
+Applies to: PDF, Share Link
+ANC representative (name, title, date)•
+Purchaser representative (name, title, date)•
+Payment terms (e.g., 50% deposit, 30 days net)•
+Liability and indemni�cation clauses•
+Binding acceptance language•
+Signer identity (full name, email)•
+Authentication method (email veri�cation, IP address, device �ngerprint)•
+Timestamps (UTC, sent/viewed/signed)•
+Document integrity (cryptographic hash of proposal at signing moment)•
+Executed artifact storage (immutable PDF in Project Vault)•
+PDF contains signature blocks•
+Share Link allows digital signature interaction•
+$Signed proposal → state = &#34;Signed/Closed&#34;•$
+Audit trail logged with all required �elds•</p>
+<h4 id="5-cost-components-financial-inputs">5. COST COMPONENTS &amp; FINANCIAL INPUTS</h4>
+<p>5.1 Input Scope
+Per-Screen Costs
+Hardware: LED modules/cabinets, processing electronics•
+Structural Materials: Steel (tonnage × $3,000/ton)•
+Structural Labor: Installation of steel framework•
+LED Installation: Cabinet mounting and alignment•
+Electrical/Data Subcontracting: Wiring, networking•
+Project-Level Costs
+Project Management (PM): Oversight, coordination•
+General Conditions: Site logistics, safety•
+Travel &amp; Expenses: Airfare, hotels, per diem•
+Professional Services: Engineering (PE Stamped), Submittals, Permits•
+CMS (Content Management System): Equipment, installation, commissioning•
+Spare Parts: Typically 2% of hardware cost•
+Annual Maintenance: &#34;Health checks&#34; post-installation•</p>
+<h5 id="input-type-source">Input Type Source</h5>
+<h5 id="ai">AI-</h5>
+<h5 id="extracted">Extracted</h5>
+<h5 id="screen-dimensions-ht-wd-mm-pitch-resolution">Screen dimensions (HT×WD), MM Pitch, Resolution,</h5>
+<h5 id="brightness-structural-tonnage">Brightness, Structural Tonnage</h5>
+<h5 id="user">User-</h5>
+<h5 id="entered">Entered</h5>
+<h5 id="manual-gap-fill-front-rear-service-payment-terms">Manual &#34;Gap Fill&#34; (front/rear service), Payment Terms,</h5>
+<h5 id="tax-bond-overrides">Tax/Bond Overrides</h5>
+<h5 id="derived-selling-price-bond-value-b-o-tax-sales-tax-final-total">Derived Selling Price, Bond Value, B&amp;O Tax, Sales Tax, Final Total</h5>
+<p>Table 4: Data source strategy for inputs
+Project-Level Costs:
+Structural Tonnage:
+Example Allocation:
+Screen A: 15 tons × $3,000 = $45,000 structural cost
+Screen B: 8 tons × $3,000 = $24,000 structural cost
+Project-Level PM: $50,000 (line item, not allocated)
+Margin Bounds:
+Input Highlighting (Audit Excel):
+Alternate Row Skipping (Mirror Mode):
+5.2 Data Source Strategy
+5.3 Allocation Rules
+Listed as distinct line items (NOT spread into per-screen costs)•
+Why: Maintains transparency for Internal Audit Excel•
+Mapped to speci�c screens or zones (e.g., &#34;South End Zone&#34;)•
+$Cost Basis: Tonnage × $3,000/ton → &#34;Structural Materials&#34; cost•$
+5.4 Rounding &amp; Formatting
+Rounding Point: At total level for each pricing category (Subtotal, Tax, Final Total)•
+Decimal Places: Two decimals for all currency ($125,000.00)•
+Method: Banker&#39;s rounding (HALF_EVEN) to minimize bias in repeated calculations•
+$Placeholders: If input missing → show [PROJECT TOTAL] (not $0.00)•$
+5.5 Guardrails
+Minimum: 0.0 (0%)•
+Maximum: &lt;1.0 (&lt;100%)•
+$If user enters ≥1.0 → block with error message•$
+Yellow-highlighted cells: margin %, steel cost basis, B&amp;O rate, sales tax rate•
+Why: Finance can tweak during audit•
+Accepted File Types:
+Size/Page Limits:
+Preferred Document Structure:
+Multi-Document Handling:
+Allowed Auto-Fill Fields:
+Con�dence Threshold:
+Fallback Behavior:
+$Rows labeled &#34;ALT&#34; or &#34;Alternate&#34; → automatically skipped•$
+Why: Focus on Base Bid, prevent in�ated totals•</p>
+<h4 id="6-rag-intelligence-ai-extraction">6. RAG INTELLIGENCE &amp; AI EXTRACTION</h4>
+<p>6.1 Input Scope
+PDF (RFPs, structural reports, speci�cations)•
+Excel (.xlsx, .xls)•
+Word (.docx)•
+Images (OCR for technical drawings, BIM exports)•
+Tested against 2,500-page technical manuals•
+Multi-gigabyte BIM models (via related exports/schedules)•
+Division 11, Section 11 06 60 (LED Display Systems Schedule)•
+Thornton Tomasetti (TTE) structural reports for tonnage•
+Users can drop entire &#34;Jaguar-sized&#34; folder into Workspace•
+AI queries across multiple related �les•
+6.2 Extraction Targets
+Screen Name•
+MM Pitch•
+Quantity•
+Active Height (ft)•
+Active Width (ft)•
+Pixel Resolution (H × W)•
+Brightness (formerly Nits)•
+Structural Tonnage (per screen or zone)•
+Location/Zone (e.g., &#34;Northeast Main Concourse&#34;)•
+Service Type (Front/Rear/Top) — may require Gap Fill•
+Baseline target: 85% accuracy (17 out of 20 �elds)•
+$If con�dence &lt;85% → trigger &#34;Gap Fill&#34; questions•$
+$AI cannot identify �eld → ask user 2-3 direct questions in chat sidebar•$
+$If still unclear → leave �eld blank with placeholder•$
+Human Veri�cation:
+User Queries:
+Citations:
+Direct Updates:
+Always required before &#34;Approved/Exported&#34; state•
+&#34;Blue Glow&#34; visual indicator until veri�ed•
+6.3 Visual Signals (&#34;Blue Glow&#34;)
+Trigger: Field auto-�lled by AI (not manually entered)•
+Persistence: Until user veri�es (clicks/edits/con�rms)•
+Storage: In-memory metadata (not persisted in DB schema)•
+Export Behavior:•
+Blue Glow stripped from PDF and Share Link (professional appearance)–
+Metadata logged in audit trail (which �elds were AI vs human)–
+6.4 RAG Sidebar (&#34;Intelligence Core&#34;)
+Natural language: &#34;What are the specs in the RFP?&#34;•
+Speci�c: &#34;What is the pitch for the center-hung display?&#34;•
+Must provide page number/section reference•
+Link to source document location•
+Sidebar bound to same ProposalContext as Drafting Table•
+AI updates re�ected instantly in form•
+Safety: Should not overwrite human-veri�ed �eld without explicit &#34;replace veri�ed
+value&#34; action
+*
+6.5 Accuracy Requirements
+Acceptable Error Rate: 80% AI auto-�ll (20% human Gap Fill acceptable)•
+Measurement:•
+Test on known historical RFPs (e.g., Exhibit B cost schedules)–
+Compare AI extraction vs known &#34;Master Truth&#34; values–
+Hallucination Handling:•
+&#34;Trust but Verify&#34; philosophy–
+UI shows source context to combat hallucinations–
+Human must verify before exporting–</p>
+<h4 id="7-public-vs-private-surfaces">7. PUBLIC vs PRIVATE SURFACES</h4>
+<p>Accessible Pages:
+Allowed Actions:
+Data Allowlist:
+Data Denylist (MUST NEVER APPEAR):
+Internal Sections/Screens:
+Actions by Role: See Permission Matrix (Section 2.2)
+Authorized Outputs:
+7.1 Public (Anonymous — Viewers)
+Public Proposal Snapshot (Share Link)•
+View sanitized &#34;Live Marketing Preview&#34;•
+Download Branded Client PDF•
+Digital Signature (apply to &#34;Agreed to and Accepted&#34; blocks)•
+Comment/Chat (future requirement)•
+Branding (ANC logo, French Blue, Work Sans)•
+Technical specs (Display Name, Pitch, Quantity, Height, Width, Resolution,
+Brightness)
+*
+Commercial terms (Total Selling Price, Sales Tax, Bond, Payment Terms)•
+Legal binding language•
+Internal costs (hardware, labor, materials unit costs)•
+Margin percentages or divisor logic•
+Structural materials cost-basis ($3,000/ton)•
+Bond/tax override details (rates and logic)•
+&#34;Natalia Math&#34; formulas or internal audit breakdown•
+Raw source �les (RFP PDFs, estimator Excels)•
+AI metadata (&#34;Blue Glow&#34; indicators)•
+7.2 Private (Internal Sta�)
+Project Vault: Cloud-based history for all current/historical bids•
+Proposal Studio: 50/50 split-screen (Drafting Table + Gallery)•
+Intelligence Core: RAG sidebar for querying RFP documents•
+Integrity &amp; Alignment Audit: Veri�cation screen for �nancial engine•
+Branded Client PDF (Proposal Lead)•
+Internal Audit Excel (Admin, Estimator, Finance)•
+Share Link (Proposal Lead)•
+Each log entry must include:
+Required Events:</p>
+<h5 id="event-fields-to-log">Event Fields to Log</h5>
+<h5 id="import-source-lename-method-mirror-mode-rag">Import Source �lename, method (Mirror Mode / RAG),</h5>
+<h5 id="rows-imported-rows-skipped">rows imported, rows skipped</h5>
+<h5 id="financial-changes-field-name-margin-bond-rate-tax-rate-steel">Financial Changes Field name (margin %, bond rate, tax rate, steel</h5>
+<h5 id="basis-old-value-new-value">basis), old value, new value</h5>
+<h5 id="ai-auto-ll">AI Auto-�ll +</h5>
+<h5 id="veri-cation-2">Veri�cation</h5>
+<h5 id="field-name-ai-lled-value-user-who-veri-ed">Field name, AI-�lled value, user who veri�ed,</h5>
+<h5 id="timestamp-of-veri-cation">timestamp of veri�cation</h5>
+<h5 id="export-pdf-version-timestamp-who-exported">Export PDF Version, timestamp, who exported</h5>
+<h5 id="export-audit-excel-version-timestamp-who-exported">Export Audit Excel Version, timestamp, who exported</h5>
+<h5 id="share-link-create-link-hash-version-expiration-date-password">Share Link Create Link hash, version, expiration date, password</h5>
+<h5 id="y-n-who-created">(Y/N), who created</h5>
+<h5 id="share-link-revoke-link-hash-who-revoked-timestamp">Share Link Revoke Link hash, who revoked, timestamp</h5>
+<h5 id="share-link-access-link-hash-ip-address-user-agent-timestamp">Share Link Access Link hash, IP address, user agent, timestamp,</h5>
+<h5 id="action-view-download">action (view/download)</h5>
+<h5 id="signature-event-who-signed-ip-device-timestamp-document-hash">Signature Event Who signed, IP, device, timestamp, document hash</h5>
+<p>Table 5: Required audit log events</p>
+<h4 id="8-audit-logging-requirements">8. AUDIT LOGGING REQUIREMENTS</h4>
+<p>8.1 Events That MUST Be Logged
+Who (user ID + role)•
+Timestamp (UTC)•
+Project/Proposal ID•
+Version number•
+$Before → After value (for edits)•$
+8.2 Audit Log Properties
+Immutability: Append-only, tamper-evident•
+Retention: See Section 9.1•
+Access Control: Restricted to Admin and Finance roles•
+Alerting: High-risk actions (branding changes, permission edits) trigger alerts•</p>
+<h5 id="artifact-retention-period-legal-basis">Artifact Retention Period Legal Basis</h5>
+<h5 id="projects">Projects,</h5>
+<h5 id="proposals">Proposals,</h5>
+<h5 id="versions">Versions</h5>
+<h5 id="permanent-project">Permanent (Project</h5>
+<h5 id="vault-no-data-ever">Vault = &#34;no data ever</h5>
+<h5 id="lost">lost&#34;)</h5>
+<h5 id="business-continuity">Business continuity</h5>
+<h5 id="audit-excels">Audit Excels,</h5>
+<h5 id="pdfs">PDFs</h5>
+<h5 id="minimum-3-years-after">Minimum 3 years after</h5>
+<h5 id="contract-termination">contract termination</h5>
+<h5 id="west-virginia-accounting">West Virginia accounting</h5>
+<h5 id="records-law">records law</h5>
+<h5 id="access-logs-minimum-15-years-display-systems-tra-c">Access Logs Minimum 15 years Display systems tra�c</h5>
+<h5 id="reporting-requirement">reporting requirement</h5>
+<h5 id="signature-3">Signature</h5>
+<h5 id="evidence-minimum-10-years">Evidence Minimum 10 years</h5>
+<h5 id="statute-of-limitations-for">Statute of limitations for</h5>
+<h5 id="contract-claims">contract claims</h5>
+<p>Table 6: Retention periods for various artifacts
+Di�erences by Bid Status:
+When Artifacts Become Immutable:
+Editing Post-Signature:
+Who Can Delete:
+Deletion Type:
+Non-Deletable Items:</p>
+<h4 id="9-data-retention-deletion-policy">9. DATA RETENTION &amp; DELETION POLICY</h4>
+<p>9.1 Retention Periods
+Active/Won bids: Full retention•
+Lost/Archived bids: Same retention (vault = permanent history)•
+9.2 Immutability Rules
+Approved/Exported: PDF and Audit Excel locked (versioned snapshot)•
+Shared: Share Link snapshot immutable (deep clone)•
+Signed: Proposal + PDF + Audit Excel fully immutable (contractual record)•
+Signed version can NEVER be edited•
+$To make changes → clone signed version into new Draft → start new lifecycle•$
+9.3 Deletion Rules
+Admin: Files, versions, entire workspaces (restricted action)•
+Estimator/Proposal Lead: Cannot delete (create/edit only)•
+Soft Delete (default): Archiving, recoverable•
+Hard Delete: Generally not allowed (violates &#34;no data lost&#34; principle)•
+Executed contracts (Signed proposals)•
+If Link Expires/Revoked:
+Regeneration Rules:
+Q10.1: Is &#34;Message Log / Proof of Play&#34; in-scope for ANC Studio MVP, or only for installed
+signage platform (post-sale operations)?
+Q10.2: For proposal share links, con�rm exact event types to log: Page view? Section view?
+PDF download? Executed-PDF download? Signature start? Signature complete? Link
+revoked-but-attempted?
+Q10.3: Con�rm identi�ers + retention for share link analytics: Store full IP for how many
+days, then mask? Store device �ngerprint only if signature enabled? What anonymization
+rules after X years?
+Q10.4: Con�rm exports for analytics: Excel (.xlsx) required for share link analytics? Or
+only for proof-of-play (signage ops)?
+Q10.5: Where does 15-year portal live: Within ANC Studio (Project Vault) only? Separate
+vendor-hosted portal linked out?
+Q10.6: When RAG extracts tonnage from TTE reports, what&#39;s the exact pattern matching
+logic? Current: (\d+) tons. What if report says &#34;15.5 tons&#34; or &#34;�fteen tons&#34; or &#34;15 T&#34;?
+Q10.7: &#34;Outsider (Subcontractor/Installer)&#34; de�ned but not in Permission Matrix —
+con�rm exact permissions: Can view/edit only assigned technical �elds? Cannot see totals,
+margin, costs, or export/share?
+Signature evidence (audit trails)•
+Audit logs (append-only)•
+9.4 Share Link Retention
+Snapshot retained for project&#39;s audit window•
+Access logs retained for 15 years•
+Can generate new link for existing version (new hash)•
+Can generate link for new version•
+Cannot &#34;update&#34; link in place•</p>
+<h4 id="10-open-questions">10. OPEN QUESTIONS</h4>
+<p>10.1 Analytics &amp; Reporting
+10.2 Structural Tonnage Extraction
+10.3 Outsider Role Scope
+Q10.8: Current matrix shows &#34;Product Expert can edit �nancial inputs&#34; — is this
+intentional? If not, restrict to catalog + technical only (avoid toxic permission
+combination).
+Q10.9: If any Blue Glow remains, does system: Block &#34;Approved/Exported&#34; state (P0)? Allow
+export with warning (P1)?
+Q10.10: &#34;OCR to see technical drawings/BIM models&#34; — de�ne exact scope: Do we truly
+parse BIM (e.g., Revit API)? Or accept related exports (PDF schedules, CSV takeo�s) and
+treat BIM as attachments?
+Q10.11: When &#34;Gap Fill&#34; asks 2-3 questions, what&#39;s max retries before forcing manual
+entry?
+Test 1: Mirror Mode Import
+Test 2: Natalia Math Accuracy
+Test 3: B&amp;O Tax Trigger
+10.4 Product Expert Financial Access
+10.5 Blue Glow Export Blocking
+10.6 BIM Model Handling
+10.7 Gap Fill Retry Limit</p>
+<h4 id="11-acceptance-criteria-summary">11. ACCEPTANCE CRITERIA SUMMARY</h4>
+<p>11.1 MVP Success Metrics
+$80% AI Auto-Fill Rate: Test on 5 known RFPs, measure �eld accuracy ≥80%•$
+$Zero Math Errors: Internal Audit Excel ↔ PDF ↔ Share Link totals match exactly•$
+Ferrari-Grade PDFs: Manual inspection con�rms branding, typography, no internal
+data leakage
+*
+$Sub-1-Hour Proposal: From RFP upload → shareable link in &lt;60 minutes (real-world$
+test)
+*
+15-Year Audit Trail: Access logs accessible, �lterable, exportable•
+11.2 Critical Path Tests
+Upload Jeremy&#39;s standard estimator Excel•
+Verify all Base Bid rows imported correctly•
+Verify all ALT rows skipped•
+Verify column mapping (A=Name, E=Pitch, F=Height, G=Width, H/J=Resolution,
+M=Brightness)
+*
+Input: Cost=$100k, Margin=20%•
+Expected: SellPrice=$125k•
+Verify: Audit Excel shows formula, PDF shows $125k, Share shows $125k•
+Set Project Location = Morgantown, WV•
+Test 4: Share Link Sanitization
+Test 5: Signature Flow
+Test 6: Versioning
+Verify: B&amp;O Tax line item appears•
+Verify: B&amp;O = (SellPrice + Bond) × 0.02•
+Verify: Sequence correct (after Bond, before Sales Tax)•
+Generate Share Link from Proposal with internal costs•
+Manual inspection: no cost basis, no margin %, no formulas visible•
+Verify: technical specs + totals visible•
+Verify: Blue Glow metadata stripped•
+Client opens Share Link•
+Client applies digital signature•
+$Verify: Proposal state → &#34;Signed/Closed&#34;•$
+Verify: Audit trail logs signer identity, IP, timestamp, document hash•
+Verify: Executed PDF immutable, stored in Project Vault•
+$Create Proposal v1 → Share Link A•$
+$Modify Proposal → Save as v2 → Share Link B•$
+Verify: Link A still shows v1 data (unchanged)•
+Verify: Link B shows v2 data•</p>
+<h4 id="12-technical-constraints">12. TECHNICAL CONSTRAINTS</h4>
+<p>12.1 Frontend
+Framework: React (assumed from &#34;React lifecycle lag&#34; mention)•
+Viewport: Fixed 100vh, no double scrolling•
+Split Screen: 50/50 Drafting Table (left) + Gallery (right), independent scrollbars•
+Real-time Preview: &#34;Live Marketing Preview&#34; updates as Drafting Table changes•
+12.2 Backend
+RAG Engine: Must handle 2,500-page PDFs, multi-doc queries•
+File Storage: Cloud-based (Project Vault = permanent storage)•
+Versioning: Snapshot-based (immutable versions)•
+Audit Logs: Append-only, tamper-evident•
+12.3 Export Formats
+PDF: Branded client-facing (sanitized)•
+Excel: Internal Audit (live formulas, yellow-highlighted inputs)•
+Share Link: Static HTML snapshot or server-rendered immutable view•</p>
+<h5 id="version-date-changes">Version Date Changes</h5>
+<h5 id="1-0-2026-01-30-initial-knowledge-base-consolidation">1.0 2026-01-30 Initial knowledge base consolidation</h5>
+<ol>
+<li>Resolve Open Questions (Section 10) — Answer Q10.1 through Q10.11</li>
+<li>Technical Architecture Document — De�ne stack, data schema, API contracts</li>
+<li>UI/UX Mockups — 50/50 split screen, Drafting Table, Gallery, RAG sidebar</li>
+<li>Test Data Preparation — 5 known RFPs, Jeremy&#39;s Excel, Thornton Tomasetti reports</li>
+<li>Phased Development Plan — MVP scope, Phase 2 (BIM, chat), Phase 3 (mobile)
+END OF MASTER PRD
+12.4 Security
+Share Links: Secure hash, expiration, password protection, revocable, access logging•
+Authentication: Internal users (role-based), external viewers (anonymous with
+optional password)</li>
+</ol>
+<ul>
+<li></li>
+</ul>
+<p>Data Sanitization: Deep clone before Share Link generation•</p>
+<h4 id="13-out-of-scope-for-mvp">13. OUT OF SCOPE FOR MVP</h4>
+<p>Comment/chat on Share Links (future requirement)•
+Advanced BIM model parsing (accept exports only for MVP)•
+Multi-language support (English only for MVP)•
+Mobile app (web-responsive only)•
+Integration with external CRM/ERP systems•</p>
+<h4 id="document-changelog">DOCUMENT CHANGELOG</h4>
+<h4 id="next-steps">NEXT STEPS</h4>

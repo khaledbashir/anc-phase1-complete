@@ -1,0 +1,49 @@
+<p>ANC Studio: Technical &amp; Architectural Overview</p>
+<p>The workspace has been transformed from a traditional web form into a Professional Studio Environment. This architecture is designed for speed, precision, and &#34;Pro-Tool&#34; ergonomics.</p>
+<ol>
+<li>The 2-Pane Anchor System (Visual Logic)</li>
+</ol>
+<p>The layout is now a fixed 50/50 split using CSS Grid, creating a &#34;Drafting Table&#34; on the left and a &#34;Gallery&#34; on the right.</p>
+<p>The Hub (Left 50%)</p>
+<p>Purpose: The primary interaction area where users draft content or collaborate with AI.</p>
+<p>Zero-Lag Multi-Tasking: We implemented a &#34;Stacked Panel&#34; approach. Both the Drafting Form and the Intelligence Engine are always mounted in the DOM. Toggling between them is instant (no React lifecycle lag) because it only switches CSS visibility and pointer events.</p>
+<p>Internal Focus: The Left Pane has its own independent scrollbar. The rest of the app remains stationary.</p>
+<p>The Anchor (Right 50%)</p>
+<p>Purpose: A fixed &#34;Ferrari Gallery&#34; for real-time PDF preview.</p>
+<p>Visual Aesthetic: Set against a bg-slate-200 (Studio Grey) background, the PDF is rendered as a centered &#34;Paper Sheet&#34; with a shadow-2xl, giving it a tactile, professional feel.</p>
+<p>WYSIWYG Placeholders: Custom logic ensures that if a field is empty, the PDF displays template markers like [PROJECT NAME] or [DATE] instead of broken values like &#34;Invalid Date&#34; or &#34;$0.00&#34;.</p>
+<ol start="2">
+<li>Technical Stack &amp; State Logic</li>
+</ol>
+<p>Fixed Viewport Architecture: The entire application is locked to 100vh. This prevents &#34;double scrolling&#34; issues and keeps the navigation and actions permanently accessible.</p>
+<p>Context Fusion: Both the Form and the AI Chat are bound to the same</p>
+<p>ProposalContext</p>
+<p>. This means if you type in the form, the AI sees it immediately; if the AI updates a value (e.g., &#34;Change Screen 1 to 10mm&#34;), the form reflects the change instantly.</p>
+<p>French Blue Brand Identity: The UI uses #0A52EF (French Blue) as the primary brand signal for all active states, primary buttons, and stepper circles.</p>
+<ol start="3">
+<li>Top-Nav &#34;Pro-Control&#34; Strategy</li>
+</ol>
+<p>The header has been stripped of clutter and reorganized for global control:</p>
+<p>Left: ANC Logo with compliant &#34;Clear Space&#34; padding.</p>
+<p>Center: The 4-Step Stepper. Moved out of the form body and into the nav bar, providing a constant sense of progression without eating into the drafting space.</p>
+<p>Right: Global High-Priority Actions—Save Status, Excel Import, and the French Blue &#34;Export&#34; Button.</p>
+<ol start="4">
+<li>User Workflow (The &#34;Studio&#34; Experience)</li>
+</ol>
+<p>Ingest: You start in Step 1. The PDF Anchor on the right shows a layout with placeholders.</p>
+<p>Toggle Intel: Hit the Intelligence pill to switch the left pane to the AI chat. Ask &#34;What are the specs in the RFP?&#34;, and the AI answers without you losing your place in the form.</p>
+<p>Draft: Toggle back to Drafting to fill in the technical specs. As you type, the PDF Anchor on the right mirrors your changes in real-time.</p>
+<p>Math &amp; KPI: In Step 3 (The Natalia Math), you see critical KPIs like &#34;Selling Price / SqFt&#34; at the very top of the Hub.</p>
+<p>Ferrari Export: Once satisfied, hit the global Export button. No scrolling to find the footer—it&#39;s always in the Top-Nav.</p>
+<ol start="5">
+<li>File Architecture Summary</li>
+</ol>
+<p>StudioLayout.tsx</p>
+<p>: The core grid engine.</p>
+<p>ModeToggle.tsx</p>
+<p>: The high-end pill switcher.</p>
+<p>ProposalPage.tsx</p>
+<p>: The &#34;Orchestrator&#34; that wraps everything in the Wizard context.</p>
+<p>pdfPlaceholders.ts</p>
+<p>: The logic layer that keeps the preview look professional even with missing data.</p>
+<p>This setup moves the ANC platform closer to a high-end creative suite like Figma or Adobe, rather than a standard CRM or document editor.</p>
