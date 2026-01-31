@@ -103,7 +103,7 @@ export async function POST(req: NextRequest) {
         console.warn("[RFP Upload] Failed to resolve per-project workspace, falling back to default.", e);
       }
     }
-    
+
     // SMART INGEST PIPELINE
     let fileToEmbed: Buffer | File = file;
     let filenameToEmbed = file.name;
@@ -115,64 +115,64 @@ export async function POST(req: NextRequest) {
       console.log(`[RFP Upload] Smart Filtering PDF: ${file.name}`);
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      
+
       try {
         const filterResult = await smartFilterPdf(buffer);
         console.log(`[RFP Upload] Filtered ${filterResult.totalPages} pages down to ${filterResult.retainedPages} signal pages.`);
-        
+
         // --- AUTO-VISION EXTRACTION ---
         if (filterResult.drawingCandidates.length > 0) {
-           console.log(`[RFP Upload] Found ${filterResult.drawingCandidates.length} potential drawings. Scanning top 3...`);
-           const drawingService = new DrawingService();
-           const pagesToScan = filterResult.drawingCandidates.slice(0, 3);
-           
-           let visionContext = "\n\n=== VISION EXTRACTION RESULTS (Drawings) ===\n";
-           let visionHits = 0;
+          console.log(`[RFP Upload] Found ${filterResult.drawingCandidates.length} potential drawings. Scanning top 3...`);
+          const drawingService = new DrawingService();
+          const pagesToScan = filterResult.drawingCandidates.slice(0, 3);
 
-           for (const pageNum of pagesToScan) {
-              try {
-                  console.log(`[RFP Upload] Vision scanning page ${pageNum}...`);
-                  const screenshot = await screenshotPdfPage(buffer, pageNum);
-                  
-                  if (screenshot) {
-                      const base64 = `data:image/png;base64,${screenshot.toString('base64')}`;
-                      const results = await drawingService.processDrawingPage(base64);
-                      
-                      if (results.length > 0) {
-                          visionContext += `\n--- Page ${pageNum} Analysis ---\n`;
-                          results.forEach(r => {
-                              visionContext += `- Found ${r.field}: ${r.value} (Confidence: ${Math.round(r.confidence * 100)}%)\n`;
-                          });
-                          visionHits++;
-                      }
-                  }
-              } catch (vErr) {
-                  console.error(`[RFP Upload] Vision failed for page ${pageNum}`, vErr);
+          let visionContext = "\n\n=== VISION EXTRACTION RESULTS (Drawings) ===\n";
+          let visionHits = 0;
+
+          for (const pageNum of pagesToScan) {
+            try {
+              console.log(`[RFP Upload] Vision scanning page ${pageNum}...`);
+              const screenshot = await screenshotPdfPage(buffer, pageNum);
+
+              if (screenshot) {
+                const base64 = `data:image/png;base64,${screenshot.toString('base64')}`;
+                const results = await drawingService.processDrawingPage(base64);
+
+                if (results.length > 0) {
+                  visionContext += `\n--- Page ${pageNum} Analysis ---\n`;
+                  results.forEach(r => {
+                    visionContext += `- Found ${r.field}: ${r.value} (Confidence: ${Math.round(r.confidence * 100)}%)\n`;
+                  });
+                  visionHits++;
+                }
               }
-           }
+            } catch (vErr) {
+              console.error(`[RFP Upload] Vision failed for page ${pageNum}`, vErr);
+            }
+          }
 
-           if (visionHits > 0) {
-               filterResult.filteredText += visionContext;
-               console.log(`[RFP Upload] Added vision context to embedding.`);
-           }
+          if (visionHits > 0) {
+            filterResult.filteredText += visionContext;
+            console.log(`[RFP Upload] Added vision context to embedding.`);
+          }
         }
         // ------------------------------
 
         // Create synthetic text file for embedding (Signal Only)
         fileToEmbed = Buffer.from(filterResult.filteredText);
         filenameToEmbed = file.name.replace(/\.pdf$/i, "_signal.txt");
-        
+
         filterStats = {
           originalPages: filterResult.totalPages,
           keptPages: filterResult.retainedPages,
           drawingCandidates: filterResult.drawingCandidates
         };
-        
+
         // Upload ORIGINAL for storage/compliance (Archive folder, NO embedding)
         const originalUpload = await uploadDocument(file, file.name, { folderName: "archive" });
         if (originalUpload.success && originalUpload.data?.documents?.[0]) {
-           originalDocPath = originalUpload.data.documents[0].location;
-           console.log(`[RFP Upload] Original archived at ${originalDocPath}`);
+          originalDocPath = originalUpload.data.documents[0].location;
+          console.log(`[RFP Upload] Original archived at ${originalDocPath}`);
         }
 
       } catch (e) {
@@ -183,9 +183,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 1. Upload Document (The one to embed - either filtered txt or original)
-    console.log(`[RFP Upload] Uploading ${filenameToEmbed} to AnythingLLM for embedding...`);
-    const uploadRes = await uploadDocument(fileToEmbed, filenameToEmbed);
+    // 1. Upload & Embed in One Go (Hub & Spoke Model)
+    const masterWorkspace = process.env.ANYTHING_LLM_MASTER_WORKSPACE || "dashboard-vault";
+    let targetWorkspaces: string[] = [];
+
+    if (workspaceSlug) targetWorkspaces.push(workspaceSlug);
+    if (masterWorkspace && masterWorkspace !== workspaceSlug) {
+      targetWorkspaces.push(masterWorkspace);
+    }
+
+    console.log(`[RFP Upload] Uploading and syncing to: ${targetWorkspaces.join(", ")}`);
+
+    // addToWorkspaces handles multi-workspace embedding automatically
+    const uploadRes = await uploadDocument(fileToEmbed, filenameToEmbed, {
+      addToWorkspaces: targetWorkspaces
+    });
 
     if (!uploadRes.success || !uploadRes.data?.documents?.[0]) {
       console.error("[RFP Upload] Upload failed", uploadRes);
@@ -198,7 +210,7 @@ export async function POST(req: NextRequest) {
     // 2. Persist to Database (Vault)
     // We prefer to link to the ORIGINAL PDF if available, otherwise the uploaded file
     const dbUrl = originalDocPath || docPath;
-    
+
     if (proposalId && proposalId !== "new") {
       try {
         await prisma.rfpDocument.create({
@@ -214,12 +226,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Add to Workspace (Embed)
-    console.log(`[RFP Upload] Adding to workspace ${workspaceSlug}...`);
-    const embedRes = await addToWorkspace(workspaceSlug, docPath);
-    
-    if (!embedRes.success) {
-      console.warn("[RFP Upload] Embedding failed, but continuing...", embedRes);
+    // 3. PIN in Project Workspace (Deep Context)
+    // We force the project workspace to "focus" on this doc by pinning it.
+    // We do NOT pin it in the master vault (RAG only).
+    if (workspaceSlug) {
+      console.log(`[RFP Upload] Pinning document in project workspace: ${workspaceSlug}`);
+      const { updatePin } = await import("@/lib/anything-llm");
+      try {
+        await updatePin(workspaceSlug, docPath, true);
+      } catch (pinErr) {
+        console.warn(`[RFP Upload] Pinning failed for ${workspaceSlug}`, pinErr);
+      }
     }
 
     // 4. Extract Data (AI Analysis)
@@ -250,18 +267,18 @@ export async function POST(req: NextRequest) {
     try {
       const aiResponse = await queryVault(workspaceSlug, extractionPrompt, "chat");
       console.log(`[RFP Upload] AI Response Length: ${aiResponse.length}`);
-      
+
       const jsonText = extractJson(aiResponse);
       if (jsonText) {
         try {
-            extractedData = JSON.parse(jsonText);
+          extractedData = JSON.parse(jsonText);
         } catch (parseErr) {
-            console.warn("[RFP Upload] JSON Parse Warning:", parseErr);
-            // Try to repair common JSON issues if needed, or just proceed without data
-            // Attempt simple repair for truncated JSON
-            try {
-                extractedData = JSON.parse(jsonText + "}");
-            } catch (e) { /* ignore */ }
+          console.warn("[RFP Upload] JSON Parse Warning:", parseErr);
+          // Try to repair common JSON issues if needed, or just proceed without data
+          // Attempt simple repair for truncated JSON
+          try {
+            extractedData = JSON.parse(jsonText + "}");
+          } catch (e) { /* ignore */ }
         }
       }
     } catch (e) {

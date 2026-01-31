@@ -89,6 +89,41 @@ export async function addToWorkspace(workspaceSlug: string, docPath: string): Pr
 }
 
 /**
+ * Update pin status for a document in a workspace
+ * Pinned docs are included in context window (full access)
+ * Non-pinned docs rely on RAG/vector search (saves tokens)
+ * 
+ * @param workspaceSlug The workspace slug
+ * @param docPath The document path (e.g. "custom-documents/filename.json")
+ * @param pinStatus true to pin, false to unpin
+ */
+export async function updatePin(
+    workspaceSlug: string,
+    docPath: string,
+    pinStatus: boolean
+): Promise<AnythingLLMResponse> {
+    try {
+        const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/update-pin`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
+            },
+            body: JSON.stringify({
+                docPath,
+                pinStatus,
+            }),
+        });
+
+        const data = await res.json();
+        return { success: res.ok, data };
+    } catch (error: any) {
+        console.error("[AnythingLLM] Update Pin failed:", error);
+        return { success: false, message: error.message };
+    }
+}
+
+/**
  * Query the Knowledge Vault (Strict RAG)
  * @param workspaceSlug The workspace to query
  * @param message The prompt
