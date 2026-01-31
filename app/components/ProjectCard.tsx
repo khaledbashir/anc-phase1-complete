@@ -21,6 +21,7 @@ interface Project {
     id: string;
     clientName: string;
     proposalName: string | null;
+    clientLogo?: string | null;
     status: string;
     documentType: string;
     pricingType: string;
@@ -217,10 +218,18 @@ const ProjectCard = ({ project, onImport, onDelete }: ProjectCardProps) => {
                     "bg-white/50 backdrop-blur-sm",
                     "flex items-center justify-center",
                     "shadow-lg shadow-black/5",
-                    "transition-transform duration-300",
+                    "transition-transform duration-300 overflow-hidden",
                     isHovered && "scale-110"
                 )}>
-                    <TypeIcon className="w-10 h-10 text-[#0A52EF]" />
+                    {project.clientLogo ? (
+                        <img
+                            src={project.clientLogo}
+                            alt={`${project.clientName} logo`}
+                            className="w-12 h-12 object-contain"
+                        />
+                    ) : (
+                        <TypeIcon className="w-10 h-10 text-[#0A52EF]" />
+                    )}
                 </div>
 
                 {/* Status Badge - Positioned in corner */}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { updateWorkspaceSettings } from "@/lib/anything-llm";
+import { findClientLogo } from "@/lib/brand-discovery";
 import type { Workspace, User } from "@prisma/client";
 
 // Define the intersection type that includes the users relation
@@ -39,10 +40,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // NEW: Auto-discover client logo (Consultant Quick Win)
+    const clientNameForLogo = body.excelData?.receiverName || body.clientName || body.name;
+    const clientLogo = await findClientLogo(clientNameForLogo);
+
     // 2. PROJECT VAULT PERSISTENCE (Bulletproof)
     const workspace = await prisma.workspace.create({
       data: {
         name: body.name,
+        clientLogo, // Store found logo
         users: {
           connectOrCreate: {
             where: { email: body.userEmail },
@@ -57,7 +63,8 @@ export async function POST(request: NextRequest) {
       proposal = await prisma.proposal.create({
         data: {
           workspaceId: workspace.id,
-          clientName: body.excelData?.receiverName || body.clientName || body.name,
+          clientName: clientNameForLogo,
+          clientLogo, // Store found logo here too
           status: "DRAFT",
           calculationMode: body.calculationMode === "MIRROR" ? "MIRROR" : "INTELLIGENCE",
           internalAudit: body.excelData?.internalAudit ? JSON.stringify(body.excelData.internalAudit) : undefined,

@@ -39,6 +39,7 @@ enum ProposalStatus {
 model Workspace {
   id              String     @id @default(cuid())
   name            String
+  clientLogo      String?    // New field for brand thumbnail
   aiWorkspaceSlug String?
   proposals       Proposal[]
   users           User[]
@@ -68,6 +69,7 @@ model Proposal {
   id                    String              @id @default(cuid())
   workspaceId          String
   clientName           String
+  clientLogo           String?             // New field for brand thumbnail
   status               ProposalStatus      @default(DRAFT)
   calculationMode      CalculationMode     @default(INTELLIGENCE)
   internalAudit        String?

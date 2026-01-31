@@ -42,6 +42,7 @@ export async function GET(req: NextRequest) {
                 select: {
                     id: true,
                     clientName: true,
+                    clientLogo: true,
                     status: true,
                     calculationMode: true,
                     aiWorkspaceSlug: true,
