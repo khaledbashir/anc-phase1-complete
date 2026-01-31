@@ -167,20 +167,20 @@ export default function AiWand({ fieldName, searchQuery, targetFields }: AiWandP
                                         type="button"
                                         onClick={() => setSelectedCandidate(c.label)}
                                         className={cn(
-                                            "w-full text-left rounded-xl border px-4 py-3 transition-colors",
+                                            "w-full text-left rounded-xl border px-4 py-4 transition-colors",
                                             isSelected
                                                 ? "border-brand-blue/50 bg-brand-blue/10"
                                                 : "border-zinc-800 bg-zinc-950/30 hover:border-brand-blue/25"
                                         )}
                                     >
                                         <div className="flex items-start justify-between gap-3">
-                                            <div className="min-w-0">
-                                                <div className="font-semibold truncate text-white">{c.label}</div>
-                                                {hint ? <div className="text-[11px] text-zinc-300/70 truncate mt-1">{hint}</div> : null}
-                                                {c.notes ? <div className="text-[11px] text-zinc-500 truncate mt-1">{c.notes}</div> : null}
+                                            <div className="min-w-0 flex-1">
+                                                <div className="font-semibold text-sm text-white">{c.label}</div>
+                                                {hint ? <div className="text-xs text-zinc-300/70 mt-2 leading-relaxed break-words">{hint}</div> : null}
+                                                {c.notes ? <div className="text-xs text-zinc-500 mt-2">{c.notes}</div> : null}
                                             </div>
                                             <div className={cn(
-                                                "shrink-0 text-[10px] font-bold uppercase tracking-widest",
+                                                "shrink-0 text-[11px] font-bold uppercase tracking-widest ml-2",
                                                 isSelected ? "text-brand-blue" : "text-zinc-200/80"
                                             )}>
                                                 {conf}%
