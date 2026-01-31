@@ -153,7 +153,7 @@ export function requirePermission(role: UserRole, permission: Permission): void 
  * REQ-117: Outsiders cannot see financial data
  */
 export function sanitizeForRole<T extends Record<string, any>>(data: T, role: UserRole): T {
-  const sanitized = { ...data };
+  const sanitized: any = { ...data };
   
   // Outsiders: Strip ALL financial data
   if (role === "OUTSIDER") {
