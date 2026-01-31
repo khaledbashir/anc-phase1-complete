@@ -94,8 +94,8 @@ export async function POST(request: NextRequest) {
         const safeName = body.name.toLowerCase().replace(/[^a-z0-0]/g, '-').slice(0, 20);
         const uniqueSlug = `${safeName}-${workspace.id.slice(-6)}`;
 
-        // v1/workspace/new is the proven endpoint
-        const res = await fetch(`${ANYTHING_LLM_BASE_URL}/v1/workspace/new`, {
+        // v1/workspace/new endpoint (ANYTHING_LLM_BASE_URL already includes /api/v1)
+        const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/new`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -105,7 +105,14 @@ export async function POST(request: NextRequest) {
         });
 
         if (res.ok) {
-          const created = await res.json();
+          const text = await res.text();
+          let created: any;
+          try {
+            created = JSON.parse(text);
+          } catch (e) {
+            console.warn("AI Provisioning: Server returned non-JSON response:", text.slice(0, 100));
+            return;
+          }
           const slug = created?.workspace?.slug || created?.slug;
 
           if (slug) {
