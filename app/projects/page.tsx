@@ -101,7 +101,7 @@ export default function ProjectsPage() {
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto pt-12 pb-32 px-12">
+                <main className="flex-1 overflow-y-auto pt-12 pb-40 px-12">
                     <div className="max-w-7xl mx-auto space-y-12">
                         {/* Hero Section */}
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">

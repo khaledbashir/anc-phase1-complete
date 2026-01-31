@@ -81,11 +81,23 @@ export default function DashboardChat() {
 
             const data = await response.json();
 
+            let content = data.response || "No response received.";
+            let thinking = data.thinking || null;
+
+            // Robust frontend parsing for <think> tags if backend missed them
+            if (!thinking && content.includes("<think>")) {
+                const thinkMatch = content.match(/<think>([\s\S]*?)<\/think>/);
+                if (thinkMatch) {
+                    thinking = thinkMatch[1].trim();
+                    content = content.replace(/<think>[\s\S]*?<\/think>/, "").trim();
+                }
+            }
+
             setMessages(prev => [...prev, {
                 role: "assistant",
-                content: data.response || "No response received.",
+                content: content,
                 sources: data.sources || [],
-                thinking: data.thinking || null
+                thinking: thinking
             }]);
         } catch (error) {
             console.error("Chat error:", error);
