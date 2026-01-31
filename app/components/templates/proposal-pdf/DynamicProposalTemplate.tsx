@@ -28,7 +28,7 @@ const DynamicProposalTemplate = (props: ProposalType) => {
                     ssr: false,
                 }
             ),
-        [templateId]
+        [templateName]
     );
 
     return <DynamicProposal {...props} />;

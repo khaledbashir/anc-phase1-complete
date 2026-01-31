@@ -98,7 +98,7 @@ const Step4Export = () => {
             }
         }
         return issues;
-    }, [allScreensValid, effectiveExceptions.length, excelPreview, excelSourceData, hasOptionPlaceholder, internalAudit, reconciliation]);
+    }, [allScreensValid, effectiveExceptions, excelPreview, excelSourceData, hasOptionPlaceholder, internalAudit, reconciliation]);
 
     const isMirrorReadyToExport = mirrorBlockingIssues.length === 0;
     const isPdfPreviewBlocked = mirrorMode

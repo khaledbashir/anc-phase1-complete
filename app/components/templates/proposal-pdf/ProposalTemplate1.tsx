@@ -183,7 +183,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 							return (
 								<div className="flex justify-between items-center">
 									<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-500" style={{ fontFamily: "Work Sans, sans-serif" }}>
-										CITY B&O TAX ({(boTaxRate * 100).toFixed(1)}%):
+										B&O TAX (MORGANTOWN) ({(boTaxRate * 100).toFixed(1)}%):
 									</div>
 									<div className="text-[10px] font-bold text-zinc-700 min-w-[80px] text-right">
 										${formatNumberWithCommas(Math.round((subTotal + bondCost) * boTaxRate))}
