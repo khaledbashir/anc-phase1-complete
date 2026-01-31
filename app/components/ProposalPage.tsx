@@ -71,6 +71,7 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
       excelImportLoading={excelImportLoading}
       onImportExcel={importANCExcel}
       onExportPdf={() => handleSubmit(onFormSubmit)()}
+      projectId={projectId ?? undefined}
     />
   );
 

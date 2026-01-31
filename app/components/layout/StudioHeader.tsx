@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useWizard } from "react-use-wizard";
-import { Download, Share2, Upload, Loader2, CheckCircle2, FileSpreadsheet } from "lucide-react";
+import { Download, Share2, Upload, Loader2, CheckCircle2, FileSpreadsheet, Save, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
 import SaveIndicator from "@/app/components/reusables/SaveIndicator";
@@ -20,6 +20,8 @@ interface StudioHeaderProps {
     excelImportLoading: boolean;
     onImportExcel: (file: File) => void;
     onExportPdf: () => void;
+    /** When "new", show "Create project first" banner and Save Draft (creates project). */
+    projectId?: string;
 }
 
 export function StudioHeader({
@@ -28,10 +30,13 @@ export function StudioHeader({
     excelImportLoading,
     onImportExcel,
     onExportPdf,
+    projectId,
 }: StudioHeaderProps) {
     const wizard = useWizard();
     const { control, getValues } = useFormContext<ProposalType>();
-    const { excelValidationOk, exportAudit } = useProposalContext();
+    const { excelValidationOk, exportAudit, saveDraft } = useProposalContext();
+    const [savingDraft, setSavingDraft] = useState(false);
+    const isNewProject = !projectId || projectId === "new";
     
     // Watch form values for real-time gap analysis
     const formValues = useWatch({ control });
@@ -79,8 +84,42 @@ export function StudioHeader({
         }
     };
 
+    const handleSaveDraft = async () => {
+        setSavingDraft(true);
+        try {
+            const result = await saveDraft();
+            if (result.created && result.projectId) {
+                toast({ title: "Project created", description: "Redirecting to your saved project…" });
+                // Context already does router.push
+            } else if (result.error) {
+                toast({ title: "Save failed", description: result.error, variant: "destructive" });
+            }
+            // When created: false and no error, context already toasts "modified"
+        } finally {
+            setSavingDraft(false);
+        }
+    };
+
     return (
-        <div className="h-full w-full flex items-center justify-between px-4 md:px-8 gap-4">
+        <div className="h-full w-full flex flex-col">
+            {isNewProject && (
+                <div className="flex items-center justify-between gap-4 px-4 md:px-8 py-2 bg-amber-500/10 border-b border-amber-500/20 text-amber-200/90">
+                    <div className="flex items-center gap-2 text-sm">
+                        <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+                        <span>You&apos;re in draft mode. Create a project to save to the database, or use <strong>Save Draft</strong> below.</span>
+                    </div>
+                    <Button
+                        size="sm"
+                        onClick={handleSaveDraft}
+                        disabled={savingDraft}
+                        className="bg-[#0A52EF] hover:bg-[#0A52EF]/90 text-white shrink-0"
+                    >
+                        {savingDraft ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <Save className="w-3.5 h-3.5 mr-2" />}
+                        Save Draft
+                    </Button>
+                </div>
+            )}
+            <div className="h-full w-full flex items-center justify-between px-4 md:px-8 gap-4 flex-1">
             {/* Logo & Health Score */}
             <div className="flex items-center shrink-0 gap-4 flex-1">
                 <LogoSelector theme="dark" width={110} height={40} className="p-0" />
@@ -113,6 +152,19 @@ export function StudioHeader({
                     lastSavedAt={initialData?.lastSavedAt ? new Date(initialData.lastSavedAt) : undefined}
                 />
 
+                {!isNewProject && (
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-[#0A52EF]/40 text-[#0A52EF] hover:bg-[#0A52EF]/10 font-bold uppercase tracking-widest text-[10px] px-3 h-7"
+                        onClick={handleSaveDraft}
+                        disabled={savingDraft}
+                    >
+                        {savingDraft ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <Save className="w-3.5 h-3.5 mr-2" />}
+                        Save Draft
+                    </Button>
+                )}
+
                 <div className="h-8 w-px bg-zinc-800 mx-2 hidden sm:block" />
 
                 <div className="flex items-center gap-1 bg-zinc-900/50 border border-zinc-800 p-1 rounded-lg">
@@ -138,6 +190,7 @@ export function StudioHeader({
                         Audit
                     </Button>
                 </div>
+            </div>
             </div>
         </div>
     );
