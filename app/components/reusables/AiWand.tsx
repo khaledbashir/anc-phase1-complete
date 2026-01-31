@@ -130,7 +130,7 @@ export default function AiWand({ fieldName, searchQuery, targetFields }: AiWandP
                     e.stopPropagation();
                     handleEnrich();
                 }}
-                className="h-8 w-8 text-blue-400 hover:text-blue-300 hover:bg-blue-900/20 active:scale-95 transition-all"
+                className="h-8 w-8 text-[#0A52EF] hover:text-[#0A52EF]/70 hover:bg-blue-900/20 active:scale-95 transition-all"
                 title="Auto-fill details via AI Search"
             >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin text-zinc-500" /> : <Wand2 className="h-4 w-4" />}

@@ -43,9 +43,9 @@ const CalculationModePathCards = ({ className }: CalculationModePathCardsProps) 
       description: "Activate full commercial optimization with automatic margin calculations, profitability analysis, and intelligent pricing recommendations.",
       icon: Brain,
       color: "blue",
-      gradient: "from-blue-600/20 to-purple-600/20",
-      iconColor: "text-blue-500",
-      borderColor: "border-blue-500/50",
+      gradient: "from-[#0A52EF]/20 to-purple-600/20",
+      iconColor: "text-[#0A52EF]",
+      borderColor: "border-[#0A52EF]/50",
       buttonLabel: "Define Specs",
       workflow: ["Define Specs", "Optimize Pricing", "Generate LOI"]
     },

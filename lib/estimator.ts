@@ -434,7 +434,12 @@ export function calculatePerScreenAudit(
     : 0;
   const boTaxCost = roundToCents(sellPrice.plus(bondCost).times(boTaxRate));
 
-  const finalClientTotal = roundToCents(sellPrice.plus(bondCost).plus(boTaxCost));
+  // REQ-125: Sales Tax included in finalClientTotal per Master Truth mandate
+  // Financial Sequence: Selling Price + Bond + B&O Tax + Sales Tax = Final Total
+  const salesTaxRate = new Decimal(options?.taxRate ?? 0.095);
+  const taxableAmount = sellPrice.plus(bondCost).plus(boTaxCost);
+  const salesTaxCost = roundToCents(taxableAmount.times(salesTaxRate));
+  const finalClientTotal = roundToCents(taxableAmount.plus(salesTaxCost));
 
   // ANC Margin (Profit): Sell Price - Total Cost
   const ancMargin = roundToCents(sellPrice.minus(totalCost));
@@ -473,6 +478,8 @@ export function calculatePerScreenAudit(
       finalClientTotal: finalClientTotal.toNumber(),
       sellingPricePerSqFt: sellingPricePerSqFt.toNumber(),
       boTaxCost: boTaxCost.toNumber(),
+      salesTaxCost: salesTaxCost.toNumber(),
+      salesTaxRate: salesTaxRate.toNumber(),
     },
   };
 }
@@ -617,7 +624,11 @@ export function calculateProposalAudit(
       const sellPrice = roundToCents(newTotalCost.div(new Decimal(1).minus(desiredMargin)));
       const bondCost = roundToCents(sellPrice.times(bondPct));
       const boTaxCost = roundToCents(sellPrice.plus(bondCost).times(boTaxRate));
-      const finalClientTotal = roundToCents(sellPrice.plus(bondCost).plus(boTaxCost));
+      // REQ-125: Include Sales Tax in finalClientTotal
+      const salesTaxRate = new Decimal(options?.taxRate ?? 0.095);
+      const taxableAmount = sellPrice.plus(bondCost).plus(boTaxCost);
+      const salesTaxCost = roundToCents(taxableAmount.times(salesTaxRate));
+      const finalClientTotal = roundToCents(taxableAmount.plus(salesTaxCost));
       const ancMargin = roundToCents(sellPrice.minus(newTotalCost));
       const sellingPricePerSqFt = ps.areaSqFt > 0 ? roundToCents(finalClientTotal.div(ps.areaSqFt)) : new Decimal(0);
 

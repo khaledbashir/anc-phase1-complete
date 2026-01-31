@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
+import { isImmutable, isFinancialLocked, LOCKED_FINANCIAL_FIELDS } from "@/lib/proposal-lifecycle";
 
 const prisma = new PrismaClient();
 
@@ -49,6 +50,31 @@ export async function PATCH(
 ) {
     const { id } = await params;
     try {
+        // REQ-125: Immutability enforcement - check status before allowing edits
+        const existingProject = await prisma.proposal.findUnique({
+            where: { id },
+            select: { status: true, isLocked: true }
+        });
+
+        if (!existingProject) {
+            return NextResponse.json(
+                { error: "Project not found" },
+                { status: 404 }
+            );
+        }
+
+        // Block edits on SIGNED/CLOSED proposals (fully immutable)
+        if (isImmutable(existingProject.status as any) || existingProject.isLocked) {
+            return NextResponse.json(
+                { 
+                    error: `Proposal is ${existingProject.status} and cannot be edited. This version is a permanent contractual record.`,
+                    action: "clone",
+                    message: "To make changes, create a new version (clone) of this proposal."
+                },
+                { status: 403 }
+            );
+        }
+
         const body = await req.json();
         const { 
             clientName, 
@@ -64,6 +90,23 @@ export async function PATCH(
             totalSellingPrice, // NEW: For version history
             averageMargin // NEW: For version history
         } = body;
+
+        // REQ-125: Block financial field edits on APPROVED proposals
+        if (isFinancialLocked(existingProject.status as any)) {
+            const financialFieldsInRequest = Object.keys(body).filter(key => 
+                LOCKED_FINANCIAL_FIELDS.includes(key as any)
+            );
+            if (financialFieldsInRequest.length > 0) {
+                return NextResponse.json(
+                    { 
+                        error: `Proposal is APPROVED. Financial fields are locked: ${financialFieldsInRequest.join(', ')}`,
+                        lockedFields: financialFieldsInRequest,
+                        message: "Only cosmetic/branding changes are allowed on APPROVED proposals."
+                    },
+                    { status: 403 }
+                );
+            }
+        }
 
         const updateData: any = {};
 

@@ -28,7 +28,7 @@ const SignatureColorSelector = ({
                     style={{
                         backgroundColor: color.color,
                     }}
-                    className="flex justify-center items-center h-6 w-6 rounded-full border-2 hover:border-blue-700"
+                    className="flex justify-center items-center h-6 w-6 rounded-full border-2 hover:border-[#0A52EF]"
                     onClick={() => handleColorButtonClick(color.color)}
                 >
                     {selectedColor === color.color && (

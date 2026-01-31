@@ -69,13 +69,13 @@ const TemplateSelector = () => {
                             key={idx} 
                             className={`relative overflow-hidden transition-all duration-300 hover:shadow-lg ${
                                 formValues.details.pdfTemplate === template.id 
-                                    ? 'border-blue-500 ring-2 ring-blue-500/20' 
+                                    ? 'border-[#0A52EF] ring-2 ring-[#0A52EF]/20' 
                                     : 'border-zinc-800 hover:border-zinc-700'
                             }`}
                         >
                             {formValues.details.pdfTemplate === template.id && (
                                 <div className="absolute top-4 right-4 z-10">
-                                    <div className="flex items-center gap-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
+                                    <div className="flex items-center gap-2 bg-[#0A52EF] text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
                                         <Check className="w-4 h-4" />
                                         Selected
                                     </div>

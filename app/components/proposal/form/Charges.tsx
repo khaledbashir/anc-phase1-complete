@@ -47,7 +47,7 @@ const Charges = () => {
                     Total Amount
                 </span>
                 <div className="text-right">
-                    <p className="text-xl font-bold text-blue-600">
+                    <p className="text-xl font-bold text-[#0A52EF]">
                         {formatNumberWithCommas(totalAmount)} {currency}
                     </p>
                     {errors.details?.totalAmount?.message && (

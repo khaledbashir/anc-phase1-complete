@@ -158,7 +158,7 @@ export function CommanderChat() {
                             key={gap}
                             variant="outline"
                             size="sm"
-                            className="text-[10px] h-6 bg-blue-900/20 border-blue-800 text-blue-300 hover:bg-blue-800/40"
+                            className="text-[10px] h-6 bg-blue-900/20 border-blue-800 text-[#0A52EF]/70 hover:bg-blue-800/40"
                             onClick={() => setInput(`The ${gap} is `)}
                           >
                             Set {gap}

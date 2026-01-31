@@ -78,7 +78,7 @@ const ModeSwitchWarning = ({
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="bg-blue-600 text-white hover:bg-blue-700"
+            className="bg-[#0A52EF] text-white hover:bg-[#0A52EF]/90"
           >
             Confirm Switch
           </AlertDialogAction>

@@ -133,7 +133,7 @@ const SignatureModal = ({}: SignatureModalProps) => {
 
                         {signature && isDataUrl(signature) ? (
                             <Image
-                                className="border border-black rounded-md hover:border-blue-500 bg-white"
+                                className="border border-black rounded-md hover:border-[#0A52EF] bg-white"
                                 src={signature}
                                 width={300}
                                 height={155}
@@ -155,7 +155,7 @@ const SignatureModal = ({}: SignatureModalProps) => {
                                 style={{
                                     width: "300px",
                                 }}
-                                className="flex flex-col justify-center items-center h-[155px] rounded-md bg-gray-100 dark:bg-slate-800 border border-black dark:border-white hover:border-blue-500"
+                                className="flex flex-col justify-center items-center h-[155px] rounded-md bg-gray-100 dark:bg-slate-800 border border-black dark:border-white hover:border-[#0A52EF]"
                             >
                                 <FileSignature />
                                 <Label>

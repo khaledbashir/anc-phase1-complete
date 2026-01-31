@@ -39,7 +39,7 @@ export class RfpExtractionService {
          - "Active Area" or "Dimensions" (Width x Height) + citation
          - "Pixel Pitch" (e.g., 4mm, 6mm, 10mm) + citation
          - "Resolution" (if Dimensions are missing) + citation
-         - "Brightness/Nits" + citation
+         - "Brightness" (cd/m² rating) + citation
       3. IF "Section 11 06 60" is found, set "extractionAccuracy" to "High".
 
       CRITICAL: You must detect specific ANC "Ferrari Level" site rules:
@@ -47,7 +47,7 @@ export class RfpExtractionService {
       2. WTC LOCATION: Is this project at the World Trade Center (Complexity level 10)?
       3. SPARE PARTS: Is there a "Minimum 5% Spare Parts" requirement? (Mapped to includeSpareParts)
       4. REPLACEMENT: Is this a replacement project? (Mapped to isReplacement)
-      5. HDR/BRIGHTNESS: Extract required Nits (brightness) and HDR support from Section 11 63 10.
+      5. HDR/BRIGHTNESS: Extract required Brightness rating and HDR support from Section 11 63 10.
       6. STRUCTURAL (Thornton Tomasetti): Does the RFP include a structural report from "Thornton Tomasetti" or "TTE"? 
          If so, extract the Tonnage estimates:
          - Search for "reinforcing steel" tonnage (e.g., 17 tons).

@@ -21,6 +21,11 @@ const ProposalTemplate1 = (data: ProposalType) => {
 	const pricingType = (details as any).pricingType;
 	const docLabel = isLOI ? "SALES QUOTATION" : pricingType === "Hard Quoted" ? "SALES QUOTATION" : "BUDGET ESTIMATE";
 
+	// REQ-125: Context-bound tax/bond rates (not hardcoded)
+	const taxRate = (details as any)?.taxRateOverride ?? 0.095; // Default 9.5%
+	const bondRate = (details as any)?.bondRateOverride ?? 0.015; // Default 1.5%
+	const taxRatePercent = (taxRate * 100).toFixed(1);
+
 	// Dynamic Intro Text (SAAS Platform Directive)
 	const headerText = `This Sales Quotation will set forth the terms by which ${receiver?.name || 'Purchaser'} ("Purchaser") located at ${receiver?.address || '[Client Address]'} and ANC Sports Enterprises, LLC ("ANC") located at ${sender?.address || '2 Manhattanville Road, Suite 402, Purchase, NY 10577'} (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for ${details?.location || details?.proposalName || 'the project'}.`;
 
@@ -72,7 +77,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 			{/* HEADER TEXT */}
 			<div className='px-8 mb-8'>
-				<p className='text-zinc-600 text-[11px] leading-relaxed text-justify' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
+				<p className='text-zinc-600 text-[11px] leading-relaxed text-justify' style={{ fontFamily: "'Work Sans', sans-serif" }}>
 					{headerText}
 				</p>
 			</div>
@@ -87,7 +92,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				<div className="w-full">
 					{mainItems.map((item, index) => (
 						<div key={index} className='flex justify-between items-center py-2 px-2 odd:bg-white even:bg-zinc-50 border-b border-zinc-100'>
-							<div className='text-[10px] text-zinc-700 font-medium' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
+							<div className='text-[10px] text-zinc-700 font-medium' style={{ fontFamily: "'Work Sans', sans-serif" }}>
 								<div className="font-bold text-black uppercase">{item.name}</div>
 								<div className="text-zinc-500">{item.description}</div>
 							</div>
@@ -98,7 +103,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 					))}
 				</div>
 
-				{/* SUBTOTAL, TAX, TOTAL FOR MAIN ITEMS */}
+				{/* SUBTOTAL, TAX, TOTAL FOR MAIN ITEMS - REQ-125: Context-bound rates */}
 				<div className="mt-2 space-y-1">
 					<div className="flex justify-between items-center">
 						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-500" style={{ fontFamily: "Work Sans, sans-serif" }}>SUBTOTAL:</div>
@@ -107,15 +112,15 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						</div>
 					</div>
 					<div className="flex justify-between items-center">
-						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-400 italic" style={{ fontFamily: "Work Sans, sans-serif" }}>TAX (9.5%):</div>
+						<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-400 italic" style={{ fontFamily: "Work Sans, sans-serif" }}>TAX ({taxRatePercent}%):</div>
 						<div className="text-[10px] font-bold text-zinc-400 min-w-[80px] text-right">
-							${formatNumberWithCommas(Math.round(Number(details?.subTotal || 0) * 0.095))}
+							${formatNumberWithCommas(Math.round(Number(details?.subTotal || 0) * taxRate))}
 						</div>
 					</div>
 					<div className="flex justify-between items-center pt-1 border-t-2 border-black">
 						<div className="text-right w-full text-xs font-bold mr-4" style={{ fontFamily: "Work Sans, sans-serif" }}>PROJECT TOTAL:</div>
 						<div className="text-xs font-bold text-[#0A52EF] min-w-[80px] text-right">
-							${formatNumberWithCommas(Math.round(Number(details?.subTotal || 0) * 1.095))}
+							${formatNumberWithCommas(Math.round(Number(details?.subTotal || 0) * (1 + taxRate)))}
 						</div>
 					</div>
 				</div>
@@ -134,7 +139,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 							Based on screenshot "Year 3... Year 10" are rows. 
 							Assuming 'opt' might be a group. If it's a flat item, we just show it. */}
 						<div className='flex justify-between items-center py-1 px-2 bg-zinc-100'>
-							<div className='text-[10px] text-zinc-700 font-medium' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
+							<div className='text-[10px] text-zinc-700 font-medium' style={{ fontFamily: "'Work Sans', sans-serif" }}>
 								{opt.description || opt.name}
 							</div>
 							<div className='text-[10px] font-bold text-zinc-900'>
@@ -142,6 +147,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 							</div>
 						</div>
 					</div>
+					{/* REQ-125: Context-bound rates for options */}
 					<div className="mt-2 space-y-1">
 						<div className="flex justify-between items-center">
 							<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-500" style={{ fontFamily: "Work Sans, sans-serif" }}>SUBTOTAL:</div>
@@ -150,15 +156,15 @@ const ProposalTemplate1 = (data: ProposalType) => {
 							</div>
 						</div>
 						<div className="flex justify-between items-center">
-							<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-400 italic" style={{ fontFamily: "Work Sans, sans-serif" }}>TAX (9.5%):</div>
+							<div className="text-right w-full text-[10px] font-bold mr-4 text-zinc-400 italic" style={{ fontFamily: "Work Sans, sans-serif" }}>TAX ({taxRatePercent}%):</div>
 							<div className="text-[10px] font-bold text-zinc-400 min-w-[80px] text-right">
-								${formatNumberWithCommas(Math.round(opt.total * 0.095))}
+								${formatNumberWithCommas(Math.round(opt.total * taxRate))}
 							</div>
 						</div>
 						<div className="flex justify-between items-center pt-1 border-t-2 border-black">
 							<div className="text-right w-full text-xs font-bold mr-4" style={{ fontFamily: "Work Sans, sans-serif" }}>OPTION TOTAL:</div>
 							<div className="text-xs font-bold text-[#0A52EF] min-w-[80px] text-right">
-								${formatNumberWithCommas(Math.round(opt.total * 1.095))}
+								${formatNumberWithCommas(Math.round(opt.total * (1 + taxRate)))}
 							</div>
 						</div>
 					</div>
@@ -169,11 +175,11 @@ const ProposalTemplate1 = (data: ProposalType) => {
 			<div className='px-8 mb-12'>
 				<h4 className='text-xs font-bold text-black mb-2' style={{ fontFamily: "Work Sans, sans-serif" }}>Payment Terms:</h4>
 				<ul className='list-disc pl-4 space-y-1'>
-					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>50% on Deposit</li>
-					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>40% on Mobilization</li>
-					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>10% on Substantial Completion</li>
+					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "'Work Sans', sans-serif" }}>50% on Deposit</li>
+					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "'Work Sans', sans-serif" }}>40% on Mobilization</li>
+					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "'Work Sans', sans-serif" }}>10% on Substantial Completion</li>
 				</ul>
-				<p className="text-[10px] text-zinc-600 mt-4 leading-relaxed text-justify" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>
+				<p className="text-[10px] text-zinc-600 mt-4 leading-relaxed text-justify" style={{ fontFamily: "'Work Sans', sans-serif" }}>
 					Please sign below to indicate Purchaser’s agreement to purchase the Display System as described herein and to authorize ANC to commence production.
 					<br /><br />
 					If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Additional sales tax will be included in ANC’s proposal. Payment is due within thirty (30) days of ANC’s proposal(s).
@@ -194,33 +200,33 @@ const ProposalTemplate1 = (data: ProposalType) => {
 								<h4 className="text-xs font-bold mb-1" style={{ fontFamily: "Work Sans, sans-serif" }}>{screen.name}</h4>
 								<div className="w-full border-t border-black">
 									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>MM Pitch</span>
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "'Work Sans', sans-serif" }}>MM Pitch</span>
 										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pitchMm || screen.pixelPitch || 0}mm</span>
 									</div>
 									{screen.brightness && (
 										<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
-											<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Brightness</span>
+											<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "'Work Sans', sans-serif" }}>Brightness</span>
 											<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.brightness}</span>
 										</div>
 									)}
 									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Quantity</span>
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "'Work Sans', sans-serif" }}>Quantity</span>
 										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.quantity || 1}</span>
 									</div>
 									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Active Display Height (ft.)</span>
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "'Work Sans', sans-serif" }}>Active Display Height (ft.)</span>
 										<span className="text-[9px] pr-2 text-right min-w-[100px]">{Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'</span>
 									</div>
 									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-zinc-200">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Active Display Width (ft.)</span>
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "'Work Sans', sans-serif" }}>Active Display Width (ft.)</span>
 										<span className="text-[9px] pr-2 text-right min-w-[100px]">{Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'</span>
 									</div>
 									<div className="flex justify-between items-center py-1 border-b border-zinc-200">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Pixel Resolution (H)</span>
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "'Work Sans', sans-serif" }}>Pixel Resolution (H)</span>
 										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</span>
 									</div>
 									<div className="flex justify-between items-center py-1 bg-zinc-100 border-b border-black">
-										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "Helvetica Condensed, sans-serif" }}>Pixel Resolution (W)</span>
+										<span className="text-[9px] font-bold pl-2" style={{ fontFamily: "'Work Sans', sans-serif" }}>Pixel Resolution (W)</span>
 										<span className="text-[9px] pr-2 text-right min-w-[100px]">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</span>
 									</div>
 								</div>
@@ -242,7 +248,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 						{generateSOWContent(details.additionalNotes).map((section: any, idx: number) => (
 							<div key={idx} className="break-inside-avoid">
 								<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>{section.title}</h4>
-								<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
+								<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "'Work Sans', sans-serif" }}>
 									{section.content}
 								</div>
 							</div>
@@ -250,7 +256,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 						<div className="break-inside-avoid">
 							<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>ELECTRICAL & DATA INSTALLATION</h4>
-							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
+							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "'Work Sans', sans-serif" }}>
 								ANC assumes primary power feed will be provided by others or is existing, within 5' of the display location with sufficient amps for ANC proposed display(s); typically 208v 3-phase.
 								<br />
 								ANC assumes all secondary power distribution, which may include breaker panels, disconnects, pathway, etc. may be included in this ROM Estimate.
@@ -261,7 +267,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 						<div className="break-inside-avoid">
 							<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>CONTROL SYSTEM</h4>
-							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
+							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "'Work Sans', sans-serif" }}>
 								ANC has provided display processors only. Content creation studio and content delivery system is not included at this time.
 								<br />
 								ANC will provide appropriate on-site operation and Maintenance Training.
@@ -270,7 +276,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 
 						<div className="break-inside-avoid">
 							<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>GENERAL CONDITIONS</h4>
-							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "Helvetica Condensed, Arial, sans-serif" }}>
+							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "'Work Sans', sans-serif" }}>
 								ANC has provided a parts only warranty, excluding on-site labor, on all products consistent with the factory supplier and/or 3rd party vendor. Warranty Terms and Conditions to be defined.
 								<br />
 								ANC has not included bonding of any kind.

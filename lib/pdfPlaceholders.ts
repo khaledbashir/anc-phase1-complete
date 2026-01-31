@@ -11,6 +11,12 @@ export const PDF_PLACEHOLDERS = {
     TOTAL_PRICE: "[TOTAL PRICE]",
     LOCATION: "[LOCATION]",
     DESCRIPTION: "[PROJECT DESCRIPTION]",
+    // REQ-125: Financial placeholders for zero values
+    SUBTOTAL: "[SUBTOTAL]",
+    BOND_AMOUNT: "[BOND AMOUNT]",
+    TAX_AMOUNT: "[TAX AMOUNT]",
+    LINE_ITEM_PRICE: "[PRICE]",
+    SCREEN_TOTAL: "[SCREEN TOTAL]",
 };
 
 /**

@@ -72,7 +72,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
         <div className="col-span-1 text-right text-indigo-400">Hardware</div>
         <div className="col-span-1 text-right text-indigo-400">Services</div>
         <div className="col-span-1 text-right text-red-400">Total Cost</div>
-        <div className="col-span-1 text-right text-blue-400">Sell Price</div>
+        <div className="col-span-1 text-right text-[#0A52EF]">Sell Price</div>
         <div className="col-span-1 text-right text-yellow-500">Bond ({bondRateOverride}%)</div>
         <div className="col-span-1 text-right text-green-500">Margin $</div>
         <div className="col-span-1 text-right text-green-500">Margin %</div>
@@ -104,7 +104,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
               <div className="col-span-1 text-right text-indigo-300/80">{formatCurrency(calc.hardware)}</div>
               <div className="col-span-1 text-right text-indigo-300/80">{formatCurrency(calc.services)}</div>
               <div className="col-span-1 text-right text-red-300/80">{formatCurrency(calc.totalCost)}</div>
-              <div className="col-span-1 text-right text-blue-300 font-bold">{formatCurrency(calc.sellPrice)}</div>
+              <div className="col-span-1 text-right text-[#0A52EF]/70 font-bold">{formatCurrency(calc.sellPrice)}</div>
               <div className="col-span-1 text-right text-yellow-600/80">{formatCurrency(calc.bondCost)}</div>
               <div className="col-span-1 text-right text-green-400/80">{formatCurrency(calc.ancMargin)}</div>
               <div className={`col-span-1 text-right font-bold ${calc.marginPct < 20 ? 'text-red-500' : 'text-green-500'}`}>
@@ -124,7 +124,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
         <div className="col-span-1 text-right text-indigo-400">{formatCurrency(dynamicTotals.hardware)}</div>
         <div className="col-span-1 text-right text-indigo-400">{formatCurrency(dynamicTotals.services)}</div>
         <div className="col-span-1 text-right text-red-400">{formatCurrency(dynamicTotals.totalCost)}</div>
-        <div className="col-span-1 text-right text-blue-400">{formatCurrency(dynamicTotals.sellPrice)}</div>
+        <div className="col-span-1 text-right text-[#0A52EF]">{formatCurrency(dynamicTotals.sellPrice)}</div>
         <div className="col-span-1 text-right text-yellow-500">{formatCurrency(dynamicTotals.bondCost)}</div>
         <div className="col-span-1 text-right text-green-500">{formatCurrency(dynamicTotals.ancMargin)}</div>
         <div className="col-span-1 text-right text-green-500">

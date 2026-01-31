@@ -85,7 +85,7 @@ const SavedProposalsList = ({ setModalState }: SavedProposalsListProps) => {
                 {savedProposals.map((proposal, idx) => (
                     <Card
                         key={idx}
-                        className="p-2 border rounded-sm hover:border-blue-500 hover:shadow-lg cursor-pointer"
+                        className="p-2 border rounded-sm hover:border-[#0A52EF] hover:shadow-lg cursor-pointer"
                     // onClick={() => handleSelect(proposal)}
                     >
                         <CardContent className="flex justify-between">

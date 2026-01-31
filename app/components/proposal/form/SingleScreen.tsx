@@ -156,7 +156,7 @@ const SingleScreen = ({
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-600 text-[10px] font-medium rounded-full flex items-center gap-1 cursor-help">
+                                    <span className="px-2 py-0.5 bg-[#0A52EF]/10 text-[#0A52EF] text-[10px] font-medium rounded-full flex items-center gap-1 cursor-help">
                                         <CheckCircle2 className="w-3 h-3" />
                                         AI
                                     </span>
@@ -177,7 +177,7 @@ const SingleScreen = ({
                 <div className="flex items-center gap-4">
                     {/* Price Preview */}
                     <div className="text-right">
-                        <p className="text-base font-semibold text-blue-500">
+                        <p className="text-base font-semibold text-[#0A52EF]">
                             {finalClientTotal > 0
                                 ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(formatCurrencyPDF(finalClientTotal))
                                 : "$0"
@@ -258,8 +258,8 @@ const SingleScreen = ({
                             <select
                                 {...register(`${name}[${index}].serviceType`)}
                                 className={cn(
-                                    "h-9 px-3 text-sm border rounded-md bg-zinc-950 w-full focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all",
-                                    aiFields?.includes(`${name}[${index}].serviceType`) ? "border-blue-500 ring-1 ring-blue-500" : "border-zinc-700"
+                                    "h-9 px-3 text-sm border rounded-md bg-zinc-950 w-full focus:ring-1 focus:ring-[#0A52EF] focus:outline-none transition-all",
+                                    aiFields?.includes(`${name}[${index}].serviceType`) ? "border-[#0A52EF] ring-1 ring-[#0A52EF]" : "border-zinc-700"
                                 )}
                             >
                                 <option value="Front/Rear">Front/Rear (Scoreboard)</option>
@@ -272,8 +272,8 @@ const SingleScreen = ({
                             <select
                                 {...register(`${name}[${index}].formFactor`)}
                                 className={cn(
-                                    "h-9 px-3 text-sm border rounded-md bg-zinc-950 w-full focus:ring-1 focus:ring-blue-500 focus:outline-none transition-all",
-                                    aiFields?.includes(`${name}[${index}].formFactor`) ? "border-blue-500 ring-1 ring-blue-500" : "border-zinc-700"
+                                    "h-9 px-3 text-sm border rounded-md bg-zinc-950 w-full focus:ring-1 focus:ring-[#0A52EF] focus:outline-none transition-all",
+                                    aiFields?.includes(`${name}[${index}].formFactor`) ? "border-[#0A52EF] ring-1 ring-[#0A52EF]" : "border-zinc-700"
                                 )}
                             >
                                 <option value="Straight">Straight</option>
@@ -333,7 +333,7 @@ const SingleScreen = ({
                                         <Label className="text-[11px] text-zinc-500 font-medium flex items-center gap-1 cursor-help">
                                             <Zap className="w-3 h-3 text-yellow-500" />
                                             Desired Margin
-                                            <Info className="w-3 h-3 text-zinc-600 hover:text-blue-500 transition-colors" />
+                                            <Info className="w-3 h-3 text-zinc-600 hover:text-[#0A52EF] transition-colors" />
                                         </Label>
                                     </TooltipTrigger>
                                     <TooltipContent
@@ -348,7 +348,7 @@ const SingleScreen = ({
                             </TooltipProvider>
                             <span className={cn(
                                 "text-sm font-semibold",
-                                hasLowMargin ? "text-yellow-600" : "text-blue-500"
+                                hasLowMargin ? "text-yellow-600" : "text-[#0A52EF]"
                             )}>
                                 {(desiredMargin * 100 || 0).toFixed(0)}%
                             </span>
@@ -362,7 +362,7 @@ const SingleScreen = ({
                                 valueAsNumber: true,
                                 onChange: (e) => setValue(`${name}[${index}].desiredMargin`, parseFloat(e.target.value))
                             })}
-                            className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                            className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-[#0A52EF]"
                         />
                         <p className="text-[10px] text-zinc-500">
                             Adjust margin to see real-time price impact
@@ -430,7 +430,7 @@ const SingleScreen = ({
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-zinc-400">Price/SqFt:</span>
-                            <span className="font-medium text-blue-400">
+                            <span className="font-medium text-[#0A52EF]">
                                 {sellingPricePerSqFt > 0
                                     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(sellingPricePerSqFt)
                                     : "$0.00"

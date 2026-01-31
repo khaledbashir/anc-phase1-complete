@@ -99,7 +99,7 @@ const SingleItem = ({
     };
 
     const boxDragClasses = isDragging
-        ? "border-2 bg-gray-200 border-blue-600 dark:bg-slate-900 z-10"
+        ? "border-2 bg-gray-200 border-[#0A52EF] dark:bg-slate-900 z-10"
         : "border";
 
     const gripDragClasses = isDragging
@@ -112,7 +112,7 @@ const SingleItem = ({
             {...attributes}
             className={`${boxDragClasses} group flex flex-col gap-y-5 p-3 my-2 cursor-default rounded-xl bg-gray-50 dark:bg-slate-800 dark:border-gray-600`}
         >
-            {/* {isDragging && <div className="bg-blue-600 h-1 rounded-full"></div>} */}
+            {/* {isDragging && <div className="bg-[#0A52EF] h-1 rounded-full"></div>} */}
             <div className="flex flex-wrap justify-between">
                 {itemName != "" ? (
                     <p className="font-medium">
@@ -129,7 +129,7 @@ const SingleItem = ({
                         ref={setNodeRef}
                         {...listeners}
                     >
-                        <GripVertical className="hover:text-blue-600" />
+                        <GripVertical className="hover:text-[#0A52EF]" />
                     </div>
 
                     {/* Up Button */}

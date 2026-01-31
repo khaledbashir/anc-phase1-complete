@@ -162,9 +162,9 @@ const RfpSidebar = () => {
                 <label className="cursor-pointer group">
                     <input type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleFileUpload} disabled={isUploading} />
                     {isUploading ? (
-                        <Loader2 className="w-3.5 h-3.5 text-blue-500 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 text-[#0A52EF] animate-spin" />
                     ) : (
-                        <div className="flex items-center gap-1 text-[10px] font-bold text-blue-500 hover:text-blue-400 transition-colors">
+                        <div className="flex items-center gap-1 text-[10px] font-bold text-[#0A52EF] hover:text-[#0A52EF] transition-colors">
                             <Upload className="w-3 h-3" />
                             {rfpDocumentUrl ? "REPLACE" : "UPLOAD"}
                         </div>
@@ -200,7 +200,7 @@ const RfpSidebar = () => {
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-2 flex-1 min-w-0"
                                 >
-                                    <FileText className="w-3 h-3 text-zinc-500 group-hover:text-blue-400 shrink-0" />
+                                    <FileText className="w-3 h-3 text-zinc-500 group-hover:text-[#0A52EF] shrink-0" />
                                     <span className="text-xs text-zinc-300 truncate" title={doc.name}>{doc.name}</span>
                                 </a>
                                 <span className="text-[9px] text-zinc-600 shrink-0 group-hover:hidden">{new Date(doc.createdAt).toLocaleDateString()}</span>
@@ -230,7 +230,7 @@ const RfpSidebar = () => {
                 {aiMessages.length === 0 && (
                     <div className="text-center py-10 space-y-4">
                         <div className="bg-blue-100 dark:bg-blue-900/30 w-12 h-12 rounded-full flex items-center justify-center mx-auto">
-                            <MessageSquare className="w-6 h-6 text-blue-600" />
+                            <MessageSquare className="w-6 h-6 text-[#0A52EF]" />
                         </div>
                         <div className="space-y-1">
                             <p className="font-bold text-zinc-900 dark:text-zinc-100 text-sm">ANC Document Brain</p>
@@ -265,7 +265,7 @@ const RfpSidebar = () => {
                         <div className={cn(
                             "px-3 py-2 rounded-2xl text-xs leading-relaxed",
                             m.role === "user"
-                                ? "bg-blue-600 text-white rounded-tr-none"
+                                ? "bg-[#0A52EF] text-white rounded-tr-none"
                                 : "bg-zinc-100 dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-800 rounded-tl-none"
                         )}>
                             {m.content}
@@ -295,7 +295,7 @@ const RfpSidebar = () => {
                                 key={i}
                                 onClick={() => handleSendMessage(qp.prompt)}
                                 disabled={aiLoading || !aiWorkspaceSlug}
-                                className="text-[10px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1.5 rounded-lg hover:border-blue-500 hover:text-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-zinc-700 dark:text-zinc-300 shadow-sm"
+                                className="text-[10px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1.5 rounded-lg hover:border-[#0A52EF] hover:text-[#0A52EF] transition-all disabled:opacity-50 disabled:cursor-not-allowed text-zinc-700 dark:text-zinc-300 shadow-sm"
                             >
                                 {qp.label}
                             </button>
@@ -311,12 +311,12 @@ const RfpSidebar = () => {
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
                         placeholder="Ask ANC Intelligence..."
-                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none pr-10 shadow-sm"
+                        className="w-full bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-[#0A52EF] focus:outline-none pr-10 shadow-sm"
                     />
                     <button
                         onClick={() => handleSendMessage()}
                         disabled={aiLoading || !input.trim() || !aiWorkspaceSlug}
-                        className="absolute right-2 top-2 p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all disabled:opacity-30"
+                        className="absolute right-2 top-2 p-1.5 text-[#0A52EF] hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all disabled:opacity-30"
                     >
                         <Send className="w-4 h-4" />
                     </button>

@@ -42,7 +42,7 @@ const FormInput = ({
     const ghostClasses = isGhostActive 
         ? "border-[#0A52EF] ring-2 ring-[#0A52EF] ring-offset-2 ring-offset-zinc-950 shadow-[0_0_25px_rgba(10,82,239,0.6)] bg-[#0A52EF]/10 animate-pulse"
         : isAiFilled 
-            ? "border-blue-500/50 ring-1 ring-blue-500/30" 
+            ? "border-[#0A52EF]/50 ring-1 ring-[#0A52EF]/30" 
             : "";
 
     const verticalInput = (

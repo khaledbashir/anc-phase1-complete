@@ -89,7 +89,7 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
           ) : (
             <div className="flex flex-col items-center justify-center gap-4 py-8">
               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 3 }} className="w-12 h-12 rounded-full bg-zinc-900/40 flex items-center justify-center border border-zinc-800">
-                <div className="w-6 h-6 rounded-full bg-blue-500" />
+                <div className="w-6 h-6 rounded-full bg-[#0A52EF]" />
               </motion.div>
               <div className="text-center">
                 <div className="text-zinc-200 font-medium">{steps[step]}</div>

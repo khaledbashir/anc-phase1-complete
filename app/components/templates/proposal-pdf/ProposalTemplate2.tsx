@@ -59,7 +59,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     // Helper for Section Title
     const SectionHeader = ({ title }: { title: string }) => (
         <div className="text-center mb-6 mt-8">
-            <h2 className="text-xl font-medium tracking-[0.2em] text-gray-500 uppercase" style={{ fontFamily: "'Helvetica Condensed', sans-serif" }}>{title}</h2>
+            <h2 className="text-xl font-medium tracking-[0.2em] text-gray-500 uppercase" style={{ fontFamily: "'Work Sans', sans-serif" }}>{title}</h2>
         </div>
     );
 
@@ -413,7 +413,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
                 {/* REQ-112: Signature Block as Absolute Final Element - No content renders below this point */}
                 <div className="mt-12 break-inside-avoid">
-                    <p className="text-[10px] text-gray-600 leading-relaxed text-justify mb-10" style={{ fontFamily: "'Helvetica Condensed', sans-serif" }}>
+                    <p className="text-[10px] text-gray-600 leading-relaxed text-justify mb-10" style={{ fontFamily: "'Work Sans', sans-serif" }}>
                         Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.
                         <br /><br />
                         If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties.

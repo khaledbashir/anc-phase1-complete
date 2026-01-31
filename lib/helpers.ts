@@ -23,7 +23,33 @@ const formatNumberWithCommas = (number: number) => {
     });
 };
 
-export const formatCurrency = (amount: number) => {
+/**
+ * REQ-125: Format currency with professional placeholder for zero/undefined values
+ * @param amount - The amount to format
+ * @param placeholder - Optional placeholder for zero values (defaults to formatted $0.00)
+ * @returns Formatted currency string or placeholder
+ */
+export const formatCurrency = (amount: number | undefined | null, placeholder?: string) => {
+    // REQ-125: Return placeholder for zero/undefined values in PDF context
+    if (amount === undefined || amount === null || amount === 0) {
+        // If a placeholder is provided, use it; otherwise return formatted zero
+        // This allows callers to opt-in to placeholder behavior
+        if (placeholder) return placeholder;
+    }
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+    }).format(amount || 0);
+};
+
+/**
+ * REQ-125: Format currency for PDF - always uses placeholder for zero values
+ * Use this in PDF templates to ensure professional appearance
+ */
+export const formatCurrencyForPdf = (amount: number | undefined | null, placeholderText = "[PRICE]") => {
+    if (amount === undefined || amount === null || amount === 0) {
+        return placeholderText;
+    }
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD',

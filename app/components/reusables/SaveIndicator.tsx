@@ -39,7 +39,7 @@ export function SaveIndicator({ status, lastSavedAt, className = "" }: SaveIndic
             )}
 
             {displayStatus === "saving" && (
-                <span className="flex items-center gap-1.5 text-blue-500">
+                <span className="flex items-center gap-1.5 text-[#0A52EF]">
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     <span>Saving...</span>
                 </span>

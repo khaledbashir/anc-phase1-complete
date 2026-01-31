@@ -123,7 +123,7 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
           <p className="text-xs text-zinc-500">Real-time margin verification and profitability analysis.</p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
-          <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/10 font-semibold px-2 py-0.5 rounded">17/20 Strategic Match</Badge>
+          <Badge className="bg-[#0A52EF]/10 text-[#0A52EF] border-[#0A52EF]/10 font-semibold px-2 py-0.5 rounded">17/20 Strategic Match</Badge>
           <span className="text-[10px] text-zinc-500 font-medium">Natalia Math Engine Active</span>
         </div>
       </div>

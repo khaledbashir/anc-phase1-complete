@@ -96,7 +96,7 @@ const FormFile = ({ name, label, placeholder }: FormFileProps) => {
                             >
                                 <Label
                                     htmlFor={name}
-                                    className="flex justify-center items-center h-[7rem] w-[10rem] cursor-pointer rounded-md bg-gray-100 dark:bg-slate-800 border border-black dark:border-white hover:border-blue-500"
+                                    className="flex justify-center items-center h-[7rem] w-[10rem] cursor-pointer rounded-md bg-gray-100 dark:bg-slate-800 border border-black dark:border-white hover:border-[#0A52EF]"
                                 >
                                     <>
                                         <div className="flex flex-col items-center">

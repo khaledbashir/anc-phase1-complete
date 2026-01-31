@@ -123,7 +123,7 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
                     <span className="text-sm font-medium text-zinc-200">
                         ANC Intelligence Engine
                     </span>
-                    <span className="px-2 py-0.5 bg-blue-600/20 text-blue-400 text-[10px] font-medium rounded-full">
+                    <span className="px-2 py-0.5 bg-[#0A52EF]/20 text-[#0A52EF] text-[10px] font-medium rounded-full">
                         Active
                     </span>
 

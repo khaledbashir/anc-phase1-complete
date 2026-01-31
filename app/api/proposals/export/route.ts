@@ -2,18 +2,70 @@ import { NextRequest, NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 import { Builder as XMLBuilder } from "xml2js";
 
+// REQ-125: Sanitization Denylist - fields that must NEVER appear in client exports
+const SANITIZATION_DENYLIST = [
+  'internalAudit',
+  'cost',
+  'margin',
+  'desiredMargin',
+  'ancMargin',
+  'marginAmount',
+  'totalCost',
+  'hardwareCost',
+  'laborCost',
+  'structureCost',
+  'installCost',
+  'shippingCost',
+  'costPerSqFt',
+  'ledCostPerSqFt',
+  'structuralTonnage',
+  'reinforcingTonnage',
+  'bondRateOverride',
+  'taxRateOverride',
+];
+
+// Deep clone and sanitize data for client-facing exports
+function sanitizeForExport(data: any): any {
+  // Deep clone to avoid mutating original
+  const clone = JSON.parse(JSON.stringify(data));
+  
+  // Recursively remove denylist fields
+  function stripFields(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map(stripFields);
+    }
+    if (obj && typeof obj === 'object') {
+      const sanitized: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (!SANITIZATION_DENYLIST.includes(key)) {
+          sanitized[key] = stripFields(value);
+        }
+      }
+      return sanitized;
+    }
+    return obj;
+  }
+  
+  return stripFields(clone);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const format = (url.searchParams.get("format") || "JSON").toUpperCase();
+    // REQ-125: Check if this is an internal (admin/finance) export
+    const isInternalExport = url.searchParams.get("internal") === "true";
     const body = await req.json();
 
+    // REQ-125: Sanitize data unless explicitly marked as internal export
+    const sanitizedBody = isInternalExport ? body : sanitizeForExport(body);
+
     // Basic normalization: include details and items
-    const details = body.details || {};
+    const details = sanitizedBody.details || {};
     const items = details.items || [];
 
     if (format === "JSON") {
-      return NextResponse.json(body, { status: 200 });
+      return NextResponse.json(sanitizedBody, { status: 200 });
     }
 
     if (format === "CSV") {
