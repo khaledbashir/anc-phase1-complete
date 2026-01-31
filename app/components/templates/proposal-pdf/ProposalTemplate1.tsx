@@ -230,60 +230,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 				</div>
 			</div>
 
-			{/* SIGNATURES - MOVED TO END */}
-			<div className="break-before-page px-8 pt-8 mb-8">
-				<h4 className='text-xs font-bold text-black mb-6' style={{ fontFamily: "Work Sans, sans-serif" }}>Agreed To And Accepted:</h4>
-
-				<div className="grid grid-cols-2 gap-16">
-					{/* ANC */}
-					<div>
-						<h5 className="text-[10px] text-zinc-500 mb-4 font-bold">ANC Sports Enterprises, LLC ("ANC")</h5>
-						<p className="text-[9px] text-zinc-400 mb-8">
-							2 Manhattanville Road, Suite 402<br />
-							Purchase, NY 10577
-						</p>
-						<div className="space-y-6">
-							<div className="flex items-end gap-2 border-b border-black pb-1">
-								<span className="text-[10px] font-bold w-8">By:</span>
-								<span className="flex-1"></span>
-							</div>
-							<div className="flex items-end gap-2 border-b border-black pb-1">
-								<span className="text-[10px] font-bold w-8">Title:</span>
-								<span className="flex-1"></span>
-							</div>
-							<div className="flex items-end gap-2 border-b border-black pb-1">
-								<span className="text-[10px] font-bold w-8">Date:</span>
-								<span className="flex-1"></span>
-							</div>
-						</div>
-					</div>
-
-					{/* CLIENT */}
-					<div>
-						<h5 className="text-[10px] text-zinc-500 mb-4 font-bold">{receiver?.name || 'Purchaser'} ("Purchaser")</h5>
-						<p className="text-[9px] text-zinc-400 mb-8">
-							{receiver?.address || 'Address Line 1'}<br />
-							{receiver?.city || 'City'}, {receiver?.zipCode || 'Zip'}
-						</p>
-						<div className="space-y-6">
-							<div className="flex items-end gap-2 border-b border-black pb-1">
-								<span className="text-[10px] font-bold w-8">By:</span>
-								<span className="flex-1"></span>
-							</div>
-							<div className="flex items-end gap-2 border-b border-black pb-1">
-								<span className="text-[10px] font-bold w-8">Title:</span>
-								<span className="flex-1"></span>
-							</div>
-							<div className="flex items-end gap-2 border-b border-black pb-1">
-								<span className="text-[10px] font-bold w-8">Date:</span>
-								<span className="flex-1"></span>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			{/* SOW Page (Page 7) */}
+			{/* SOW Page - MUST COME BEFORE SIGNATURES */}
 			{details?.additionalNotes && details?.additionalNotes.length > 50 && (
 				<div className="break-before-page px-8 pt-8">
 					<div className="text-center mb-8">
@@ -336,6 +283,68 @@ const ProposalTemplate1 = (data: ProposalType) => {
 					</div>
 				</div>
 			)}
+
+			{/* SIGNATURES - STRICTLY FINAL ELEMENT (REQ-119) */}
+			{/* Uses break-inside-avoid to prevent orphaned signatures on blank page */}
+			<div className="break-before-page px-8 pt-8 mb-8 break-inside-avoid">
+				<h4 className='text-xs font-bold text-black mb-6' style={{ fontFamily: "Work Sans, sans-serif" }}>Agreed To And Accepted:</h4>
+
+				<div className="grid grid-cols-2 gap-16">
+					{/* ANC */}
+					<div>
+						<h5 className="text-[10px] text-zinc-500 mb-4 font-bold">ANC Sports Enterprises, LLC ("ANC")</h5>
+						<p className="text-[9px] text-zinc-400 mb-8">
+							2 Manhattanville Road, Suite 402<br />
+							Purchase, NY 10577
+						</p>
+						<div className="space-y-6">
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">By:</span>
+								<span className="flex-1"></span>
+							</div>
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">Title:</span>
+								<span className="flex-1"></span>
+							</div>
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">Date:</span>
+								<span className="flex-1"></span>
+							</div>
+						</div>
+					</div>
+
+					{/* CLIENT */}
+					<div>
+						<h5 className="text-[10px] text-zinc-500 mb-4 font-bold">{receiver?.name || 'Purchaser'} ("Purchaser")</h5>
+						<p className="text-[9px] text-zinc-400 mb-8">
+							{receiver?.address || 'Address Line 1'}<br />
+							{receiver?.city || 'City'}, {receiver?.zipCode || 'Zip'}
+						</p>
+						<div className="space-y-6">
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">By:</span>
+								<span className="flex-1"></span>
+							</div>
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">Title:</span>
+								<span className="flex-1"></span>
+							</div>
+							<div className="flex items-end gap-2 border-b border-black pb-1">
+								<span className="text-[10px] font-bold w-8">Date:</span>
+								<span className="flex-1"></span>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				{/* Legal Footer - Ensures context before signatures */}
+				<div className="mt-12 pt-4 border-t border-zinc-200">
+					<p className="text-[8px] text-zinc-400 text-center italic">
+						This document constitutes a binding agreement upon signature by both parties. 
+						© {new Date().getFullYear()} ANC Sports Enterprises, LLC. All Rights Reserved.
+					</p>
+				</div>
+			</div>
 		</ProposalLayout>
 	);
 };
