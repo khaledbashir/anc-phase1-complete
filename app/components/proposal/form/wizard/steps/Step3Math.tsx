@@ -13,7 +13,8 @@ import {
     Hammer, 
     Truck, 
     Sparkles,
-    ArrowRight
+    ArrowRight,
+    Receipt
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -285,7 +286,7 @@ const Step3Math = () => {
                                             </TooltipTrigger>
                                             <TooltipContent side="top" className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3">
                                                 <p className="text-xs leading-relaxed">
-                                                    Performance Bond insurance fee applied to the Sell Price after margin calculation.
+                                                    Performance Bond insurance fee applied to the Sell Price after margin calculation. Default: 1.5%
                                                 </p>
                                             </TooltipContent>
                                         </Tooltip>
@@ -296,6 +297,38 @@ const Step3Math = () => {
                                         className="bg-zinc-950 border-zinc-800 text-white font-bold h-9 focus-visible:ring-brand-blue/30"
                                         value={globalBondRate}
                                         onChange={(e) => applyGlobalBondRate(parseFloat(e.target.value))}
+                                    />
+                                </div>
+
+                                {/* Global Tax Rate - REQ-125 */}
+                                <div className="flex flex-col gap-3 p-4 bg-zinc-950/50 rounded-xl border border-zinc-800">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                                            <Receipt className="w-3.5 h-3.5 text-brand-blue" />
+                                            Sales Tax Rate (%)
+                                        </Label>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="w-3.5 h-3.5 text-zinc-700 hover:text-brand-blue transition-colors cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3">
+                                                <p className="text-xs leading-relaxed">
+                                                    Sales tax applied to (Sell Price + Bond + B&O Tax). Default: 9.5%. Morgantown/WVU projects auto-add 2% B&O Tax.
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                    <Input
+                                        type="number"
+                                        step="0.5"
+                                        min="0"
+                                        max="20"
+                                        className="bg-zinc-950 border-zinc-800 text-white font-bold h-9 focus-visible:ring-brand-blue/30"
+                                        value={((watch("details.taxRateOverride") || 0.095) * 100).toFixed(1)}
+                                        onChange={(e) => {
+                                            const rate = parseFloat(e.target.value) / 100;
+                                            setValue("details.taxRateOverride", rate);
+                                        }}
                                     />
                                 </div>
 
