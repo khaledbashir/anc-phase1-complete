@@ -1894,6 +1894,12 @@ export const ProposalContextProvider = ({
           setValue("details.internalAudit", internalAudit, { shouldValidate: true, shouldDirty: true });
           setValue("details.clientSummary", internalAudit.totals, { shouldValidate: true, shouldDirty: true });
 
+          // CRITICAL: Set marginAnalysis for complete Project Total (includes non-LED items)
+          // This is used by ProposalTemplate1 to show Structural, Electrical, PM, etc.
+          if (formData.details?.marginAnalysis && formData.details.marginAnalysis.length > 0) {
+            setValue("details.marginAnalysis", formData.details.marginAnalysis, { shouldValidate: true, shouldDirty: true });
+          }
+
           // 3. CRITICAL: Update the PDF Item Table (The "Items" array used by templates)
           const allItems = screensWithLineItems.flatMap(s => (s.lineItems || []).map((li: any) => ({
             name: li.category,
