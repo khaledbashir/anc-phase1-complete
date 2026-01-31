@@ -54,6 +54,28 @@ const ProposalTemplate1 = (data: ProposalType) => {
 	const displayLineItems = convertToLineItems(screensForGrouping);
 	const hasGroups = displayLineItems.some(i => i.isGroup);
 
+	// REQ-User-Feedback: Construct SOW Options for Context Fusion
+	const loc = (details?.location || "").toLowerCase();
+	const name = (details?.proposalName || "").toLowerCase();
+	const isMorgantown = loc.includes("morgantown") || loc.includes("wvu") || loc.includes("puskar") || 
+						 name.includes("morgantown") || name.includes("wvu") || name.includes("puskar");
+
+	const sowOptions = {
+		documentType: (details as any).documentType || (isLOI ? "LOI" : "BUDGET"),
+		isOutdoor: (details?.screens || []).some((s: any) => s.isOutdoor || s.environment === "OUTDOOR"),
+		includeUnionLabor: (details as any).includeUnionLabor || (details as any).isUnionLabor,
+		includeSpareParts: (details as any).includeSpareParts,
+		atticStockMentioned: (details as any).atticStockMentioned || (details?.additionalNotes || "").toLowerCase().includes("attic stock"),
+		isMorgantown,
+		structuralTonnage: (details as any).structuralTonnage || (details as any).metadata?.structuralTonnage,
+		signalSupport: (details as any).signalSupport || (details as any).metadata?.signalSupport,
+		rossCarbonite: (details as any).rossCarbonite || (details as any).metadata?.rossCarbonite,
+		vdcpSupport: (details as any).vdcpSupport || (details as any).metadata?.vdcpSupport,
+		projectSpecificNotes: details?.additionalNotes,
+		clientName: receiver?.name,
+		projectLocation: details?.location
+	};
+
 	// Detect Options/Alternates (items starting with "Option")
 	const optionsItems = displayLineItems.filter(i => i.name.startsWith("Option") || i.name.startsWith("Alternates"));
 	const mainItems = displayLineItems
@@ -287,11 +309,21 @@ const ProposalTemplate1 = (data: ProposalType) => {
 			{/* PAYMENT TERMS */}
 			<div className='px-8 mb-12'>
 				<h4 className='text-xs font-bold text-black mb-2' style={{ fontFamily: "Work Sans, sans-serif" }}>Payment Terms:</h4>
-				<ul className='list-disc pl-4 space-y-1'>
-					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "'Work Sans', sans-serif" }}>50% on Deposit</li>
-					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "'Work Sans', sans-serif" }}>40% on Mobilization</li>
-					<li className='text-[10px] text-zinc-700' style={{ fontFamily: "'Work Sans', sans-serif" }}>10% on Substantial Completion</li>
-				</ul>
+				<div className='text-[10px] text-zinc-700 whitespace-pre-wrap' style={{ fontFamily: "'Work Sans', sans-serif" }}>
+					{details.paymentTerms ? (
+						<ul className='list-disc pl-4 space-y-1'>
+							{details.paymentTerms.split(',').map((term, idx) => (
+								<li key={idx}>{term.trim()}</li>
+							))}
+						</ul>
+					) : (
+						<ul className='list-disc pl-4 space-y-1'>
+							<li>50% on Deposit</li>
+							<li>40% on Mobilization</li>
+							<li>10% on Substantial Completion</li>
+						</ul>
+					)}
+				</div>
 				<p className="text-[10px] text-zinc-600 mt-4 leading-relaxed text-justify" style={{ fontFamily: "'Work Sans', sans-serif" }}>
 					Please sign below to indicate Purchaser’s agreement to purchase the Display System as described herein and to authorize ANC to commence production.
 					<br /><br />
@@ -373,7 +405,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 			</div>
 
 			{/* SOW Page - MUST COME BEFORE SIGNATURES */}
-			{details?.additionalNotes && details?.additionalNotes.length > 50 && (
+			{(details?.additionalNotes || (details as any).forceSowPage) && (
 				<div className="break-before-page px-8 pt-8">
 					<div className="text-center mb-8">
 						<h2 className="text-[#0A52EF] font-bold text-lg uppercase" style={{ fontFamily: "Work Sans, sans-serif" }}>{receiver?.name || 'CLIENT'}</h2>
@@ -381,47 +413,14 @@ const ProposalTemplate1 = (data: ProposalType) => {
 					</div>
 
 					<div className="space-y-6">
-						{generateSOWContent(details.additionalNotes).map((section: any, idx: number) => (
+						{generateSOWContent(sowOptions).map((section: any, idx: number) => (
 							<div key={idx} className="break-inside-avoid">
-								<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>{section.title}</h4>
+								<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2 uppercase" style={{ fontFamily: "Work Sans, sans-serif" }}>{section.title}</h4>
 								<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "'Work Sans', sans-serif" }}>
 									{section.content}
 								</div>
 							</div>
 						))}
-
-						<div className="break-inside-avoid">
-							<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>ELECTRICAL & DATA INSTALLATION</h4>
-							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "'Work Sans', sans-serif" }}>
-								ANC assumes primary power feed will be provided by others or is existing, within 5' of the display location with sufficient amps for ANC proposed display(s); typically 208v 3-phase.
-								<br />
-								ANC assumes all secondary power distribution, which may include breaker panels, disconnects, pathway, etc. may be included in this ROM Estimate.
-								<br />
-								ANC assumes all data pathway is provided by others or is existing, but ANC will provide data cabling and labor to pull cable form control location to the display(s).
-							</div>
-						</div>
-
-						<div className="break-inside-avoid">
-							<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>CONTROL SYSTEM</h4>
-							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "'Work Sans', sans-serif" }}>
-								ANC has provided display processors only. Content creation studio and content delivery system is not included at this time.
-								<br />
-								ANC will provide appropriate on-site operation and Maintenance Training.
-							</div>
-						</div>
-
-						<div className="break-inside-avoid">
-							<h4 className="bg-black text-white text-[10px] font-bold py-1 px-2 mb-2" style={{ fontFamily: "Work Sans, sans-serif" }}>GENERAL CONDITIONS</h4>
-							<div className="text-[10px] leading-relaxed text-zinc-700 px-2 whitespace-pre-wrap" style={{ fontFamily: "'Work Sans', sans-serif" }}>
-								ANC has provided a parts only warranty, excluding on-site labor, on all products consistent with the factory supplier and/or 3rd party vendor. Warranty Terms and Conditions to be defined.
-								<br />
-								ANC has not included bonding of any kind.
-								<br />
-								ANC has not included any tax in the proposal. Any and all sales and use taxes, including, but not limited to, any import or associated duties, fees, tariffs as well other excises and other charges, including without limitation VAT/Sales Tax, ("collectively referred to as Government Charges") now or henceforth levied on any date in connection with the sale of the LED System shall be the full responsibility of the Purchaser. Purchaser shall reimburse ANC for any and all Government Charges ANC may advance on Purchaser's behalf. Purchaser acknowledges that neither ANC nor Purchaser may have advance knowledge of such Government Charges. ANC has excluded any and all taxes from the pricing in the enclosed proposal.
-								<br />
-								Shipping (Ocean Freight Shipping) included in quote at current shipping pricing. Shipping pricing is subject to change due to continued global impacts of the Covid pandemic. Any increase in costs will be responsibility of Purchaser. Current Ocean Freight timelines are approximately 6 weeks. Current Air Freight timelines are approximately 2 weeks.
-							</div>
-						</div>
 					</div>
 				</div>
 			)}

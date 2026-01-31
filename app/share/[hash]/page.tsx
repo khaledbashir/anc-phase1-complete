@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { notFound } from "next/navigation";
-import ProposalTemplate2 from "@/app/components/templates/proposal-pdf/ProposalTemplate2";
+import ProposalTemplate1 from "@/app/components/templates/proposal-pdf/ProposalTemplate1";
 import { ProposalType } from "@/types";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
 
@@ -48,8 +48,8 @@ export default async function SharePage({ params }: { params: Promise<{ hash: st
             </div>
 
             {/* The Proposal Container */}
-            <div className="w-full max-w-[850px] bg-white shadow-2xl min-h-[1100px]">
-                <ProposalTemplate2 {...(project as ProposalType)} isSharedView={true} />
+            <div className="w-full max-w-[850px] bg-white shadow-2xl min-h-[1100px] overflow-hidden">
+                <ProposalTemplate1 {...(project as ProposalType)} />
             </div>
 
             {/* Footer */}

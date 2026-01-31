@@ -136,6 +136,16 @@ export interface SOWOptions {
     includePerformanceBond?: boolean;
     includeStructuralEngineering?: boolean;
     
+    // Technical Attributes (Context Fusion)
+    signalSupport?: string; // e.g., "3G-SDI 1080P"
+    rossCarbonite?: boolean;
+    vdcpSupport?: boolean;
+    structuralTonnage?: number;
+    peStampedDrawings?: boolean;
+    isOutdoor?: boolean;
+    isMorgantown?: boolean;
+    atticStockMentioned?: boolean;
+    
     // Custom content
     customExclusions?: string[];
     customInclusions?: string[];
@@ -170,75 +180,84 @@ export function generateSOWContent(options: SOWOptions | string = {}): { title: 
     const sections: { title: string, content: string }[] = [];
     const opts = typeof options === 'string' ? { projectSpecificNotes: options } : options;
 
+    // REQ: Sanitize content (Nits -> Brightness)
+    const sanitize = (text: string) => text.replace(/nits/gi, "Brightness");
+
     // 1. Add environment-specific section FIRST (Indoor vs Outdoor)
-    if (opts.environment === "OUTDOOR") {
-        sections.push(ENVIRONMENT_SECTIONS.OUTDOOR);
-    } else if (opts.environment === "INDOOR") {
-        sections.push(ENVIRONMENT_SECTIONS.INDOOR);
-    } else if (opts.environment === "MIXED") {
+    const env = opts.isOutdoor ? "OUTDOOR" : opts.environment || "INDOOR";
+    if (env === "OUTDOOR") {
         sections.push({
-            title: "Mixed Environment Installation",
-            content: `This project includes both indoor and outdoor display installations. Each display type will be specified with appropriate environmental ratings:\n\n` +
-                ENVIRONMENT_SECTIONS.INDOOR.content + `\n\n` + ENVIRONMENT_SECTIONS.OUTDOOR.content
+            title: ENVIRONMENT_SECTIONS.OUTDOOR.title,
+            content: sanitize(ENVIRONMENT_SECTIONS.OUTDOOR.content)
+        });
+    } else if (env === "INDOOR") {
+        sections.push({
+            title: ENVIRONMENT_SECTIONS.INDOOR.title,
+            content: sanitize(ENVIRONMENT_SECTIONS.INDOOR.content)
         });
     }
 
-    // 2. Add standard sections
+    // 2. Add standard sections with technical injection
+    let installationContent = SOW_SECTIONS.physicalInstallation.content;
+    if (opts.structuralTonnage) {
+        installationContent += `\n\nStructural Note: This project requires approximately ${opts.structuralTonnage} tons of structural steel reinforcing as identified in TTE engineering reports.`;
+    }
+    if (opts.peStampedDrawings) {
+        installationContent += `\n• Provision of PE-stamped structural drawings for permit submission.`;
+    }
     sections.push({
         title: SOW_SECTIONS.physicalInstallation.title,
-        content: SOW_SECTIONS.physicalInstallation.content
+        content: sanitize(installationContent)
     });
     
     sections.push({
         title: SOW_SECTIONS.electricalData.title,
-        content: SOW_SECTIONS.electricalData.content
+        content: sanitize(SOW_SECTIONS.electricalData.content)
     });
     
+    let controlContent = SOW_SECTIONS.controlSystem.content;
+    if (opts.signalSupport) {
+        controlContent += `\n• Signal Support: ${opts.signalSupport} integration.`;
+    }
+    if (opts.rossCarbonite || opts.vdcpSupport) {
+        const protocols = [opts.rossCarbonite && "Ross Carbonite", opts.vdcpSupport && "VDCP"].filter(Boolean).join(" and ");
+        controlContent += `\n• Protocol Support: Native integration with ${protocols} broadcast standards.`;
+    }
     sections.push({
         title: SOW_SECTIONS.controlSystem.title,
-        content: SOW_SECTIONS.controlSystem.content
+        content: sanitize(controlContent)
     });
 
     // 3. Add AI-detected dynamic clauses based on RFP analysis
-    if (opts.includeUnionLabor) {
+    if (opts.includeUnionLabor || opts.includePrevailingWage) {
         sections.push({
-            title: "Union Labor Requirements",
-            content: SOW_SECTIONS.unionLaborClause
-        });
-    }
-
-    if (opts.includePrevailingWage) {
-        sections.push({
-            title: "Prevailing Wage Compliance",
-            content: SOW_SECTIONS.prevailingWageClause
+            title: "Labor Compliance (IBEW)",
+            content: `Installation will be performed by IBEW-certified union labor in accordance with local prevailing wage requirements. Certified payroll will be provided upon request.`
         });
     }
 
     if (opts.includeReplacement) {
         sections.push({
             title: "Equipment Replacement & Disposal",
-            content: SOW_SECTIONS.replacementClause
+            content: sanitize(SOW_SECTIONS.replacementClause)
         });
     }
 
-    if (opts.includeSpareParts) {
+    if (opts.includeSpareParts || opts.atticStockMentioned) {
+        const sparePct = opts.atticStockMentioned ? "5%" : "2%";
         sections.push({
-            title: "Spare Parts Inventory (5% Attic Stock)",
-            content: SOW_SECTIONS.sparePartsClause
+            title: `Spare Parts Inventory (${sparePct} Attic Stock)`,
+            content: `ANC will provide a ${sparePct} spare parts inventory (attic stock) including LED modules, power supplies, and receiving cards to ensure long-term serviceability.`
         });
     }
 
-    if (opts.includePerformanceBond) {
+    if (opts.includePerformanceBond || opts.isMorgantown) {
         sections.push({
-            title: "Performance Bond (1.5%)",
-            content: SOW_SECTIONS.performanceBondClause
-        });
-    }
-
-    if (opts.includeStructuralEngineering) {
-        sections.push({
-            title: "Structural Engineering Services",
-            content: SOW_SECTIONS.structuralEngineeringClause
+            title: "Commercial & Compliance Terms",
+            content: [
+                opts.includePerformanceBond && "• A 1.5% Performance Bond is included in this proposal.",
+                opts.isMorgantown && "• Morgantown City B&O Tax (2.0%) applied to all regional labor and materials."
+            ].filter(Boolean).join("\n")
         });
     }
 
@@ -246,21 +265,21 @@ export function generateSOWContent(options: SOWOptions | string = {}): { title: 
     if (opts.customInclusions?.length) {
         sections.push({
             title: "Additional Inclusions",
-            content: opts.customInclusions.map(i => `• ${i}`).join("\n")
+            content: sanitize(opts.customInclusions.map(i => `• ${i}`).join("\n"))
         });
     }
 
     // 5. Add General Conditions (always last before exclusions)
     sections.push({
         title: SOW_SECTIONS.generalConditions.title,
-        content: SOW_SECTIONS.generalConditions.content
+        content: sanitize(SOW_SECTIONS.generalConditions.content)
     });
 
     // 6. Add custom exclusions
     if (opts.customExclusions?.length) {
         sections.push({
             title: "Additional Exclusions",
-            content: opts.customExclusions.map(e => `• ${e}`).join("\n")
+            content: sanitize(opts.customExclusions.map(e => `• ${e}`).join("\n"))
         });
     }
 
@@ -268,7 +287,7 @@ export function generateSOWContent(options: SOWOptions | string = {}): { title: 
     if (opts.projectSpecificNotes && opts.projectSpecificNotes.length > 0) {
         sections.push({
             title: "Project-Specific Notes",
-            content: opts.projectSpecificNotes
+            content: sanitize(opts.projectSpecificNotes)
         });
     }
 

@@ -25,6 +25,10 @@ export async function POST(
             return NextResponse.json({ error: "Project not found" }, { status: 404 });
         }
 
+        // Parse summaries if they exist
+        const clientSummary = project.clientSummary ? JSON.parse(project.clientSummary) : null;
+        const internalAudit = project.internalAudit ? JSON.parse(project.internalAudit) : null;
+
         // REQ-113: Deep clone project object before sanitization to prevent data leakage
         // This ensures internal cost/margin data is never accidentally logged or served
         const sanitizedProject = JSON.parse(JSON.stringify(project));
@@ -35,15 +39,11 @@ export async function POST(
 
         // 2. REQ-118: Version-Aware Hash Strategy
         // Each version gets its own unique, immutable share hash
-        // v1 hash remains forever accessible with original data
         const versionNumber = project.versionNumber || 1;
         let shareHash: string;
 
         if (forceNewVersion || !project.shareHash) {
-            // Generate NEW unique hash for this version
             shareHash = `${Math.random().toString(36).substring(2, 10)}-v${versionNumber}`;
-            
-            // Update proposal with new hash (only if it's the current version's first share)
             if (!project.shareHash) {
                 await prisma.proposal.update({
                     where: { id },
@@ -51,7 +51,6 @@ export async function POST(
                 });
             }
         } else {
-            // Reuse existing hash for same version
             shareHash = project.shareHash;
         }
 
@@ -60,7 +59,7 @@ export async function POST(
         const snapshot: Partial<ProposalType> = {
             receiver: {
                 name: project.clientName,
-                address: "", // Can be filled if we had address in DB
+                address: "", 
                 zipCode: "",
                 city: "",
                 country: "",
@@ -81,8 +80,8 @@ export async function POST(
             details: {
                 proposalId: project.id,
                 proposalName: project.clientName,
-                proposalDate: new Date().toISOString(),
-                dueDate: new Date().toISOString(),
+                proposalDate: project.createdAt.toISOString(),
+                dueDate: project.createdAt.toISOString(),
                 items: [],
                 currency: "USD",
                 language: "English",
@@ -90,9 +89,9 @@ export async function POST(
                 discountDetails: { amount: 0, amountType: "amount" },
                 shippingDetails: { cost: 0, costType: "amount" },
                 paymentInformation: { bankName: "", accountName: "", accountNumber: "" },
-                additionalNotes: "",
-                paymentTerms: "Net 30",
-                pdfTemplate: 2,
+                additionalNotes: clientSummary?.additionalNotes || "",
+                paymentTerms: clientSummary?.paymentTerms || "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion",
+                pdfTemplate: 1,
                 screens: project.screens.map(s => ({
                     id: s.id,
                     name: s.name,
@@ -107,32 +106,33 @@ export async function POST(
                         cost: 0,
                         margin: 0
                     })),
-                    // CALCULATED: Sum up line item prices for screen total (Allowlist: sellingPrice)
+                    // CALCULATED: Sum up line item prices for screen total
                     sellPrice: s.lineItems.reduce((sum, li) => sum + Number(li.price || 0), 0),
-                    // SANITIZATION: Strip AI metadata (Blue Glow, citations) from public view
+                    // SANITIZATION: Strip AI metadata
                     aiSource: undefined,
                     citations: undefined
                 })) as any,
+                // REQ-User-Feedback: Include marginAnalysis for PDF mirroring
+                marginAnalysis: clientSummary?.marginAnalysis || [],
                 // SANITIZATION: Strip all AI tracking from public share
-                // Only include fields that exist in the metadata type
                 metadata: {
                     filledByAI: undefined,
                     risks: undefined,
-                    structuralTonnage: undefined,
-                    reinforcingTonnage: undefined,
+                    structuralTonnage: Number(project.structuralTonnage) || undefined,
+                    reinforcingTonnage: Number(project.reinforcingTonnage) || undefined,
                 },
-                totalAmount: 0, // Will be calculated by template
+                totalAmount: clientSummary?.finalClientTotal || 0,
                 totalAmountInWords: "",
-                documentType: "First Round",
-                pricingType: "Budget",
-                proposalNumber: "",
-                subTotal: 0,
-                mirrorMode: false,
-                calculationMode: "INTELLIGENCE",
-                venue: "Generic", // REQ-47 default
+                documentType: clientSummary?.documentType || "First Round",
+                pricingType: clientSummary?.pricingType || "Budget",
+                proposalNumber: project.id.substring(0, 8).toUpperCase(),
+                subTotal: clientSummary?.sellPrice || 0,
+                mirrorMode: clientSummary?.mirrorMode || false,
+                calculationMode: project.calculationMode,
+                venue: clientSummary?.venue || "Generic",
                 // SECURITY: Strictly nullify internal financial logic
-                bondRateOverride: undefined,
-                taxRateOverride: undefined,
+                bondRateOverride: Number(project.bondRateOverride) || undefined,
+                taxRateOverride: Number(project.taxRateOverride) || undefined,
                 internalAudit: undefined
             }
         };

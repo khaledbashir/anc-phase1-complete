@@ -180,7 +180,7 @@ export const FORM_DEFAULT_VALUES = {
       accountNumber: "",
     },
     additionalNotes: "",
-    paymentTerms: "",
+    paymentTerms: "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion",
     totalAmountInWords: "",
     documentType: "First Round" as "LOI" | "First Round",
     pricingType: "Budget" as "Hard Quoted" | "Budget",
