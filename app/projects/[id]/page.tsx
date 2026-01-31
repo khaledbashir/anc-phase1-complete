@@ -1,11 +1,84 @@
 import { redirect } from "next/navigation";
 import { PrismaClient } from "@prisma/client";
 import ProposalPage from "@/app/components/ProposalPage";
+import { FORM_DEFAULT_VALUES } from "@/lib/variables";
 
 const prisma = new PrismaClient();
 
 interface PageProps {
     params: Promise<{ id: string }>;
+}
+
+/**
+ * Map DB Proposal schema to Form schema (ProposalType)
+ * DB stores flat structure; Form expects nested structure
+ */
+function mapDbToFormSchema(dbProject: any) {
+    return {
+        // Sender defaults (ANC info)
+        sender: FORM_DEFAULT_VALUES.sender,
+
+        // Receiver = Client info
+        receiver: {
+            name: dbProject.clientName || "",
+            address: "",
+            zipCode: "",
+            city: "",
+            country: "",
+            email: "",
+            phone: "",
+            customInputs: [],
+        },
+
+        // Details = Most of the proposal data
+        details: {
+            proposalLogo: "",
+            proposalId: dbProject.id,
+            proposalName: dbProject.clientName,
+            proposalNumber: dbProject.id.slice(-8).toUpperCase(),
+            proposalDate: dbProject.createdAt ? new Date(dbProject.createdAt).toISOString().split("T")[0] : "",
+            dueDate: "",
+            items: [],
+            currency: "USD",
+            language: "English",
+            taxDetails: { amount: 0, amountType: "amount", taxID: "" },
+            discountDetails: { amount: 0, amountType: "amount" },
+            shippingDetails: { cost: 0, costType: "amount" },
+            paymentInformation: { bankName: "", accountName: "", accountNumber: "" },
+            additionalNotes: "",
+            paymentTerms: "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion",
+            totalAmountInWords: "",
+            documentType: "First Round" as const,
+            pricingType: "Budget" as const,
+            pdfTemplate: 2,
+            subTotal: 0,
+            totalAmount: 0,
+            overheadRate: Number(dbProject.overheadRate) || 0.10,
+            profitRate: Number(dbProject.profitRate) || 0.05,
+            // Map screens from DB (with lineItems) to form structure
+            screens: (dbProject.screens || []).map((s: any) => ({
+                id: s.id,
+                name: s.name || "Display",
+                pitchMm: Number(s.pixelPitch) || 0,
+                widthFt: Number(s.width) || 0,
+                heightFt: Number(s.height) || 0,
+                quantity: 1,
+                lineItems: (s.lineItems || []).map((li: any) => ({
+                    category: li.category,
+                    cost: Number(li.cost) || 0,
+                    margin: Number(li.margin) || 0,
+                    price: Number(li.price) || 0,
+                })),
+            })),
+            internalAudit: dbProject.internalAudit ? JSON.parse(dbProject.internalAudit) : {},
+            clientSummary: dbProject.clientSummary ? JSON.parse(dbProject.clientSummary) : {},
+            mirrorMode: dbProject.calculationMode === "MIRROR",
+            calculationMode: dbProject.calculationMode || "INTELLIGENCE",
+            taxRateOverride: Number(dbProject.taxRateOverride) || 0,
+            bondRateOverride: Number(dbProject.bondRateOverride) || 0,
+            venue: "Generic" as const,
+        },
+    };
 }
 
 export default async function ProjectEditorPage({ params }: PageProps) {
@@ -15,7 +88,7 @@ export default async function ProjectEditorPage({ params }: PageProps) {
         where: { id },
         include: {
             screens: {
-                include: { lineItems: true } // Include nested items if applicable, though schema says lineItems are on screens
+                include: { lineItems: true }
             }
         }
     });
@@ -24,9 +97,8 @@ export default async function ProjectEditorPage({ params }: PageProps) {
         redirect("/projects");
     }
 
-    // Pass data to client component
-    // We need to serialize the data properly (decimals to numbers/strings)
-    const serializedProject = JSON.parse(JSON.stringify(project));
+    // Map DB schema to Form schema
+    const formData = mapDbToFormSchema(project);
 
-    return <ProposalPage initialData={serializedProject} projectId={id} />;
+    return <ProposalPage initialData={formData} projectId={id} />;
 }
