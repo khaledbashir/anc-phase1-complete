@@ -2,89 +2,65 @@
 
 // ShadCn
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 // Components
-import {
-  BaseButton,
-  NewProposalAlert,
-  ProposalLoaderModal,
-  ProposalExportModal,
-} from "@/app/components";
+import { NewProposalAlert } from "@/app/components";
 
 // Contexts
 import { useProposalContext } from "@/contexts/ProposalContext";
-import { useTranslationContext } from "@/contexts/TranslationContext";
 
 // Icons
-import { FolderUp, Import, Plus, RotateCcw, FileText } from "lucide-react";
+import { Plus, RotateCcw } from "lucide-react";
 
+/**
+ * ActionToolbar - Simplified toolbar with only essential actions
+ * Removed confusing Load/Export buttons (use Excel import in Setup step instead)
+ */
 const ActionToolbar = () => {
-  const { proposalPdfLoading, newProposal, resetProposal } = useProposalContext();
-  const { _t } = useTranslationContext();
+  const { proposalPdfLoading, resetProposal } = useProposalContext();
 
   return (
-    <div className="flex items-center justify-end gap-1 mb-2 px-2">
-      <ProposalLoaderModal>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 h-8 px-2"
-          disabled={proposalPdfLoading}
-          title={_t("actions.loadProposal")}
+    <div className="flex items-center justify-between mb-2 px-2">
+      {/* Left side - Mode indicator */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
+          Drafting Mode
+        </span>
+      </div>
+
+      {/* Right side - Actions */}
+      <div className="flex items-center gap-1">
+        <NewProposalAlert>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 h-7 px-2"
+            disabled={proposalPdfLoading}
+            title="Start a new project"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
+            <span className="text-[10px] font-medium uppercase tracking-wide">New</span>
+          </Button>
+        </NewProposalAlert>
+
+        <NewProposalAlert
+          title="Reset form?"
+          description="This will clear all changes and reload from the last saved state."
+          confirmLabel="Reset"
+          onConfirm={resetProposal}
         >
-          <FolderUp className="w-3.5 h-3.5 mr-2" />
-          <span className="text-[10px] font-medium uppercase tracking-wide">{_t("actions.loadProposal")}</span>
-        </Button>
-      </ProposalLoaderModal>
-
-      <div className="w-px h-3 bg-zinc-800 mx-1" />
-
-      <ProposalExportModal>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 h-8 px-2"
-          disabled={proposalPdfLoading}
-          title={_t("actions.exportProposal")}
-        >
-          <Import className="w-3.5 h-3.5 mr-2" />
-          <span className="text-[10px] font-medium uppercase tracking-wide">{_t("actions.exportProposal")}</span>
-        </Button>
-      </ProposalExportModal>
-
-      <div className="w-px h-3 bg-zinc-800 mx-1" />
-
-      <NewProposalAlert>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/50 h-8 px-2"
-          disabled={proposalPdfLoading}
-          title={_t("actions.newProposal")}
-        >
-          <Plus className="w-3.5 h-3.5 mr-2" />
-          <span className="text-[10px] font-medium uppercase tracking-wide">{_t("actions.newProposal")}</span>
-        </Button>
-      </NewProposalAlert>
-
-      <NewProposalAlert
-        title="Reset form?"
-        description="This will clear all fields and re-fetch the baseline data from the Vault."
-        confirmLabel="Reset"
-        onConfirm={resetProposal}
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-zinc-500 hover:text-red-400 hover:bg-red-950/20 h-8 px-2"
-          disabled={proposalPdfLoading}
-          title="Reset Form"
-        >
-          <RotateCcw className="w-3.5 h-3.5 mr-2" />
-          <span className="text-[10px] font-medium uppercase tracking-wide">Reset</span>
-        </Button>
-      </NewProposalAlert>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-zinc-500 hover:text-red-400 hover:bg-red-950/20 h-7 px-2"
+            disabled={proposalPdfLoading}
+            title="Reset to last saved state"
+          >
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
+            <span className="text-[10px] font-medium uppercase tracking-wide">Reset</span>
+          </Button>
+        </NewProposalAlert>
+      </div>
     </div>
   );
 };
