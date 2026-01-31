@@ -151,6 +151,30 @@ export async function queryVault(
 }
 
 /**
+ * Update Workspace Settings (Automate Agent & LLM config)
+ * @param slug The workspace slug
+ * @param settings Settings object (chatModel, web_search, etc.)
+ */
+export async function updateWorkspaceSettings(slug: string, settings: any): Promise<AnythingLLMResponse> {
+    try {
+        const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${slug}/update`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
+            },
+            body: JSON.stringify(settings),
+        });
+
+        const data = await res.json();
+        return { success: res.ok, data };
+    } catch (error: any) {
+        console.error("[AnythingLLM] Update Settings failed:", error);
+        return { success: false, message: error.message };
+    }
+}
+
+/**
  * Smart Assembly Agent: Retrieves verbatim scope blocks from legal brain
  */
 export async function getScopeBlock(productType: string, isUnion: boolean): Promise<string> {

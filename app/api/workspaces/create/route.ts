@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
+import { updateWorkspaceSettings } from "@/lib/anything-llm";
 import type { Workspace, User } from "@prisma/client";
 
 // Define the intersection type that includes the users relation
@@ -129,7 +130,15 @@ export async function POST(request: NextRequest) {
               });
             }
 
-            // Provision Master Catalog (Background)
+            // 2. AUTOMATED CONFIGURATION (Ferrari Efficiency)
+            await updateWorkspaceSettings(slug, {
+              chatModel: process.env.Z_AI_MODEL_NAME || "glm-4.6v",
+              agent_provider: "openai",
+              agent_model: process.env.Z_AI_MODEL_NAME || "glm-4.6v",
+              web_search: true
+            }).catch(e => console.error("AI Settings Provision Failed:", e));
+
+            // 3. Provision Master Catalog (Background)
             const masterUrl = process.env.ANYTHING_LLM_MASTER_CATALOG_URL;
             if (masterUrl) {
               const { uploadLinkToWorkspace } = await import("@/lib/rag-sync");
