@@ -19,33 +19,64 @@ interface ModeToggleProps {
  * Uses French Blue (#0A52EF) for active state
  * Zero-lag switching via parent state
  */
-export function ModeToggle({ mode, onChange }: ModeToggleProps) {
-    return (
-        <div className="flex items-center justify-center py-2.5 border-b border-zinc-800/60 bg-zinc-950/40">
-            <div className="inline-flex rounded-lg bg-zinc-800/50 p-0.5">
+export function ModeToggle({ mode, onChange, isCollapsed = false }: ModeToggleProps & { isCollapsed?: boolean }) {
+    if (isCollapsed) {
+        return (
+            <div className="flex flex-col items-center gap-2">
                 <button
                     type="button"
                     onClick={() => onChange("form")}
                     className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                        mode === "form" ? "bg-[#0A52EF] text-white" : "text-zinc-400 hover:text-zinc-200"
+                        "w-10 h-10 rounded-lg flex items-center justify-center transition-all",
+                        mode === "form" ? "bg-[#0A52EF] text-white shadow-lg shadow-brand-blue/20" : "text-zinc-500 hover:text-zinc-300"
                     )}
+                    title="Drafting Mode"
                 >
                     <PenLine className="w-4 h-4" />
-                    Drafting
                 </button>
                 <button
                     type="button"
                     onClick={() => onChange("ai")}
                     className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors",
-                        mode === "ai" ? "bg-[#0A52EF] text-white" : "text-zinc-400 hover:text-zinc-200"
+                        "w-10 h-10 rounded-lg flex items-center justify-center transition-all",
+                        mode === "ai" ? "bg-[#0A52EF] text-white shadow-lg shadow-brand-blue/20" : "text-zinc-500 hover:text-zinc-300"
                     )}
+                    title="Intelligence Mode"
                 >
                     <Bot className="w-4 h-4" />
-                    Intelligence
                 </button>
             </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-1 p-1 bg-zinc-900/40 rounded-xl border border-zinc-800/50">
+            <button
+                type="button"
+                onClick={() => onChange("form")}
+                className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
+                    mode === "form"
+                        ? "bg-[#0A52EF] text-white shadow-md shadow-brand-blue/10"
+                        : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                )}
+            >
+                <PenLine className="w-3.5 h-3.5" />
+                Drafting
+            </button>
+            <button
+                type="button"
+                onClick={() => onChange("ai")}
+                className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
+                    mode === "ai"
+                        ? "bg-[#0A52EF] text-white shadow-md shadow-brand-blue/10"
+                        : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50"
+                )}
+            >
+                <Bot className="w-3.5 h-3.5" />
+                Intelligence
+            </button>
         </div>
     );
 }

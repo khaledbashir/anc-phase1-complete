@@ -28,8 +28,8 @@ type WizardStepperProps = {
 /**
  * WizardStepper - Horizontal breadcrumb-style progress indicator
  * 
- * Design: French Blue (#0A52EF) for active step
- * Full-width stepper with numbered circles and connecting lines
+ * Design: Imperial Blue (#0A52EF) for active step
+ * Refined Rolls-Royce labels with proper alignment
  */
 const WizardStepper = ({ wizard }: WizardStepperProps) => {
     const { activeStep, stepCount } = wizard;
@@ -99,10 +99,9 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
                                 {/* Label */}
                                 <span
                                     className={cn(
-                                        "text-[10px] uppercase tracking-widest font-bold transition-colors absolute top-10 whitespace-nowrap",
-                                        isActive && "text-[#0A52EF]",
-                                        isPassed && "text-emerald-500",
-                                        !isActive && !isPassed && "text-zinc-600 group-hover:text-zinc-500"
+                                        "text-[9px] uppercase tracking-[0.2em] font-black transition-colors flex flex-col items-center",
+                                        isActive ? "text-[#0A52EF]" : "text-zinc-500",
+                                        isPassed && "text-emerald-500"
                                     )}
                                 >
                                     {step.label}
@@ -113,8 +112,8 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
                             {idx < steps.length - 1 && (
                                 <div
                                     className={cn(
-                                        "flex-1 h-[1px] mx-2 transition-colors relative top-[-10px]",
-                                        activeStep > idx ? "bg-emerald-500/50" : "bg-zinc-800"
+                                        "flex-1 h-[1px] mx-4 transition-colors relative -top-3",
+                                        activeStep > idx ? "bg-emerald-500/30" : "bg-zinc-800"
                                     )}
                                 />
                             )}

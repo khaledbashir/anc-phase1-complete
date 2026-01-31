@@ -20,13 +20,7 @@ const ActionToolbar = () => {
   const { proposalPdfLoading, resetProposal } = useProposalContext();
 
   return (
-    <div className="flex items-center justify-between mb-2 px-2">
-      {/* Left side - Mode indicator */}
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">
-          Drafting Mode
-        </span>
-      </div>
+    <div className="flex items-center justify-end mb-4 px-2">
 
       {/* Right side - Actions */}
       <div className="flex items-center gap-1">

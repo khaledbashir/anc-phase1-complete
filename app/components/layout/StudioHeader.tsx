@@ -37,7 +37,7 @@ export function StudioHeader({
     const { excelValidationOk, exportAudit, saveDraft } = useProposalContext();
     const [savingDraft, setSavingDraft] = useState(false);
     const isNewProject = !projectId || projectId === "new";
-    
+
     // Watch form values for real-time gap analysis
     const formValues = useWatch({ control });
 
@@ -67,7 +67,7 @@ export function StudioHeader({
                 method: "POST"
             });
             const data = await response.json();
-            
+
             if (data.shareUrl) {
                 await navigator.clipboard.writeText(data.shareUrl);
                 toast({
@@ -101,16 +101,16 @@ export function StudioHeader({
     };
 
     return (
-        <div className="h-full w-full flex items-center justify-between px-4 md:px-8 gap-4 bg-zinc-950 border-b border-zinc-900">
+        <div className="flex-1 w-full flex items-center justify-between px-6 md:px-8 gap-4 bg-zinc-950">
             {/* Logo & Health Score */}
             <div className="flex items-center shrink-0 gap-4 flex-1">
                 <LogoSelector theme="dark" width={110} height={40} className="p-0" />
-                
+
                 <div className="hidden md:block h-8 w-px bg-zinc-800 mx-1" />
-                
+
                 <div className="hidden md:flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-md bg-[#0A52EF]/15 px-2.5 py-1 text-[10px] font-semibold text-brand-blue uppercase tracking-wide">
-                        <CheckCircle2 className="w-3 h-3" />
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0A52EF]/10 px-3 py-1 text-[10px] font-bold text-brand-blue uppercase tracking-widest border border-brand-blue/20 shadow-[0_0_15px_rgba(10,82,239,0.05)]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-brand-blue animate-pulse" />
                         {Math.round(completionRate)}% Match
                     </span>
                     {excelValidationOk && (
@@ -135,7 +135,7 @@ export function StudioHeader({
                 />
 
                 {isNewProject ? (
-                     <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-amber-500 text-[10px] font-medium uppercase tracking-wide">
                             <AlertTriangle className="w-3 h-3" />
                             Draft Mode
@@ -175,9 +175,9 @@ export function StudioHeader({
                         <Share2 className="w-3.5 h-3.5 mr-2 text-brand-blue" />
                         Share
                     </Button>
-                    
+
                     <div className="h-4 w-px bg-zinc-800" />
-                    
+
                     <Button
                         size="sm"
                         variant="ghost"

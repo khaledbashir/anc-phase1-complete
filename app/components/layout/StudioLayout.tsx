@@ -48,7 +48,7 @@ export function StudioLayout({
     return (
         <div className="h-screen w-screen overflow-hidden flex flex-col bg-zinc-950 text-zinc-200">
             {/* Top Nav - Branding & Wizard Progress */}
-            <header className="h-16 shrink-0 border-b border-zinc-900 bg-zinc-950 flex items-center px-4 z-50">
+            <header className="h-20 shrink-0 border-b border-zinc-900/80 bg-zinc-950/80 backdrop-blur-md flex flex-col z-50">
                 {header}
             </header>
 
@@ -59,11 +59,18 @@ export function StudioLayout({
                 */}
                 <aside
                     className={cn(
-                        "border-r border-zinc-900 bg-zinc-950/50 flex flex-col transition-all duration-300 z-40",
+                        "border-r border-zinc-900/80 bg-zinc-950/80 backdrop-blur-md flex flex-col transition-all duration-300 z-40",
                         isSidebarCollapsed ? "w-16" : "w-56"
                     )}
                 >
-                    <div className="flex-1 py-6 flex flex-col gap-2">
+                    <div className="p-3 border-b border-zinc-900">
+                        <ModeToggle
+                            mode={viewMode === "ai" ? "ai" : "form"}
+                            onChange={(m) => setViewMode(m as ViewMode)}
+                            isCollapsed={isSidebarCollapsed}
+                        />
+                    </div>
+                    <div className="flex-1 py-4 flex flex-col gap-2">
                         {navItems.map((item) => {
                             const Icon = item.icon;
                             const isActive = viewMode === item.id;
@@ -118,12 +125,6 @@ export function StudioLayout({
                 <main className="flex-1 overflow-hidden grid grid-cols-2">
                     {/* THE HUB (Left Pane: 50vw) */}
                     <section className="relative flex flex-col overflow-hidden bg-zinc-950/40 border-r border-zinc-900 anc-slash-bg">
-                        {/* Mode Toggle - Top Anchored */}
-                        <ModeToggle
-                            mode={viewMode === "ai" ? "ai" : "form"}
-                            onChange={(m) => setViewMode(m as ViewMode)}
-                        />
-
                         {/* Stacked Panels with CSS Visibility Toggle */}
                         <div className="flex-1 flex overflow-hidden">
                             <div className="flex-1 relative overflow-hidden">
