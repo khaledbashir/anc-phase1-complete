@@ -255,12 +255,12 @@ const Step1Ingestion = () => {
                                 </div>
                             </div>
 
-                            {/* Maximized Viewer */}
+                            {/* Maximized Viewer - Editable */}
                             <div className="flex-1 min-h-0 rounded-xl border border-zinc-800/50 bg-zinc-950 shadow-2xl overflow-hidden relative group">
-                                <ExcelViewer />
+                                <ExcelViewer editable />
                                 <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                     <div className="bg-zinc-950/80 backdrop-blur text-[10px] text-zinc-500 px-2 py-1 rounded border border-zinc-800">
-                                        Scroll to view data
+                                        Double-click to edit • Changes sync to PDF
                                     </div>
                                 </div>
                             </div>

@@ -130,6 +130,8 @@ const defaultProposalContext = {
   setRisks: (risks: RiskItem[]) => { },
   rulesDetected: null as any,
   setRulesDetected: (rules: any) => { },
+  // Excel Editing
+  updateExcelCell: (sheetName: string, row: number, col: number, value: string) => { },
 };
 
 export const ProposalContext = createContext(defaultProposalContext);
@@ -1552,6 +1554,87 @@ export const ProposalContextProvider = ({
   }, []);
 
   /**
+   * Update a single cell in the Excel preview and sync to form data.
+   * This enables WYSIWYG editing - changes in Excel reflect in PDF.
+   */
+  const updateExcelCell = useCallback((sheetName: string, row: number, col: number, value: string) => {
+    if (!excelPreview) return;
+
+    // Update the Excel preview grid
+    setExcelPreview(prev => {
+      if (!prev) return prev;
+      
+      const newSheets = prev.sheets.map(sheet => {
+        if (sheet.name !== sheetName) return sheet;
+        
+        // Clone the grid and update the cell
+        const newGrid = sheet.grid.map((r, ri) => {
+          if (ri !== row) return r;
+          return r.map((c, ci) => (ci === col ? value : c));
+        });
+        
+        return { ...sheet, grid: newGrid };
+      });
+      
+      return { ...prev, sheets: newSheets };
+    });
+
+    // Find the LED Cost Sheet to sync changes to form data
+    const ledSheet = excelPreview.sheets.find(s => {
+      const n = s.name.toLowerCase();
+      return n.includes("led cost sheet") || (n.includes("led") && n.includes("sheet"));
+    });
+    
+    if (!ledSheet || ledSheet.name !== sheetName) return;
+
+    // Find header row to determine column meanings
+    const headerRow = ledSheet.grid.find((r, i) => {
+      const text = r.join(" ").toLowerCase();
+      return text.includes("display name") || text.includes("display");
+    });
+    const headerRowIndex = ledSheet.grid.indexOf(headerRow || []);
+    if (headerRowIndex < 0 || row <= headerRowIndex) return;
+
+    // Map column indices to field names
+    const header = headerRow || [];
+    const colName = (header[col] || "").toLowerCase().trim();
+    
+    // Get current screens
+    const screens = getValues("details.screens") || [];
+    const screenIndex = row - headerRowIndex - 1; // Adjust for header
+    
+    if (screenIndex < 0 || screenIndex >= screens.length) return;
+
+    // Map Excel column to form field
+    const fieldMap: Record<string, string> = {
+      "display name": "name",
+      "display": "name",
+      "height": "height",
+      "h": "height",
+      "width": "width",
+      "w": "width",
+      "qty": "quantity",
+      "quantity": "quantity",
+      "unit price": "unitPrice",
+      "price": "unitPrice",
+    };
+
+    const fieldName = fieldMap[colName];
+    if (fieldName) {
+      const fieldPath = `details.screens.${screenIndex}.${fieldName}` as any;
+      // Convert to number for numeric fields
+      if (["height", "width", "quantity", "unitPrice"].includes(fieldName)) {
+        const numValue = parseFloat(value.replace(/[^\d.-]/g, ""));
+        if (!isNaN(numValue)) {
+          setValue(fieldPath, numValue);
+        }
+      } else {
+        setValue(fieldPath, value);
+      }
+    }
+  }, [excelPreview, getValues, setValue]);
+
+  /**
    * Import an proposal from a JSON file.
    *
    * @param {File} file - The JSON file to import.
@@ -1917,6 +2000,8 @@ export const ProposalContextProvider = ({
         setRisks,
         rulesDetected,
         setRulesDetected,
+        // Excel Editing
+        updateExcelCell,
       }}
     >
       {children}

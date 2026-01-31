@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useProposalContext, type ExcelPreviewSheet } from "@/contexts/ProposalContext";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle2, FileSpreadsheet } from "lucide-react";
+import { AlertTriangle, CheckCircle2, FileSpreadsheet, Pencil } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -18,6 +18,7 @@ type ExcelViewerProps = {
   highlightedRows?: number[];
   focusedRow?: number | null;
   onFocusedRowChange?: (row: number) => void;
+  editable?: boolean; // Enable inline editing
 };
 
 function normalizeValue(value: string) {
@@ -66,9 +67,15 @@ export default function ExcelViewer({
   highlightedRows,
   focusedRow,
   onFocusedRowChange,
+  editable = false,
 }: ExcelViewerProps) {
-  const { excelPreview, excelPreviewLoading } = useProposalContext();
+  const { excelPreview, excelPreviewLoading, updateExcelCell } = useProposalContext();
   const [activeSheetName, setActiveSheetName] = useState<string | null>(null);
+  
+  // Editing state
+  const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const sheets = useMemo(() => excelPreview?.sheets || [], [excelPreview]);
 
@@ -82,6 +89,52 @@ export default function ExcelViewer({
     if (!effectiveActiveSheetName) return null;
     return sheets.find((s) => s.name === effectiveActiveSheetName) || null;
   }, [effectiveActiveSheetName, sheets]);
+
+  // Focus input when editing starts
+  useEffect(() => {
+    if (editingCell && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingCell]);
+
+  const startEditing = useCallback((row: number, col: number, currentValue: string) => {
+    if (!editable) return;
+    setEditingCell({ row, col });
+    setEditValue(currentValue);
+  }, [editable]);
+
+  const commitEdit = useCallback(() => {
+    if (!editingCell || !activeSheet) return;
+    updateExcelCell(activeSheet.name, editingCell.row, editingCell.col, editValue);
+    setEditingCell(null);
+    setEditValue("");
+  }, [editingCell, editValue, updateExcelCell, activeSheet]);
+
+  const cancelEdit = useCallback(() => {
+    setEditingCell(null);
+    setEditValue("");
+  }, []);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commitEdit();
+    } else if (e.key === "Escape") {
+      cancelEdit();
+    } else if (e.key === "Tab") {
+      e.preventDefault();
+      commitEdit();
+      // Move to next cell
+      if (editingCell && activeSheet) {
+        const nextCol = e.shiftKey ? editingCell.col - 1 : editingCell.col + 1;
+        const row = activeSheet.grid[editingCell.row];
+        if (row && nextCol >= 0 && nextCol < row.length) {
+          startEditing(editingCell.row, nextCol, row[nextCol] || "");
+        }
+      }
+    }
+  }, [commitEdit, cancelEdit, editingCell, activeSheet, startEditing]);
 
   const isLedCostSheetActive = useMemo(() => {
     const n = (activeSheet?.name || "").toLowerCase();
@@ -306,6 +359,8 @@ export default function ExcelViewer({
                       const isHeaderRow = r === ledHeaderRowIndex;
                       const isHeaderHighlighted = isHeaderRow && isHighlightedCol;
                       const cellValue = normalizeValue(cell);
+                      const isEditing = editingCell?.row === r && editingCell?.col === c;
+                      const isEditableCell = editable && !isHeaderRow && !isGhosted && isLedCostSheetActive && r > ledHeaderRowIndex;
 
                       const baseClass = cn(
                         "text-xs text-zinc-200 align-top px-3 py-2 border-b border-zinc-800/50",
@@ -317,10 +372,44 @@ export default function ExcelViewer({
                         isHighlightedCol && "shadow-[inset_0_0_0_1px_rgba(10,82,239,0.20)]",
                         isHeaderRow && "bg-zinc-900/60 text-zinc-100 font-semibold",
                         isHeaderHighlighted && "bg-blue-50/10",
-                        hasError && "border-b-red-500/20"
+                        hasError && "border-b-red-500/20",
+                        isEditableCell && "cursor-pointer hover:bg-zinc-800/60 group/cell",
+                        isEditing && "p-0 bg-zinc-800"
                       );
 
+                      // Editing mode - show input
+                      if (isEditing) {
+                        return (
+                          <td
+                            key={c}
+                            rowSpan={span?.rowSpan}
+                            colSpan={span?.colSpan}
+                            className={baseClass}
+                          >
+                            <input
+                              ref={inputRef}
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onKeyDown={handleKeyDown}
+                              onBlur={commitEdit}
+                              className="w-full h-full px-3 py-2 bg-zinc-800 text-white text-xs border-2 border-brand-blue outline-none"
+                            />
+                          </td>
+                        );
+                      }
+
                       let content = <div className="whitespace-pre-wrap break-words">{cellValue}</div>;
+
+                      // Show edit indicator for editable cells
+                      if (isEditableCell && cellValue) {
+                        content = (
+                          <div className="flex items-center gap-2 group/edit">
+                            <span className="flex-1 whitespace-pre-wrap break-words">{cellValue}</span>
+                            <Pencil className="w-3 h-3 text-zinc-600 opacity-0 group-hover/cell:opacity-100 transition-opacity shrink-0" />
+                          </div>
+                        );
+                      }
 
                       if (isHeaderHighlighted) {
                         content = (
@@ -362,6 +451,7 @@ export default function ExcelViewer({
                           rowSpan={span?.rowSpan}
                           colSpan={span?.colSpan}
                           className={baseClass}
+                          onDoubleClick={isEditableCell ? () => startEditing(r, c, cellValue) : undefined}
                         >
                           {content}
                         </td>
