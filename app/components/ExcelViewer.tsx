@@ -360,7 +360,9 @@ export default function ExcelViewer({
                       const isHeaderHighlighted = isHeaderRow && isHighlightedCol;
                       const cellValue = normalizeValue(cell);
                       const isEditing = editingCell?.row === r && editingCell?.col === c;
-                      const isEditableCell = editable && !isHeaderRow && !isGhosted && (!isLedCostSheetActive || r > ledHeaderRowIndex);
+                      // Simplified edit logic: Allow editing almost everywhere if editable is true
+                      // We only block ghosted (hidden/alt) rows
+                      const isEditableCell = editable && !isGhosted;
 
                       const baseClass = cn(
                         "text-xs text-zinc-200 align-top px-3 py-2 border-b border-zinc-800/50",

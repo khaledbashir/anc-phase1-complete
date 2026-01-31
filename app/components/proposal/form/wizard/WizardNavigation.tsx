@@ -24,12 +24,18 @@ const WizardNavigation = () => {
     const { watch, trigger } = useFormContext<ProposalType>();
     const [proposalName, receiverName] = watch(["details.proposalName", "receiver.name"]);
     const isStep1Ready = Boolean(proposalName?.toString().trim()) && Boolean(receiverName?.toString().trim());
-    const isNextDisabled = isLastStep || (activeStep === 0 && !isStep1Ready);
+    
+    // Allow clicking next even if "disabled" to show error toast
+    // But for visual feedback, we keep it enabled and handle validation in handleNext
+    const isNextDisabled = isLastStep; 
 
     const handleNext = async () => {
         if (activeStep === 0) {
             const ok = await trigger(["details.proposalName", "receiver.name"]);
-            if (!ok) return;
+            if (!ok) {
+                // Optional: Show toast here if you have a toast system
+                return;
+            }
         }
         nextStep();
     };
