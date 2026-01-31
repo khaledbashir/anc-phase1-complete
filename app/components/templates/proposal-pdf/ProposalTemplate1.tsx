@@ -52,9 +52,18 @@ const ProposalTemplate1 = (data: ProposalType) => {
 	}));
 
 	const displayLineItems = convertToLineItems(screensForGrouping);
+	const hasGroups = displayLineItems.some(i => i.isGroup);
+
 	// Detect Options/Alternates (items starting with "Option")
 	const optionsItems = displayLineItems.filter(i => i.name.startsWith("Option") || i.name.startsWith("Alternates"));
-	const mainItems = displayLineItems.filter(i => !i.name.startsWith("Option") && !i.name.startsWith("Alternates"));
+	const mainItems = displayLineItems
+		.filter(i => !i.name.startsWith("Option") && !i.name.startsWith("Alternates"))
+		.filter(i => {
+			// If we have groups (Package Pricing), hide ungrouped items that have $0 price
+			// These are likely components of the package that didn't get grouped by name but are covered by the package price
+			if (hasGroups && !i.isGroup && i.total === 0) return false;
+			return true;
+		});
 
 	return (
 		<ProposalLayout data={data}>
@@ -97,7 +106,7 @@ const ProposalTemplate1 = (data: ProposalType) => {
 								<div className="text-zinc-500">{item.description}</div>
 							</div>
 							<div className='text-[10px] font-bold text-zinc-900'>
-								${formatNumberWithCommas(Math.round(item.total))}
+								{formatCurrencyForPdf(Math.round(item.total), "INCLUDED")}
 							</div>
 						</div>
 					))}

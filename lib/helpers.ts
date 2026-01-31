@@ -47,7 +47,7 @@ export const formatCurrency = (amount: number | undefined | null, placeholder?: 
  * Use this in PDF templates to ensure professional appearance
  */
 export const formatCurrencyForPdf = (amount: number | undefined | null, placeholderText = "[PRICE]") => {
-    if (amount === undefined || amount === null || amount === 0) {
+    if (amount === undefined || amount === null || Math.abs(amount) < 0.01) {
         return placeholderText;
     }
     return new Intl.NumberFormat('en-US', {

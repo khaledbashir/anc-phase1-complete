@@ -81,7 +81,8 @@ function generateGroupDescription(items: ScreenItem[]): string {
         return sum + (w * h);
     }, 0);
 
-    return `${items.length} Displays Package (${Math.round(totalArea)} sq ft total)`;
+    const totalQuantity = items.reduce((sum, item) => sum + (item.specs?.quantity || 1), 0);
+    return `${totalQuantity} Displays Package (${Math.round(totalArea)} sq ft total)`;
 }
 
 /**

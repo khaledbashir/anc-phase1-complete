@@ -22,6 +22,8 @@ const SANITIZATION_DENYLIST = [
   'reinforcingTonnage',
   'bondRateOverride',
   'taxRateOverride',
+  'costBasis',
+  'marginValue',
 ];
 
 // Deep clone and sanitize data for client-facing exports

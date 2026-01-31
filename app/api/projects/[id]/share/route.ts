@@ -103,7 +103,7 @@ export async function POST(
                     // SANITIZATION: Strictly zero out all internal cost/margin data
                     lineItems: s.lineItems.map(li => ({
                         category: li.category,
-                        price: li.price,
+                        price: Number(li.price || 0),
                         cost: 0,
                         margin: 0
                     })),
