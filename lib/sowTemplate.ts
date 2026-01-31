@@ -36,14 +36,14 @@ export const ENVIRONMENT_SECTIONS = {
 • ADA compliance for viewing distances
 • Acoustic considerations for fan noise (<35dB at 10ft)
 
-ANC indoor displays are optimized for controlled environments with typical brightness of 800-1500 nits.`
+ANC indoor displays are optimized for controlled environments with typical Brightness rating of 800-1500.`
     },
     OUTDOOR: {
         title: "Outdoor Display Environment", 
         content: `Outdoor Installation Requirements:
 • IP65 or higher weatherproofing rating
 • Operating temperature range: -22°F to 122°F (-30°C to 50°C)
-• Direct sunlight compensation (minimum 5,000 nits brightness)
+• Direct sunlight compensation (minimum 5,000 Brightness rating)
 • Wind load engineering per local building codes
 • Lightning protection and surge suppression
 • UV-resistant front service access

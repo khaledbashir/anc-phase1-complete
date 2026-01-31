@@ -118,8 +118,23 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         </div>
     );
 
-    // Helper for Pricing Table - MATCHES IMAGE 2
-    const PricingTable = ({ screen }: { screen: any }) => {
+    // REQ-124: Context-bound tax/bond rates (not hardcoded)
+    const taxRate = (details as any)?.taxRateOverride ?? 0.095; // Default 9.5%
+    const bondRate = (details as any)?.bondRateOverride ?? 0.015; // Default 1.5%
+    
+    // REQ-124: Project-level totals for consolidated tax display
+    const projectSubtotal = totals?.sellPrice || screens.reduce((sum: number, s: any) => {
+        const audit = internalAudit?.perScreen?.find((a: any) => a.id === s.id || a.name === s.name);
+        return sum + (audit?.breakdown?.sellPrice || 0);
+    }, 0);
+    const projectBondCost = totals?.bondCost || (projectSubtotal * bondRate);
+    const projectBoTaxCost = totals?.boTaxCost || 0; // Only from audit (Morgantown detection)
+    const projectTaxableAmount = projectSubtotal + projectBondCost + projectBoTaxCost;
+    const projectSalesTax = projectTaxableAmount * taxRate;
+    const projectGrandTotal = projectTaxableAmount + projectSalesTax;
+
+    // Helper for Pricing Table - Shows screen line items only (no per-screen tax)
+    const PricingTable = ({ screen, isLastScreen }: { screen: any; isLastScreen: boolean }) => {
         // REQ-28: Security - If shared view, we MUST NOT use internal audit data directly if it contains costs/margins
         const auditRow = isSharedView ? null : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
         const b = auditRow?.breakdown;
@@ -139,15 +154,9 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         const engineeringPrice = b ? (b.engineering + b.permits + b.submittals) : getPrice("Engineering");
         const cmsPrice = b ? b.cms : getPrice("CMS");
 
-        // Financial sequence: Subtotal → Bond → B&O Tax (if WVU) → Sales Tax → Total
+        // REQ-124: Screen-level subtotal only (Bond, B&O, Tax shown at project level)
         const lineItemsSubtotal = hardwarePrice + structurePrice + installPrice + powerPrice + pmTravelPrice + engineeringPrice + cmsPrice;
-        const sellPrice = b ? b.sellPrice : lineItemsSubtotal;
-        const bondCost = b ? b.bondCost : (sellPrice * 0.015);
-        const boTaxCost = b ? (b.boTaxCost || 0) : 0; // Only from audit (Morgantown detection)
-        const subtotalWithBondAndBo = sellPrice + bondCost + boTaxCost;
-        const taxRate = 0.095; // 9.5% Sales Tax
-        const taxAmount = subtotalWithBondAndBo * taxRate;
-        const total = subtotalWithBondAndBo + taxAmount;
+        const screenSellPrice = b ? b.sellPrice : lineItemsSubtotal;
 
         return (
             <div className="mb-8 break-inside-avoid">
@@ -193,34 +202,55 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                             <td className="p-1.5 text-right pr-4 text-gray-900 font-medium">{formatCurrency(cmsPrice)}</td>
                         </tr>
 
-                        {/* Totals Section - Correct Financial Sequence */}
-                        <tr className="font-bold border-t border-black">
-                            <td className="p-2 text-right pr-4 uppercase text-xs">Subtotal:</td>
-                            <td className="p-2 text-right pr-4 text-xs">{formatCurrency(sellPrice)}</td>
-                        </tr>
-                        <tr className="text-gray-500 italic">
-                            <td className="p-1 text-right pr-4 text-[10px] uppercase">Performance Bond (1.5%):</td>
-                            <td className="p-1 text-right pr-4 text-[10px]">{formatCurrency(bondCost)}</td>
-                        </tr>
-                        {boTaxCost > 0 && (
-                            <tr className="text-gray-500 italic">
-                                <td className="p-1 text-right pr-4 text-[10px] uppercase">WV B&O Tax (2%):</td>
-                                <td className="p-1 text-right pr-4 text-[10px]">{formatCurrency(boTaxCost)}</td>
-                            </tr>
-                        )}
-                        <tr className="text-gray-500 italic">
-                            <td className="p-1 text-right pr-4 text-[10px] uppercase">Sales Tax (9.5%):</td>
-                            <td className="p-1 text-right pr-4 text-[10px]">{formatCurrency(taxAmount)}</td>
-                        </tr>
-                        <tr className="border-t-2 border-black font-bold text-sm bg-gray-50">
-                            <td className="p-2 text-right pr-4 uppercase">Total for {screen.name}:</td>
-                            <td className="p-2 text-right pr-4 text-[#0A52EF]">{formatCurrency(total)}</td>
+                        {/* REQ-124: Screen subtotal only - Bond/Tax shown at project level */}
+                        <tr className="font-bold border-t-2 border-black bg-gray-50">
+                            <td className="p-2 text-right pr-4 uppercase text-xs">Subtotal for {screen.name}:</td>
+                            <td className="p-2 text-right pr-4 text-xs text-[#0A52EF]">{formatCurrency(screenSellPrice)}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         );
     };
+
+    // REQ-124: Project-Level Financial Summary (Bond, B&O Tax, Sales Tax consolidated)
+    const ProjectTotalsSummary = () => (
+        <div className="mt-8 mb-8 break-inside-avoid px-4">
+            <div className="border-t-2 border-black pt-4">
+                <h3 className="font-bold text-sm uppercase text-black mb-4" style={{ fontFamily: "'Work Sans', sans-serif" }}>
+                    Project Financial Summary
+                </h3>
+                <table className="w-full text-[11px]">
+                    <tbody>
+                        <tr className="border-b border-gray-200">
+                            <td className="p-2 text-gray-700">Combined Display Subtotal:</td>
+                            <td className="p-2 text-right font-medium">{formatCurrency(projectSubtotal)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-200">
+                            <td className="p-2 text-gray-700">Performance Bond ({(bondRate * 100).toFixed(1)}%):</td>
+                            <td className="p-2 text-right font-medium">{formatCurrency(projectBondCost)}</td>
+                        </tr>
+                        {projectBoTaxCost > 0 && (
+                            <tr className="border-b border-gray-200">
+                                <td className="p-2 text-gray-700">WV B&O Tax (2%):</td>
+                                <td className="p-2 text-right font-medium">{formatCurrency(projectBoTaxCost)}</td>
+                            </tr>
+                        )}
+                        <tr className="border-b border-gray-200">
+                            <td className="p-2 text-gray-700">Sales Tax ({(taxRate * 100).toFixed(1)}%):</td>
+                            <td className="p-2 text-right font-medium">{formatCurrency(projectSalesTax)}</td>
+                        </tr>
+                        <tr className="bg-[#0A52EF] text-white">
+                            <td className="p-3 font-bold uppercase">Project Grand Total:</td>
+                            <td className="p-3 text-right font-bold text-lg">
+                                {projectGrandTotal > 0 ? formatCurrency(projectGrandTotal) : PDF_PLACEHOLDERS.TOTAL_PRICE}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
 
     return (
         <ProposalLayout data={data} disableFixedFooter>
@@ -275,25 +305,12 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 <SectionHeader title="PRICING" />
                 {screens && screens.length > 0 ? (
                     screens.map((screen: any, idx: number) => (
-                        <PricingTable key={idx} screen={screen} />
+                        <PricingTable key={idx} screen={screen} isLastScreen={idx === screens.length - 1} />
                     ))
                 ) : null}
 
-                {/* PROJECT GRAND TOTAL */}
-                <div className="mt-8 border-t-4 border-[#0A52EF] pt-4 flex justify-end">
-                    <div className="w-1/2">
-                        <div className="flex justify-between items-center py-2 border-b-2 border-black">
-                            <span className="font-bold text-sm uppercase text-black">Project Grand Total</span>
-                            <span className="font-bold text-lg text-black">
-                                {(() => {
-                                    const amount = isSharedView ? details?.totalAmount : (totals?.finalClientTotal || details?.totalAmount);
-                                    // REQ-113: Show placeholder instead of $0.00 for missing data
-                                    return amount && amount > 0 ? formatCurrency(amount) : PDF_PLACEHOLDERS.TOTAL_PRICE;
-                                })()}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+                {/* REQ-124: Project-Level Financial Summary (Bond, B&O Tax, Sales Tax consolidated) */}
+                <ProjectTotalsSummary />
             </div>
 
             {/* 6. PROJECT CONSTRAINTS (VENUE-SPECIFIC) */}

@@ -769,12 +769,12 @@ export interface ExcelPricingRow {
   shipping: number;
   totalCost: number; // Display Cost + Shipping
   margin: number; // e.g., 0.10 for 10%
-  price: number; // Total Cost × (1 + Margin)
+  price: number; // Total Cost / (1 - Margin) - Divisor Model
   ancMargin: number; // Price - TotalCost
   bondCost: number;
   totalWithBond: number; // Price + BondCost
   sellingSqFt: number; // TotalWithBond / TotalSqFt
-  shippingSalePrice: number; // Shipping markup
+  shippingSalePrice: number; // Shipping / (1 - Margin) - Divisor Model
 }
 
 export interface ExcelPricingSheet {
@@ -876,8 +876,9 @@ export function calculateExcelPricing(
     // Selling Price per Sq Ft = Total with Bond ÷ Total SQ FT
     const sellingSqFt = roundToCents(totalWithBond.div(totalSqFt));
 
-    // Shipping Sale Price (markup on shipping)
-    const shippingSalePrice = roundToCents(shipping.times(new Decimal(1).plus(margin)));
+    // REQ-124: Shipping uses Divisor Model (NOT markup) per Master Truth mandate
+    // Natalia Math: ALL costs use P = C / (1 - M), shipping is NOT exempt
+    const shippingSalePrice = roundToCents(shipping.div(new Decimal(1).minus(margin)));
 
     const row: ExcelPricingRow = {
       option: `${index + 1}`,
