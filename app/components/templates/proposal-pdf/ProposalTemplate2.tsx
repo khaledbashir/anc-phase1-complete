@@ -130,6 +130,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         const engineeringPrice = b ? (b.engineering + b.permits + b.submittals) : getPrice("Engineering");
         const cmsPrice = b ? b.cms : getPrice("CMS");
         const subtotal = b?.finalClientTotal || (hardwarePrice + structurePrice + installPrice + powerPrice + pmTravelPrice + engineeringPrice + cmsPrice);
+        const isNonZeroMoney = (value: any) => Math.abs(Number(value) || 0) >= 0.01;
         const lineItems = [
             { label: "LED Display System", value: hardwarePrice },
             { label: "Structural Materials", value: structurePrice },
@@ -138,7 +139,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             { label: "PM, Travel & General Conditions", value: pmTravelPrice },
             { label: "Engineering & Permits", value: engineeringPrice },
             { label: "CMS & Commissioning", value: cmsPrice },
-        ].filter((row) => Number(row.value) > 0);
+        ].filter((row) => isNonZeroMoney(row.value));
 
         return (
             <div className="mb-6 break-inside-avoid">
@@ -182,7 +183,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         {screens.map((screen: any, idx: number) => {
                             const auditRow = isSharedView ? null : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
                             const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
-                            if (Number(price) <= 0) return null;
+                            if (Math.abs(Number(price) || 0) < 0.01) return null;
                             
                             return (
                                 <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
@@ -195,7 +196,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         {/* Soft Cost Items (Structure, Install, Labor, etc.) */}
                         {softCostItems.map((item: any, idx: number) => {
                             const sell = Number(item?.sell || 0);
-                            if (sell <= 0) return null;
+                            if (Math.abs(sell) < 0.01) return null;
                             return (
                                 <tr key={`soft-${idx}`} className={(screens.length + idx) % 2 === 0 ? "bg-white" : "bg-gray-50"}>
                                     <td className="p-2 pl-4 text-gray-700">{item.name}</td>
