@@ -118,14 +118,12 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                             <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (W)</td>
                             <td className="p-1.5 text-right pr-4 text-gray-900">{screen?.pixelsW || Math.round((Number(screen?.widthFt ?? 0) * 304.8) / (screen?.pitchMm || 10)) || 0} p</td>
                         </tr>
-                        {/* Pixel Density row REMOVED per client feedback */}
                         <tr className="bg-white">
                             <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
                             <td className="p-1.5 text-right pr-4 text-gray-900">
                                 {screen.brightness ? `${formatNumberWithCommas(screen.brightness)}` : "Standard"}
                             </td>
                         </tr>
-                        {/* HDR Status row REMOVED per client feedback */}
                     </tbody>
                 </table>
             </div>
@@ -365,24 +363,22 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 <ExhibitA_SOW data={data} />
             </div> */}
 
-            {/* 3. PRICING SECTION - Controlled by toggle (default: ON) */}
-            {(details?.includePricingBreakdown !== false) && (
-                <div className="break-before-page px-4">
-                    <SectionHeader title="PRICING" />
-                    {screens && screens.length > 0 ? (
-                        screens.map((screen: any, idx: number) => {
-                            try {
-                                return <PricingTable key={idx} screen={screen} isLastScreen={idx === screens.length - 1} />
-                            } catch (error) {
-                                console.error(`Error rendering PricingTable for screen ${idx}:`, error);
-                                return null;
-                            }
-                        })
-                    ) : null}
+            <div className="break-before-page px-4">
+                {/* 3. PRICING SECTION - RESTORED per client template */}
+                <SectionHeader title="PRICING" />
+                {screens && screens.length > 0 ? (
+                    screens.map((screen: any, idx: number) => {
+                        try {
+                            return <PricingTable key={idx} screen={screen} isLastScreen={idx === screens.length - 1} />
+                        } catch (error) {
+                            console.error(`Error rendering PricingTable for screen ${idx}:`, error);
+                            return null;
+                        }
+                    })
+                ) : null}
 
-                    <ProjectTotalsSummary />
-                </div>
-            )}
+                <ProjectTotalsSummary />
+            </div>
 
             {/* EXHIBIT B: COST SCHEDULE - HIDDEN per client template (not in approved format) */}
             {/* <div className="break-before-page px-4">
@@ -404,75 +400,64 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
                 {/* REQ-112: Signature Block as Absolute Final Element - No content renders below this point */}
                 <div className="mt-12 break-inside-avoid">
-                    {/* PAYMENT TERMS - Controlled by toggle (default: ON) */}
-                    {(details?.showPaymentTerms !== false) && (
-                        <div className="mb-8">
-                            <h4 className="font-bold text-[11px] uppercase mb-2">PAYMENT TERMS:</h4>
-                            <ul className="list-disc pl-4 text-[10px] text-gray-700 space-y-1">
-                                <li>50% Deposit Upon Signing</li>
-                                <li>40% Due Upon Display System Delivery</li>
-                                <li>10% Due Upon Final Acceptance of the Work</li>
-                            </ul>
-                        </div>
-                    )}
+                    {/* PAYMENT TERMS (Restored per Client Screenshot) */}
+                    <div className="mb-8">
+                        <h4 className="font-bold text-[11px] uppercase mb-2">PAYMENT TERMS:</h4>
+                        <ul className="list-disc pl-4 text-[10px] text-gray-700 space-y-1">
+                            <li>50% Deposit Upon Signing</li>
+                            <li>40% Due Upon Display System Delivery</li>
+                            <li>10% Due Upon Final Acceptance of the Work</li>
+                        </ul>
+                    </div>
 
-                    {/* LEGAL TEXT - Controlled by 'Assumptions' toggle (default: OFF) */}
-                    {(details?.showAssumptions === true) && (
-                        <p className="text-[10px] text-gray-600 leading-relaxed text-justify mb-10" style={{ fontFamily: "'Work Sans', sans-serif" }}>
-                            Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.
-                            <br /><br />
-                            If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties.
-                        </p>
-                    )}
+                    <p className="text-[10px] text-gray-600 leading-relaxed text-justify mb-10" style={{ fontFamily: "'Work Sans', sans-serif" }}>
+                        Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.
+                        <br /><br />
+                        If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties.
+                    </p>
+                    <h4 className="font-bold text-[11px] uppercase mb-8 border-b-2 border-black pb-1">Agreed To And Accepted:</h4>
 
-                    {/* SIGNATURE BLOCK - Controlled by toggle (default: ON) */}
-                    {(details?.showSignatureBlock !== false) && (
-                        <>
-                            <h4 className="font-bold text-[11px] uppercase mb-8 border-b-2 border-black pb-1">Agreed To And Accepted:</h4>
-
-                            <div className="space-y-10">
-                                {/* ANC Signature Block */}
-                                <div>
-                                    <p className="font-bold text-[11px] text-[#0A52EF] mb-4">ANC SPORTS ENTERPRISES, LLC ("ANC")</p>
-                                    <p className="text-[10px] text-gray-500 mb-4">2 Manhattanville Road, Suite 402, Purchase, NY 10577</p>
-                                    <div className="flex gap-6">
-                                        <div className="flex-[2]">
-                                            <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">By:</p>
-                                            <div className="border-b border-black h-8" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">Title:</p>
-                                            <div className="border-b border-black h-8" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">Date:</p>
-                                            <div className="border-b border-black h-8" />
-                                        </div>
-                                    </div>
+                    <div className="space-y-10">
+                        {/* ANC Signature Block */}
+                        <div>
+                            <p className="font-bold text-[11px] text-[#0A52EF] mb-4">ANC SPORTS ENTERPRISES, LLC ("ANC")</p>
+                            <p className="text-[10px] text-gray-500 mb-4">2 Manhattanville Road, Suite 402, Purchase, NY 10577</p>
+                            <div className="flex gap-6">
+                                <div className="flex-[2]">
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">By:</p>
+                                    <div className="border-b border-black h-8" />
                                 </div>
-
-                                {/* Purchaser Signature Block */}
-                                <div>
-                                    <p className="font-bold text-[11px] text-[#0A52EF] mb-4">{receiver?.name || "Purchaser"} ("PURCHASER")</p>
-                                    <p className="text-[10px] text-gray-500 mb-4">{purchaserAddress}</p>
-                                    <div className="flex gap-6">
-                                        <div className="flex-[2]">
-                                            <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">By:</p>
-                                            <div className="border-b border-black h-8" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">Title:</p>
-                                            <div className="border-b border-black h-8" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">Date:</p>
-                                            <div className="border-b border-black h-8" />
-                                        </div>
-                                    </div>
+                                <div className="flex-1">
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">Title:</p>
+                                    <div className="border-b border-black h-8" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">Date:</p>
+                                    <div className="border-b border-black h-8" />
                                 </div>
                             </div>
-                        </>
-                    )}
+                        </div>
+
+                        {/* Purchaser Signature Block */}
+                        <div>
+                            <p className="font-bold text-[11px] text-[#0A52EF] mb-4">{receiver?.name || "Purchaser"} ("PURCHASER")</p>
+                            <p className="text-[10px] text-gray-500 mb-4">{purchaserAddress}</p>
+                            <div className="flex gap-6">
+                                <div className="flex-[2]">
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">By:</p>
+                                    <div className="border-b border-black h-8" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">Title:</p>
+                                    <div className="border-b border-black h-8" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase mb-1">Date:</p>
+                                    <div className="border-b border-black h-8" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
