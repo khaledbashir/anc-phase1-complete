@@ -71,31 +71,31 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             </div>
             <table className="w-full text-[11px] border-collapse" style={{ fontFamily: "'Work Sans', sans-serif" }}>
                 <tbody>
-                    <tr className="bg-white">
+                    <tr className="bg-white border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700 w-2/3">MM Pitch</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pitchMm ?? screen.pixelPitch ?? 0} mm</td>
                     </tr>
-                    <tr className="bg-gray-100">
+                    <tr className="bg-gray-100 border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700">Quantity</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">{screen.quantity || 1}</td>
                     </tr>
-                    <tr className="bg-white">
+                    <tr className="bg-white border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700">Active Display Height (ft.)</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">{Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'</td>
                     </tr>
-                    <tr className="bg-gray-100">
+                    <tr className="bg-gray-100 border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700">Active Display Width (ft.)</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">{Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'</td>
                     </tr>
-                    <tr className="bg-white">
+                    <tr className="bg-white border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (H)</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
                     </tr>
-                    <tr className="bg-gray-100">
+                    <tr className="bg-gray-100 border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (W)</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
                     </tr>
-                    <tr className="bg-white">
+                    <tr className="bg-white border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">
                             {screen.brightnessNits ? `${formatNumberWithCommas(screen.brightnessNits)}` : "Standard"}
