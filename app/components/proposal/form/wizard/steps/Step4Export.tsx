@@ -623,6 +623,32 @@ const Step4Export = () => {
                                     </button>
                                 </div>
 
+                                {/* Statement of Work Toggle */}
+                                <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-900/50">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-zinc-300 block">Show Statement of Work</label>
+                                        <p className="text-[10px] text-zinc-500">Physical installation, electrical, control system sections</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const current = watch("details.showStatementOfWork") ?? true;
+                                            setValue("details.showStatementOfWork", !current, { shouldDirty: true, shouldTouch: true });
+                                        }}
+                                        className={cn(
+                                            "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none",
+                                            (watch("details.showStatementOfWork") ?? true) ? "bg-brand-blue" : "bg-zinc-700"
+                                        )}
+                                    >
+                                        <span
+                                            className={cn(
+                                                "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                                (watch("details.showStatementOfWork") ?? true) ? "translate-x-5" : "translate-x-0"
+                                            )}
+                                        />
+                                    </button>
+                                </div>
+
                                 {/* Assumptions Toggle */}
                                 <div className="flex items-center justify-between p-3 rounded-xl border border-zinc-800 bg-zinc-900/50">
                                     <div className="space-y-1">

@@ -105,8 +105,11 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         </div>
     );
 
-    // Toggle from details
+    // ===== TOGGLES FROM DETAILS =====
     const includePricingBreakdown = (details as any)?.includePricingBreakdown ?? true;
+    const showStatementOfWork = (details as any)?.showStatementOfWork ?? true;
+    const showSignatureBlock = (details as any)?.showSignatureBlock ?? true;
+    const showPaymentTerms = (details as any)?.showPaymentTerms ?? true;
 
     // Detailed Pricing Table - Shows category breakdown (when toggle is ON)
     const DetailedPricingTable = ({ screen }: { screen: any }) => {
@@ -291,7 +294,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
             {/* PROJECT CONSTRAINTS & ASSUMPTIONS - REMOVED per Natalia's feedback */}
 
-            {/* 6. STATEMENT OF WORK */}
+            {/* 6. STATEMENT OF WORK - Toggle controlled */}
+            {showStatementOfWork && (
             <div className="break-before-page px-4">
                 <SectionHeader title="STATEMENT OF WORK" />
                 <div className="space-y-6 text-[10px] leading-relaxed text-gray-700">
@@ -329,8 +333,10 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     </section>
                 </div>
             </div>
+            )}
 
-            {/* 7. SIGNATURES - FORCED TO END */}
+            {/* 7. SIGNATURES - Toggle controlled */}
+            {showSignatureBlock && (
             <div className="break-before-page px-4">
                 {/* REQ-112: Footer moved BEFORE signatures to ensure signatures are absolute final element */}
                 <div className="mb-12 pb-6 border-b border-gray-100 text-center">
@@ -395,6 +401,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     </div>
                 </div>
             </div>
+            )}
 
         </ProposalLayout>
     );
