@@ -373,22 +373,37 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 <ExhibitA_SOW data={data} />
             </div> */}
 
-            <div className="break-before-page px-4">
-                {/* 3. PRICING SECTION - RESTORED per client template */}
-                <SectionHeader title="PRICING" />
-                {screens && screens.length > 0 ? (
-                    screens.map((screen: any, idx: number) => {
-                        try {
-                            return <PricingTable key={idx} screen={screen} isLastScreen={idx === screens.length - 1} />
-                        } catch (error) {
-                            console.error(`Error rendering PricingTable for screen ${idx}:`, error);
-                            return null;
-                        }
-                    })
-                ) : null}
+            {/* 3. PRICING SECTION - CONDITIONAL: Only show if there's breakdown data */}
+            {(() => {
+                // Check if any screen has meaningful breakdown data
+                const hasBreakdownData = screens.some((screen: any) => {
+                    const auditRow = internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
+                    const b = auditRow?.breakdown;
+                    if (!b) return false;
+                    // If any breakdown category has value > 0, we have data
+                    return (b.structure > 0 || b.install > 0 || b.power > 0 || b.engineering > 0 || b.cms > 0);
+                });
 
-                <ProjectTotalsSummary />
-            </div>
+                if (!hasBreakdownData) return null; // Hide entire PRICING section
+
+                return (
+                    <div className="break-before-page px-4">
+                        <SectionHeader title="PRICING" />
+                        {screens && screens.length > 0 ? (
+                            screens.map((screen: any, idx: number) => {
+                                try {
+                                    return <PricingTable key={idx} screen={screen} isLastScreen={idx === screens.length - 1} />
+                                } catch (error) {
+                                    console.error(`Error rendering PricingTable for screen ${idx}:`, error);
+                                    return null;
+                                }
+                            })
+                        ) : null}
+
+                        <ProjectTotalsSummary />
+                    </div>
+                );
+            })()}
 
             {/* EXHIBIT B: COST SCHEDULE - HIDDEN per client template (not in approved format) */}
             {/* <div className="break-before-page px-4">
