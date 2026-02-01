@@ -13,7 +13,9 @@ const DynamicProposalTemplateSkeleton = () => {
 
 const DynamicProposalTemplate = (props: ProposalType) => {
     // Dynamic template component name
-    const templateId = props.details?.pdfTemplate || 2;
+    const rawId = props.details?.pdfTemplate || 2;
+    // REQ-Fix: ProposalTemplate1 does not exist, map 1 -> 2
+    const templateId = rawId === 1 ? 2 : rawId;
     const templateName = `ProposalTemplate${templateId}`;
 
     const DynamicProposal = useMemo(

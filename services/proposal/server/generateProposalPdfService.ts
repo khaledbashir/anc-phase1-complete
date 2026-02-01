@@ -27,7 +27,9 @@ export async function generateProposalPdfService(req: NextRequest) {
 
 	try {
 		const ReactDOMServer = (await import("react-dom/server")).default;
-		const templateId = body.details?.pdfTemplate ?? 2; // Default to template 2
+		let templateId = body.details?.pdfTemplate ?? 2; // Default to template 2
+		// REQ-Fix: ProposalTemplate1 does not exist, map 1 -> 2
+		if (templateId === 1) templateId = 2;
 		const ProposalTemplate = await getProposalTemplate(templateId);
 
 		if (!ProposalTemplate) {
