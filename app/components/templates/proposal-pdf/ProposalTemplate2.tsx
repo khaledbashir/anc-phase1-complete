@@ -325,10 +325,10 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 </div>
                 {/* Title Right */}
                 <div className="w-1/2 text-right">
-                    <h1 className="text-2xl font-bold text-[#0A52EF] uppercase leading-tight mb-0">
+                    <h1 className="text-2xl font-bold text-[#0A52EF] uppercase leading-tight mb-1" style={{ fontFamily: "'Work Sans', sans-serif" }}>
                         {receiver?.name || "Client Name"}
                     </h1>
-                    <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest">
+                    <h2 className="text-sm font-bold text-gray-900 uppercase tracking-widest" style={{ fontFamily: "'Work Sans', sans-serif" }}>
                         {docLabel}
                     </h2>
                 </div>
