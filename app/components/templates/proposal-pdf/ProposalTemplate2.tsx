@@ -107,7 +107,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
     // ===== TOGGLES FROM DETAILS =====
     const includePricingBreakdown = (details as any)?.includePricingBreakdown ?? true;
-    const showStatementOfWork = (details as any)?.showStatementOfWork ?? true;
+    const showStatementOfWork = (details as any)?.showExhibitA ?? true; // showExhibitA controls Statement of Work
     const showSignatureBlock = (details as any)?.showSignatureBlock ?? true;
     const showPaymentTerms = (details as any)?.showPaymentTerms ?? true;
 
