@@ -66,59 +66,79 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     );
 
     // Helper for Spec Table - MATCHES IMAGE 1
-    const SpecTable = ({ screen }: { screen: any }) => (
-        <div className="mb-8 break-inside-avoid">
-            {/* Header Bar */}
-            <div className="flex justify-between items-center border-b-2 border-[#0A52EF] pb-1 mb-1">
-                <h3 className="font-bold text-sm uppercase text-[#0A52EF]" style={{ fontFamily: "'Work Sans', sans-serif" }}>{screen.name || "Display"}</h3>
-                <span className="font-bold text-sm uppercase text-[#0A52EF]" style={{ fontFamily: "'Work Sans', sans-serif" }}>Specifications</span>
+    const SpecTable = ({ screen }: { screen: any }) => {
+        // REQ-UserFeedback: Conditional Rendering for "Soft Cost" Items
+        // If technical fields (pitch, width) are missing/zero, skip technical rendering to prevent 500 Error
+        const isSoftCost = (!screen.pitchMm || screen.pitchMm === 0) && (!screen.widthFt || screen.widthFt === 0) && (!screen.pixelPitch);
+
+        if (isSoftCost) {
+            return (
+                <div className="mb-4 break-inside-avoid">
+                    <div className="flex justify-between items-center border-b-2 border-gray-200 pb-1 mb-1">
+                        <h3 className="font-bold text-sm uppercase text-gray-500" style={{ fontFamily: "'Work Sans', sans-serif" }}>{screen.name || "Service Item"}</h3>
+                        <span className="text-xs text-gray-400 uppercase">Service / Soft Cost</span>
+                    </div>
+                    <div className="p-2 bg-gray-50 border border-gray-100 rounded text-[10px] text-gray-500 italic">
+                        Technical specifications not applicable for this service item.
+                    </div>
+                </div>
+            );
+        }
+
+        return (
+            <div className="mb-8 break-inside-avoid">
+                {/* Header Bar */}
+                <div className="flex justify-between items-center border-b-2 border-[#0A52EF] pb-1 mb-1">
+                    <h3 className="font-bold text-sm uppercase text-[#0A52EF]" style={{ fontFamily: "'Work Sans', sans-serif" }}>{screen.name || "Display"}</h3>
+                    <span className="font-bold text-sm uppercase text-[#0A52EF]" style={{ fontFamily: "'Work Sans', sans-serif" }}>Specifications</span>
+                </div>
+                <table className="w-full text-[11px] border-collapse" style={{ fontFamily: "'Work Sans', sans-serif" }}>
+                    <tbody>
+                        <tr className="bg-white">
+                            <td className="p-1.5 pl-4 text-gray-700 w-2/3">MM Pitch</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pitchMm ?? screen.pixelPitch ?? 0} mm</td>
+                        </tr>
+                        <tr className="bg-gray-100">
+                            <td className="p-1.5 pl-4 text-gray-700">Quantity</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">{screen.quantity || 1}</td>
+                        </tr>
+                        <tr className="bg-white">
+                            <td className="p-1.5 pl-4 text-gray-700">Active Display Height (ft.)</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">{Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'</td>
+                        </tr>
+                        <tr className="bg-gray-100">
+                            <td className="p-1.5 pl-4 text-gray-700">Active Display Width (ft.)</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">{Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'</td>
+                        </tr>
+                        <tr className="bg-white">
+                            <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (H)</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
+                        </tr>
+                        <tr className="bg-gray-100">
+                            <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (W)</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
+                        </tr>
+                        <tr className="bg-white">
+                            <td className="p-1.5 pl-4 text-gray-700">Pixel Density (sq. ft.)</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">
+                                {formatNumberWithCommas(Math.round(92903 / Math.pow(screen.pitchMm || 10, 2)))} pixels
+                            </td>
+                        </tr>
+                        <tr className="bg-gray-100">
+                            <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">
+                                {screen.brightness ? `${formatNumberWithCommas(screen.brightness)}` : "Standard"}
+                            </td>
+                        </tr>
+                        <tr className="bg-white">
+                            <td className="p-1.5 pl-4 text-gray-700">HDR Status</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">{screen.isHDR ? "Enabled" : "Standard"}</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-            <table className="w-full text-[11px] border-collapse" style={{ fontFamily: "'Work Sans', sans-serif" }}>
-                <tbody>
-                    <tr className="bg-white">
-                        <td className="p-1.5 pl-4 text-gray-700 w-2/3">MM Pitch</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pitchMm ?? screen.pixelPitch ?? 0} mm</td>
-                    </tr>
-                    <tr className="bg-gray-100">
-                        <td className="p-1.5 pl-4 text-gray-700">Quantity</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">{screen.quantity || 1}</td>
-                    </tr>
-                    <tr className="bg-white">
-                        <td className="p-1.5 pl-4 text-gray-700">Active Display Height (ft.)</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">{Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'</td>
-                    </tr>
-                    <tr className="bg-gray-100">
-                        <td className="p-1.5 pl-4 text-gray-700">Active Display Width (ft.)</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">{Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'</td>
-                    </tr>
-                    <tr className="bg-white">
-                        <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (H)</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
-                    </tr>
-                    <tr className="bg-gray-100">
-                        <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (W)</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
-                    </tr>
-                    <tr className="bg-white">
-                        <td className="p-1.5 pl-4 text-gray-700">Pixel Density (sq. ft.)</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">
-                            {formatNumberWithCommas(Math.round(92903 / Math.pow(screen.pitchMm || 10, 2)))} pixels
-                        </td>
-                    </tr>
-                    <tr className="bg-gray-100">
-                        <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">
-                            {screen.brightness ? `${formatNumberWithCommas(screen.brightness)}` : "Standard"}
-                        </td>
-                    </tr>
-                    <tr className="bg-white">
-                        <td className="p-1.5 pl-4 text-gray-700">HDR Status</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">{screen.isHDR ? "Enabled" : "Standard"}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    );
+        );
+    };
 
     // REQ-124: Context-bound tax/bond rates (not hardcoded)
     const taxRate = (details as any)?.taxRateOverride ?? 0.095; // Default 9.5%
@@ -159,6 +179,29 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         // REQ-124: Screen-level subtotal only (Bond, B&O, Tax shown at project level)
         const lineItemsSubtotal = hardwarePrice + structurePrice + installPrice + powerPrice + pmTravelPrice + engineeringPrice + cmsPrice;
         const screenSellPrice = b ? b.sellPrice : lineItemsSubtotal;
+
+        // REQ-UserFeedback: Conditional Rendering for Pricing Table (Soft Costs)
+        const isSoftCost = (!screen.pitchMm || screen.pitchMm === 0) && (!screen.widthFt || screen.widthFt === 0) && !auditRow;
+
+        if (isSoftCost) {
+            const total = screen.sellPrice || screen.price || 0;
+            return (
+                <div className="mb-4 break-inside-avoid">
+                    <div className="flex justify-between items-center border-b-2 border-black pb-1 mb-1">
+                        <h3 className="font-bold text-sm uppercase text-black">{screen.name || "Service Item"}</h3>
+                        <span className="font-bold text-sm uppercase text-black">Pricing</span>
+                    </div>
+                    <table className="w-full text-[11px] border-collapse">
+                        <tbody>
+                            <tr className="bg-white border-b border-gray-100">
+                                <td className="p-2 pl-4 text-gray-700 font-bold w-3/4">{screen.name}</td>
+                                <td className="p-2 text-right pr-4 font-bold text-[#0A52EF] w-1/4">{formatCurrency(total)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            );
+        }
 
         return (
             <div className="mb-8 break-inside-avoid">
