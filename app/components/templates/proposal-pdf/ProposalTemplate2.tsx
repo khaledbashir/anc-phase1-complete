@@ -391,53 +391,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 <ExhibitB_CostSchedule data={data} />
             </div>
 
-            {/* 6. PROJECT CONSTRAINTS (VENUE-SPECIFIC) */}
-            <div className="px-4 mb-8">
-                <h3 className="text-[#0A52EF] font-bold text-[12px] border-b border-[#0A52EF] pb-1 mb-4 uppercase tracking-widest">
-                    Project Constraints & Schedule
-                </h3>
-                <div className="grid grid-cols-2 gap-8 text-[10px]">
-                    <section className="break-inside-avoid">
-                        <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">VENUE SPECIFICATIONS</h4>
-                        <div className="px-2 space-y-2">
-                            <p><span className="font-bold">Venue:</span> {details?.venue || "Generic Site"}</p>
-                            <p><span className="font-bold">Substantial Completion:</span> {
-                                details?.venue === 'Milan Puskar Stadium' ? 'July 30, 2020' :
-                                    details?.venue === 'WVU Coliseum' ? 'August 28, 2020' :
-                                        'TBD'
-                            }</p>
-                            <p><span className="font-bold">Liquidated Damages:</span> {
-                                details?.venue === 'Milan Puskar Stadium' ? '$2,500 per day' :
-                                    details?.venue === 'WVU Coliseum' ? '$5,000 per day' :
-                                        'N/A'
-                            }</p>
-                        </div>
-                    </section>
-
-                    <section className="break-inside-avoid">
-                        <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">SITE LOGISTICS</h4>
-                        <div className="px-2 space-y-2">
-                            {details?.venue === 'Milan Puskar Stadium' && (
-                                <p className="text-red-600 font-bold">WARNING: Concourse flooring capacity unknown. Heavy lifts require field verification.</p>
-                            )}
-                            <p>ANC assumes all base building structure is to be provided by others or is existing and is of sufficient capacity to support the proposed display systems.</p>
-                        </div>
-                    </section>
-                </div>
-            </div>
-
-            {/* Existing Assumptions section - consolidated into above if needed, but let's keep separate for now or merge */}
-            <div className="px-4 mb-8 opacity-50">
-                <h3 className="text-gray-400 font-bold text-[10px] border-b border-gray-200 pb-1 mb-4 uppercase">General Technical Assumptions</h3>
-                <div className="grid grid-cols-2 gap-8 text-[9px] text-gray-500">
-                    <section className="break-inside-avoid">
-                        <div className="px-2 space-y-1">
-                            <p>ANC assumes reasonable access will be provided to the installation team.</p>
-                            <p>Electrical: Primary power feed by others within 5' of display.</p>
-                        </div>
-                    </section>
-                </div>
-            </div>
+            {/* 6. PROJECT CONSTRAINTS & ASSUMPTIONS - REMOVED per user feedback (marked with X) */}
 
             {/* 7. SIGNATURES - FORCED TO END */}
             <div className="break-before-page px-4 pt-4">
