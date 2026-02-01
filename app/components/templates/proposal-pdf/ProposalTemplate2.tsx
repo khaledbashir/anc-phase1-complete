@@ -1,7 +1,8 @@
 import React from "react";
 
 // Components
-import { ProposalLayout, LogoSelector } from "@/app/components";
+import { ProposalLayout } from "@/app/components";
+import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 
 // Helpers
 import { formatNumberWithCommas, isDataUrl, formatCurrency } from "@/lib/helpers";
@@ -218,7 +219,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             <div className="flex justify-between items-start mb-10 px-4 pt-4 break-inside-avoid">
                 {/* Logo Left */}
                 <div className="w-1/2">
-                    <LogoSelector theme={forceWhiteLogo ? "dark" : "light"} width={160} height={80} />
+                    <LogoSelectorServer theme={forceWhiteLogo ? "dark" : "light"} width={160} height={80} />
                 </div>
                 {/* Title Right */}
                 <div className="w-1/2 text-right">
