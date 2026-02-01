@@ -7,6 +7,9 @@ import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 // Helpers
 import { formatNumberWithCommas, isDataUrl, formatCurrency, formatCurrencyForPdf } from "@/lib/helpers";
 
+// Base64 Logo for PDF (relative paths don't work in Puppeteer)
+import { ANC_LOGO_BLUE_BASE64 } from "@/lib/logoBase64";
+
 // Variables
 import { DATE_OPTIONS } from "@/lib/variables";
 
@@ -320,11 +323,11 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         <ProposalLayout data={data} disableFixedFooter>
             {/* 1. HEADER (Summary Page) - Refined for ABCDE Layout */}
             <div className="flex justify-between items-start mb-10 px-4 pt-4 break-inside-avoid">
-                {/* Logo Left */}
+                {/* Logo Left - Using base64 for PDF compatibility */}
                 <div className="w-1/2">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                        src="/ANC_Logo_2023_blue.png"
+                        src={ANC_LOGO_BLUE_BASE64}
                         alt="ANC"
                         style={{ width: '160px', height: 'auto', objectFit: 'contain' }}
                     />

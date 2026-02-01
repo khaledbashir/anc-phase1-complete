@@ -186,6 +186,40 @@ export class AnythingLLMService {
             throw err;
         }
     }
+
+    /**
+     * Sends a chat message to a specific workspace and returns the response.
+     */
+    async sendChat(slug: string, message: string, mode: "chat" | "query" = "chat") {
+        if (!this.baseUrl || !this.apiKey) return null;
+
+        const endpoint = `${this.baseUrl}/workspace/${slug}/chat`;
+
+        const body = {
+            message,
+            mode
+        };
+
+        try {
+            const res = await fetch(endpoint, {
+                method: "POST",
+                headers: this.headers,
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`AnythingLLM Chat Error: ${errorText}`);
+            }
+
+            const data = await res.json();
+            // Response format usually contains { textResponse: "..." }
+            return data.textResponse || data.response || null;
+        } catch (err) {
+            console.error("[AnythingLLM] Chat Error:", err);
+            throw err;
+        }
+    }
 }
 
 export const anythingLLMService = new AnythingLLMService();
