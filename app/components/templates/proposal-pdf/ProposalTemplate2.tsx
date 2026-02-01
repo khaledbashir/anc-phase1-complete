@@ -112,16 +112,16 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         </tr>
                         <tr className="bg-white">
                             <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (H)</td>
-                            <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">{screen?.pixelsH || Math.round((Number(screen?.heightFt ?? 0) * 304.8) / (screen?.pitchMm || 10)) || 0} p</td>
                         </tr>
                         <tr className="bg-gray-100">
                             <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (W)</td>
-                            <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">{screen?.pixelsW || Math.round((Number(screen?.widthFt ?? 0) * 304.8) / (screen?.pitchMm || 10)) || 0} p</td>
                         </tr>
                         <tr className="bg-white">
                             <td className="p-1.5 pl-4 text-gray-700">Pixel Density (sq. ft.)</td>
                             <td className="p-1.5 text-right pr-4 text-gray-900">
-                                {formatNumberWithCommas(Math.round(92903 / Math.pow(screen.pitchMm || 10, 2)))} pixels
+                                {formatNumberWithCommas(Math.round(92903 / Math.pow(screen?.pitchMm || 10, 2)))} pixels
                             </td>
                         </tr>
                         <tr className="bg-gray-100">
@@ -337,9 +337,14 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             <div className="px-4">
                 <SectionHeader title="SPECIFICATIONS" />
                 {screens && screens.length > 0 ? (
-                    screens.map((screen: any, idx: number) => (
-                        <SpecTable key={idx} screen={screen} />
-                    ))
+                    screens.map((screen: any, idx: number) => {
+                        try {
+                            return <SpecTable key={idx} screen={screen} />
+                        } catch (error) {
+                            console.error(`Error rendering SpecTable for screen ${idx}:`, error);
+                            return null;
+                        }
+                    })
                 ) : (
                     <div className="text-center text-gray-400 italic py-8">No screens configured.</div>
                 )}
@@ -354,9 +359,14 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 {/* 3. PRICING SECTION */}
                 <SectionHeader title="PRICING" />
                 {screens && screens.length > 0 ? (
-                    screens.map((screen: any, idx: number) => (
-                        <PricingTable key={idx} screen={screen} isLastScreen={idx === screens.length - 1} />
-                    ))
+                    screens.map((screen: any, idx: number) => {
+                        try {
+                            return <PricingTable key={idx} screen={screen} isLastScreen={idx === screens.length - 1} />
+                        } catch (error) {
+                            console.error(`Error rendering PricingTable for screen ${idx}:`, error);
+                            return null;
+                        }
+                    })
                 ) : null}
 
                 {/* REQ-124: Project-Level Financial Summary (Bond, B&O Tax, Sales Tax consolidated) */}
