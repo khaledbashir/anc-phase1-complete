@@ -316,7 +316,12 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             <div className="flex justify-between items-start mb-10 px-4 pt-4 break-inside-avoid">
                 {/* Logo Left */}
                 <div className="w-1/2">
-                    <LogoSelectorServer theme={forceWhiteLogo ? "dark" : "light"} width={160} height={80} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src="/ANC_Logo_2023_blue.png"
+                        alt="ANC"
+                        style={{ width: '160px', height: 'auto', objectFit: 'contain' }}
+                    />
                 </div>
                 {/* Title Right */}
                 <div className="w-1/2 text-right">
