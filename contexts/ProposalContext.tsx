@@ -1057,9 +1057,11 @@ export const ProposalContextProvider = ({
             clientName,
           }),
         });
-        const json = await resp.json();
+        const json = await resp.json().catch(() => null);
         if (!resp.ok) {
-          return { created: false, error: json?.error || "Create failed" };
+          const base = (json as any)?.error || "Create failed";
+          const details = (json as any)?.details;
+          return { created: false, error: details ? `${base}: ${details}` : base };
         }
         if (json?.proposal?.id) {
           router.push(`/projects/${json.proposal.id}`);
@@ -1091,7 +1093,14 @@ export const ProposalContextProvider = ({
       });
       if (!res.ok) {
         const text = await res.text();
-        return { created: false, error: text || "Save failed" };
+        try {
+          const parsed = JSON.parse(text);
+          const base = parsed?.error || "Save failed";
+          const details = parsed?.details;
+          return { created: false, error: details ? `${base}: ${details}` : base };
+        } catch {
+          return { created: false, error: text || "Save failed" };
+        }
       }
       modifiedProposalSuccess();
       return { created: false };

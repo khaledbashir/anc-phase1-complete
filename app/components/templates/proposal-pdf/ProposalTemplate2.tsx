@@ -3,6 +3,7 @@ import React from "react";
 // Components
 import { ProposalLayout } from "@/app/components";
 import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
+import BaseBidDisplaySystemSection from "@/app/components/templates/proposal-pdf/BaseBidDisplaySystemSection";
 
 // Helpers
 import { formatNumberWithCommas, isDataUrl, formatCurrency } from "@/lib/helpers";
@@ -129,6 +130,15 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         const engineeringPrice = b ? (b.engineering + b.permits + b.submittals) : getPrice("Engineering");
         const cmsPrice = b ? b.cms : getPrice("CMS");
         const subtotal = b?.finalClientTotal || (hardwarePrice + structurePrice + installPrice + powerPrice + pmTravelPrice + engineeringPrice + cmsPrice);
+        const lineItems = [
+            { label: "LED Display System", value: hardwarePrice },
+            { label: "Structural Materials", value: structurePrice },
+            { label: "Installation Labor", value: installPrice },
+            { label: "Electrical & Data", value: powerPrice },
+            { label: "PM, Travel & General Conditions", value: pmTravelPrice },
+            { label: "Engineering & Permits", value: engineeringPrice },
+            { label: "CMS & Commissioning", value: cmsPrice },
+        ].filter((row) => Number(row.value) > 0);
 
         return (
             <div className="mb-6 break-inside-avoid">
@@ -138,34 +148,12 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 </div>
                 <table className="w-full text-[11px] border-collapse">
                     <tbody>
-                        <tr className="bg-white border-b border-gray-100">
-                            <td className="p-1.5 pl-4 text-gray-700">LED Display System</td>
-                            <td className="p-1.5 pr-4 text-right text-gray-900 font-medium">{formatCurrency(hardwarePrice)}</td>
-                        </tr>
-                        <tr className="bg-gray-50 border-b border-gray-100">
-                            <td className="p-1.5 pl-4 text-gray-700">Structural Materials</td>
-                            <td className="p-1.5 pr-4 text-right text-gray-900 font-medium">{formatCurrency(structurePrice)}</td>
-                        </tr>
-                        <tr className="bg-white border-b border-gray-100">
-                            <td className="p-1.5 pl-4 text-gray-700">Installation Labor</td>
-                            <td className="p-1.5 pr-4 text-right text-gray-900 font-medium">{formatCurrency(installPrice)}</td>
-                        </tr>
-                        <tr className="bg-gray-50 border-b border-gray-100">
-                            <td className="p-1.5 pl-4 text-gray-700">Electrical & Data</td>
-                            <td className="p-1.5 pr-4 text-right text-gray-900 font-medium">{formatCurrency(powerPrice)}</td>
-                        </tr>
-                        <tr className="bg-white border-b border-gray-100">
-                            <td className="p-1.5 pl-4 text-gray-700">PM, Travel & General Conditions</td>
-                            <td className="p-1.5 pr-4 text-right text-gray-900 font-medium">{formatCurrency(pmTravelPrice)}</td>
-                        </tr>
-                        <tr className="bg-gray-50 border-b border-gray-100">
-                            <td className="p-1.5 pl-4 text-gray-700">Engineering & Permits</td>
-                            <td className="p-1.5 pr-4 text-right text-gray-900 font-medium">{formatCurrency(engineeringPrice)}</td>
-                        </tr>
-                        <tr className="bg-white border-b border-gray-100">
-                            <td className="p-1.5 pl-4 text-gray-700">CMS & Commissioning</td>
-                            <td className="p-1.5 pr-4 text-right text-gray-900 font-medium">{formatCurrency(cmsPrice)}</td>
-                        </tr>
+                        {lineItems.map((row, idx) => (
+                            <tr key={row.label} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} border-b border-gray-100`}>
+                                <td className="p-1.5 pl-4 text-gray-700">{row.label}</td>
+                                <td className="p-1.5 pr-4 text-right text-gray-900 font-medium">{formatCurrency(row.value)}</td>
+                            </tr>
+                        ))}
                         <tr className="border-t-2 border-black font-bold">
                             <td className="p-2 pl-4 text-gray-900 uppercase text-xs">Subtotal</td>
                             <td className="p-2 pr-4 text-right text-[#0A52EF]">{formatCurrency(subtotal)}</td>
@@ -194,6 +182,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         {screens.map((screen: any, idx: number) => {
                             const auditRow = isSharedView ? null : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
                             const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
+                            if (Number(price) <= 0) return null;
                             
                             return (
                                 <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}>
@@ -204,12 +193,16 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         })}
                         
                         {/* Soft Cost Items (Structure, Install, Labor, etc.) */}
-                        {softCostItems.map((item: any, idx: number) => (
-                            <tr key={`soft-${idx}`} className={(screens.length + idx) % 2 === 0 ? "bg-white" : "bg-gray-50"}>
-                                <td className="p-2 pl-4 text-gray-700">{item.name}</td>
-                                <td className="p-2 pr-4 text-right text-gray-900 font-bold">{formatCurrency(item.sell)}</td>
-                            </tr>
-                        ))}
+                        {softCostItems.map((item: any, idx: number) => {
+                            const sell = Number(item?.sell || 0);
+                            if (sell <= 0) return null;
+                            return (
+                                <tr key={`soft-${idx}`} className={(screens.length + idx) % 2 === 0 ? "bg-white" : "bg-gray-50"}>
+                                    <td className="p-2 pl-4 text-gray-700">{item.name}</td>
+                                    <td className="p-2 pr-4 text-right text-gray-900 font-bold">{formatCurrency(sell)}</td>
+                                </tr>
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
@@ -250,6 +243,10 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         ANC is pleased to present the following LED Display budget to {purchaserName} per the specifications and pricing below.
                     </p>
                 )}
+            </div>
+
+            <div className="break-before-page px-4">
+                <BaseBidDisplaySystemSection data={data} />
             </div>
 
             {/* 2. SPECIFICATIONS SECTION */}
