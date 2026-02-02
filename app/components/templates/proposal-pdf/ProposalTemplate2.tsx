@@ -65,9 +65,24 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         return `${rounded.toFixed(2)}'`;
     };
 
+    const splitDisplayNameAndSpecs = (value: string) => {
+        const raw = (value || "").toString().trim();
+        if (!raw) return { header: "", specs: "" };
+        const idxParen = raw.indexOf("(");
+        const idxColon = raw.indexOf(":");
+        const idx =
+            idxParen === -1 ? idxColon : idxColon === -1 ? idxParen : Math.min(idxParen, idxColon);
+        if (idx === -1) return { header: raw, specs: "" };
+        const header = raw.slice(0, idx).trim().replace(/[-–—]\s*$/, "").trim();
+        const specs = raw.slice(idx).trim();
+        return { header, specs };
+    };
+
     const getScreenLabel = (screen: any) => {
         const label = (screen?.externalName || screen?.name || "Display").toString().trim();
-        return label.length > 0 ? label : "Display";
+        const split = splitDisplayNameAndSpecs(label);
+        const header = split.header || label;
+        return header.length > 0 ? header : "Display";
     };
 
     const getScreenHeader = (screen: any) => {
@@ -254,17 +269,6 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         };
 
         const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
-        const splitHeaderAndSpecs = (value: string) => {
-            const raw = (value || "").toString().trim();
-            if (!raw) return { header: "", specs: "" };
-            const idxParen = raw.indexOf("(");
-            const idxColon = raw.indexOf(":");
-            const idx = idxParen === -1 ? idxColon : idxColon === -1 ? idxParen : Math.min(idxParen, idxColon);
-            if (idx === -1) return { header: raw, specs: "" };
-            const header = raw.slice(0, idx).trim().replace(/[-–—]\s*$/, "").trim();
-            const specs = raw.slice(idx).trim();
-            return { header, specs };
-        };
         const stripLeadingLocation = (locationName: string, raw: string) => {
             const loc = (locationName || "").toString().trim();
             const text = (raw || "").toString().trim();
@@ -287,7 +291,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     key: it.id || `quote-${idx}`,
                     ...(() => {
                         const rawLocation = (it.locationName || "ITEM").toString();
-                        const split = splitHeaderAndSpecs(rawLocation);
+                        const split = splitDisplayNameAndSpecs(rawLocation);
                         const header = (split.header || rawLocation).toString();
                         const desc = stripLeadingLocation(header, (it.description || "").toString());
                         const combined = [split.specs, desc].filter(Boolean).join(" ").trim();
@@ -304,10 +308,12 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                             ? null
                             : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
                         const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
+                        const label = (screen?.externalName || screen?.name || "Display").toString().trim();
+                        const split = splitDisplayNameAndSpecs(label);
                         return {
                             key: `screen-${screen?.id || screen?.name || idx}`,
-                            locationName: getScreenLabel(screen).toUpperCase(),
-                            description: buildDescription(screen),
+                            locationName: (split.header || getScreenLabel(screen)).toUpperCase(),
+                            description: split.specs || buildDescription(screen),
                             price: Number(price) || 0,
                         };
                     }).filter((it) => Math.abs(it.price) >= 0.01),
