@@ -1,3 +1,5 @@
+/* BACKUP OF APPROVED DESIGN - SAVED FEB 2, 2026. DO NOT MODIFY. USE THIS AS A REFERENCE IF THE MAIN PROPOSAL UI BREAKS. */
+
 import React from "react";
 
 // Components
@@ -271,61 +273,99 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             return parts.filter(Boolean).join(" - ");
         };
 
-        // DIRECT REACTIVE BINDING: Map directly through screens to ensure instant updates
-        // We only use quoteItems to look up the CONFIRMED PRICE.
-        // The Name and Description come directly from the Screen state.
-
-        console.log("PDF RENDER - Screens:", screens);
-
-        const buildScreenItem = (screen: any, idx: number) => {
-            // 1. Reactive Name
-            const label = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
-            const split = splitDisplayNameAndSpecs(label);
-            const header = (split.header || getScreenLabel(screen)).toUpperCase();
-
-            // 2. Reactive Description (Dynamic Rebuild)
-            // Use the split specs OR rebuild from attributes if missing
-            const description = split.specs || buildDescription(screen);
-
-            // 3. Price Lookup (Preserve Pricing)
-            // Find the matching quote item ONLY for the price
-            const matchingQuoteItem = quoteItems.find((q: any) =>
-                (screen.id && q.id === screen.id) ||
-                (q.locationName === screen.name)
-            );
-
-            // Fallback to calculated price if no quote item (e.g. before save)
-            const auditRow = isSharedView
-                ? null
-                : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
-
-            const price = matchingQuoteItem
-                ? (Number(matchingQuoteItem.price) || 0)
-                : (auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0);
-
-            return {
-                key: `screen-${screen?.id || screen?.name || idx}`,
-                locationName: header,
-                description: description,
-                price: Number(price) || 0,
-            };
+        const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
+        const stripLeadingLocation = (locationName: string, raw: string) => {
+            const loc = (locationName || "").toString().trim();
+            const text = (raw || "").toString().trim();
+            if (!loc || !text) return text;
+            const locUpper = loc.toUpperCase();
+            const textUpper = text.toUpperCase();
+            if (textUpper === locUpper) return "";
+            const dashPrefix = `${locUpper} - `;
+            if (textUpper.startsWith(dashPrefix)) {
+                return text.slice(dashPrefix.length).trim();
+            }
+            if (textUpper.startsWith(locUpper)) {
+                return text.slice(loc.length).replace(/^(\s*[-–—:]\s*)/, "").trim();
+            }
+            return text;
         };
+        const lineItems =
+            quoteItems.length > 0
+                ? quoteItems.map((it: any, idx: number) => ({
+                    key: it.id || `quote-${idx}`,
+                    ...(() => {
+                        const rawLocation = (it.locationName || "ITEM").toString();
 
-        const screenItems = (screens || []).map(buildScreenItem).filter((it) => Math.abs(it.price) >= 0.01);
+                        // Try to find matching screen to check for customDisplayName
+                        // 1. Try ID match
+                        // 2. Try exact Name match (case-insensitive)
+                        // 3. Try partial match (if quote item contains screen name)
+                        const matchingScreen = screens.find((s: any) => {
+                            if (s.id && it.id && s.id === it.id) return true;
 
-        const softItems = softCostItems
-            .map((item: any, idx: number) => {
-                const sell = Number(item?.sell || 0);
-                return {
-                    key: `soft-${idx}`,
-                    locationName: (item?.name || "Item").toString().toUpperCase(),
-                    description: (item?.description || "").toString(),
-                    price: sell,
-                };
-            })
-            .filter((it: any) => Math.abs(it.price) >= 0.01);
+                            const sName = (s.externalName || s.name || "").toString().trim().toUpperCase();
+                            const itName = (it.locationName || "").toString().trim().toUpperCase();
 
-        const lineItems = [...screenItems, ...softItems];
+                            // Exact match
+                            if (sName === itName && sName.length > 0) return true;
+
+                            // Partial match (e.g. "BASE - ATRIUM" contains "ATRIUM")
+                            // Ensure sName is substantial enough to avoid false positives
+                            if (sName.length > 3 && itName.includes(sName)) return true;
+
+                            return false;
+                        });
+
+                        const customOverride = matchingScreen?.customDisplayName;
+
+                        // If override exists, use it as the header
+                        const effectiveLocation = customOverride || rawLocation;
+
+                        const split = splitDisplayNameAndSpecs(effectiveLocation);
+                        const header = (split.header || effectiveLocation).toString();
+
+                        // CRITICAL: Strip the ORIGINAL location name from the description
+                        // Otherwise "BASE - ATRIUM DISPLAY" remains in the description text
+                        let desc = (it.description || "").toString();
+                        desc = stripLeadingLocation(rawLocation, desc);
+                        desc = stripLeadingLocation(effectiveLocation, desc); // Also strip new name just in case
+
+                        const combined = [split.specs, desc].filter(Boolean).join(" ").trim();
+                        return {
+                            locationName: header.toUpperCase(),
+                            description: combined,
+                        };
+                    })(),
+                    price: Number(it.price || 0) || 0,
+                })).filter((it: any) => Math.abs(it.price) >= 0.01)
+                : [
+                    ...(screens || []).map((screen: any, idx: number) => {
+                        const auditRow = isSharedView
+                            ? null
+                            : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
+                        const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
+                        const label = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
+                        const split = splitDisplayNameAndSpecs(label);
+                        return {
+                            key: `screen-${screen?.id || screen?.name || idx}`,
+                            locationName: (split.header || getScreenLabel(screen)).toUpperCase(),
+                            description: split.specs || buildDescription(screen),
+                            price: Number(price) || 0,
+                        };
+                    }).filter((it) => Math.abs(it.price) >= 0.01),
+                    ...softCostItems
+                        .map((item: any, idx: number) => {
+                            const sell = Number(item?.sell || 0);
+                            return {
+                                key: `soft-${idx}`,
+                                locationName: (item?.name || "Item").toString().toUpperCase(),
+                                description: (item?.description || "").toString(),
+                                price: sell,
+                            };
+                        })
+                        .filter((it: any) => Math.abs(it.price) >= 0.01),
+                ];
 
         const subtotal = lineItems.reduce((sum: number, it: any) => sum + (Number(it.price) || 0), 0);
 
