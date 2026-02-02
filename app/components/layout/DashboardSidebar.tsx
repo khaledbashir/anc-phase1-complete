@@ -33,7 +33,7 @@ export default function DashboardSidebar() {
                     <div className="w-10 h-10 flex items-center justify-center relative">
                         {/* Light Mode Logo */}
                         <img
-                            src="/ANC_Logo_2024_blue.png"
+                            src="/ANC_Logo_2023_blue.png"
                             alt="ANC"
                             className="w-full h-auto object-contain dark:hidden"
                         />

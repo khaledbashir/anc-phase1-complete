@@ -1,17 +1,17 @@
 "use client";
 
 import { useFormContext, useWatch } from "react-hook-form";
-import { 
-    Calculator, 
-    DollarSign, 
-    Settings2, 
-    Percent, 
-    TrendingUp, 
-    AlertCircle, 
-    Info, 
-    Shield, 
-    Hammer, 
-    Truck, 
+import {
+    Calculator,
+    DollarSign,
+    Settings2,
+    Percent,
+    TrendingUp,
+    AlertCircle,
+    Info,
+    Shield,
+    Hammer,
+    Truck,
     Sparkles,
     ArrowRight,
     Receipt,
@@ -137,13 +137,13 @@ const Step3Math = () => {
     // Apply global margin to all screens
     const applyGlobalMargin = (margin: number) => {
         const currentScreens = getValues("details.screens") || [];
-        
+
         // Update all screens with new margin - FORCE DEEP CLONE
         const updatedScreens = currentScreens.map((s: any) => ({
-             ...s,
-             desiredMargin: margin,
-             // If we wanted to be extra safe, we could wipe derived values to force recalc
-             // but calculateProposalAudit should handle it based on inputs
+            ...s,
+            desiredMargin: margin,
+            // If we wanted to be extra safe, we could wipe derived values to force recalc
+            // but calculateProposalAudit should handle it based on inputs
         }));
 
         console.log("Applying Global Margin:", margin, "to", updatedScreens.length, "screens");
@@ -154,7 +154,7 @@ const Step3Math = () => {
 
         // Recalculate audit IMMEDIATELY to update UI
         try {
-             const audit = calculateProposalAudit(updatedScreens, {
+            const audit = calculateProposalAudit(updatedScreens, {
                 taxRate: getValues("details.taxRateOverride"),
                 bondPct: getValues("details.bondRateOverride"),
                 structuralTonnage: getValues("details.metadata.structuralTonnage"),
@@ -177,8 +177,8 @@ const Step3Math = () => {
 
         // Recalculate audit with new bond rate
         try {
-             const currentScreens = getValues("details.screens") || [];
-             const audit = calculateProposalAudit(currentScreens, {
+            const currentScreens = getValues("details.screens") || [];
+            const audit = calculateProposalAudit(currentScreens, {
                 taxRate: getValues("details.taxRateOverride"),
                 bondPct: rate,
                 structuralTonnage: getValues("details.metadata.structuralTonnage"),
@@ -197,19 +197,19 @@ const Step3Math = () => {
         <TooltipProvider>
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 p-6">
                 {/* Natalia Math Engine Status */}
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 relative overflow-hidden">
+                <div className="bg-muted/50 border border-border rounded-2xl p-6 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-5 rotate-12">
                         <Sparkles className="w-24 h-24 text-brand-blue" />
                     </div>
-                    
+
                     <div className="flex items-center justify-between mb-8 relative z-10">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-brand-blue/20 text-brand-blue">
                                 <Calculator className="w-5 h-5" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-white italic tracking-tight">Natalia Math Engine</h2>
-                                <p className="text-zinc-500 text-[10px] uppercase tracking-[0.2em] font-bold">Phase 3: Automated Engineering & Math</p>
+                                <h2 className="text-xl font-bold text-foreground italic tracking-tight">Natalia Math Engine</h2>
+                                <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-bold">Phase 3: Automated Engineering & Math</p>
                             </div>
                         </div>
 
@@ -228,34 +228,34 @@ const Step3Math = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 relative z-10">
                         {/* KPI 1: Selling Price / SqFt */}
-                        <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 group hover:border-brand-blue/30 transition-all">
-                            <div className="flex items-center gap-2 text-zinc-500 mb-1">
+                        <div className="bg-card p-4 rounded-xl border border-border group hover:border-brand-blue/30 transition-all shadow-sm">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-1">
                                 <DollarSign className="w-3 h-3" />
                                 <span className="text-[10px] font-bold uppercase tracking-wider">Selling Price / SQFT</span>
                             </div>
-                            <div className="text-xl font-bold text-white tracking-tight">
+                            <div className="text-xl font-bold text-foreground tracking-tight">
                                 {formatCurrency(sellPricePerSqFt)}
                             </div>
                         </div>
-                        
+
                         {/* KPI 2: Structural Labor */}
-                        <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 group hover:border-brand-blue/30 transition-all">
-                            <div className="flex items-center gap-2 text-zinc-500 mb-1">
+                        <div className="bg-card p-4 rounded-xl border border-border group hover:border-brand-blue/30 transition-all shadow-sm">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-1">
                                 <Hammer className="w-3 h-3" />
                                 <span className="text-[10px] font-bold uppercase tracking-wider">Structural Labor (15%)</span>
                             </div>
-                            <div className="text-xl font-bold text-white tracking-tight">
+                            <div className="text-xl font-bold text-foreground tracking-tight">
                                 {formatCurrency(structuralLabor)}
                             </div>
                         </div>
 
                         {/* KPI 3: Shipping */}
-                        <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 group hover:border-brand-blue/30 transition-all">
-                            <div className="flex items-center gap-2 text-zinc-500 mb-1">
+                        <div className="bg-card p-4 rounded-xl border border-border group hover:border-brand-blue/30 transition-all shadow-sm">
+                            <div className="flex items-center gap-2 text-muted-foreground mb-1">
                                 <Truck className="w-3 h-3" />
                                 <span className="text-[10px] font-bold uppercase tracking-wider">Shipping & Logistics</span>
                             </div>
-                            <div className="text-xl font-bold text-white tracking-tight">
+                            <div className="text-xl font-bold text-foreground tracking-tight">
                                 {formatCurrency(shippingLogistics)}
                             </div>
                         </div>
@@ -274,18 +274,18 @@ const Step3Math = () => {
                 </div>
 
                 {/* Calculation Mode Toggle Card */}
-                <Card className="bg-zinc-900 border-zinc-800">
+                <Card className="bg-card border-border shadow-sm">
                     <CardContent className="p-6 flex items-center justify-between">
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                                <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-wider">
+                                <p className="text-muted-foreground text-[11px] font-bold uppercase tracking-wider">
                                     Calculation Mode
                                 </p>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Info className="w-3.5 h-3.5 text-zinc-600 hover:text-brand-blue transition-colors cursor-help" />
+                                        <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-brand-blue transition-colors cursor-help" />
                                     </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3">
+                                    <TooltipContent side="top" className="max-w-xs bg-popover border-border text-popover-foreground p-3">
                                         <p className="text-xs leading-relaxed">
                                             <strong className="text-brand-blue">Pass-Through Mode:</strong> Enable this to ignore internal calculations and mirror the exact rows and prices from an uploaded Estimator Excel for 1:1 PDF skinning.
                                         </p>
@@ -293,10 +293,10 @@ const Step3Math = () => {
                                 </Tooltip>
                             </div>
 
-                            <h3 className="text-base font-bold text-zinc-200">
+                            <h3 className="text-base font-bold text-foreground">
                                 {mirrorMode ? "Excel Pass-Through Active" : "Strategic Estimator Active"}
                             </h3>
-                            <p className="text-zinc-500 text-[10px] mt-1 italic font-medium">
+                            <p className="text-muted-foreground text-[10px] mt-1 italic font-medium">
                                 {mirrorMode
                                     ? "Locking values to imported Master Excel for verification accuracy."
                                     : "Using proprietary margin logic and formulaic overrides."
@@ -311,15 +311,15 @@ const Step3Math = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-zinc-900/50 border-zinc-800">
-                    <CardHeader className="pb-3 border-b border-zinc-800/50">
+                <Card className="bg-muted/50 border-border">
+                    <CardHeader className="pb-3 border-b border-border">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-brand-blue/20">
                                 <Receipt className="w-5 h-5 text-brand-blue" />
                             </div>
                             <div className="flex-1">
-                                <CardTitle className="text-zinc-100 text-sm font-bold uppercase tracking-tight">Sales Quotation Items</CardTitle>
-                                <CardDescription className="text-zinc-500 text-xs">
+                                <CardTitle className="text-foreground text-sm font-bold uppercase tracking-tight">Sales Quotation Items</CardTitle>
+                                <CardDescription className="text-muted-foreground text-xs">
                                     These lines drive the Project Total / Pricing blocks in the PDF.
                                 </CardDescription>
                             </div>
@@ -397,15 +397,15 @@ const Step3Math = () => {
 
                 {/* Global Pricing Controls */}
                 {!mirrorMode && (
-                    <Card className="bg-zinc-900/50 border-zinc-800">
-                        <CardHeader className="pb-3 border-b border-zinc-800/50">
+                    <Card className="bg-muted/50 border-border">
+                        <CardHeader className="pb-3 border-b border-border">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-brand-blue/20">
                                     <Settings2 className="w-5 h-5 text-brand-blue" />
                                 </div>
                                 <div>
-                                    <CardTitle className="text-zinc-100 text-sm font-bold uppercase tracking-tight">Global Strategic Controls</CardTitle>
-                                    <CardDescription className="text-zinc-500 text-xs">
+                                    <CardTitle className="text-foreground text-sm font-bold uppercase tracking-tight">Global Strategic Controls</CardTitle>
+                                    <CardDescription className="text-muted-foreground text-xs">
                                         Apply settings to all {screens.length} screen{screens.length !== 1 ? 's' : ''} in the project.
                                     </CardDescription>
                                 </div>
@@ -443,17 +443,17 @@ const Step3Math = () => {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {/* Global Bond Rate */}
-                                <div className="flex flex-col gap-3 p-4 bg-zinc-950/50 rounded-xl border border-zinc-800">
+                                <div className="flex flex-col gap-3 p-4 bg-card rounded-xl border border-border shadow-sm">
                                     <div className="flex items-center justify-between">
-                                        <Label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                             <Shield className="w-3.5 h-3.5 text-brand-blue" />
                                             Bond Rate (%)
                                         </Label>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Info className="w-3.5 h-3.5 text-zinc-700 hover:text-brand-blue transition-colors cursor-help" />
+                                                <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-brand-blue transition-colors cursor-help" />
                                             </TooltipTrigger>
-                                            <TooltipContent side="top" className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3">
+                                            <TooltipContent side="top" className="max-w-xs bg-popover border-border text-popover-foreground p-3">
                                                 <p className="text-xs leading-relaxed">
                                                     Performance Bond insurance fee applied to the Sell Price after margin calculation. Default: 1.5%
                                                 </p>
@@ -463,24 +463,24 @@ const Step3Math = () => {
                                     <Input
                                         type="number"
                                         step="0.1"
-                                        className="bg-zinc-950 border-zinc-800 text-white font-bold h-9 focus-visible:ring-brand-blue/30"
+                                        className="bg-background border-input text-foreground font-bold h-9 focus-visible:ring-brand-blue/30"
                                         value={globalBondRate}
                                         onChange={(e) => applyGlobalBondRate(parseFloat(e.target.value))}
                                     />
                                 </div>
 
                                 {/* Global Tax Rate - REQ-125 */}
-                                <div className="flex flex-col gap-3 p-4 bg-zinc-950/50 rounded-xl border border-zinc-800">
+                                <div className="flex flex-col gap-3 p-4 bg-card rounded-xl border border-border shadow-sm">
                                     <div className="flex items-center justify-between">
-                                        <Label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-2">
+                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                                             <Receipt className="w-3.5 h-3.5 text-brand-blue" />
                                             Sales Tax Rate (%)
                                         </Label>
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <Info className="w-3.5 h-3.5 text-zinc-700 hover:text-brand-blue transition-colors cursor-help" />
+                                                <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-brand-blue transition-colors cursor-help" />
                                             </TooltipTrigger>
-                                            <TooltipContent side="top" className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3">
+                                            <TooltipContent side="top" className="max-w-xs bg-popover border-border text-popover-foreground p-3">
                                                 <p className="text-xs leading-relaxed">
                                                     Sales tax applied to (Sell Price + Bond + B&O Tax). Default: 9.5%. Morgantown/WVU projects auto-add 2% B&O Tax.
                                                 </p>
@@ -535,14 +535,14 @@ const Step3Math = () => {
                     <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-2">
                             <TrendingUp className="w-4 h-4 text-brand-blue" />
-                            <h3 className="text-sm font-bold text-white uppercase tracking-tight">Strategic P&L Audit</h3>
+                            <h3 className="text-sm font-bold text-foreground uppercase tracking-tight">Strategic P&L Audit</h3>
                         </div>
-                        <Badge variant="outline" className="text-[10px] font-bold border-zinc-800 text-zinc-500 uppercase tracking-widest">
+                        <Badge variant="outline" className="text-[10px] font-bold border-border text-muted-foreground uppercase tracking-widest">
                             Real-time Verification
                         </Badge>
                     </div>
-                    
-                    <Card className="bg-zinc-950/50 border border-zinc-800/40 overflow-hidden">
+
+                    <Card className="bg-muted/50 border border-border overflow-hidden">
                         <CardContent className="p-0">
                             <AuditTable bondRateOverride={bondRate} />
                         </CardContent>

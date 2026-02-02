@@ -67,7 +67,7 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                                 <p className="text-[7px] text-zinc-400 tracking-wider">NY 914.696.2100 TX 940.464.2320</p>
                             </div>
                             <img
-                                src={`${process.env.NEXT_PUBLIC_BASE_URL || "https://basheer-natalia.prd42b.easypanel.host"}/ANC_Logo_2023_blue.png`}
+                                src="/ANC_Logo_2023_blue.png"
                                 alt="ANC"
                                 width={48}
                                 height={24}

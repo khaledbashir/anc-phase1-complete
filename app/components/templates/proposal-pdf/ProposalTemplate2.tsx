@@ -289,20 +289,16 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             // Use the split specs OR rebuild from attributes if missing
             const description = split.specs || buildDescription(screen);
 
-            // 3. Price Lookup (Preserve Pricing)
-            // Find the matching quote item ONLY for the price
-            // PRIORITY 1: ID Match
-            // PRIORITY 2: Location Name Match
-            // PRIORITY 3: Index Match (Direct structural mapping)
-            const matchingQuoteItem = quoteItems.find((q: any) =>
-                (screen.id && q.id === screen.id) ||
-                (q.locationName === screen.name)
-            ) || quoteItems[idx]; // Fallback to index if no ID/Name match
+            // 3. Price Lookup (Strict Index Match)
+            // We use the Index to guarantee 1:1 alignment with the table rows.
+            // Fuzzy name matching caused duplicates when names were similar.
+            const matchingQuoteItem = quoteItems[idx];
 
             // Fallback to calculated price if no quote item (e.g. before save)
+            // Also use index match for the audit row to ensure we grab the right breakdown.
             const auditRow = isSharedView
                 ? null
-                : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
+                : internalAudit?.perScreen?.[idx];
 
             const price = matchingQuoteItem
                 ? (Number(matchingQuoteItem.price) || 0)
