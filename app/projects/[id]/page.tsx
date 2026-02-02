@@ -14,6 +14,11 @@ interface PageProps {
  * DB stores flat structure; Form expects nested structure
  */
 function mapDbToFormSchema(dbProject: any) {
+    const cfg = (dbProject.documentConfig || {}) as any;
+    const documentMode = (dbProject.documentMode || "BUDGET") as "BUDGET" | "PROPOSAL" | "LOI";
+    const documentType = documentMode === "LOI" ? "LOI" : "First Round";
+    const pricingType = documentMode === "PROPOSAL" ? "Hard Quoted" : "Budget";
+
     return {
         // Sender defaults (ANC info)
         sender: FORM_DEFAULT_VALUES.sender,
@@ -21,9 +26,9 @@ function mapDbToFormSchema(dbProject: any) {
         // Receiver = Client info
         receiver: {
             name: dbProject.clientName || "",
-            address: "",
-            zipCode: "",
-            city: "",
+            address: dbProject.clientAddress || "",
+            zipCode: dbProject.clientZip || "",
+            city: dbProject.clientCity || "",
             country: "",
             email: "",
             phone: "",
@@ -45,11 +50,12 @@ function mapDbToFormSchema(dbProject: any) {
             discountDetails: { amount: 0, amountType: "amount" },
             shippingDetails: { cost: 0, costType: "amount" },
             paymentInformation: { bankName: "", accountName: "", accountNumber: "" },
-            additionalNotes: "",
-            paymentTerms: "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion",
+            additionalNotes: dbProject.additionalNotes || "",
+            paymentTerms: dbProject.paymentTerms || "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion",
             totalAmountInWords: "",
-            documentType: "First Round" as const,
-            pricingType: "Budget" as const,
+            documentType: documentType as any,
+            pricingType: pricingType as any,
+            documentMode: documentMode as any,
             pdfTemplate: 2,
             subTotal: 0,
             totalAmount: 0,
@@ -78,18 +84,18 @@ function mapDbToFormSchema(dbProject: any) {
             taxRateOverride: Number(dbProject.taxRateOverride) || 0,
             bondRateOverride: Number(dbProject.bondRateOverride) || 0,
             aiWorkspaceSlug: dbProject.aiWorkspaceSlug || null,
-            venue: "Generic" as const,
-            includePricingBreakdown: true, // Default: show pricing breakdown
-            showPricingTables: true,
-            showIntroText: true,
-            showBaseBidTable: true,
-            showSpecifications: true,
-            showCompanyFooter: true,
-            showPaymentTerms: true,
-            showSignatureBlock: true,
+            venue: (dbProject.venue || "Generic") as "Milan Puskar Stadium" | "WVU Coliseum" | "Generic",
+            includePricingBreakdown: cfg.includePricingBreakdown ?? true,
+            showPricingTables: cfg.showPricingTables ?? true,
+            showIntroText: cfg.showIntroText ?? true,
+            showBaseBidTable: cfg.showBaseBidTable ?? true,
+            showSpecifications: cfg.showSpecifications ?? true,
+            showCompanyFooter: cfg.showCompanyFooter ?? true,
+            showPaymentTerms: cfg.showPaymentTerms ?? false,
+            showSignatureBlock: cfg.showSignatureBlock ?? false,
             showAssumptions: false,
-            showExhibitA: false,
-            showExhibitB: false,
+            showExhibitA: cfg.showExhibitA ?? false,
+            showExhibitB: cfg.showExhibitB ?? false,
         },
     };
 }

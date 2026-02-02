@@ -17,6 +17,7 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
   const steps = ["Creating Workspace...", "Injecting Master Formulas...", "Training Strategic Agent..."];
@@ -25,6 +26,7 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
     if (!clientName) return;
     setLoading(true);
     setStep(0);
+    setError(null);
 
     try {
       // Animate through steps
@@ -40,7 +42,13 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
         await new Promise((r) => setTimeout(r, 600));
       }
 
-      const json = await resp.json();
+      const text = await resp.text();
+      let json: any = null;
+      try {
+        json = text ? JSON.parse(text) : null;
+      } catch {
+        json = null;
+      }
       if (resp.ok && json && json.proposal) {
         // store workspace/thread locally for Commander
         if (typeof window !== "undefined") {
@@ -55,10 +63,16 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
         setOpen(false);
         router.push(`/`);
       } else {
-        console.error("Workspace creation failed", json);
+        const msg =
+          (json && (json.details || json.error)) ||
+          text ||
+          `Workspace creation failed (HTTP ${resp.status})`;
+        setError(String(msg));
       }
     } catch (e) {
       console.error("Failed to create workspace:", e);
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -95,6 +109,11 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
                 <div className="text-zinc-200 font-medium">{steps[step]}</div>
                 <div className="text-zinc-500 text-sm mt-2">Initializing AI Strategic Hub. This may take a few seconds.</div>
               </div>
+              {error && (
+                <div className="w-full max-w-md rounded-lg border border-red-500/30 bg-red-950/20 px-4 py-3 text-xs text-red-200 break-words">
+                  {error}
+                </div>
+              )}
             </div>
           )}
         </DialogContent>

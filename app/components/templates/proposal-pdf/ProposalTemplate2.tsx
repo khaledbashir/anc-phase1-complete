@@ -4,10 +4,12 @@ import React from "react";
 import { ProposalLayout } from "@/app/components";
 import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 import BaseBidDisplaySystemSection from "@/app/components/templates/proposal-pdf/BaseBidDisplaySystemSection";
+import ExhibitA_TechnicalSpecs from "@/app/components/templates/proposal-pdf/exhibits/ExhibitA_TechnicalSpecs";
 import ExhibitB_CostSchedule from "@/app/components/templates/proposal-pdf/exhibits/ExhibitB_CostSchedule";
 
 // Helpers
 import { formatNumberWithCommas, isDataUrl, formatCurrency } from "@/lib/helpers";
+import { resolveDocumentMode } from "@/lib/documentMode";
 
 // Variables
 import { DATE_OPTIONS } from "@/lib/variables";
@@ -31,11 +33,9 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     const internalAudit = details?.internalAudit as any;
     const totals = internalAudit?.totals;
 
-    const documentType = (details as any).documentType as "LOI" | "First Round" | undefined;
-    const pricingType = (details as any).pricingType as "Hard Quoted" | "Budget" | undefined;
-    const headerType = documentType === "LOI" ? "LOI" : pricingType === "Hard Quoted" ? "PROPOSAL" : "BUDGET";
-    const docLabel = headerType === "BUDGET" ? "BUDGET ESTIMATE" : "SALES QUOTATION";
-    const isLOI = documentType === "LOI";
+    const documentMode = resolveDocumentMode(details);
+    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : "SALES QUOTATION";
+    const isLOI = documentMode === "LOI";
 
     const purchaserName = receiver?.name || "Client Name";
     const purchaserAddress =
@@ -152,10 +152,12 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     const showBaseBidTable = (details as any)?.showBaseBidTable ?? true;
     const showSpecifications = (details as any)?.showSpecifications ?? true;
     const showCompanyFooter = (details as any)?.showCompanyFooter ?? true;
-    const showStatementOfWork = (details as any)?.showExhibitA ?? false;
+    const showExhibitA = (details as any)?.showExhibitA ?? false;
     const showExhibitB = (details as any)?.showExhibitB ?? false;
     const showSignatureBlock = (details as any)?.showSignatureBlock ?? true;
     const showPaymentTerms = (details as any)?.showPaymentTerms ?? true;
+    const effectiveShowPaymentTerms = documentMode === "LOI" && showPaymentTerms;
+    const effectiveShowSignatureBlock = documentMode === "LOI" && showSignatureBlock;
 
     // Detailed Pricing Table - Shows category breakdown (when toggle is ON)
     const DetailedPricingTable = ({ screen }: { screen: any }) => {
@@ -276,6 +278,26 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         );
     };
 
+    const LegalNotesSection = () => {
+        const raw = (details?.additionalNotes || "").toString().trim();
+        if (!raw) return null;
+        const lines = raw
+            .split(/\r?\n/g)
+            .map((l) => l.trim())
+            .filter(Boolean);
+        if (lines.length === 0) return null;
+        return (
+            <div className="px-4 mt-8 break-inside-avoid">
+                <SectionHeader title="LEGAL NOTES" />
+                <div className="text-[11px] text-gray-700 space-y-1 whitespace-pre-wrap">
+                    {lines.map((line, idx) => (
+                        <div key={idx}>{line}</div>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     const CompanyFooter = () => (
         <div className="px-4 mt-12 pb-6 border-t border-gray-100 text-center">
             <p className="text-[9px] text-gray-400 font-bold tracking-[0.2em] uppercase mb-1">ANC SPORTS ENTERPRISES, LLC</p>
@@ -360,11 +382,11 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
             {showIntroText && (
                 <div className="mb-10 text-[11px] text-gray-700 text-justify leading-relaxed px-4">
-                    {headerType === "LOI" ? (
+                    {documentMode === "LOI" ? (
                         <p>
                             This Sales Quotation will set forth the terms by which {purchaserName} (“Purchaser”) located at {purchaserAddress} and ANC Sports Enterprises, LLC (“ANC”) located at {ancAddress} (collectively, the “Parties”) agree that ANC will provide following LED Display and services (the “Display System”) described below for {details?.location || details?.proposalName || "the project"}.
                         </p>
-                    ) : headerType === "PROPOSAL" ? (
+                    ) : documentMode === "PROPOSAL" ? (
                         <p>
                             ANC is pleased to present the following LED Display proposal to {purchaserName} per the specifications and pricing below.
                         </p>
@@ -382,29 +404,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 </div>
             )}
 
-            {showPaymentTerms && <PaymentTermsSection />}
-
-            {isLOI && showSignatureBlock && (
-                <div className="px-4">
-                    <SignatureBlock />
-                </div>
-            )}
-
-            {showSpecifications && (
-                <div className={isLOI ? "break-before-page px-4" : "px-4"}>
-                    <SectionHeader title="SPECIFICATIONS" />
-                    {screens && screens.length > 0 ? (
-                        screens.map((screen: any, idx: number) => (
-                            <SpecTable key={idx} screen={screen} />
-                        ))
-                    ) : (
-                        <div className="text-center text-gray-400 italic py-8">No screens configured.</div>
-                    )}
-                </div>
-            )}
-
-            <div className="break-before-page px-4">
-                {showPricingTables && (
+            <div className="px-4">
+                {!isLOI && showPricingTables && (
                     <>
                         <SectionHeader title="PRICING" />
                         {includePricingBreakdown ? (
@@ -432,64 +433,124 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 </div>
             </div>
 
-            {/* PROJECT CONSTRAINTS & ASSUMPTIONS - REMOVED per Natalia's feedback */}
-
-            {/* 6. STATEMENT OF WORK - Toggle controlled */}
-            {showStatementOfWork && (
-            <div className="break-before-page px-4">
-                <SectionHeader title="STATEMENT OF WORK" />
-                <div className="space-y-6 text-[10px] leading-relaxed text-gray-700">
-                    <section className="break-inside-avoid">
-                        <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">1. PHYSICAL INSTALLATION</h4>
-                        <div className="px-2 space-y-2">
-                            <p>ANC assumes all base building structure is to be provided by others or is existing and is of sufficient capacity to support the proposed display systems.</p>
-                            <p>ANC assumes reasonable access will be provided to the installation team and any unknown site conditions such as lane closures, site protection, permitting, etc. is not currently in this proposal.</p>
+            {isLOI && (
+                <>
+                    {effectiveShowPaymentTerms && <PaymentTermsSection />}
+                    <LegalNotesSection />
+                    {effectiveShowSignatureBlock && (
+                        <div className="px-4">
+                            <SignatureBlock />
                         </div>
-                    </section>
-
-                    <section className="break-inside-avoid">
-                        <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">2. ELECTRICAL & DATA INSTALLATION</h4>
-                        <div className="px-2 space-y-2">
-                            <p>ANC assumes primary power feed will be provided by others or is existing, within 5' of the display location with sufficient amps; typically 208v 3-phase.</p>
-                            <p>ANC will provide data cabling and labor to pull cable from control location to the display(s).</p>
-                        </div>
-                    </section>
-
-                    <section className="break-inside-avoid">
-                        <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">3. CONTROL SYSTEM</h4>
-                        <div className="px-2 space-y-2">
-                            <p>Installation and commissioning of the ANC vSOFT™ Control System or specified CMS platform.</p>
-                            <p>Includes configuration of screen layouts and zones per project specifications.</p>
-                        </div>
-                    </section>
-
-                    <section className="break-inside-avoid">
-                        <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">4. GENERAL CONDITIONS</h4>
-                        <div className="px-2 space-y-2">
-                            <p>Price includes one (1) round of submittals and engineering shop drawings.</p>
-                            <p>ANC has not included bonding of any kind unless specifically noted.</p>
-                            <p>Shipping included at current market rates; subject to change due to global logistics impacts.</p>
-                        </div>
-                    </section>
-                </div>
-            </div>
+                    )}
+                </>
             )}
 
-            {showExhibitB && (
+            {!isLOI && showSpecifications && (
+                <div className="break-before-page px-4">
+                    <SectionHeader title="SPECIFICATIONS" />
+                    {screens && screens.length > 0 ? (
+                        screens.map((screen: any, idx: number) => (
+                            <SpecTable key={idx} screen={screen} />
+                        ))
+                    ) : (
+                        <div className="text-center text-gray-400 italic py-8">No screens configured.</div>
+                    )}
+                </div>
+            )}
+
+            {!isLOI && documentMode === "PROPOSAL" && showExhibitA && (
+                <div className="break-before-page px-4">
+                    <SectionHeader title="STATEMENT OF WORK" />
+                    <div className="space-y-6 text-[10px] leading-relaxed text-gray-700">
+                        <section className="break-inside-avoid">
+                            <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">1. PHYSICAL INSTALLATION</h4>
+                            <div className="px-2 space-y-2">
+                                <p>ANC assumes all base building structure is to be provided by others or is existing and is of sufficient capacity to support the proposed display systems.</p>
+                                <p>ANC assumes reasonable access will be provided to the installation team and any unknown site conditions such as lane closures, site protection, permitting, etc. is not currently in this proposal.</p>
+                            </div>
+                        </section>
+
+                        <section className="break-inside-avoid">
+                            <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">2. ELECTRICAL & DATA INSTALLATION</h4>
+                            <div className="px-2 space-y-2">
+                                <p>ANC assumes primary power feed will be provided by others or is existing, within 5' of the display location with sufficient amps; typically 208v 3-phase.</p>
+                                <p>ANC will provide data cabling and labor to pull cable from control location to the display(s).</p>
+                            </div>
+                        </section>
+
+                        <section className="break-inside-avoid">
+                            <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">3. CONTROL SYSTEM</h4>
+                            <div className="px-2 space-y-2">
+                                <p>Installation and commissioning of the ANC vSOFT™ Control System or specified CMS platform.</p>
+                                <p>Includes configuration of screen layouts and zones per project specifications.</p>
+                            </div>
+                        </section>
+
+                        <section className="break-inside-avoid">
+                            <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">4. GENERAL CONDITIONS</h4>
+                            <div className="px-2 space-y-2">
+                                <p>Price includes one (1) round of submittals and engineering shop drawings.</p>
+                                <p>ANC has not included bonding of any kind unless specifically noted.</p>
+                                <p>Shipping included at current market rates; subject to change due to global logistics impacts.</p>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            )}
+
+            {isLOI && (showSpecifications || showExhibitA) && (
+                <div className="break-before-page px-4">
+                    {(showExhibitA || showSpecifications) && <ExhibitA_TechnicalSpecs data={data} />}
+
+                    {showExhibitA && (
+                        <div>
+                            <SectionHeader title="STATEMENT OF WORK" />
+                            <div className="space-y-6 text-[10px] leading-relaxed text-gray-700">
+                                <section className="break-inside-avoid">
+                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">1. PHYSICAL INSTALLATION</h4>
+                                    <div className="px-2 space-y-2">
+                                        <p>ANC assumes all base building structure is to be provided by others or is existing and is of sufficient capacity to support the proposed display systems.</p>
+                                        <p>ANC assumes reasonable access will be provided to the installation team and any unknown site conditions such as lane closures, site protection, permitting, etc. is not currently in this proposal.</p>
+                                    </div>
+                                </section>
+
+                                <section className="break-inside-avoid">
+                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">2. ELECTRICAL & DATA INSTALLATION</h4>
+                                    <div className="px-2 space-y-2">
+                                        <p>ANC assumes primary power feed will be provided by others or is existing, within 5' of the display location with sufficient amps; typically 208v 3-phase.</p>
+                                        <p>ANC will provide data cabling and labor to pull cable from control location to the display(s).</p>
+                                    </div>
+                                </section>
+
+                                <section className="break-inside-avoid">
+                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">3. CONTROL SYSTEM</h4>
+                                    <div className="px-2 space-y-2">
+                                        <p>Installation and commissioning of the ANC vSOFT™ Control System or specified CMS platform.</p>
+                                        <p>Includes configuration of screen layouts and zones per project specifications.</p>
+                                    </div>
+                                </section>
+
+                                <section className="break-inside-avoid">
+                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">4. GENERAL CONDITIONS</h4>
+                                    <div className="px-2 space-y-2">
+                                        <p>Price includes one (1) round of submittals and engineering shop drawings.</p>
+                                        <p>ANC has not included bonding of any kind unless specifically noted.</p>
+                                        <p>Shipping included at current market rates; subject to change due to global logistics impacts.</p>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {isLOI && showExhibitB && (
                 <div className="break-before-page px-4">
                     <ExhibitB_CostSchedule data={data} />
                 </div>
             )}
 
-            {!isLOI && showCompanyFooter && showSignatureBlock && <CompanyFooter />}
-
-            {!isLOI && showSignatureBlock && (
-                <div className="break-before-page px-4">
-                    <SignatureBlock />
-                </div>
-            )}
-
-            {showCompanyFooter && (!showSignatureBlock || isLOI) && <CompanyFooter />}
+            {showCompanyFooter && <CompanyFooter />}
 
         </ProposalLayout>
     );

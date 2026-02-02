@@ -37,6 +37,12 @@ enum ProposalStatus {
   CANCELLED             // Voided
 }
 
+enum DocumentMode {
+  BUDGET
+  PROPOSAL
+  LOI
+}
+
 model Workspace {
   id              String     @id @default(cuid())
   name            String
@@ -71,6 +77,14 @@ model Proposal {
   workspaceId          String
   clientName           String
   clientLogo           String?             // New field for brand thumbnail
+  clientAddress        String?
+  clientCity           String?
+  clientZip            String?
+  venue                String?
+  documentMode         DocumentMode        @default(BUDGET)
+  documentConfig       Json?
+  paymentTerms         String?
+  additionalNotes      String?
   status               ProposalStatus      @default(DRAFT)
   calculationMode      CalculationMode     @default(INTELLIGENCE)
   internalAudit        String?

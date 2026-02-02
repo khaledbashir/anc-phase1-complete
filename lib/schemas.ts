@@ -276,6 +276,7 @@ const ProposalDetailsSchema = z.object({
     updatedAt: fieldValidators.stringOptional,
     documentType: z.enum(["LOI", "First Round"]).default("First Round"),
     pricingType: z.enum(["Hard Quoted", "Budget"]).default("Budget"),
+    documentMode: z.enum(["BUDGET", "PROPOSAL", "LOI"]).optional().default("BUDGET"),
     mirrorMode: z.boolean().default(false),
     calculationMode: z.enum(["MIRROR", "INTELLIGENCE"]).default("INTELLIGENCE"),
     status: fieldValidators.stringOptional,

@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 
 // Types
 import { ProposalType } from "@/types";
+import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
 
 type ProposalLayoutProps = {
     data: ProposalType;
@@ -44,7 +45,8 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
         <>
             {head}
             <section style={{ fontFamily: "'Work Sans', sans-serif", position: 'relative' }}>
-                <div className="block p-4 sm:p-10 bg-white rounded-xl shadow-2xl min-h-[1056px] text-[#1a1a1a] relative overflow-hidden border border-white/50">
+                <div className="block p-4 sm:p-10 bg-white min-h-[1056px] text-[#1a1a1a] relative overflow-hidden">
+                    <BrandSlashes className="absolute -top-10 -right-10" width={220} height={220} opacity={0.18} count={10} />
                     {/* Draft Watermark Safeguard */}
                     {details.status === 'DRAFT' && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] rotate-[-45deg] z-0">

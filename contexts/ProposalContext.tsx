@@ -491,6 +491,13 @@ export const ProposalContextProvider = ({
           clientSummary: details.clientSummary || FORM_DEFAULT_VALUES.details.clientSummary,
           documentType: d.documentType || "First Round",
           pricingType: d.pricingType || "Budget",
+          documentMode:
+            details.documentMode ||
+            (d.documentType === "LOI"
+              ? "LOI"
+              : d.pricingType === "Hard Quoted"
+                ? "PROPOSAL"
+                : "BUDGET"),
           mirrorMode: d.mirrorMode ?? FORM_DEFAULT_VALUES.details.mirrorMode,
           calculationMode: d.calculationMode || FORM_DEFAULT_VALUES.details.calculationMode, // Hydrate calculation mode
           taxRateOverride: d.taxRateOverride ?? details.taxRateOverride ?? FORM_DEFAULT_VALUES.details.taxRateOverride,
@@ -1082,7 +1089,11 @@ export const ProposalContextProvider = ({
     try {
       const payload = {
         clientName: formValues?.receiver?.name || formValues?.details?.clientName || "Unnamed Client",
+        clientAddress: formValues?.receiver?.address,
+        clientCity: formValues?.receiver?.city,
+        clientZip: formValues?.receiver?.zipCode,
         proposalName: formValues?.details?.proposalName,
+        venue: (formValues as any)?.details?.venue,
         status: formValues?.details?.status,
         calculationMode: calculationMode,
         internalAudit: formValues?.details?.internalAudit,
@@ -1090,6 +1101,21 @@ export const ProposalContextProvider = ({
         screens: formValues?.details?.screens,
         taxRateOverride: formValues?.details?.taxRateOverride,
         bondRateOverride: formValues?.details?.bondRateOverride,
+        documentMode: (formValues as any)?.details?.documentMode,
+        documentConfig: {
+          includePricingBreakdown: (formValues as any)?.details?.includePricingBreakdown,
+          showPricingTables: (formValues as any)?.details?.showPricingTables,
+          showIntroText: (formValues as any)?.details?.showIntroText,
+          showBaseBidTable: (formValues as any)?.details?.showBaseBidTable,
+          showSpecifications: (formValues as any)?.details?.showSpecifications,
+          showCompanyFooter: (formValues as any)?.details?.showCompanyFooter,
+          showPaymentTerms: (formValues as any)?.details?.showPaymentTerms,
+          showSignatureBlock: (formValues as any)?.details?.showSignatureBlock,
+          showExhibitA: (formValues as any)?.details?.showExhibitA,
+          showExhibitB: (formValues as any)?.details?.showExhibitB,
+        },
+        paymentTerms: (formValues as any)?.details?.paymentTerms,
+        additionalNotes: (formValues as any)?.details?.additionalNotes,
       };
       const res = await fetch(`/api/projects/${effectiveId}`, {
         method: "PATCH",

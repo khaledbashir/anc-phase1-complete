@@ -1,23 +1,52 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { Calculator, FileText, Wand2, Sparkles, Box, Info, AlertCircle, Target } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Screens } from "@/app/components";
 import { Badge } from "@/components/ui/badge";
 import { useProposalContext } from "@/contexts/ProposalContext";
+import { resolveDocumentMode } from "@/lib/documentMode";
 
 const Step2Intelligence = () => {
     const { aiWorkspaceSlug, filterStats, setSidebarMode } = useProposalContext();
-    const { control } = useFormContext();
+    const { control, setValue } = useFormContext();
     const screens = useWatch({
         name: "details.screens",
         control
     }) || [];
+    const details = useWatch({ name: "details", control });
+    const mode = resolveDocumentMode(details);
+    const isLOI = mode === "LOI";
+    const showExhibitA = useWatch({ name: "details.showExhibitA", control });
+    const showExhibitB = useWatch({ name: "details.showExhibitB", control });
+    const includePricingBreakdown = useWatch({ name: "details.includePricingBreakdown", control });
+    const showPaymentTerms = useWatch({ name: "details.showPaymentTerms", control });
+    const showSignatureBlock = useWatch({ name: "details.showSignatureBlock", control });
+    const lastIsLOIRef = useRef<boolean>(isLOI);
 
     const screenCount = screens.length;
     const hasData = aiWorkspaceSlug || screenCount > 0;
+
+    useEffect(() => {
+        if (isLOI) return;
+        if (showPaymentTerms) setValue("details.showPaymentTerms", false, { shouldDirty: true });
+        if (showSignatureBlock) setValue("details.showSignatureBlock", false, { shouldDirty: true });
+    }, [isLOI, setValue, showPaymentTerms, showSignatureBlock]);
+
+    useEffect(() => {
+        const wasLOI = lastIsLOIRef.current;
+        if (!wasLOI && isLOI) {
+            if (!showPaymentTerms) setValue("details.showPaymentTerms", true, { shouldDirty: true });
+            if (!showSignatureBlock) setValue("details.showSignatureBlock", true, { shouldDirty: true });
+            if (!showExhibitB) setValue("details.showExhibitB", true, { shouldDirty: true });
+        }
+        lastIsLOIRef.current = isLOI;
+    }, [isLOI, setValue, showExhibitB, showPaymentTerms, showSignatureBlock]);
 
     return (
         <div className="h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -101,6 +130,85 @@ const Step2Intelligence = () => {
                     </div>
                 </div>
             )}
+
+            <Card className="bg-zinc-900/50 border-zinc-800/50 overflow-hidden">
+                <CardHeader className="pb-3 border-b border-zinc-800/50">
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                            <CardTitle className="text-zinc-100 text-base">Document Toggles</CardTitle>
+                            <CardDescription className="text-zinc-500 text-xs">
+                                Controls which sections render in the PDF template.
+                            </CardDescription>
+                        </div>
+                        <Badge variant="outline" className="border-zinc-700/60 bg-zinc-950 text-zinc-300 text-[10px] font-bold uppercase tracking-widest">
+                            {mode}
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <Label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Show Exhibit A</Label>
+                            <div className="text-[11px] text-zinc-500 mt-1">Statement of Work + Technical Specs (LOI exhibits)</div>
+                        </div>
+                        <Switch
+                            checked={!!showExhibitA}
+                            onCheckedChange={(checked) => setValue("details.showExhibitA", checked, { shouldDirty: true })}
+                            className="data-[state=checked]:bg-brand-blue"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <Label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Show Exhibit B</Label>
+                            <div className="text-[11px] text-zinc-500 mt-1">Cost Schedule appendix</div>
+                        </div>
+                        <Switch
+                            checked={!!showExhibitB}
+                            onCheckedChange={(checked) => setValue("details.showExhibitB", checked, { shouldDirty: true })}
+                            className="data-[state=checked]:bg-brand-blue"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <Label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Show Pricing Breakdown</Label>
+                            <div className="text-[11px] text-zinc-500 mt-1">Per-screen category detail vs simplified rows</div>
+                        </div>
+                        <Switch
+                            checked={!!includePricingBreakdown}
+                            onCheckedChange={(checked) => setValue("details.includePricingBreakdown", checked, { shouldDirty: true })}
+                            className="data-[state=checked]:bg-brand-blue"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <Label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Show Payment Terms</Label>
+                            <div className="text-[11px] text-zinc-500 mt-1">{isLOI ? "LOI only" : "Disabled (not LOI)"}</div>
+                        </div>
+                        <Switch
+                            disabled={!isLOI}
+                            checked={!!showPaymentTerms}
+                            onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked, { shouldDirty: true })}
+                            className="data-[state=checked]:bg-brand-blue"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                        <div>
+                            <Label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Show Signature Block</Label>
+                            <div className="text-[11px] text-zinc-500 mt-1">{isLOI ? "LOI only" : "Disabled (not LOI)"}</div>
+                        </div>
+                        <Switch
+                            disabled={!isLOI}
+                            checked={!!showSignatureBlock}
+                            onCheckedChange={(checked) => setValue("details.showSignatureBlock", checked, { shouldDirty: true })}
+                            className="data-[state=checked]:bg-brand-blue"
+                        />
+                    </div>
+                </CardContent>
+            </Card>
 
             <Card className="bg-zinc-900/50 border-zinc-800/50 flex-1 flex flex-col overflow-hidden">
                 <CardHeader className="pb-3 shrink-0 border-b border-zinc-800/50">

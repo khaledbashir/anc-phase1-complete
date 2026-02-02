@@ -5,7 +5,6 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
 import { LayoutDashboard, MessageSquare, Table, PanelLeftClose, PanelLeftOpen, Folder } from "lucide-react";
-import AiCommandBar from "@/app/components/proposal/AiCommandBar";
 import ModeToggle from "@/app/components/reusables/ModeToggle";
 import { IntelligenceSidebar } from "@/app/components/proposal/IntelligenceSidebar";
 
@@ -37,11 +36,9 @@ export function StudioLayout({
     const [viewMode, setViewMode] = useState<ViewMode>("form");
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
     const [isHealthSidebarVisible, setIsHealthSidebarVisible] = useState(false);
-    const [isAiExpanded, setIsAiExpanded] = useState(false);
 
     const navItems = [
         { id: "form", icon: LayoutDashboard, label: "Edit Proposal" },
-        { id: "ai", icon: MessageSquare, label: "AI Chat" },
         { id: "audit", icon: Table, label: "Pricing Breakdown" },
     ];
 
@@ -185,16 +182,6 @@ export function StudioLayout({
                                 />
                             )}
                         </div>
-
-                        {/* Persistent AI Shortcut / Quick Bar */}
-                        {viewMode !== "ai" && (
-                            <div className="h-14 shrink-0 border-t border-zinc-900 bg-zinc-950/80 px-4 flex items-center">
-                                <AiCommandBar
-                                    isExpanded={false}
-                                    onToggle={() => setViewMode("ai")}
-                                />
-                            </div>
-                        )}
                     </section>
 
                     {/* THE ANCHOR (Right Pane: 50vw) */}

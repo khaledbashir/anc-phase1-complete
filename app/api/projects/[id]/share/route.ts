@@ -82,12 +82,21 @@ export async function POST(
 
         // 3. Create Sanitized Snapshot (The "Ferrari" View)
         // Map DB project to ProposalType structure
+        const cfg = ((project as any).documentConfig || {}) as any;
+        const modeFromDb = (project as any).documentMode as ("BUDGET" | "PROPOSAL" | "LOI") | undefined;
+        const modeFromSummary =
+            clientSummary?.documentType === "LOI"
+                ? "LOI"
+                : clientSummary?.pricingType === "Hard Quoted"
+                    ? "PROPOSAL"
+                    : "BUDGET";
+        const documentMode = modeFromDb || modeFromSummary;
         const snapshot: Partial<ProposalType> = {
             receiver: {
                 name: project.clientName,
-                address: "",
-                zipCode: "",
-                city: "",
+                address: (project as any).clientAddress || "",
+                zipCode: (project as any).clientZip || "",
+                city: (project as any).clientCity || "",
                 country: "",
                 email: "",
                 phone: "",
@@ -115,8 +124,8 @@ export async function POST(
                 discountDetails: { amount: 0, amountType: "amount" },
                 shippingDetails: { cost: 0, costType: "amount" },
                 paymentInformation: { bankName: "", accountName: "", accountNumber: "" },
-                additionalNotes: clientSummary?.additionalNotes || "",
-                paymentTerms: clientSummary?.paymentTerms || "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion",
+                additionalNotes: (project as any).additionalNotes || clientSummary?.additionalNotes || "",
+                paymentTerms: (project as any).paymentTerms || clientSummary?.paymentTerms || "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion",
                 pdfTemplate: 1,
                 screens: project.screens.map(s => ({
                     id: s.id,
@@ -145,28 +154,29 @@ export async function POST(
                 totalAmountInWords: "",
                 documentType: clientSummary?.documentType || "First Round",
                 pricingType: clientSummary?.pricingType || "Budget",
+                documentMode,
                 proposalNumber: project.id.substring(0, 8).toUpperCase(),
                 subTotal: clientSummary?.sellPrice || 0,
                 mirrorMode: clientSummary?.mirrorMode || false,
                 calculationMode: project.calculationMode,
-                venue: clientSummary?.venue || "Generic",
+                venue: (project as any).venue || clientSummary?.venue || "Generic",
                 // SECURITY: Strictly nullify internal financial logic
                 bondRateOverride: Number(project.bondRateOverride) || undefined,
                 taxRateOverride: Number(project.taxRateOverride) || undefined,
                 overheadRate: 0.10,
                 profitRate: 0.05,
                 internalAudit: undefined,
-                includePricingBreakdown: true, // Default for shared views
-                showPricingTables: true,
-                showIntroText: true,
-                showBaseBidTable: true,
-                showSpecifications: true,
-                showCompanyFooter: true,
-                showPaymentTerms: true,
-                showSignatureBlock: true,
+                includePricingBreakdown: cfg.includePricingBreakdown ?? true,
+                showPricingTables: cfg.showPricingTables ?? true,
+                showIntroText: cfg.showIntroText ?? true,
+                showBaseBidTable: cfg.showBaseBidTable ?? true,
+                showSpecifications: cfg.showSpecifications ?? true,
+                showCompanyFooter: cfg.showCompanyFooter ?? true,
+                showPaymentTerms: documentMode === "LOI" ? (cfg.showPaymentTerms ?? true) : false,
+                showSignatureBlock: documentMode === "LOI" ? (cfg.showSignatureBlock ?? true) : false,
                 showAssumptions: false,
-                showExhibitA: false,
-                showExhibitB: false
+                showExhibitA: cfg.showExhibitA ?? false,
+                showExhibitB: documentMode === "LOI" ? (cfg.showExhibitB ?? false) : false
             }
         };
 

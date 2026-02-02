@@ -78,7 +78,11 @@ export async function PATCH(
         const body = await req.json();
         const {
             clientName,
+            clientAddress,
+            clientCity,
+            clientZip,
             proposalName,
+            venue,
             status,
             calculationMode,
             internalAudit,
@@ -86,6 +90,10 @@ export async function PATCH(
             screens,
             taxRateOverride,
             bondRateOverride,
+            documentMode,
+            documentConfig,
+            paymentTerms,
+            additionalNotes,
             createSnapshot, // NEW: Flag to create a version snapshot
             totalSellingPrice, // NEW: For version history
             averageMargin, // NEW: For version history
@@ -153,6 +161,14 @@ export async function PATCH(
         if (bondRateOverride !== undefined) updateData.bondRateOverride = bondRateOverride;
         if (internalAudit !== undefined) updateData.internalAudit = typeof internalAudit === "string" ? internalAudit : JSON.stringify(internalAudit);
         if (clientSummary !== undefined) updateData.clientSummary = typeof clientSummary === "string" ? clientSummary : JSON.stringify(clientSummary);
+        if (clientAddress !== undefined) updateData.clientAddress = clientAddress;
+        if (clientCity !== undefined) updateData.clientCity = clientCity;
+        if (clientZip !== undefined) updateData.clientZip = clientZip;
+        if (venue !== undefined) updateData.venue = venue;
+        if (documentMode !== undefined) updateData.documentMode = documentMode;
+        if (documentConfig !== undefined) updateData.documentConfig = documentConfig;
+        if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms;
+        if (additionalNotes !== undefined) updateData.additionalNotes = additionalNotes;
 
         const project = await prisma.$transaction(async (tx) => {
             // Handle snapshot creation if requested
