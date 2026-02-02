@@ -299,6 +299,11 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 (q.locationName === screen.name)
             ) || quoteItems[idx]; // Fallback to index if no ID/Name match
 
+            // Fallback to calculated price if no quote item (e.g. before save)
+            const auditRow = isSharedView
+                ? null
+                : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
+
             const price = matchingQuoteItem
                 ? (Number(matchingQuoteItem.price) || 0)
                 : (auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0);
