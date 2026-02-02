@@ -43,6 +43,11 @@ enum DocumentMode {
   LOI
 }
 
+enum ChangeRequestStatus {
+  OPEN
+  RESOLVED
+}
+
 model Workspace {
   id              String     @id @default(cuid())
   name            String
@@ -137,6 +142,7 @@ model Proposal {
   signatureAuditTrail   SignatureAuditTrail[]
   comments              Comment[]
   activityLogs          ActivityLog[]
+  changeRequests        ChangeRequest[]
   
   // Existing relations
   versions             BidVersion[]
@@ -260,6 +266,23 @@ model Comment {
   updatedAt       DateTime @updatedAt
 
   @@index([proposalId])
+}
+
+model ChangeRequest {
+  id             String              @id @default(cuid())
+  proposalId     String
+  proposal       Proposal            @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  shareHash      String
+  requesterName  String
+  requesterEmail String?
+  message        String
+  status         ChangeRequestStatus @default(OPEN)
+  createdAt      DateTime            @default(now())
+  resolvedAt     DateTime?
+  resolvedBy     String?
+
+  @@index([proposalId])
+  @@index([shareHash])
 }
 
 model ActivityLog {

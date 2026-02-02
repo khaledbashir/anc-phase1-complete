@@ -3,6 +3,7 @@ import ProposalTemplate2 from "@/app/components/templates/proposal-pdf/ProposalT
 import { ProposalType } from "@/types";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
 import { prisma } from "@/lib/prisma";
+import ShareChangeRequestForm from "@/app/share/[hash]/ShareChangeRequestForm";
 
 async function getProjectByHash(hash: string) {
     // REQ-34: Read-Only Share Link Snapshotting
@@ -49,6 +50,8 @@ export default async function SharePage({ params }: { params: Promise<{ hash: st
             <div className="w-full max-w-[850px] bg-white shadow-2xl min-h-[1100px] overflow-hidden">
                 <ProposalTemplate2 {...(project as ProposalType)} isSharedView={true} />
             </div>
+
+            <ShareChangeRequestForm shareHash={hash} />
 
             {/* Footer */}
             <div className="mt-12 text-center text-slate-400 text-[10px] uppercase tracking-widest font-bold">

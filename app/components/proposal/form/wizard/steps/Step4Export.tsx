@@ -17,7 +17,9 @@ import {
     Play,
     Pause,
     RefreshCw,
-    Columns
+    Columns,
+    MessageSquare,
+    Check
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,6 +55,8 @@ const Step4Export = () => {
     const [focusedRow, setFocusedRow] = useState<number | null>(null);
     const [playIndex, setPlayIndex] = useState<number>(-1);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [changeRequestsLoading, setChangeRequestsLoading] = useState(false);
+    const [changeRequests, setChangeRequests] = useState<any[]>([]);
 
     // Get proposal data
     const screens = watch("details.screens") || [];
@@ -62,6 +66,40 @@ const Step4Export = () => {
     const totalValue = internalAudit?.totals?.finalClientTotal || 0;
     const lastSaved = watch("details.updatedAt");
     const mirrorMode = watch("details.mirrorMode");
+
+    useEffect(() => {
+        if (!proposalId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                setChangeRequestsLoading(true);
+                const res = await fetch(`/api/projects/${proposalId}/change-requests`, { cache: "no-store" as any });
+                const json = await res.json().catch(() => null);
+                if (cancelled) return;
+                setChangeRequests(Array.isArray(json?.items) ? json.items : []);
+            } catch {
+            } finally {
+                if (!cancelled) setChangeRequestsLoading(false);
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [proposalId]);
+
+    const updateChangeRequestStatus = async (requestId: string, status: "OPEN" | "RESOLVED") => {
+        if (!proposalId) return;
+        const res = await fetch(`/api/projects/${proposalId}/change-requests`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ requestId, status, resolvedBy: "natalia" }),
+        });
+        if (!res.ok) return;
+        const json = await res.json().catch(() => null);
+        const updated = json?.item;
+        if (!updated?.id) return;
+        setChangeRequests((prev) => prev.map((it) => (it.id === updated.id ? updated : it)));
+    };
 
     const screenCount = screens.length;
     const hasErrors = screens.some((s: any) => !s.widthFt || !s.heightFt || !s.name);
@@ -879,6 +917,68 @@ const Step4Export = () => {
                                         </div>
                                     </div>
                                 </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-zinc-900/40 border border-zinc-800/60 overflow-hidden">
+                            <CardHeader className="border-b border-zinc-800/60 pb-3">
+                                <div className="flex items-center justify-between gap-3">
+                                    <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                                        <MessageSquare className="w-4 h-4 text-brand-blue" />
+                                        Client Requests
+                                    </CardTitle>
+                                    <Badge className="bg-zinc-950/50 text-zinc-300 border border-zinc-800">
+                                        {changeRequests.filter((r: any) => r.status === "OPEN").length} open
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-4">
+                                {changeRequestsLoading ? (
+                                    <div className="text-xs text-zinc-600">Loading…</div>
+                                ) : changeRequests.length === 0 ? (
+                                    <div className="text-xs text-zinc-600">
+                                        No client change requests yet. Share link clients can submit requests from the portal.
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {changeRequests.slice(0, 6).map((r: any) => (
+                                            <div key={r.id} className="rounded-2xl border border-zinc-800 bg-zinc-950/30 p-4">
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="min-w-0">
+                                                        <div className="text-xs font-bold text-white truncate">
+                                                            {r.requesterName}
+                                                            {r.requesterEmail ? (
+                                                                <span className="text-zinc-500 font-semibold"> • {r.requesterEmail}</span>
+                                                            ) : null}
+                                                        </div>
+                                                        <div className="mt-1 text-[11px] text-zinc-600">
+                                                            {r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}
+                                                        </div>
+                                                    </div>
+                                                    <div className="shrink-0 flex items-center gap-2">
+                                                        {r.status === "RESOLVED" ? (
+                                                            <Badge className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                                                                Resolved
+                                                            </Badge>
+                                                        ) : (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => updateChangeRequestStatus(r.id, "RESOLVED")}
+                                                                className="px-3 py-2 rounded-xl text-[11px] font-bold border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15 transition-colors inline-flex items-center gap-2"
+                                                            >
+                                                                <Check className="w-4 h-4" />
+                                                                Mark Resolved
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="mt-3 text-xs text-zinc-300 whitespace-pre-wrap">
+                                                    {r.message}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </div>
