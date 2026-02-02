@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { isImmutable, isFinancialLocked, LOCKED_FINANCIAL_FIELDS, validateApprovalTransition } from "@/lib/proposal-lifecycle";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 /**
  * GET /api/projects/[id]
@@ -271,7 +270,11 @@ export async function PATCH(
         }
 
         return NextResponse.json(
-            { error: "Failed to save project" },
+            {
+                error: "Failed to save project",
+                details: error?.message ? String(error.message) : String(error),
+                code: error?.code,
+            },
             { status: 500 }
         );
     }

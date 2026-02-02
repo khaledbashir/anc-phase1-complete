@@ -3,10 +3,8 @@
  * Handles saving/loading verification data to/from PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
 import { VerificationManifest, ReconciliationReport, Exception, VerificationStatus, AutoFixSummary } from '@/types/verification';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // ============================================================================
 // VERIFICATION SAVE/LOAD

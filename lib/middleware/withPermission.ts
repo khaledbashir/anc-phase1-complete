@@ -6,10 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { Permission, hasPermission, UserRole } from "@/lib/rbac";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 type ApiHandler = (
   req: NextRequest,

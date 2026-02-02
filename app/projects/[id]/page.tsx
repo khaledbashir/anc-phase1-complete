@@ -1,9 +1,7 @@
 import { redirect } from "next/navigation";
-import { PrismaClient } from "@prisma/client";
 import ProposalPage from "@/app/components/ProposalPage";
 import { FORM_DEFAULT_VALUES } from "@/lib/variables";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 interface PageProps {
     params: Promise<{ id: string }>;

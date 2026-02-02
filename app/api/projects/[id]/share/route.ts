@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import { ProposalType } from "@/types";
 import bcrypt from "bcrypt";
 import { addDays } from "date-fns";
 import Decimal from "decimal.js";
 
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function POST(
     req: NextRequest,

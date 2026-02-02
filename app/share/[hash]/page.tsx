@@ -1,10 +1,8 @@
-import { PrismaClient } from "@prisma/client";
 import { notFound } from "next/navigation";
 import ProposalTemplate2 from "@/app/components/templates/proposal-pdf/ProposalTemplate2";
 import { ProposalType } from "@/types";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 async function getProjectByHash(hash: string) {
     // REQ-34: Read-Only Share Link Snapshotting
