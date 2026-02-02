@@ -62,7 +62,7 @@ const RfpSidebar = () => {
                 const savings = Math.round((1 - keptPages / (originalPages || 1)) * 100);
 
                 const prompt = `I have uploaded ${file.name}. The Smart Filter reduced it from ${originalPages} to ${keptPages} pages (${savings}% noise reduction). ${drawingCandidates?.length ? `It also detected potential drawings on pages ${drawingCandidates.join(", ")}.` : ""} Please analyze the filtered content and extract the key technical requirements.`;
-                
+
                 await executeAiCommand(prompt);
             }
         } catch (error) {
@@ -83,28 +83,28 @@ const RfpSidebar = () => {
             reader.readAsDataURL(file);
             reader.onload = async () => {
                 const base64Image = reader.result as string;
-                
+
                 // 2. Add user message
                 const userMsg = { role: "user" as const, content: "Analyzing attached drawing for display tags..." };
                 // We'll just update local state for UI feedback, the context handles the actual list
                 // Note: Ideally expose setAiMessages from context or just rely on executeAiCommand response
-                
+
                 // 3. Call Vision API (via our new route to keep keys server-side)
                 const formData = new FormData();
                 formData.append("file", file);
-                
+
                 const res = await fetch("/api/vision/analyze", {
                     method: "POST",
                     body: formData
                 });
-                
+
                 const data = await res.json();
-                
+
                 if (data.success && data.results.length > 0) {
-                    const extractedText = data.results.map((r: any) => 
+                    const extractedText = data.results.map((r: any) =>
                         `Found ${r.field}: ${r.value} (${Math.round(r.confidence * 100)}% confidence)`
                     ).join("\n");
-                    
+
                     // 4. Inject result into Chat
                     await executeAiCommand(`I analyzed the drawing. Here is what I found:\n${extractedText}\n\nPlease update the proposal details accordingly.`);
                 } else {
@@ -120,18 +120,18 @@ const RfpSidebar = () => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-zinc-950">
+        <div className="flex flex-col h-full bg-background border-l border-border">
             {/* Header */}
-            <div className="p-4 border-b border-zinc-800 bg-[#0A52EF] text-white flex items-center justify-between shrink-0">
+            <div className="p-4 border-b border-border bg-primary text-primary-foreground flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 fill-white animate-pulse" />
                     <div className="flex flex-col">
                         <h3 className="font-bold tracking-tight text-sm">ANC Intelligence Engine</h3>
                         <div className="flex items-center gap-2 mt-0.5">
                             <div className="w-20 h-1 bg-white/20 rounded-full overflow-hidden">
-                                <div 
-                                    className="h-full bg-white transition-all duration-500" 
-                                    style={{ width: `${completionRate}%` }} 
+                                <div
+                                    className="h-full bg-white transition-all duration-500"
+                                    style={{ width: `${completionRate}%` }}
                                 />
                             </div>
                             <span className="text-[9px] font-bold opacity-80 uppercase tracking-wider">{completionRate}% Match</span>
@@ -143,7 +143,7 @@ const RfpSidebar = () => {
                         RAG-ACTIVE
                     </div>
                     {gapCount > 0 && (
-                        <div className="flex items-center gap-1 text-[9px] font-bold bg-red-500/20 px-1.5 py-0.5 rounded border border-red-500/30">
+                        <div className="flex items-center gap-1 text-[9px] font-bold bg-white/20 px-1.5 py-0.5 rounded border border-white/30 text-white">
                             <AlertCircle className="w-2.5 h-2.5" />
                             {gapCount} GAPS
                         </div>
@@ -152,10 +152,10 @@ const RfpSidebar = () => {
             </div>
 
             {/* RFP Document Status */}
-            <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-900/50 flex items-center justify-between">
+            <div className="px-4 py-2 border-b border-border bg-secondary/50 flex items-center justify-between">
                 <div className="flex items-center gap-2 overflow-hidden">
-                    <FileText className={cn("w-3.5 h-3.5 shrink-0", rfpDocumentUrl ? "text-emerald-400" : "text-zinc-500")} />
-                    <span className="text-[10px] font-medium text-zinc-400 truncate">
+                    <FileText className={cn("w-3.5 h-3.5 shrink-0", rfpDocumentUrl ? "text-emerald-500" : "text-muted-foreground")} />
+                    <span className="text-[10px] font-medium text-muted-foreground truncate">
                         {rfpDocumentUrl ? "RFP Document Loaded" : "No RFP Uploaded"}
                     </span>
                 </div>
@@ -170,7 +170,7 @@ const RfpSidebar = () => {
                         </div>
                     )}
                 </label>
-                
+
                 {/* Vision Upload Button */}
                 <label className="cursor-pointer group ml-4 pl-4 border-l border-zinc-700">
                     <input type="file" className="hidden" accept="image/*" onChange={handleVisionUpload} disabled={isVisionAnalyzing} />
@@ -194,9 +194,9 @@ const RfpSidebar = () => {
                     <div className="space-y-1 max-h-32 overflow-y-auto custom-scrollbar">
                         {rfpDocuments.map(doc => (
                             <div key={doc.id} className="flex items-center gap-2 p-1.5 rounded hover:bg-zinc-800 transition-colors group relative">
-                                <a 
-                                    href={doc.url} 
-                                    target="_blank" 
+                                <a
+                                    href={doc.url}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="flex items-center gap-2 flex-1 min-w-0"
                                 >
@@ -235,15 +235,15 @@ const RfpSidebar = () => {
                         <div className="space-y-1">
                             <p className="font-bold text-zinc-900 dark:text-zinc-100 text-sm">ANC Document Brain</p>
                             <p className="text-xs text-zinc-500 max-w-[200px] mx-auto">
-                                {rfpDocumentUrl 
-                                    ? "Ask anything about the uploaded RFP or add screens directly via chat." 
+                                {rfpDocumentUrl
+                                    ? "Ask anything about the uploaded RFP or add screens directly via chat."
                                     : "Upload an RFP document to begin context-aware analysis."}
                             </p>
                         </div>
                         {!rfpDocumentUrl && (
-                            <BaseButton 
-                                variant="outline" 
-                                size="sm" 
+                            <BaseButton
+                                variant="outline"
+                                size="sm"
                                 className="mx-auto"
                                 onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}
                             >

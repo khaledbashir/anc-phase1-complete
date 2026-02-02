@@ -13,6 +13,7 @@ import { ProposalType } from "@/types";
 import { analyzeGaps, calculateCompletionRate } from "@/lib/gap-analysis";
 import { toast } from "@/components/ui/use-toast";
 import type { AutoSaveStatus } from "@/lib/useAutoSave";
+import { ThemeToggle } from "@/app/components/ThemeToggle";
 
 interface StudioHeaderProps {
     saveStatus: AutoSaveStatus;
@@ -103,20 +104,20 @@ export function StudioHeader({
     };
 
     return (
-        <div className="flex-1 w-full flex items-center justify-between px-6 md:px-8 gap-4 bg-zinc-950">
+        <div className="flex-1 w-full flex items-center justify-between px-6 md:px-8 gap-4 bg-background border-b border-border transition-colors duration-300">
             {/* Logo & Health Score */}
             <div className="flex items-center shrink-0 gap-4 flex-1">
-                <LogoSelector theme="dark" width={110} height={40} className="p-0" />
+                <LogoSelector width={110} height={40} className="p-0" />
 
-                <div className="hidden md:block h-8 w-px bg-zinc-800 mx-1" />
+                <div className="hidden md:block h-8 w-px bg-border mx-1" />
 
                 <div className="hidden md:flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0A52EF]/10 px-3 py-1 text-[10px] font-bold text-brand-blue uppercase tracking-widest border border-brand-blue/20 shadow-[0_0_15px_rgba(10,82,239,0.05)]">
-                        <div className="w-1.5 h-1.5 rounded-full bg-brand-blue animate-pulse" />
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold text-primary uppercase tracking-widest border border-primary/20 shadow-[0_0_15px_rgba(10,82,239,0.05)]">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                         {Math.round(completionRate)}% Match
                     </span>
                     {excelValidationOk && (
-                        <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-400 uppercase tracking-wide">
+                        <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
                             <CheckCircle2 className="w-3 h-3" />
                             Excel Verified
                         </span>
@@ -131,6 +132,8 @@ export function StudioHeader({
 
             {/* Right Actions - Global Controls */}
             <div className="flex items-center gap-3 shrink-0 flex-1 justify-end">
+                <ThemeToggle />
+
                 <SaveIndicator
                     status={saveStatus}
                     lastSavedAt={initialData?.lastSavedAt ? new Date(initialData.lastSavedAt) : undefined}
@@ -138,7 +141,7 @@ export function StudioHeader({
 
                 {isNewProject ? (
                     <div className="flex items-center gap-2">
-                        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-amber-500 text-[10px] font-medium uppercase tracking-wide">
+                        <div className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-amber-600 dark:text-amber-500 text-[10px] font-medium uppercase tracking-wide">
                             <AlertTriangle className="w-3 h-3" />
                             Draft Mode
                         </div>
@@ -146,7 +149,7 @@ export function StudioHeader({
                             size="sm"
                             onClick={handleSaveDraft}
                             disabled={savingDraft}
-                            className="bg-[#0A52EF] hover:bg-[#0A52EF]/90 text-white font-bold uppercase tracking-widest text-[10px] px-4 h-8 shadow-lg shadow-blue-900/20"
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold uppercase tracking-widest text-[10px] px-4 h-8 shadow-lg shadow-blue-900/20 rounded-none sm:rounded-sm"
                         >
                             {savingDraft ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <Save className="w-3.5 h-3.5 mr-2" />}
                             Save Draft
@@ -156,7 +159,7 @@ export function StudioHeader({
                     <Button
                         size="sm"
                         variant="outline"
-                        className="border-[#0A52EF]/40 text-[#0A52EF] hover:bg-[#0A52EF]/10 font-bold uppercase tracking-widest text-[10px] px-3 h-7"
+                        className="border-primary/40 text-primary hover:bg-primary/10 font-bold uppercase tracking-widest text-[10px] px-3 h-7 rounded-none sm:rounded-sm"
                         onClick={handleSaveDraft}
                         disabled={savingDraft}
                     >
@@ -165,25 +168,25 @@ export function StudioHeader({
                     </Button>
                 )}
 
-                <div className="h-8 w-px bg-zinc-800 mx-2 hidden sm:block" />
+                <div className="h-8 w-px bg-border mx-2 hidden sm:block" />
 
-                <div className="flex items-center gap-1 bg-zinc-900/50 border border-zinc-800 p-1 rounded-lg">
+                <div className="flex items-center gap-1 bg-secondary/50 border border-border p-1 rounded-lg">
                     <Button
                         size="sm"
                         variant="ghost"
-                        className="text-zinc-400 hover:text-white font-bold uppercase tracking-widest text-[10px] px-3 h-7"
+                        className="text-muted-foreground hover:text-foreground font-bold uppercase tracking-widest text-[10px] px-3 h-7"
                         onClick={handleShare}
                     >
-                        <Share2 className="w-3.5 h-3.5 mr-2 text-brand-blue" />
+                        <Share2 className="w-3.5 h-3.5 mr-2 text-primary" />
                         Share
                     </Button>
 
-                    <div className="h-4 w-px bg-zinc-800" />
+                    <div className="h-4 w-px bg-border" />
 
                     <Button
                         size="sm"
                         variant="ghost"
-                        className="text-zinc-400 hover:text-white font-bold uppercase tracking-widest text-[10px] px-3 h-7"
+                        className="text-muted-foreground hover:text-foreground font-bold uppercase tracking-widest text-[10px] px-3 h-7"
                         onClick={exportAudit}
                     >
                         <FileSpreadsheet className="w-3 h-3 mr-2 text-emerald-500" />

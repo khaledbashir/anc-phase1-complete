@@ -123,7 +123,46 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
-                            setValue(`details.screens.${idx}.customDisplayName`, draft.trim(), { shouldDirty: true, shouldValidate: true });
+                            const newName = draft.trim();
+                            // 1. Update Screen Name
+                            setValue(`details.screens.${idx}.customDisplayName`, newName, { shouldDirty: true, shouldValidate: true });
+
+                            // 2. INSTANT SYNC: Update corresponding QuoteItem to ensure PDF matches perfectly
+                            const allValues = useFormContext().getValues();
+                            // We need to access getValues via the hook context directly or add it to destructuring above
+                            // Use the closure's access to screen from the map or re-fetch
+                            const currentScreen = screen; // screen is from perScreen map, likely has ID
+                            const quoteItems = allValues.details?.quoteItems || [];
+
+                            // Find match by ID (preferred) or Name (fallback)
+                            const qIdx = quoteItems.findIndex((q: any) =>
+                              (currentScreen.id && q.id === currentScreen.id) ||
+                              (q.locationName === currentScreen.name)
+                            );
+
+                            if (qIdx !== -1) {
+                              // Sync Location Name
+                              setValue(`details.quoteItems.${qIdx}.locationName`, newName, { shouldDirty: true });
+
+                              // Clean Description (remove component name from description to avoid dupes)
+                              const currentDesc = quoteItems[qIdx].description || "";
+                              const originalName = currentScreen.name || "";
+
+                              let newDesc = currentDesc;
+                              // Strip original name if present at start
+                              if (newDesc.toUpperCase().startsWith(originalName.toUpperCase())) {
+                                newDesc = newDesc.substring(originalName.length).trim().replace(/^[-:]+\s*/, "");
+                              }
+                              // Strip NEW name if present (rare but possible)
+                              if (newDesc.toUpperCase().startsWith(newName.toUpperCase())) {
+                                newDesc = newDesc.substring(newName.length).trim().replace(/^[-:]+\s*/, "");
+                              }
+
+                              if (newDesc !== currentDesc) {
+                                setValue(`details.quoteItems.${qIdx}.description`, newDesc, { shouldDirty: true });
+                              }
+                            }
+
                             setEditIdx(null);
                           }
                           if (e.key === "Escape") {
@@ -135,7 +174,39 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
                         type="button"
                         className="p-1 rounded hover:bg-zinc-800 text-zinc-300"
                         onClick={() => {
-                          setValue(`details.screens.${idx}.customDisplayName`, draft.trim(), { shouldDirty: true, shouldValidate: true });
+                          const newName = draft.trim();
+                          // 1. Update Screen Name
+                          setValue(`details.screens.${idx}.customDisplayName`, newName, { shouldDirty: true, shouldValidate: true });
+
+                          // 2. INSTANT SYNC
+                          const allValues = useFormContext().getValues();
+                          const currentScreen = screen;
+                          const quoteItems = allValues.details?.quoteItems || [];
+
+                          const qIdx = quoteItems.findIndex((q: any) =>
+                            (currentScreen.id && q.id === currentScreen.id) ||
+                            (q.locationName === currentScreen.name)
+                          );
+
+                          if (qIdx !== -1) {
+                            setValue(`details.quoteItems.${qIdx}.locationName`, newName, { shouldDirty: true });
+
+                            const currentDesc = quoteItems[qIdx].description || "";
+                            const originalName = currentScreen.name || "";
+                            let newDesc = currentDesc;
+
+                            if (newDesc.toUpperCase().startsWith(originalName.toUpperCase())) {
+                              newDesc = newDesc.substring(originalName.length).trim().replace(/^[-:]+\s*/, "");
+                            }
+                            if (newDesc.toUpperCase().startsWith(newName.toUpperCase())) {
+                              newDesc = newDesc.substring(newName.length).trim().replace(/^[-:]+\s*/, "");
+                            }
+
+                            if (newDesc !== currentDesc) {
+                              setValue(`details.quoteItems.${qIdx}.description`, newDesc, { shouldDirty: true });
+                            }
+                          }
+
                           setEditIdx(null);
                         }}
                         title="Save"

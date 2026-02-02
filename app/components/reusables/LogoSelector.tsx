@@ -20,18 +20,34 @@ type LogoSelectorProps = {
  * - Dark theme (blue/dark background) -> White Logo
  * - Clicking navigates to /projects (the vault)
  */
-const LogoSelector = ({ theme = "light", width = 160, height = 80, className = "", clickable = true }: LogoSelectorProps) => {
-    const logoSrc = theme === "light" ? "/ANC_Logo_2023_blue.png" : "/ANC_Logo_2023_white.png";
+const LogoSelector = ({ theme, width = 160, height = 80, className = "", clickable = true }: LogoSelectorProps) => {
+    // If theme is explicitly provided, respect it.
+    // If not, use CSS to auto-switch.
+
+    const blueLogo = (
+        <Image
+            src="/ANC_Logo_2023_blue.png"
+            width={width}
+            height={height}
+            className={cn("object-contain", theme === "dark" ? "hidden" : (theme === "light" ? "block" : "block dark:hidden"))}
+            alt="ANC Sports Enterprises Logo"
+        />
+    );
+
+    const whiteLogo = (
+        <Image
+            src="/ANC_Logo_2023_white.png"
+            width={width}
+            height={height}
+            className={cn("object-contain absolute inset-0", theme === "light" ? "hidden" : (theme === "dark" ? "block" : "hidden dark:block"))}
+            alt="ANC Sports Enterprises Logo"
+        />
+    );
 
     const logoElement = (
-        <div className={cn("p-4 inline-flex items-center justify-center", clickable && "cursor-pointer hover:opacity-80 transition-opacity", className)}>
-            <Image
-                src={logoSrc}
-                width={width}
-                height={height}
-                className="object-contain"
-                alt="ANC Sports Enterprises Logo"
-            />
+        <div className={cn("relative p-4 inline-flex items-center justify-center", clickable && "cursor-pointer hover:opacity-80 transition-opacity", className)} style={{ width: width + 32, height: height + 32 }}>
+            {blueLogo}
+            {whiteLogo}
         </div>
     );
 
