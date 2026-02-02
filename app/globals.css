@@ -126,3 +126,37 @@
 .filter-chip-active {
     @apply border-primary text-primary bg-primary/10;
 }
+
+/* EMERGENCY THEME OVERRIDE FOR EXCEL VIEWER */
+/* Forces White/Black table in Light Mode regardless of component/tailwind classes */
+:root:not(.dark) .excel-viewer-wrapper {
+    background-color: #ffffff !important;
+    border-color: #e4e4e7 !important;
+}
+
+:root:not(.dark) .excel-viewer-table {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+:root:not(.dark) .excel-viewer-table thead tr {
+    background-color: #f4f4f5 !important;
+    /* zinc-100 */
+    color: #000000 !important;
+}
+
+:root:not(.dark) .excel-viewer-table td,
+:root:not(.dark) .excel-viewer-table th {
+    background-color: transparent !important;
+    color: inherit !important;
+    border-color: #e4e4e7 !important;
+}
+
+:root:not(.dark) .excel-viewer-table tr:hover td {
+    background-color: #f4f4f5 !important;
+}
+
+:root:not(.dark) .excel-viewer-table input {
+    background-color: white !important;
+    color: black !important;
+}

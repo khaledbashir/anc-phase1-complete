@@ -287,7 +287,7 @@ export default function ExcelViewer({
   };
 
   return (
-    <div className="h-full w-full rounded-2xl border-0 bg-transparent overflow-hidden flex flex-col">
+    <div className="h-full w-full rounded-2xl border-0 bg-transparent overflow-hidden flex flex-col excel-viewer-wrapper">
       <div className="shrink-0 border-b border-border bg-muted/40 px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <FileSpreadsheet className="w-5 h-5 text-brand-blue shrink-0" />
@@ -342,7 +342,7 @@ export default function ExcelViewer({
 
       <div className="flex-1 overflow-auto custom-scrollbar min-h-0">
         <TooltipProvider delayDuration={150}>
-          <table className="min-w-full border-separate border-spacing-0 font-['Work_Sans']">
+          <table className="min-w-full border-separate border-spacing-0 font-['Work_Sans'] excel-viewer-table">
             <colgroup>
               {colWidths.map((w, idx) => (
                 <col key={idx} style={{ width: w }} />
