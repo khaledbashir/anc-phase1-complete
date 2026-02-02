@@ -94,12 +94,12 @@ const SingleScreen = ({
             "border rounded-xl overflow-hidden transition-all duration-200",
             hasErrors ? "border-red-500/50 bg-red-950/10" :
                 hasWarning ? "border-yellow-500/50 bg-yellow-950/10" :
-                    "border-zinc-700 bg-zinc-900/30"
+                    "border-border bg-card/30"
         )}>
             {/* Collapsed Header - Always Visible */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full p-4 flex items-center justify-between hover:bg-zinc-800/30 transition-colors"
+                className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
             >
                 <div className="flex items-center gap-3">
                     {/* Status Indicator */}
@@ -111,10 +111,10 @@ const SingleScreen = ({
                     )} />
 
                     <div className="text-left">
-                        <p className="font-medium text-zinc-100">
+                        <p className="font-medium text-foreground">
                             #{index + 1} - {screenName || "Untitled Screen"}
                         </p>
-                        <p className="text-xs text-zinc-400">
+                        <p className="text-xs text-muted-foreground">
                             {width > 0 && height > 0 ? `${formatDimension(Number(width))}' × ${formatDimension(Number(height))}'` : "No dimensions"}
                             {quantity > 1 && ` × ${quantity}`}
                             {pitch > 0 && ` • ${pitch}mm pitch`}
@@ -133,12 +133,12 @@ const SingleScreen = ({
                                 </TooltipTrigger>
                                 <TooltipContent
                                     side="top"
-                                    className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3"
+                                    className="max-w-xs bg-popover border-border text-popover-foreground p-3"
                                 >
                                     <div className="text-xs space-y-1">
                                         <p className="font-bold text-red-400 mb-2">Validation Errors:</p>
                                         {screenErrors && Object.entries(screenErrors).map(([field, error]: [string, any]) => (
-                                            <p key={field} className="text-zinc-300">
+                                            <p key={field} className="text-muted-foreground">
                                                 • {field}: {error?.message || 'Invalid'}
                                             </p>
                                         ))}
@@ -169,7 +169,7 @@ const SingleScreen = ({
                                     </TooltipTrigger>
                                     <TooltipContent
                                         side="top"
-                                        className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3 shadow-2xl"
+                                        className="max-w-xs bg-popover border-border text-popover-foreground p-3 shadow-2xl"
                                     >
                                         <p className="text-xs leading-relaxed">
                                             {verifiedFields[`${name}[${index}].name`] ? (
@@ -211,13 +211,13 @@ const SingleScreen = ({
                                 : "$0"
                             }
                         </p>
-                        <p className="text-xs text-zinc-400">
+                        <p className="text-xs text-muted-foreground">
                             {(desiredMargin * 100 || 0).toFixed(0)}% margin
                         </p>
                     </div>
 
                     <ChevronRight className={cn(
-                        "w-5 h-5 text-zinc-400 transition-transform duration-200",
+                        "w-5 h-5 text-muted-foreground transition-transform duration-200",
                         isExpanded && "rotate-90"
                     )} />
                 </div>
@@ -225,9 +225,9 @@ const SingleScreen = ({
 
             {/* Expanded Content */}
             {isExpanded && (
-                <div className="p-4 border-t border-zinc-700/50 space-y-4">
+                <div className="p-4 border-t border-border space-y-4">
                     {/* Quick Actions Bar */}
-                    <div className="flex items-center justify-between pb-3 border-b border-zinc-700/30">
+                    <div className="flex items-center justify-between pb-3 border-b border-border">
                         <div className="flex items-center gap-2">
                             <BaseButton
                                 size="icon"
@@ -288,12 +288,12 @@ const SingleScreen = ({
                         />
 
                         <div className="flex flex-col gap-1">
-                            <Label className="text-[11px] text-zinc-500 font-medium">Service Type</Label>
+                            <Label className="text-[11px] text-muted-foreground font-medium">Service Type</Label>
                             <select
                                 {...register(`${name}[${index}].serviceType`)}
                                 className={cn(
-                                    "h-9 px-3 text-sm border rounded-md bg-zinc-950 w-full focus:ring-1 focus:ring-[#0A52EF] focus:outline-none transition-all",
-                                    aiFields?.includes(`${name}[${index}].serviceType`) ? "border-[#0A52EF] ring-1 ring-[#0A52EF]" : "border-zinc-700"
+                                    "h-9 px-3 text-sm border rounded-md bg-background w-full focus:ring-1 focus:ring-[#0A52EF] focus:outline-none transition-all",
+                                    aiFields?.includes(`${name}[${index}].serviceType`) ? "border-[#0A52EF] ring-1 ring-[#0A52EF]" : "border-input"
                                 )}
                             >
                                 <option value="Front/Rear">Front/Rear (Scoreboard)</option>
@@ -302,12 +302,12 @@ const SingleScreen = ({
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <Label className="text-[11px] text-zinc-500 font-medium">Form Factor</Label>
+                            <Label className="text-[11px] text-muted-foreground font-medium">Form Factor</Label>
                             <select
                                 {...register(`${name}[${index}].formFactor`)}
                                 className={cn(
-                                    "h-9 px-3 text-sm border rounded-md bg-zinc-950 w-full focus:ring-1 focus:ring-[#0A52EF] focus:outline-none transition-all",
-                                    aiFields?.includes(`${name}[${index}].formFactor`) ? "border-[#0A52EF] ring-1 ring-[#0A52EF]" : "border-zinc-700"
+                                    "h-9 px-3 text-sm border rounded-md bg-background w-full focus:ring-1 focus:ring-[#0A52EF] focus:outline-none transition-all",
+                                    aiFields?.includes(`${name}[${index}].formFactor`) ? "border-[#0A52EF] ring-1 ring-[#0A52EF]" : "border-input"
                                 )}
                             >
                                 <option value="Straight">Straight</option>
@@ -365,24 +365,24 @@ const SingleScreen = ({
                         "p-4 rounded-xl border space-y-3",
                         aiFields?.includes(`${name}[${index}].desiredMargin`)
                             ? "border-[#0A52EF]/50 bg-[#0A52EF]/10"
-                            : "border-zinc-700 bg-zinc-800/30"
+                            : "border-border bg-muted/30"
                     )}>
                         <div className="flex justify-between items-center">
                             <TooltipProvider>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <Label className="text-[11px] text-zinc-500 font-medium flex items-center gap-1 cursor-help">
+                                        <Label className="text-[11px] text-muted-foreground font-medium flex items-center gap-1 cursor-help">
                                             <Zap className="w-3 h-3 text-yellow-500" />
                                             Desired Margin
-                                            <Info className="w-3 h-3 text-zinc-600 hover:text-[#0A52EF] transition-colors" />
+                                            <Info className="w-3 h-3 text-muted-foreground hover:text-[#0A52EF] transition-colors" />
                                         </Label>
                                     </TooltipTrigger>
                                     <TooltipContent
                                         side="top"
-                                        className="max-w-xs bg-zinc-800 border-zinc-700 text-white p-3"
+                                        className="max-w-xs bg-popover border-border text-popover-foreground p-3"
                                     >
                                         <p className="text-xs leading-relaxed">
-                                            <strong className="text-[#0A52EF]">Using ANC Strategic Logic:</strong> We use the Divisor Model <code className="bg-zinc-700 px-1 rounded">[Cost / (1 - Margin)]</code> to ensure your P&L profit matches your target percentage exactly.
+                                            <strong className="text-[#0A52EF]">Using ANC Strategic Logic:</strong> We use the Divisor Model <code className="bg-muted px-1 rounded">[Cost / (1 - Margin)]</code> to ensure your P&L profit matches your target percentage exactly.
                                         </p>
                                     </TooltipContent>
                                 </Tooltip>
@@ -403,9 +403,9 @@ const SingleScreen = ({
                                 valueAsNumber: true,
                                 onChange: (e) => setValue(`${name}[${index}].desiredMargin`, parseFloat(e.target.value))
                             })}
-                            className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-[#0A52EF]"
+                            className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-[#0A52EF]"
                         />
-                        <p className="text-[10px] text-zinc-500">
+                        <p className="text-[10px] text-muted-foreground">
                             Adjust margin to see real-time price impact
                         </p>
                     </div>
@@ -413,7 +413,7 @@ const SingleScreen = ({
                     {/* Advanced Settings Toggle */}
                     <button
                         onClick={() => setShowAdvanced(!showAdvanced)}
-                        className="flex items-center gap-2 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <ChevronRight className={cn(
                             "w-4 h-4 transition-transform",
@@ -424,7 +424,7 @@ const SingleScreen = ({
 
                     {/* Advanced Settings */}
                     {showAdvanced && (
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-zinc-800/30 rounded-xl border border-zinc-700/50">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-xl border border-border">
                             <FormInput
                                 name={`${name}[${index}].costPerSqFt`}
                                 label="Cost per Sq Ft ($)"
@@ -433,7 +433,7 @@ const SingleScreen = ({
                             />
 
                             <div className="flex flex-col gap-2">
-                                <Label className="text-[10px] text-zinc-500 font-medium flex items-center gap-1">
+                                <Label className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
                                     <ShieldCheck className="w-3 h-3" />
                                     Include Spares (5%)
                                 </Label>
@@ -444,7 +444,7 @@ const SingleScreen = ({
                             </div>
 
                             <div className="flex flex-col gap-2">
-                                <Label className="text-[10px] text-zinc-500 font-medium">Replacement Project</Label>
+                                <Label className="text-[10px] text-muted-foreground font-medium">Replacement Project</Label>
                                 <Switch
                                     checked={useWatch({ name: `${name}[${index}].isReplacement`, control })}
                                     onCheckedChange={(checked) => setValue(`${name}[${index}].isReplacement`, checked)}
@@ -453,7 +453,7 @@ const SingleScreen = ({
 
                             {useWatch({ name: `${name}[${index}].isReplacement`, control }) && (
                                 <div className="flex flex-col gap-2">
-                                    <Label className="text-[10px] text-zinc-500 font-medium">Use Existing Steel</Label>
+                                    <Label className="text-[10px] text-muted-foreground font-medium">Use Existing Steel</Label>
                                     <Switch
                                         checked={useWatch({ name: `${name}[${index}].useExistingStructure`, control })}
                                         onCheckedChange={(checked) => setValue(`${name}[${index}].useExistingStructure`, checked)}
@@ -464,13 +464,13 @@ const SingleScreen = ({
                     )}
 
                     {/* Live Stats Footer */}
-                    <div className="flex items-center gap-6 pt-3 border-t border-zinc-700/30 text-xs">
+                    <div className="flex items-center gap-6 pt-3 border-t border-border text-xs">
                         <div className="flex items-center gap-2">
-                            <span className="text-zinc-400">Area:</span>
-                            <span className="font-medium text-zinc-300">{area} sq ft</span>
+                            <span className="text-muted-foreground">Area:</span>
+                            <span className="font-medium text-foreground">{area} sq ft</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-zinc-400">Price/SqFt:</span>
+                            <span className="text-muted-foreground">Price/SqFt:</span>
                             <span className="font-medium text-[#0A52EF]">
                                 {sellingPricePerSqFt > 0
                                     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(sellingPricePerSqFt)
@@ -491,7 +491,7 @@ const SingleScreen = ({
                                 </>
                             ) : (
                                 <>
-                                    <span className="text-zinc-500">Add dimensions to calculate</span>
+                                    <span className="text-muted-foreground">Add dimensions to calculate</span>
                                 </>
                             )}
                         </div>
