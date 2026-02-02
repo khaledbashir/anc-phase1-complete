@@ -43,9 +43,9 @@ export function StudioLayout({
     ];
 
     return (
-        <div className="h-screen w-screen overflow-hidden flex flex-col bg-zinc-950 text-zinc-200">
+        <div className="h-screen w-screen overflow-hidden flex flex-col bg-background text-foreground">
             {/* Top Nav - Branding & Wizard Progress */}
-            <header className="h-20 shrink-0 border-b border-zinc-900/80 bg-zinc-950/80 backdrop-blur-md flex flex-col z-50">
+            <header className="h-20 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex flex-col z-50">
                 {header}
             </header>
 
@@ -56,11 +56,11 @@ export function StudioLayout({
                 */}
                 <aside
                     className={cn(
-                        "border-r border-zinc-900/80 bg-zinc-950/80 backdrop-blur-md flex flex-col transition-all duration-300 z-40",
+                        "border-r border-border bg-background/80 backdrop-blur-md flex flex-col transition-all duration-300 z-40",
                         isSidebarCollapsed ? "w-16" : "w-56"
                     )}
                 >
-                    <div className="p-3 border-b border-zinc-900">
+                    <div className="p-3 border-b border-border">
                         <ModeToggle
                             mode={viewMode === "ai" ? "ai" : "form"}
                             onChange={(m) => setViewMode(m as ViewMode)}
@@ -79,7 +79,7 @@ export function StudioLayout({
                                         "h-10 mx-2 px-3 rounded-lg flex items-center gap-3 transition-all group relative",
                                         isActive
                                             ? "bg-brand-blue text-white shadow-lg shadow-brand-blue/20"
-                                            : "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+                                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
                                     )}
                                 >
                                     <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-white" : "group-hover:text-brand-blue")} />
@@ -99,7 +99,7 @@ export function StudioLayout({
                             href="/projects"
                             className={cn(
                                 "h-10 px-3 rounded-lg flex items-center gap-3 transition-all group",
-                                "text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/50"
+                                "text-muted-foreground hover:text-foreground hover:bg-accent"
                             )}
                         >
                             <Folder className="w-4 h-4 shrink-0 group-hover:text-brand-blue" />
@@ -112,7 +112,7 @@ export function StudioLayout({
                     {/* Collapse Toggle */}
                     <button
                         onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                        className="h-14 border-t border-zinc-900 flex items-center justify-center text-zinc-600 hover:text-white transition-colors"
+                        className="h-14 border-t border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                     >
                         {isSidebarCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
                     </button>
@@ -121,7 +121,7 @@ export function StudioLayout({
                 {/* THE STUDIO GRID (50/50 Split) */}
                 <main className="flex-1 overflow-hidden grid grid-cols-2">
                     {/* THE HUB (Left Pane: 50vw) */}
-                    <section className="relative flex flex-col overflow-hidden bg-zinc-950/40 border-r border-zinc-900 anc-slash-bg">
+                    <section className="relative flex flex-col overflow-hidden bg-background/40 border-r border-border anc-slash-bg">
                         {/* Stacked Panels with CSS Visibility Toggle */}
                         <div className="flex-1 flex overflow-hidden">
                             <div className="flex-1 relative overflow-hidden">
@@ -146,10 +146,10 @@ export function StudioLayout({
                                 >
                                     <div className="min-h-full animate-in fade-in slide-in-from-left-4 duration-150 p-6">
                                         {aiContent || (
-                                            <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-zinc-900/20 rounded-2xl border border-zinc-800 border-dashed">
-                                                <MessageSquare className="w-12 h-12 text-zinc-700 mb-4" />
-                                                <h3 className="text-base font-semibold text-zinc-400">AI Context Initializing</h3>
-                                                <p className="text-sm text-zinc-600 mt-2 max-w-xs">Connecting to AnythingLLM Strategic Node...</p>
+                                            <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-muted/20 rounded-2xl border border-border border-dashed">
+                                                <MessageSquare className="w-12 h-12 text-muted-foreground mb-4" />
+                                                <h3 className="text-base font-semibold text-foreground">AI Context Initializing</h3>
+                                                <p className="text-sm text-muted-foreground mt-2 max-w-xs">Connecting to AnythingLLM Strategic Node...</p>
                                             </div>
                                         )}
                                     </div>
@@ -164,10 +164,10 @@ export function StudioLayout({
                                 >
                                     <div className="min-h-full animate-in fade-in slide-in-from-left-4 duration-150 p-6">
                                         {auditContent || (
-                                            <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-zinc-900/20 rounded-2xl border border-zinc-800 border-dashed">
-                                                <Table className="w-12 h-12 text-zinc-700 mb-4" />
-                                                <h3 className="text-base font-semibold text-zinc-400">No Audit Data</h3>
-                                                <p className="text-sm text-zinc-600 mt-2 max-w-xs">Finalize your technical specifications to activate the Financial Audit.</p>
+                                            <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-muted/20 rounded-2xl border border-border border-dashed">
+                                                <Table className="w-12 h-12 text-muted-foreground mb-4" />
+                                                <h3 className="text-base font-semibold text-foreground">No Audit Data</h3>
+                                                <p className="text-sm text-muted-foreground mt-2 max-w-xs">Finalize your technical specifications to activate the Financial Audit.</p>
                                             </div>
                                         )}
                                     </div>
@@ -185,7 +185,7 @@ export function StudioLayout({
                     </section>
 
                     {/* THE ANCHOR (Right Pane: 50vw) */}
-                    <section className="relative bg-slate-200 overflow-hidden flex flex-col">
+                    <section className="relative bg-muted/30 overflow-hidden flex flex-col">
                         <div className="flex-1 overflow-y-auto p-12 custom-scrollbar flex items-start justify-center">
                             {/* Brand Signature Slashes in background */}
                             <BrandSlashes
@@ -202,12 +202,12 @@ export function StudioLayout({
                         </div>
 
                         {/* Footer Status for PDF */}
-                        <div className="h-9 border-t border-slate-300 bg-white/80 backdrop-blur-sm flex items-center justify-between px-6 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                        <div className="h-9 border-t border-border bg-background/80 backdrop-blur-sm flex items-center justify-between px-6 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                             <span className="flex items-center gap-2">
                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                 Live Preview Engine
                             </span>
-                            <span className="text-slate-400">ANC IDENTITY PROTECTION ACTIVE</span>
+                            <span className="text-muted-foreground/60">ANC IDENTITY PROTECTION ACTIVE</span>
                         </div>
                     </section>
                 </main>

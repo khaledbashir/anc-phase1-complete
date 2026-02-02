@@ -29,7 +29,7 @@ import { formatCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ExcelViewer from "@/app/components/ExcelViewer";
+import ExcelGridViewer from "@/app/components/ExcelGridViewer";
 import type { ProposalType } from "@/types";
 
 const Step4Export = () => {
@@ -1122,10 +1122,12 @@ const Step4Export = () => {
                                             </button>
                                         </div>
                                         <div className="h-[520px] max-h-[65vh] overflow-hidden">
-                                            <ExcelViewer
+                                            <ExcelGridViewer
                                                 highlightedRows={highlightedRows}
                                                 focusedRow={focusedRow}
                                                 onFocusedRowChange={setFocusedRow}
+                                                editable
+                                                scanningRow={isPlaying ? (highlightedRows[0] ?? null) : null}
                                             />
                                         </div>
                                     </div>

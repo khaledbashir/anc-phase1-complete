@@ -4,7 +4,7 @@ import { useFormContext } from "react-hook-form";
 import { Upload, FileSpreadsheet, Sparkles, Shield, Zap, CheckCircle2, AlertTriangle, FileText, ExternalLink, Trash2, ChevronDown, ChevronUp, Settings2, RefreshCw } from "lucide-react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { useState, useEffect } from "react";
-import ExcelViewer from "@/app/components/ExcelViewer";
+import ExcelGridViewer from "@/app/components/ExcelGridViewer";
 import ScreensGridEditor from "@/app/components/proposal/form/ScreensGridEditor";
 import { AiWand, FormInput } from "@/app/components";
 import { cn } from "@/lib/utils";
@@ -269,7 +269,7 @@ const Step1Ingestion = () => {
                                     <ScreensGridEditor />
                                 </div>
                                 <div className="min-h-0 rounded-xl border border-border bg-card shadow-2xl overflow-hidden relative group">
-                                    <ExcelViewer />
+                                    <ExcelGridViewer />
                                     <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                         <div className="bg-background/80 backdrop-blur text-[10px] text-muted-foreground px-2 py-1 rounded border border-border">
                                             Workbook preview (read-only)
