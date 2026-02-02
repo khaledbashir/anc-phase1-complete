@@ -14,7 +14,10 @@ import {
     Truck, 
     Sparkles,
     ArrowRight,
-    Receipt
+    Receipt,
+    Plus,
+    Trash2,
+    Wand2
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +30,8 @@ import { formatCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { calculateProposalAudit } from "@/lib/estimator";
+import { Textarea } from "@/components/ui/textarea";
+import { BaseButton } from "@/app/components";
 
 const Step3Math = () => {
     const { control, setValue, watch, getValues } = useFormContext();
@@ -36,6 +41,7 @@ const Step3Math = () => {
     });
 
     const screens = watch("details.screens") || [];
+    const quoteItems = watch("details.quoteItems") || [];
     const bondRate = useWatch({ name: "details.bondRate", control }) || 1.5;
     const mirrorMode = useWatch({ name: "details.mirrorMode", control });
 
@@ -48,6 +54,85 @@ const Step3Math = () => {
     const totalProjectValue = totals?.finalClientTotal || 0;
     const structuralLabor = totals?.labor || 0;
     const shippingLogistics = totals?.shipping || 0;
+
+    const newId = () => {
+        if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+            return (crypto as any).randomUUID();
+        }
+        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    };
+
+    const setQuoteItems = (items: any[]) => {
+        setValue("details.quoteItems", items, { shouldDirty: true, shouldValidate: true });
+    };
+
+    const addQuoteItem = () => {
+        setQuoteItems([
+            ...quoteItems,
+            { id: newId(), locationName: "NEW ITEM", description: "", price: 0 },
+        ]);
+    };
+
+    const removeQuoteItem = (index: number) => {
+        const next = [...quoteItems];
+        next.splice(index, 1);
+        setQuoteItems(next);
+    };
+
+    const updateQuoteItem = (index: number, patch: any) => {
+        const next = [...quoteItems];
+        next[index] = { ...next[index], ...patch };
+        setQuoteItems(next);
+    };
+
+    const toWholeFeet = (value: any) => {
+        const n = Number(value);
+        if (!isFinite(n)) return "";
+        return `${Math.round(n)}'`;
+    };
+
+    const toExactFeet = (value: any) => {
+        const n = Number(value);
+        if (!isFinite(n)) return "";
+        return `${(Math.round(n * 100) / 100).toFixed(2)}'`;
+    };
+
+    const buildDescriptionFromScreen = (screen: any) => {
+        const serviceType = (screen?.serviceType || "").toString().toLowerCase();
+        const serviceLabel = serviceType.includes("top") ? "Ribbon Display" : serviceType ? "Video Display" : "Display";
+        const heightFt = screen?.heightFt ?? screen?.height;
+        const widthFt = screen?.widthFt ?? screen?.width;
+        const pitchMm = screen?.pitchMm ?? screen?.pixelPitch;
+        const qty = screen?.quantity || 1;
+        const label = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
+
+        const parts: string[] = [];
+        parts.push(`${label} - ${serviceLabel}`);
+        if (heightFt != null && widthFt != null && Number(heightFt) > 0 && Number(widthFt) > 0) {
+            parts.push(`${toWholeFeet(heightFt)} H x ${toWholeFeet(widthFt)} W`);
+            parts.push(`${toExactFeet(heightFt)} H x ${toExactFeet(widthFt)} W`);
+        }
+        if (pitchMm != null && Number(pitchMm) > 0) {
+            parts.push(`${Math.round(Number(pitchMm))}mm`);
+        }
+        parts.push(`QTY ${qty}`);
+        return parts.filter(Boolean).join(" - ");
+    };
+
+    const autofillQuoteFromScreens = () => {
+        const perScreen = internalAudit?.perScreen || [];
+        const items = (screens || []).map((s: any, idx: number) => {
+            const auditRow = perScreen.find((r: any) => r.id === s.id || r.name === s.name);
+            const price = auditRow?.breakdown?.finalClientTotal || auditRow?.breakdown?.sellPrice || 0;
+            return {
+                id: s.id || newId(),
+                locationName: (s.externalName || s.name || `ITEM ${idx + 1}`).toString().toUpperCase(),
+                description: buildDescriptionFromScreen(s),
+                price: Number(price) || 0,
+            };
+        });
+        setQuoteItems(items);
+    };
 
     // Apply global margin to all screens
     const applyGlobalMargin = (margin: number) => {
@@ -223,6 +308,90 @@ const Step3Math = () => {
                             onCheckedChange={(checked) => setValue("details.mirrorMode", checked)}
                             className="data-[state=checked]:bg-brand-blue"
                         />
+                    </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-900/50 border-zinc-800">
+                    <CardHeader className="pb-3 border-b border-zinc-800/50">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-brand-blue/20">
+                                <Receipt className="w-5 h-5 text-brand-blue" />
+                            </div>
+                            <div className="flex-1">
+                                <CardTitle className="text-zinc-100 text-sm font-bold uppercase tracking-tight">Sales Quotation Items</CardTitle>
+                                <CardDescription className="text-zinc-500 text-xs">
+                                    These lines drive the Project Total / Pricing blocks in the PDF.
+                                </CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <BaseButton
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={autofillQuoteFromScreens}
+                                >
+                                    <Wand2 className="w-4 h-4" />
+                                    Auto-fill
+                                </BaseButton>
+                                <BaseButton
+                                    type="button"
+                                    size="sm"
+                                    onClick={addQuoteItem}
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Add
+                                </BaseButton>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-6 space-y-4">
+                        {quoteItems.length === 0 ? (
+                            <div className="text-xs text-zinc-500">
+                                No quotation items yet. Click Add or Auto-fill from screens.
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {quoteItems.map((it: any, idx: number) => (
+                                    <div key={it.id || idx} className="rounded-2xl border border-zinc-800 bg-zinc-950/30 p-4 space-y-3">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex-1">
+                                                <Label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Location</Label>
+                                                <Input
+                                                    value={it.locationName || ""}
+                                                    onChange={(e) => updateQuoteItem(idx, { locationName: e.target.value })}
+                                                    className="mt-2 bg-zinc-950 border-zinc-800 text-zinc-200"
+                                                />
+                                            </div>
+                                            <div className="w-[180px]">
+                                                <Label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Price</Label>
+                                                <Input
+                                                    value={String(it.price ?? "")}
+                                                    onChange={(e) => updateQuoteItem(idx, { price: Number(e.target.value || 0) })}
+                                                    className="mt-2 bg-zinc-950 border-zinc-800 text-zinc-200"
+                                                    inputMode="decimal"
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeQuoteItem(idx)}
+                                                className="mt-6 p-2 rounded-xl border border-zinc-800 bg-zinc-950/50 text-zinc-400 hover:text-white hover:border-brand-blue/30 transition-colors"
+                                                title="Remove item"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                        <div>
+                                            <Label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Description</Label>
+                                            <Textarea
+                                                value={it.description || ""}
+                                                onChange={(e) => updateQuoteItem(idx, { description: e.target.value })}
+                                                className="mt-2 bg-zinc-950 border-zinc-800 text-zinc-200 min-h-[84px]"
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 

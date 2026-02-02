@@ -83,6 +83,7 @@ model Proposal {
   venue                String?
   documentMode         DocumentMode        @default(BUDGET)
   documentConfig       Json?
+  quoteItems           Json?
   paymentTerms         String?
   additionalNotes      String?
   status               ProposalStatus      @default(DRAFT)

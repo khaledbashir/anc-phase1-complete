@@ -305,6 +305,12 @@ const ProposalDetailsSchema = z.object({
     shareExpiresAt: z.string().optional(),
     sharePasswordHash: z.string().optional(),
     venue: z.enum(["Milan Puskar Stadium", "WVU Coliseum", "Generic"]).default("Generic"), // REQ-47
+    quoteItems: z.array(z.object({
+        id: z.string(),
+        locationName: z.string(),
+        description: z.string(),
+        price: z.number(),
+    })).optional().default([]),
     // PDF Section Toggles (REQ-PdfConfig)
     includePricingBreakdown: z.boolean().optional().default(false), // Toggle for per-screen pricing detail
     showPricingTables: z.boolean().optional().default(true),

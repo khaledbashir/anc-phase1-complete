@@ -254,31 +254,40 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             return parts.filter(Boolean).join(" - ");
         };
 
-        const lineItems = [
-            ...(screens || []).map((screen: any, idx: number) => {
-                const auditRow = isSharedView
-                    ? null
-                    : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
-                const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
-                return {
-                    key: `screen-${screen?.id || screen?.name || idx}`,
-                    locationName: getScreenLabel(screen).toUpperCase(),
-                    description: buildDescription(screen),
-                    price: Number(price) || 0,
-                };
-            }).filter((it) => Math.abs(it.price) >= 0.01),
-            ...softCostItems
-                .map((item: any, idx: number) => {
-                    const sell = Number(item?.sell || 0);
-                    return {
-                        key: `soft-${idx}`,
-                        locationName: (item?.name || "Item").toString().toUpperCase(),
-                        description: (item?.description || "").toString(),
-                        price: sell,
-                    };
-                })
-                .filter((it: any) => Math.abs(it.price) >= 0.01),
-        ];
+        const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
+        const lineItems =
+            quoteItems.length > 0
+                ? quoteItems.map((it: any, idx: number) => ({
+                    key: it.id || `quote-${idx}`,
+                    locationName: (it.locationName || "ITEM").toString().toUpperCase(),
+                    description: (it.description || "").toString(),
+                    price: Number(it.price || 0) || 0,
+                })).filter((it: any) => Math.abs(it.price) >= 0.01)
+                : [
+                    ...(screens || []).map((screen: any, idx: number) => {
+                        const auditRow = isSharedView
+                            ? null
+                            : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
+                        const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
+                        return {
+                            key: `screen-${screen?.id || screen?.name || idx}`,
+                            locationName: getScreenLabel(screen).toUpperCase(),
+                            description: buildDescription(screen),
+                            price: Number(price) || 0,
+                        };
+                    }).filter((it) => Math.abs(it.price) >= 0.01),
+                    ...softCostItems
+                        .map((item: any, idx: number) => {
+                            const sell = Number(item?.sell || 0);
+                            return {
+                                key: `soft-${idx}`,
+                                locationName: (item?.name || "Item").toString().toUpperCase(),
+                                description: (item?.description || "").toString(),
+                                price: sell,
+                            };
+                        })
+                        .filter((it: any) => Math.abs(it.price) >= 0.01),
+                ];
 
         const subtotal = lineItems.reduce((sum: number, it: any) => sum + (Number(it.price) || 0), 0);
 

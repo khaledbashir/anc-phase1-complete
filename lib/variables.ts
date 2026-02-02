@@ -194,6 +194,7 @@ export const FORM_DEFAULT_VALUES = {
     taxRateOverride: 0,
     bondRateOverride: 0,
     venue: "Generic" as "Milan Puskar Stadium" | "WVU Coliseum" | "Generic",
+    quoteItems: [],
     includePricingBreakdown: false,
     showPricingTables: true,
     showIntroText: true,

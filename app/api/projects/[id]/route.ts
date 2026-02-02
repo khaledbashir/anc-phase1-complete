@@ -92,6 +92,7 @@ export async function PATCH(
             bondRateOverride,
             documentMode,
             documentConfig,
+            quoteItems,
             paymentTerms,
             additionalNotes,
             createSnapshot, // NEW: Flag to create a version snapshot
@@ -167,6 +168,7 @@ export async function PATCH(
         if (venue !== undefined) updateData.venue = venue;
         if (documentMode !== undefined) updateData.documentMode = documentMode;
         if (documentConfig !== undefined) updateData.documentConfig = documentConfig;
+        if (quoteItems !== undefined) updateData.quoteItems = quoteItems;
         if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms;
         if (additionalNotes !== undefined) updateData.additionalNotes = additionalNotes;
 

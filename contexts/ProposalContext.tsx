@@ -504,10 +504,11 @@ export const ProposalContextProvider = ({
           bondRateOverride: d.bondRateOverride ?? details.bondRateOverride ?? FORM_DEFAULT_VALUES.details.bondRateOverride,
           overheadRate: details.overheadRate ?? 0.10,
           profitRate: details.profitRate ?? 0.05,
-          includePricingBreakdown: details.includePricingBreakdown ?? true, // Default: show pricing
+          quoteItems: details.quoteItems ?? FORM_DEFAULT_VALUES.details.quoteItems,
+          includePricingBreakdown: details.includePricingBreakdown ?? false, // Default: show pricing
           showPricingTables: (details as any).showPricingTables ?? true,
           showIntroText: (details as any).showIntroText ?? true,
-          showBaseBidTable: (details as any).showBaseBidTable ?? true,
+          showBaseBidTable: (details as any).showBaseBidTable ?? false,
           showSpecifications: (details as any).showSpecifications ?? true,
           showCompanyFooter: (details as any).showCompanyFooter ?? true,
           showPaymentTerms: details.showPaymentTerms ?? true,
@@ -1114,6 +1115,7 @@ export const ProposalContextProvider = ({
           showExhibitA: (formValues as any)?.details?.showExhibitA,
           showExhibitB: (formValues as any)?.details?.showExhibitB,
         },
+        quoteItems: (formValues as any)?.details?.quoteItems,
         paymentTerms: (formValues as any)?.details?.paymentTerms,
         additionalNotes: (formValues as any)?.details?.additionalNotes,
       };
