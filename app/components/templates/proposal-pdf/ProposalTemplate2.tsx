@@ -296,7 +296,17 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         const rawLocation = (it.locationName || "ITEM").toString();
 
                         // Try to find matching screen to check for customDisplayName
-                        const matchingScreen = screens.find((s: any) => s.id === it.id);
+                        // 1. Try ID match
+                        // 2. Try exact Name match (case-insensitive)
+                        // 3. Try partial match if name is unique enough? (Skip for now to avoid false positives)
+                        const matchingScreen = screens.find((s: any) => {
+                            if (s.id && it.id && s.id === it.id) return true;
+
+                            const sName = (s.externalName || s.name || "").toString().trim().toUpperCase();
+                            const itName = (it.locationName || "").toString().trim().toUpperCase();
+                            return sName === itName && sName.length > 0;
+                        });
+
                         const customOverride = matchingScreen?.customDisplayName;
 
                         // If override exists, use it as the header
