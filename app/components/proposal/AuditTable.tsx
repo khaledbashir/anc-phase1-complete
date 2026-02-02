@@ -1,15 +1,24 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { formatCurrency } from "@/lib/helpers";
+import { Input } from "@/components/ui/input";
+import { Check, Pencil, X } from "lucide-react";
 
 const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) => {
-  const { control } = useFormContext();
+  const { control, setValue } = useFormContext();
   const internalAudit = useWatch({
     name: "details.internalAudit",
     control,
   });
+  const screens = useWatch({
+    name: "details.screens",
+    control,
+  }) || [];
+
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [draft, setDraft] = useState("");
 
   if (!internalAudit || !internalAudit.perScreen) {
     return <div className="p-8 text-center text-zinc-500 italic">No screen data available for audit.</div>;
@@ -83,6 +92,13 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
       <div className="divide-y divide-zinc-800/50 bg-zinc-900/30">
         {perScreen.map((screen: any, idx: number) => {
           const calc = calculateRow(screen);
+          const screenForm = screens?.[idx] || {};
+          const displayName = (
+            screenForm?.externalName ||
+            screenForm?.name ||
+            screen?.name ||
+            ""
+          ).toString();
 
           // Accumulate totals
           dynamicTotals.hardware += calc.hardware;
@@ -95,8 +111,62 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
 
           return (
             <div key={idx} className="grid grid-cols-12 gap-2 p-3 hover:bg-zinc-800/50 transition-colors items-center text-zinc-300">
-              <div className="col-span-2 font-semibold truncate" title={screen.name}>
-                {screen.name}
+              <div className="col-span-2 font-semibold min-w-0" title={displayName}>
+                <div className="flex items-center gap-2 min-w-0">
+                  {editIdx === idx ? (
+                    <>
+                      <Input
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        className="h-7 bg-zinc-950 border-zinc-700 text-white text-xs"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            setValue(`details.screens.${idx}.externalName`, draft.trim(), { shouldDirty: true, shouldValidate: true });
+                            setEditIdx(null);
+                          }
+                          if (e.key === "Escape") {
+                            setEditIdx(null);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="p-1 rounded hover:bg-zinc-800 text-zinc-300"
+                        onClick={() => {
+                          setValue(`details.screens.${idx}.externalName`, draft.trim(), { shouldDirty: true, shouldValidate: true });
+                          setEditIdx(null);
+                        }}
+                        title="Save"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="p-1 rounded hover:bg-zinc-800 text-zinc-300"
+                        onClick={() => setEditIdx(null)}
+                        title="Cancel"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="truncate">{displayName}</div>
+                      <button
+                        type="button"
+                        className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white shrink-0"
+                        onClick={() => {
+                          setDraft((screenForm?.externalName || displayName).toString());
+                          setEditIdx(idx);
+                        }}
+                        title="Edit display name"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )}
+                </div>
                 <div className="text-[10px] text-zinc-500 font-normal">{screen.pixelMatrix}</div>
               </div>
               <div className="col-span-1 text-right">{screen.quantity}</div>

@@ -237,9 +237,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             const pitchMm = screen?.pitchMm ?? screen?.pixelPitch;
             const qty = screen?.quantity || 1;
 
-            const label = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
             const parts: string[] = [];
-            parts.push(`${label} - ${serviceLabel}`);
+            parts.push(serviceLabel);
 
             if (heightFt != null && widthFt != null && Number(heightFt) > 0 && Number(widthFt) > 0) {
                 parts.push(`${toWholeFeet(heightFt)} H x ${toWholeFeet(widthFt)} W`);
@@ -255,6 +254,17 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         };
 
         const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
+        const splitHeaderAndSpecs = (value: string) => {
+            const raw = (value || "").toString().trim();
+            if (!raw) return { header: "", specs: "" };
+            const idxParen = raw.indexOf("(");
+            const idxColon = raw.indexOf(":");
+            const idx = idxParen === -1 ? idxColon : idxColon === -1 ? idxParen : Math.min(idxParen, idxColon);
+            if (idx === -1) return { header: raw, specs: "" };
+            const header = raw.slice(0, idx).trim().replace(/[-–—]\s*$/, "").trim();
+            const specs = raw.slice(idx).trim();
+            return { header, specs };
+        };
         const stripLeadingLocation = (locationName: string, raw: string) => {
             const loc = (locationName || "").toString().trim();
             const text = (raw || "").toString().trim();
@@ -275,11 +285,17 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             quoteItems.length > 0
                 ? quoteItems.map((it: any, idx: number) => ({
                     key: it.id || `quote-${idx}`,
-                    locationName: (it.locationName || "ITEM").toString().toUpperCase(),
-                    description: stripLeadingLocation(
-                        (it.locationName || "ITEM").toString(),
-                        (it.description || "").toString()
-                    ),
+                    ...(() => {
+                        const rawLocation = (it.locationName || "ITEM").toString();
+                        const split = splitHeaderAndSpecs(rawLocation);
+                        const header = (split.header || rawLocation).toString();
+                        const desc = stripLeadingLocation(header, (it.description || "").toString());
+                        const combined = [split.specs, desc].filter(Boolean).join(" ").trim();
+                        return {
+                            locationName: header.toUpperCase(),
+                            description: combined,
+                        };
+                    })(),
                     price: Number(it.price || 0) || 0,
                 })).filter((it: any) => Math.abs(it.price) >= 0.01)
                 : [
@@ -313,8 +329,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         return (
             <div className="mt-6 mb-8">
                 <div className="flex justify-between border-b-2 border-black pb-2 mb-4">
-                    <h2 className="text-2xl font-bold tracking-tight text-black">Project Total</h2>
-                    <h2 className="text-2xl font-bold tracking-tight text-black">Pricing</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-black font-sans">Project Total</h2>
+                    <h2 className="text-2xl font-bold tracking-tight text-black font-sans">Pricing</h2>
                 </div>
 
                 <div className="space-y-0">
@@ -324,10 +340,10 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                             className={`${idx % 2 === 1 ? "bg-black/5" : ""} flex justify-between items-start py-6 px-4 -mx-4`}
                         >
                             <div className="max-w-2xl">
-                                <h3 className="font-bold text-[13px] uppercase tracking-widest mb-2 text-black">
+                                <h3 className="font-bold text-[13px] uppercase tracking-widest mb-2 text-black font-sans">
                                     {it.locationName}
                                 </h3>
-                                <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                                <p className="text-sm text-gray-500 font-normal leading-relaxed">
                                     {it.description}
                                 </p>
                             </div>
