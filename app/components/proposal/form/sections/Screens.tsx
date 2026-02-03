@@ -15,7 +15,7 @@ import { useTranslationContext } from "@/contexts/TranslationContext";
 import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Icons
-import { Plus, FileText, CreditCard, ChevronDown, ChevronUp, ClipboardList } from "lucide-react";
+import { Plus, FileText, CreditCard, ChevronDown, ChevronUp, ClipboardList, PenTool } from "lucide-react";
 
 // Toast
 import { toast } from "@/components/ui/use-toast";
@@ -30,11 +30,18 @@ const Screens = () => {
     const [showPaymentTerms, setShowPaymentTerms] = useState(false);
     const [showNotes, setShowNotes] = useState(false);
     const [showScopeOfWork, setShowScopeOfWork] = useState(false);
+    const [showSignatureText, setShowSignatureText] = useState(false);
     
     // Watch current values
     const paymentTerms = useWatch({ control, name: "details.paymentTerms" }) || "";
     const additionalNotes = useWatch({ control, name: "details.additionalNotes" }) || "";
     const scopeOfWorkText = useWatch({ control, name: "details.scopeOfWorkText" }) || "";
+    const signatureBlockText = useWatch({ control, name: "details.signatureBlockText" }) || "";
+    
+    // Default legal text for signature block
+    const defaultSignatureText = `Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.
+
+If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Payment is due within thirty (30) days of ANC's invoice(s).`;
 
     const SCREENS_NAME = "details.screens";
     const { fields, append, remove, move } = useFieldArray({
@@ -247,6 +254,45 @@ ANC assumes primary power feed will be provided by others..."
                         <p className="text-[10px] text-muted-foreground">
                             <span className="text-purple-500 font-semibold">LOI only</span> — If empty, Exhibit B will not appear in the PDF. Add text to include a custom Scope of Work.
                         </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Signature Block Text (Legal Text) */}
+            <div className="space-y-2">
+                <button
+                    type="button"
+                    onClick={() => setShowSignatureText(!showSignatureText)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 rounded-xl text-orange-500 font-bold text-sm transition-colors"
+                >
+                    <div className="flex items-center gap-2">
+                        <PenTool className="w-4 h-4" />
+                        <span>Signature Legal Text</span>
+                        {signatureBlockText && <span className="text-[10px] bg-orange-500/20 px-2 py-0.5 rounded">Custom</span>}
+                    </div>
+                    {showSignatureText ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                
+                {showSignatureText && (
+                    <div className="px-4 py-3 bg-card/50 border border-border rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <Textarea
+                            placeholder={defaultSignatureText}
+                            value={signatureBlockText}
+                            onChange={(e) => setValue("details.signatureBlockText", e.target.value, { shouldDirty: true })}
+                            className="min-h-[150px] text-sm bg-background border-border"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                            <span className="text-orange-500 font-semibold">LOI only</span> — The legal text that appears above signature lines. Leave empty to use default text.
+                        </p>
+                        {!signatureBlockText && (
+                            <button
+                                type="button"
+                                onClick={() => setValue("details.signatureBlockText", defaultSignatureText, { shouldDirty: true })}
+                                className="text-xs text-orange-500 hover:text-orange-400 underline"
+                            >
+                                Click to load default text for editing
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

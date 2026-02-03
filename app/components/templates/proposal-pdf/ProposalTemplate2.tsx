@@ -457,13 +457,18 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         </div>
     );
 
+    // Default legal text for signature block
+    const defaultSignatureText = `Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.
+
+If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Payment is due within thirty (30) days of ANC's invoice(s).`;
+
+    const signatureText = ((details as any)?.signatureBlockText || "").trim() || defaultSignatureText;
+
     const SignatureBlock = () => (
         <div className="mt-12 break-inside-avoid">
-            <p className="text-[10px] text-gray-600 leading-relaxed text-justify mb-10" style={{ fontFamily: "'Helvetica Condensed', sans-serif" }}>
-                Please sign below to indicate Purchaser&apos;s agreement to purchase the Display System as described herein and to authorize ANC to commence production.
-                <br /><br />
-                If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Payment is due within thirty (30) days of ANC&apos;s invoice(s).
-            </p>
+            <div className="text-[10px] text-gray-600 leading-relaxed text-justify mb-10 whitespace-pre-wrap" style={{ fontFamily: "'Helvetica Condensed', sans-serif" }}>
+                {signatureText}
+            </div>
             <h4 className="font-bold text-[11px] uppercase mb-8 border-b-2 border-black pb-1">Agreed To And Accepted:</h4>
             <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-8">

@@ -278,6 +278,7 @@ const ProposalDetailsSchema = z.object({
     totalAmountInWords: fieldValidators.string,
     additionalNotes: fieldValidators.stringOptional,
     scopeOfWorkText: fieldValidators.stringOptional, // Exhibit B - custom SOW text
+    signatureBlockText: fieldValidators.stringOptional, // Custom legal text before signature lines
     paymentTerms: fieldValidators.stringMin1,
     signature: SignatureSchema.optional(),
     updatedAt: fieldValidators.stringOptional,
