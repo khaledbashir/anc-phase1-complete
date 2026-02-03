@@ -144,12 +144,14 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (W)</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
                     </tr>
-                    <tr className="bg-white border-b border-gray-200 last:border-b-0">
-                        <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">
-                            {screen.brightnessNits ? `${formatNumberWithCommas(screen.brightnessNits)}` : "Standard"}
-                        </td>
-                    </tr>
+                    {(screen.brightnessNits || screen.brightness) && (
+                        <tr className="bg-white border-b border-gray-200 last:border-b-0">
+                            <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
+                            <td className="p-1.5 text-right pr-4 text-gray-900">
+                                {formatNumberWithCommas(screen.brightnessNits || screen.brightness)} nits
+                            </td>
+                        </tr>
+                    )}
                 </tbody>
             </table>
         </div>

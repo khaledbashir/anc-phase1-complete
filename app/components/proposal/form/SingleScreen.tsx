@@ -277,6 +277,7 @@ const SingleScreen = ({
                         <FormInput
                             name={`${name}[${index}].externalName`}
                             label="PDF / Client Name"
+                            labelHelper="(shows in PDF specs & pricing header)"
                             placeholder="e.g., Ribbon - North Upper"
                             vertical
                         />
