@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { Calculator, FileText, Wand2, Sparkles, Box, Info, AlertCircle, Target } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Screens } from "@/app/components";
 import { Badge } from "@/components/ui/badge";
 import { useProposalContext } from "@/contexts/ProposalContext";
@@ -14,39 +11,16 @@ import { resolveDocumentMode } from "@/lib/documentMode";
 
 const Step2Intelligence = () => {
     const { aiWorkspaceSlug, filterStats, setSidebarMode } = useProposalContext();
-    const { control, setValue } = useFormContext();
+    const { control } = useFormContext();
     const screens = useWatch({
         name: "details.screens",
         control
     }) || [];
     const details = useWatch({ name: "details", control });
     const mode = resolveDocumentMode(details);
-    const isLOI = mode === "LOI";
-    const showExhibitA = useWatch({ name: "details.showExhibitA", control });
-    const showExhibitB = useWatch({ name: "details.showExhibitB", control });
-    const includePricingBreakdown = useWatch({ name: "details.includePricingBreakdown", control });
-    const showPaymentTerms = useWatch({ name: "details.showPaymentTerms", control });
-    const showSignatureBlock = useWatch({ name: "details.showSignatureBlock", control });
-    const lastIsLOIRef = useRef<boolean>(isLOI);
 
     const screenCount = screens.length;
     const hasData = aiWorkspaceSlug || screenCount > 0;
-
-    useEffect(() => {
-        if (isLOI) return;
-        if (showPaymentTerms) setValue("details.showPaymentTerms", false, { shouldDirty: true });
-        if (showSignatureBlock) setValue("details.showSignatureBlock", false, { shouldDirty: true });
-    }, [isLOI, setValue, showPaymentTerms, showSignatureBlock]);
-
-    useEffect(() => {
-        const wasLOI = lastIsLOIRef.current;
-        if (!wasLOI && isLOI) {
-            if (!showPaymentTerms) setValue("details.showPaymentTerms", true, { shouldDirty: true });
-            if (!showSignatureBlock) setValue("details.showSignatureBlock", true, { shouldDirty: true });
-            if (!showExhibitB) setValue("details.showExhibitB", true, { shouldDirty: true });
-        }
-        lastIsLOIRef.current = isLOI;
-    }, [isLOI, setValue, showExhibitB, showPaymentTerms, showSignatureBlock]);
 
     return (
         <div className="h-full flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -131,84 +105,53 @@ const Step2Intelligence = () => {
                 </div>
             )}
 
-            <Card className="bg-card/50 border-border overflow-hidden">
-                <CardHeader className="pb-3 border-b border-border">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="min-w-0">
-                            <CardTitle className="text-foreground text-base">Document Toggles</CardTitle>
-                            <CardDescription className="text-muted-foreground text-xs">
-                                Controls which sections render in the PDF template.
-                            </CardDescription>
-                        </div>
-                        <Badge variant="outline" className="border-border bg-muted text-foreground text-[10px] font-bold uppercase tracking-widest">
-                            {mode}
-                        </Badge>
+            {/* Document Mode Summary - shows what current mode includes */}
+            <div className="rounded-xl border-2 border-border bg-card/50 p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 className="text-sm font-bold text-foreground">Document Mode</h3>
+                        <p className="text-[11px] text-muted-foreground">Change mode in the toolbar above</p>
                     </div>
-                </CardHeader>
-                <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Show Exhibit A</Label>
-                            <div className="text-[11px] text-muted-foreground mt-1">Statement of Work + Technical Specs (LOI exhibits)</div>
-                        </div>
-                        <Switch
-                            checked={!!showExhibitA}
-                            onCheckedChange={(checked) => setValue("details.showExhibitA", checked, { shouldDirty: true })}
-                            className="data-[state=checked]:bg-brand-blue"
-                        />
+                    <div className={`px-4 py-2 rounded-lg text-sm font-bold uppercase tracking-wide ${
+                        mode === "BUDGET" ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" :
+                        mode === "PROPOSAL" ? "bg-blue-500/20 text-blue-500 border border-blue-500/30" :
+                        "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30"
+                    }`}>
+                        {mode === "BUDGET" ? "Budget Estimate" : mode === "PROPOSAL" ? "Sales Quotation" : "Letter of Intent"}
                     </div>
-
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Show Exhibit B</Label>
-                            <div className="text-[11px] text-muted-foreground mt-1">Cost Schedule appendix</div>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                        { label: "Intro Text", included: true },
+                        { label: "Pricing Table", included: true },
+                        { label: "Specifications", included: mode !== "LOI" },
+                        { label: "Statement of Work", included: mode === "PROPOSAL" || mode === "LOI" },
+                        { label: "Payment Terms", included: mode === "LOI" },
+                        { label: "Signature Block", included: mode === "LOI" },
+                        { label: "Exhibit A (SOW)", included: mode === "LOI" },
+                        { label: "Exhibit B (Costs)", included: mode === "LOI" },
+                    ].map((item) => (
+                        <div 
+                            key={item.label}
+                            className={`px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-2 ${
+                                item.included 
+                                    ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
+                                    : "bg-muted/50 text-muted-foreground border border-transparent"
+                            }`}
+                        >
+                            <div className={`w-1.5 h-1.5 rounded-full ${item.included ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
+                            {item.label}
                         </div>
-                        <Switch
-                            checked={!!showExhibitB}
-                            onCheckedChange={(checked) => setValue("details.showExhibitB", checked, { shouldDirty: true })}
-                            className="data-[state=checked]:bg-brand-blue"
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Show Pricing Breakdown</Label>
-                            <div className="text-[11px] text-muted-foreground mt-1">Per-screen category detail vs simplified rows</div>
-                        </div>
-                        <Switch
-                            checked={!!includePricingBreakdown}
-                            onCheckedChange={(checked) => setValue("details.includePricingBreakdown", checked, { shouldDirty: true })}
-                            className="data-[state=checked]:bg-brand-blue"
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Show Payment Terms</Label>
-                            <div className="text-[11px] text-muted-foreground mt-1">{isLOI ? "LOI only" : "Disabled (not LOI)"}</div>
-                        </div>
-                        <Switch
-                            disabled={!isLOI}
-                            checked={!!showPaymentTerms}
-                            onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked, { shouldDirty: true })}
-                            className="data-[state=checked]:bg-brand-blue"
-                        />
-                    </div>
-
-                    <div className="flex items-center justify-between gap-4">
-                        <div>
-                            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Show Signature Block</Label>
-                            <div className="text-[11px] text-muted-foreground mt-1">{isLOI ? "LOI only" : "Disabled (not LOI)"}</div>
-                        </div>
-                        <Switch
-                            disabled={!isLOI}
-                            checked={!!showSignatureBlock}
-                            onCheckedChange={(checked) => setValue("details.showSignatureBlock", checked, { shouldDirty: true })}
-                            className="data-[state=checked]:bg-brand-blue"
-                        />
-                    </div>
-                </CardContent>
-            </Card>
+                    ))}
+                </div>
+                
+                <p className="text-[10px] text-muted-foreground mt-4 text-center">
+                    {mode === "BUDGET" && "Non-binding estimate — no signatures required"}
+                    {mode === "PROPOSAL" && "Formal quote — professional but not legally binding"}
+                    {mode === "LOI" && "Legal contract — includes payment terms and signature lines"}
+                </p>
+            </div>
 
             <Card className="bg-card/50 border-border flex-1 flex flex-col overflow-hidden">
                 <CardHeader className="pb-3 shrink-0 border-b border-border">

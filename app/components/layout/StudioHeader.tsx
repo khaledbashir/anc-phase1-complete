@@ -135,21 +135,34 @@ export function StudioHeader({
             <div className="flex items-center gap-3 shrink-0 flex-1 justify-end">
                 <ThemeToggle />
 
-                {/* Document Mode Switcher: BUDGET | PROPOSAL | LOI — to the left of Save Draft */}
-                <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5">
-                    {(["BUDGET", "PROPOSAL", "LOI"] as const).map((mode) => (
+                {/* Document Mode Switcher: BUDGET | PROPOSAL | LOI — prominent and clear */}
+                <div className="flex items-center gap-1 rounded-xl border-2 border-primary/20 bg-background p-1 shadow-lg shadow-primary/5">
+                    {([
+                        { mode: "BUDGET" as const, label: "Budget", desc: "Estimate only", color: "bg-amber-500" },
+                        { mode: "PROPOSAL" as const, label: "Proposal", desc: "Formal quote", color: "bg-blue-500" },
+                        { mode: "LOI" as const, label: "LOI", desc: "Contract", color: "bg-emerald-500" },
+                    ]).map(({ mode, label, desc, color }) => (
                         <button
                             key={mode}
                             type="button"
                             onClick={() => setHeaderType(mode)}
                             className={cn(
-                                "px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-md transition-colors",
+                                "relative px-4 py-2 rounded-lg transition-all duration-200 flex flex-col items-center min-w-[80px]",
                                 headerType === mode
-                                    ? "bg-primary text-primary-foreground shadow-sm"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                    ? `${color} text-white shadow-md scale-105`
+                                    : "bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
                             )}
                         >
-                            {mode}
+                            <span className="text-xs font-bold uppercase tracking-wide">{label}</span>
+                            <span className={cn(
+                                "text-[9px] font-medium",
+                                headerType === mode ? "text-white/80" : "text-muted-foreground/70"
+                            )}>
+                                {desc}
+                            </span>
+                            {headerType === mode && (
+                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px]" style={{ borderTopColor: 'inherit' }} />
+                            )}
                         </button>
                     ))}
                 </div>
