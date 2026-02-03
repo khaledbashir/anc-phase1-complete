@@ -600,6 +600,7 @@ const Step4Export = () => {
                                             onClick={async () => {
                                                 if (mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked)) return;
                                                 setDownloadingAllPdfs(true);
+                                                console.log("Download All 9 PDFs triggered...");
                                                 try {
                                                     await downloadAllPdfVariants();
                                                 } finally {

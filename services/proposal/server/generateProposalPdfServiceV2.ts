@@ -19,6 +19,9 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		const ReactDOMServer = (await import("react-dom/server")).default;
 		let templateId = body.details?.pdfTemplate ?? 2;
 		if (templateId === 1) templateId = 2;
+		
+		console.log(`[PDF Service] Generating with Template ID: ${templateId}, Mode: ${body.details?.documentMode}`);
+		
 		const ProposalTemplate = await getProposalTemplate(templateId);
 
 		if (!ProposalTemplate) {
