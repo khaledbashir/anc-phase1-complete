@@ -9,13 +9,14 @@ import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
 import { BaseButton, Subheading } from "@/app/components";
 import SingleScreen from "../SingleScreen";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 // Contexts
 import { useTranslationContext } from "@/contexts/TranslationContext";
 import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Icons
-import { Plus, FileText, CreditCard, ChevronDown, ChevronUp, ClipboardList, PenTool, ListChecks } from "lucide-react";
+import { Plus, Settings2, ChevronDown, ChevronUp } from "lucide-react";
 
 // Toast
 import { toast } from "@/components/ui/use-toast";
@@ -26,12 +27,8 @@ const Screens = () => {
     const { control, getValues, setValue } = useFormContext<ProposalType>();
     const { _t } = useTranslationContext();
     
-    // Track which sections are expanded
-    const [showPaymentTerms, setShowPaymentTerms] = useState(false);
-    const [showNotes, setShowNotes] = useState(false);
-    const [showScopeOfWork, setShowScopeOfWork] = useState(false);
-    const [showSignatureText, setShowSignatureText] = useState(false);
-    const [showSpecsTitle, setShowSpecsTitle] = useState(false);
+    // Single accordion state for all document settings
+    const [showDocSettings, setShowDocSettings] = useState(false);
     
     // Watch current values
     const paymentTerms = useWatch({ control, name: "details.paymentTerms" }) || "";
@@ -39,6 +36,15 @@ const Screens = () => {
     const scopeOfWorkText = useWatch({ control, name: "details.scopeOfWorkText" }) || "";
     const signatureBlockText = useWatch({ control, name: "details.signatureBlockText" }) || "";
     const specsSectionTitle = useWatch({ control, name: "details.specsSectionTitle" }) || "";
+    
+    // Count how many fields have custom content
+    const customFieldsCount = [
+        specsSectionTitle,
+        paymentTerms,
+        additionalNotes,
+        scopeOfWorkText,
+        signatureBlockText
+    ].filter(Boolean).length;
     
     // Default legal text for signature block
     const defaultSignatureText = `Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.
@@ -68,16 +74,12 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
     };
 
     const removeScreen = (index: number) => {
-        // Store the screen data for potential undo
         const screens = getValues(SCREENS_NAME);
         if (!screens) return;
         
         const deletedScreen = screens[index];
-
-        // Remove the screen
         remove(index);
 
-        // Show toast with undo action
         toast({
             title: "Screen removed",
             description: `"${deletedScreen?.name || 'Untitled Screen'}" has been deleted.`,
@@ -85,9 +87,7 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                 <ToastAction 
                     altText="Undo"
                     onClick={() => {
-                        // Restore the screen at the original index
                         append(deletedScreen, { shouldFocus: false });
-                        // Move it back to the original position if needed
                         const currentScreens = getValues(SCREENS_NAME);
                         if (currentScreens && index < currentScreens.length - 1) {
                             move(currentScreens.length - 1, index);
@@ -160,172 +160,103 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                 {_t("form.steps.screens.addNewScreen")}
             </BaseButton>
 
-            {/* Divider */}
-            <div className="border-t border-border/50 my-4" />
-
-            {/* Specs Section Title (appears in Budget/Proposal specs) */}
-            <div className="space-y-2">
+            {/* Single Clean Accordion for Document Settings */}
+            <div className="mt-4">
                 <button
                     type="button"
-                    onClick={() => setShowSpecsTitle(!showSpecsTitle)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-cyan-500 font-bold text-sm transition-colors"
+                    onClick={() => setShowDocSettings(!showDocSettings)}
+                    className="w-full flex items-center justify-between px-4 py-2.5 bg-muted/50 hover:bg-muted border border-border rounded-lg text-foreground text-sm transition-colors"
                 >
                     <div className="flex items-center gap-2">
-                        <ListChecks className="w-4 h-4" />
-                        <span>Specs Section Title</span>
-                        {specsSectionTitle && <span className="text-[10px] bg-cyan-500/20 px-2 py-0.5 rounded">Custom</span>}
-                    </div>
-                    {showSpecsTitle ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-                
-                {showSpecsTitle && (
-                    <div className="px-4 py-3 bg-card/50 border border-border rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <input
-                            type="text"
-                            placeholder="SPECIFICATIONS"
-                            value={specsSectionTitle}
-                            onChange={(e) => setValue("details.specsSectionTitle", e.target.value, { shouldDirty: true })}
-                            className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg"
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                            <span className="text-cyan-500 font-semibold">Budget &amp; Proposal</span> — The title shown above each screen&apos;s spec table. Leave empty for default &quot;SPECIFICATIONS&quot;.
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            {/* Payment Terms Section */}
-            <div className="space-y-2">
-                <button
-                    type="button"
-                    onClick={() => setShowPaymentTerms(!showPaymentTerms)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 rounded-xl text-emerald-500 font-bold text-sm transition-colors"
-                >
-                    <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4" />
-                        <span>Payment Terms</span>
-                        {paymentTerms && <span className="text-[10px] bg-emerald-500/20 px-2 py-0.5 rounded">Has content</span>}
-                    </div>
-                    {showPaymentTerms ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-                
-                {showPaymentTerms && (
-                    <div className="px-4 py-3 bg-card/50 border border-border rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <Textarea
-                            placeholder="e.g., 50% on Deposit, 40% on Mobilization, 10% on Substantial Completion"
-                            value={paymentTerms}
-                            onChange={(e) => setValue("details.paymentTerms", e.target.value, { shouldDirty: true })}
-                            className="min-h-[80px] text-sm bg-background border-border"
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                            <span className="text-emerald-500 font-semibold">LOI only</span> — Payment milestones appear in the LOI document
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            {/* Notes Section */}
-            <div className="space-y-2">
-                <button
-                    type="button"
-                    onClick={() => setShowNotes(!showNotes)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded-xl text-blue-500 font-bold text-sm transition-colors"
-                >
-                    <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        <span>Additional Notes</span>
-                        {additionalNotes && <span className="text-[10px] bg-blue-500/20 px-2 py-0.5 rounded">Has content</span>}
-                    </div>
-                    {showNotes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-                
-                {showNotes && (
-                    <div className="px-4 py-3 bg-card/50 border border-border rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <Textarea
-                            placeholder="Any additional notes, terms, or conditions..."
-                            value={additionalNotes}
-                            onChange={(e) => setValue("details.additionalNotes", e.target.value, { shouldDirty: true })}
-                            className="min-h-[100px] text-sm bg-background border-border"
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                            <span className="text-blue-500 font-semibold">LOI only</span> — Notes appear in the Legal Notes section of the LOI
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            {/* Scope of Work Section (Exhibit B) */}
-            <div className="space-y-2">
-                <button
-                    type="button"
-                    onClick={() => setShowScopeOfWork(!showScopeOfWork)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-xl text-purple-500 font-bold text-sm transition-colors"
-                >
-                    <div className="flex items-center gap-2">
-                        <ClipboardList className="w-4 h-4" />
-                        <span>Scope of Work (Exhibit B)</span>
-                        {scopeOfWorkText && <span className="text-[10px] bg-purple-500/20 px-2 py-0.5 rounded">Has content</span>}
-                    </div>
-                    {showScopeOfWork ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-                
-                {showScopeOfWork && (
-                    <div className="px-4 py-3 bg-card/50 border border-border rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <Textarea
-                            placeholder="Enter custom Scope of Work text for Exhibit B...
-
-Example:
-1. PHYSICAL INSTALLATION
-ANC assumes all base building structure is to be provided by others...
-
-2. ELECTRICAL & DATA INSTALLATION
-ANC assumes primary power feed will be provided by others..."
-                            value={scopeOfWorkText}
-                            onChange={(e) => setValue("details.scopeOfWorkText", e.target.value, { shouldDirty: true })}
-                            className="min-h-[200px] text-sm bg-background border-border font-mono"
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                            <span className="text-purple-500 font-semibold">LOI only</span> — If empty, Exhibit B will not appear in the PDF. Add text to include a custom Scope of Work.
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            {/* Signature Block Text (Legal Text) */}
-            <div className="space-y-2">
-                <button
-                    type="button"
-                    onClick={() => setShowSignatureText(!showSignatureText)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 rounded-xl text-orange-500 font-bold text-sm transition-colors"
-                >
-                    <div className="flex items-center gap-2">
-                        <PenTool className="w-4 h-4" />
-                        <span>Signature Legal Text</span>
-                        {signatureBlockText && <span className="text-[10px] bg-orange-500/20 px-2 py-0.5 rounded">Custom</span>}
-                    </div>
-                    {showSignatureText ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                </button>
-                
-                {showSignatureText && (
-                    <div className="px-4 py-3 bg-card/50 border border-border rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                        <Textarea
-                            placeholder={defaultSignatureText}
-                            value={signatureBlockText}
-                            onChange={(e) => setValue("details.signatureBlockText", e.target.value, { shouldDirty: true })}
-                            className="min-h-[150px] text-sm bg-background border-border"
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                            <span className="text-orange-500 font-semibold">LOI only</span> — The legal text that appears above signature lines. Leave empty to use default text.
-                        </p>
-                        {!signatureBlockText && (
-                            <button
-                                type="button"
-                                onClick={() => setValue("details.signatureBlockText", defaultSignatureText, { shouldDirty: true })}
-                                className="text-xs text-orange-500 hover:text-orange-400 underline"
-                            >
-                                Click to load default text for editing
-                            </button>
+                        <Settings2 className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-medium">Document Text Settings</span>
+                        {customFieldsCount > 0 && (
+                            <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-medium">
+                                {customFieldsCount} customized
+                            </span>
                         )}
+                    </div>
+                    {showDocSettings ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                </button>
+                
+                {showDocSettings && (
+                    <div className="mt-2 p-4 bg-card border border-border rounded-lg space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {/* Specs Section Title */}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-muted-foreground">
+                                Specs Header <span className="text-[10px] opacity-70">(Budget/Proposal)</span>
+                            </Label>
+                            <input
+                                type="text"
+                                placeholder="SPECIFICATIONS"
+                                value={specsSectionTitle}
+                                onChange={(e) => setValue("details.specsSectionTitle", e.target.value, { shouldDirty: true })}
+                                className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md"
+                            />
+                        </div>
+
+                        {/* Payment Terms */}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-muted-foreground">
+                                Payment Terms <span className="text-[10px] opacity-70">(LOI only)</span>
+                            </Label>
+                            <Textarea
+                                placeholder="50% on Deposit, 40% on Mobilization, 10% on Substantial Completion"
+                                value={paymentTerms}
+                                onChange={(e) => setValue("details.paymentTerms", e.target.value, { shouldDirty: true })}
+                                className="min-h-[60px] text-sm bg-background border-border resize-none"
+                            />
+                        </div>
+
+                        {/* Additional Notes */}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-muted-foreground">
+                                Additional Notes <span className="text-[10px] opacity-70">(LOI only)</span>
+                            </Label>
+                            <Textarea
+                                placeholder="Any additional notes or terms..."
+                                value={additionalNotes}
+                                onChange={(e) => setValue("details.additionalNotes", e.target.value, { shouldDirty: true })}
+                                className="min-h-[60px] text-sm bg-background border-border resize-none"
+                            />
+                        </div>
+
+                        {/* Scope of Work */}
+                        <div className="space-y-1.5">
+                            <Label className="text-xs font-medium text-muted-foreground">
+                                Scope of Work <span className="text-[10px] opacity-70">(LOI Exhibit B - optional)</span>
+                            </Label>
+                            <Textarea
+                                placeholder="Custom scope of work text... Leave empty to hide Exhibit B."
+                                value={scopeOfWorkText}
+                                onChange={(e) => setValue("details.scopeOfWorkText", e.target.value, { shouldDirty: true })}
+                                className="min-h-[80px] text-sm bg-background border-border resize-none font-mono"
+                            />
+                        </div>
+
+                        {/* Signature Legal Text */}
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between">
+                                <Label className="text-xs font-medium text-muted-foreground">
+                                    Signature Legal Text <span className="text-[10px] opacity-70">(LOI only)</span>
+                                </Label>
+                                {!signatureBlockText && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setValue("details.signatureBlockText", defaultSignatureText, { shouldDirty: true })}
+                                        className="text-[10px] text-primary hover:underline"
+                                    >
+                                        Load default
+                                    </button>
+                                )}
+                            </div>
+                            <Textarea
+                                placeholder="Please sign below to indicate Purchaser's agreement..."
+                                value={signatureBlockText}
+                                onChange={(e) => setValue("details.signatureBlockText", e.target.value, { shouldDirty: true })}
+                                className="min-h-[80px] text-sm bg-background border-border resize-none"
+                            />
+                        </div>
                     </div>
                 )}
             </div>
