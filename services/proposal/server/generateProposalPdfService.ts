@@ -12,6 +12,21 @@ import { ENV, TAILWIND_CDN } from "@/lib/variables";
 // Types
 import { ProposalType } from "@/types";
 
+function getRequestOrigin(req: NextRequest): string {
+	const xfProto = req.headers.get("x-forwarded-proto");
+	const xfHost = req.headers.get("x-forwarded-host");
+	const host = xfHost || req.headers.get("host");
+	const proto =
+		(xfProto || req.nextUrl.protocol.replace(":", "") || "http")
+			.split(",")[0]
+			.trim() || "http";
+	if (host) {
+		const cleanHost = host.split(",")[0].trim();
+		return `${proto}://${cleanHost}`;
+	}
+	return req.nextUrl.origin;
+}
+
 /**
  * Generate a PDF document of an proposal based on the provided data.
  *
@@ -39,6 +54,9 @@ export async function generateProposalPdfService(req: NextRequest) {
 		const htmlTemplate = ReactDOMServer.renderToStaticMarkup(
 			ProposalTemplate(body)
 		);
+		const origin = getRequestOrigin(req).replace(/\/+$/, "");
+		const baseHref = `${origin}/`;
+		const html = `<!doctype html><html><head><meta charset="utf-8"/><base href="${baseHref}"/></head><body>${htmlTemplate}</body></html>`;
 
 		const puppeteer = (await import("puppeteer-core")).default;
 
@@ -91,7 +109,7 @@ export async function generateProposalPdfService(req: NextRequest) {
 		}
 
 		page = await browser.newPage();
-		await page.setContent(await htmlTemplate, {
+		await page.setContent(html, {
 			waitUntil: ["networkidle0", "load", "domcontentloaded"],
 			timeout: 30000,
 		});

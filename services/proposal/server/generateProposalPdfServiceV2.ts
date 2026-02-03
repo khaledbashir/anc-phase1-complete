@@ -10,6 +10,25 @@ function safeErrorMessage(err: unknown) {
 	return msg.replace(/token=[^&\s]+/gi, "token=***");
 }
 
+function getRequestOrigin(req: NextRequest): string {
+	// Prefer forwarded headers (common on EasyPanel / reverse proxies)
+	const xfProto = req.headers.get("x-forwarded-proto");
+	const xfHost = req.headers.get("x-forwarded-host");
+	const host = xfHost || req.headers.get("host");
+
+	const proto =
+		(xfProto || req.nextUrl.protocol.replace(":", "") || "http")
+			.split(",")[0]
+			.trim() || "http";
+
+	if (host) {
+		const cleanHost = host.split(",")[0].trim();
+		return `${proto}://${cleanHost}`;
+	}
+
+	return req.nextUrl.origin;
+}
+
 export async function generateProposalPdfServiceV2(req: NextRequest) {
 	const body: ProposalType = await req.json();
 	let browser: any;
@@ -29,6 +48,13 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		const htmlTemplate = ReactDOMServer.renderToStaticMarkup(
 			ProposalTemplate(body)
 		);
+
+		// IMPORTANT: page.setContent() loads into about:blank.
+		// Without a <base href>, absolute-root paths like "/ANC_Logo_2023_blue.png"
+		// won't resolve during server-side PDF generation, causing broken logos.
+		const origin = getRequestOrigin(req).replace(/\/+$/, "");
+		const baseHref = `${origin}/`;
+		const html = `<!doctype html><html><head><meta charset="utf-8"/><base href="${baseHref}"/></head><body>${htmlTemplate}</body></html>`;
 
 		const puppeteer = (await import("puppeteer-core")).default;
 		const browserlessUrl = process.env.BROWSERLESS_URL;
@@ -82,7 +108,7 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 			await page.emulateMediaType("screen");
 		} catch {
 		}
-		await page.setContent(htmlTemplate, {
+		await page.setContent(html, {
 			waitUntil: ["domcontentloaded", "load"],
 			timeout: 60000,
 		});
