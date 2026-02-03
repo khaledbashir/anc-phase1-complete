@@ -4,7 +4,16 @@
  * Generates a "Formulaic" audit report for Finance.
  * Senior estimators can change inputs in Excel and see recalcs instantly.
  * 
- * Implements the "Ugly Sheet" / "Source of Truth" structure.
+ * P0 REQUIREMENT: LIVE FORMULAS
+ * - Selling Price uses: =Cost / (1 - MarginCell)
+ * - Bond uses: =SellingPrice * BondRateCell
+ * - Total uses: =SUM(SellingPrice, Bond, Tax)
+ * - Yellow cell format for all user-input cells
+ * 
+ * Implementations:
+ * - Morgantown B&O Tax (2%) triggers automatically for WVU projects
+ * - Yellow highlighting for Margin %, Bond Rate, Tax Rate, Cost Inputs
+ * - Master Truth compliance with live formulas linked to input cells
  */
 
 import ExcelJS from 'exceljs';
@@ -24,6 +33,21 @@ export interface AuditExcelOptions {
     // REQ-126: Financial rate overrides (Master Truth compliance)
     bondRateOverride?: number;  // Default 0.015 (1.5%)
     taxRateOverride?: number;   // Default 0.095 (9.5%)
+}
+
+// ============================================================================
+// HELPER: YELLOW CELL FORMATTING
+// ============================================================================
+ /**
+ * Applies yellow background formatting to a cell (user-input indicator)
+ * Usage for all input cells: Margin %, Bond Rate, Tax Rate, Cost Basis, etc.
+ */
+function formatAsInputCell(cell: ExcelJS.Cell): void {
+    cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFFFFF00' } // Yellow (RGB 255, 255, 0)
+    };
 }
 
 /**
@@ -167,11 +191,11 @@ function buildMarginAnalysis(sheet: ExcelJS.Worksheet, screens: any[], options?:
         sheet.getCell(`C${currentRow}`).value = area;
         sheet.getCell(`B${currentRow+1}`).value = 'Cost/SqFt';
         sheet.getCell(`C${currentRow+1}`).value = screen.costPerSqFt || 120;
-        sheet.getCell(`C${currentRow+1}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }; // Yellow Input
+        formatAsInputCell(sheet.getCell(`C${currentRow+1}`));
 
         sheet.getCell(`B${currentRow+2}`).value = 'Spare Parts (5%)';
         sheet.getCell(`C${currentRow+2}`).value = screen.includeSpareParts ? 'YES' : 'NO';
-        sheet.getCell(`C${currentRow+2}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
+        formatAsInputCell(sheet.getCell(`C${currentRow+2}`));
 
         const costCell = sheet.getCell(`E${hwRow}`);
         costCell.value = {
@@ -184,10 +208,10 @@ function buildMarginAnalysis(sheet: ExcelJS.Worksheet, screens: any[], options?:
 
         // 2. SOFT COSTS (Aggregated)
         const softCostTotal = (b.install || 0) + (b.labor || 0) + (b.structure || 0) + (b.power || 0) + (b.shipping || 0) + (b.pm || 0) + (b.engineering || 0);
-        sheet.getCell(`A${currentRow}`).value = 'Services & Install';
+        sheet.getCell(`A${currentRow+2}`).value = 'Services & Install';
         sheet.getCell(`B${currentRow}`).value = 'Combined Estimate';
         sheet.getCell(`C${currentRow}`).value = softCostTotal;
-        sheet.getCell(`C${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }; // Yellow Input
+        formatAsInputCell(sheet.getCell(`C${currentRow}`));
         sheet.getCell(`E${currentRow}`).value = { formula: `C${currentRow}` };
         sheet.getCell(`E${currentRow}`).numFmt = '"$"#,##0.00';
         const softRow = currentRow;
@@ -203,7 +227,7 @@ function buildMarginAnalysis(sheet: ExcelJS.Worksheet, screens: any[], options?:
         
         sheet.getCell(`F${currentRow}`).value = margin;
         sheet.getCell(`F${currentRow}`).numFmt = '0.0%';
-        sheet.getCell(`F${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } }; // Yellow Input
+        formatAsInputCell(sheet.getCell(`F${currentRow}`));
         
         // Divisor Model
         sheet.getCell(`G${currentRow}`).value = { formula: `${totalCostRef}/(1-F${currentRow})` };
@@ -236,18 +260,23 @@ function buildMarginAnalysis(sheet: ExcelJS.Worksheet, screens: any[], options?:
     sheet.getCell(`A${currentRow}`).value = 'PERFORMANCE BOND (1.5%)';
     sheet.getCell(`H${currentRow}`).value = options?.bondRateOverride ?? 0.015;
     sheet.getCell(`H${currentRow}`).numFmt = '0.0%';
+    formatAsInputCell(sheet.getCell(`H${currentRow}`));
     sheet.getCell(`I${currentRow}`).value = { formula: `G${sellPriceRow}*H${currentRow}` };
     sheet.getCell(`I${currentRow}`).numFmt = '"$"#,##0.00';
     currentRow++;
 
-    // B&O TAX
-    const boTaxRow = currentRow;
-    sheet.getCell(`A${currentRow}`).value = 'CITY B&O TAX (2%)';
-    sheet.getCell(`H${currentRow}`).value = options?.boTaxApplies ? 0.02 : 0;
-    sheet.getCell(`H${currentRow}`).numFmt = '0.0%';
-    sheet.getCell(`I${currentRow}`).value = { formula: `(G${sellPriceRow}+I${bondRow})*H${boTaxRow}` };
-    sheet.getCell(`I${currentRow}`).numFmt = '"$"#,##0.00';
-    currentRow++;
+    // B&O TAX (Morgantown/WVU only) - conditional row creation
+    let boTaxRow: number | undefined = undefined;
+    if (options?.boTaxApplies) {
+        boTaxRow = currentRow;
+        sheet.getCell(`A${currentRow}`).value = 'CITY B&O TAX (2%) - MORGANTOWN/WVU';
+        sheet.getCell(`H${currentRow}`).value = 0.02;
+        sheet.getCell(`H${currentRow}`).numFmt = '0.0%';
+        formatAsInputCell(sheet.getCell(`H${currentRow}`));
+        sheet.getCell(`I${currentRow}`).value = { formula: `(G${sellPriceRow}+I${bondRow})*H${boTaxRow}` };
+        sheet.getCell(`I${currentRow}`).numFmt = '"$"#,##0.00';
+        currentRow++;
+    }
 
     // SALES TAX
     const taxRow = currentRow;
@@ -255,13 +284,25 @@ function buildMarginAnalysis(sheet: ExcelJS.Worksheet, screens: any[], options?:
     sheet.getCell(`A${currentRow}`).value = `SALES TAX (${(effectiveTaxRate * 100).toFixed(1)}%)`;
     sheet.getCell(`H${currentRow}`).value = effectiveTaxRate;
     sheet.getCell(`H${currentRow}`).numFmt = '0.0%';
-    sheet.getCell(`I${currentRow}`).value = { formula: `(G${sellPriceRow}+I${bondRow}+I${boTaxRow})*H${taxRow}` };
+    formatAsInputCell(sheet.getCell(`H${currentRow}`));
+
+    // Only include B&O Tax in Sales Tax formula if it applies
+    if (options?.boTaxApplies) {
+        sheet.getCell(`I${currentRow}`).value = { formula: `(G${sellPriceRow}+I${bondRow}+I${boTaxRow})*H${taxRow}` };
+    } else {
+        sheet.getCell(`I${currentRow}`).value = { formula: `(G${sellPriceRow}+I${bondRow})*H${taxRow}` };
+    }
     sheet.getCell(`I${currentRow}`).numFmt = '"$"#,##0.00';
     currentRow++;
 
     // GRAND TOTAL
-    sheet.getCell(`A${currentRow}`).value = 'FINAL CLIENT TOTAL';
-    sheet.getCell(`I${currentRow}`).value = { formula: `G${sellPriceRow}+I${bondRow}+I${boTaxRow}+I${taxRow}` };
+    if (options?.boTaxApplies && boTaxRow) {
+        sheet.getCell(`A${currentRow}`).value = 'FINAL CLIENT TOTAL';
+        sheet.getCell(`I${currentRow}`).value = { formula: `G${sellPriceRow}+I${bondRow}+I${boTaxRow}+I${taxRow}` };
+    } else {
+        sheet.getCell(`A${currentRow}`).value = 'FINAL CLIENT TOTAL';
+        sheet.getCell(`I${currentRow}`).value = { formula: `G${sellPriceRow}+I${bondRow}+I${taxRow}` };
+    }
     sheet.getCell(`I${currentRow}`).font = { bold: true, size: 14 };
     sheet.getCell(`I${currentRow}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD4EDDA' } };
     sheet.getCell(`I${currentRow}`).numFmt = '"$"#,##0.00';
