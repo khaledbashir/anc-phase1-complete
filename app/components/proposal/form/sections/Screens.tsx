@@ -15,7 +15,7 @@ import { useTranslationContext } from "@/contexts/TranslationContext";
 import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Icons
-import { Plus, FileText, CreditCard, ChevronDown, ChevronUp, ClipboardList, PenTool } from "lucide-react";
+import { Plus, FileText, CreditCard, ChevronDown, ChevronUp, ClipboardList, PenTool, ListChecks } from "lucide-react";
 
 // Toast
 import { toast } from "@/components/ui/use-toast";
@@ -31,12 +31,14 @@ const Screens = () => {
     const [showNotes, setShowNotes] = useState(false);
     const [showScopeOfWork, setShowScopeOfWork] = useState(false);
     const [showSignatureText, setShowSignatureText] = useState(false);
+    const [showSpecsTitle, setShowSpecsTitle] = useState(false);
     
     // Watch current values
     const paymentTerms = useWatch({ control, name: "details.paymentTerms" }) || "";
     const additionalNotes = useWatch({ control, name: "details.additionalNotes" }) || "";
     const scopeOfWorkText = useWatch({ control, name: "details.scopeOfWorkText" }) || "";
     const signatureBlockText = useWatch({ control, name: "details.signatureBlockText" }) || "";
+    const specsSectionTitle = useWatch({ control, name: "details.specsSectionTitle" }) || "";
     
     // Default legal text for signature block
     const defaultSignatureText = `Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.
@@ -160,6 +162,37 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
 
             {/* Divider */}
             <div className="border-t border-border/50 my-4" />
+
+            {/* Specs Section Title (appears in Budget/Proposal specs) */}
+            <div className="space-y-2">
+                <button
+                    type="button"
+                    onClick={() => setShowSpecsTitle(!showSpecsTitle)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 rounded-xl text-cyan-500 font-bold text-sm transition-colors"
+                >
+                    <div className="flex items-center gap-2">
+                        <ListChecks className="w-4 h-4" />
+                        <span>Specs Section Title</span>
+                        {specsSectionTitle && <span className="text-[10px] bg-cyan-500/20 px-2 py-0.5 rounded">Custom</span>}
+                    </div>
+                    {showSpecsTitle ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                
+                {showSpecsTitle && (
+                    <div className="px-4 py-3 bg-card/50 border border-border rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <input
+                            type="text"
+                            placeholder="SPECIFICATIONS"
+                            value={specsSectionTitle}
+                            onChange={(e) => setValue("details.specsSectionTitle", e.target.value, { shouldDirty: true })}
+                            className="w-full px-3 py-2 text-sm bg-background border border-border rounded-lg"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                            <span className="text-cyan-500 font-semibold">Budget &amp; Proposal</span> — The title shown above each screen&apos;s spec table. Leave empty for default &quot;SPECIFICATIONS&quot;.
+                        </p>
+                    </div>
+                )}
+            </div>
 
             {/* Payment Terms Section */}
             <div className="space-y-2">

@@ -107,13 +107,16 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         </div>
     );
 
+    // Custom specs section title (or default)
+    const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "Specifications";
+
     // Helper for Spec Table - MATCHES IMAGE 1
     const SpecTable = ({ screen }: { screen: any }) => (
         <div className="mb-8 break-inside-avoid">
             {/* Header Bar */}
             <div className="flex justify-between items-center border-b-2 border-[#0A52EF] pb-1 mb-1">
                 <h3 className="font-bold text-sm uppercase text-[#0A52EF] font-sans">{getScreenHeader(screen)}</h3>
-                <span className="font-bold text-sm uppercase text-[#0A52EF] font-sans">Specifications</span>
+                <span className="font-bold text-sm uppercase text-[#0A52EF] font-sans">{specsSectionTitle}</span>
             </div>
             <table className="w-full text-[11px] border-collapse font-sans">
                 <tbody>
@@ -591,7 +594,7 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
 
             {!isLOI && showSpecifications && (
                 <div className="break-before-page px-4">
-                    <SectionHeader title="SPECIFICATIONS" />
+                    <SectionHeader title={specsSectionTitle.toUpperCase()} />
                     {screens && screens.length > 0 ? (
                         screens.map((screen: any, idx: number) => (
                             <SpecTable key={idx} screen={screen} />

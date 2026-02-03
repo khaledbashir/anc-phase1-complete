@@ -279,6 +279,7 @@ const ProposalDetailsSchema = z.object({
     additionalNotes: fieldValidators.stringOptional,
     scopeOfWorkText: fieldValidators.stringOptional, // Exhibit B - custom SOW text
     signatureBlockText: fieldValidators.stringOptional, // Custom legal text before signature lines
+    specsSectionTitle: fieldValidators.stringOptional, // Custom title for specifications section (default: "SPECIFICATIONS")
     paymentTerms: fieldValidators.stringMin1,
     signature: SignatureSchema.optional(),
     updatedAt: fieldValidators.stringOptional,

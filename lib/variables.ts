@@ -182,6 +182,7 @@ export const FORM_DEFAULT_VALUES = {
     additionalNotes: "",
     scopeOfWorkText: "", // Exhibit B - custom SOW text
     signatureBlockText: "", // Custom legal text before signatures (uses default if empty)
+    specsSectionTitle: "", // Custom specs section title (uses "SPECIFICATIONS" if empty)
     paymentTerms: "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion",
     totalAmountInWords: "",
     documentType: "First Round" as "LOI" | "First Round",
@@ -285,6 +286,7 @@ export const FORM_FILL_VALUES = {
     additionalNotes: "Thank you for your business",
     scopeOfWorkText: "",
     signatureBlockText: "",
+    specsSectionTitle: "",
     paymentTerms: "Net 30",
     signature: {
       data: "",
