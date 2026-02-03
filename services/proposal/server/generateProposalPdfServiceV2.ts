@@ -32,13 +32,19 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		const puppeteer = (await import("puppeteer-core")).default;
 		const browserlessUrl = process.env.BROWSERLESS_URL;
 
+		console.log("BROWSERLESS_URL configured:", browserlessUrl ? `${browserlessUrl.slice(0, 50)}...` : "NOT SET");
+
 		if (browserlessUrl) {
 			try {
+				console.log("Attempting Browserless connection...");
 				browser = await puppeteer.connect({
 					browserWSEndpoint: browserlessUrl,
 				});
+				console.log("Browserless connected successfully!");
 			} catch (e) {
-				console.error("Browserless connect failed, falling back to local Chromium");
+				const errMsg = e instanceof Error ? e.message : String(e);
+				console.error("Browserless connect failed:", errMsg);
+				console.error("Falling back to local Chromium...");
 			}
 		}
 

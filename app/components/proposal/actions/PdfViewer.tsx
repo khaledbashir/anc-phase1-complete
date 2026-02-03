@@ -14,7 +14,7 @@ import { ProposalType } from "@/types";
 
 // Debounce
 import { useDebounce } from "use-debounce";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 
 /** Stable fingerprint of form data so we only regenerate PDF when data actually changed. */
@@ -31,6 +31,7 @@ function getPdfFingerprint(data: ProposalType): string {
             pitchMm: s?.pitchMm ?? s?.pixelPitch,
             costPerSqFt: s?.costPerSqFt,
             desiredMargin: s?.desiredMargin,
+            brightness: s?.brightness ?? s?.brightnessNits,
         }));
         return JSON.stringify({
             proposalId: d.proposalId,
@@ -57,24 +58,41 @@ const PdfViewer = () => {
     const { generatePdf, proposalPdfLoading, pdfUrl } = useProposalContext();
     const [exactPdfPreview, setExactPdfPreview] = useState(false);
     const lastGeneratedFingerprint = useRef<string>("");
+    const isGenerating = useRef(false);
 
-    const debounceMs = useMemo(() => (exactPdfPreview ? 2000 : 300), [exactPdfPreview]);
+    // Store generatePdf in a ref so it doesn't cause effect re-runs
+    const generatePdfRef = useRef(generatePdf);
+    generatePdfRef.current = generatePdf;
+
+    const debounceMs = useMemo(() => (exactPdfPreview ? 2500 : 300), [exactPdfPreview]);
     const [debouncedValues] = useDebounce(formValues, debounceMs);
 
     // Cast to any to accept the custom prop without TS errors
     const Template = DynamicProposalTemplate as any;
 
+    // Memoized fingerprint to avoid recalculating on every render
+    const currentFingerprint = useMemo(() => getPdfFingerprint(debouncedValues), [debouncedValues]);
+
+    // Only trigger generation when fingerprint actually changes and we're in exact mode
     useEffect(() => {
         if (!exactPdfPreview) {
             lastGeneratedFingerprint.current = "";
+            isGenerating.current = false;
             return;
         }
-        if (proposalPdfLoading) return;
-        const fingerprint = getPdfFingerprint(debouncedValues);
-        if (fingerprint === lastGeneratedFingerprint.current) return;
-        lastGeneratedFingerprint.current = fingerprint;
-        generatePdf(debouncedValues);
-    }, [debouncedValues, exactPdfPreview, generatePdf, proposalPdfLoading]);
+
+        // Skip if already generating or fingerprint hasn't changed
+        if (isGenerating.current) return;
+        if (currentFingerprint === lastGeneratedFingerprint.current) return;
+
+        // Mark as generating and store fingerprint BEFORE calling
+        isGenerating.current = true;
+        lastGeneratedFingerprint.current = currentFingerprint;
+
+        generatePdfRef.current(debouncedValues).finally(() => {
+            isGenerating.current = false;
+        });
+    }, [currentFingerprint, exactPdfPreview, debouncedValues]);
 
     return (
         <div className="w-full h-full flex flex-col items-center">

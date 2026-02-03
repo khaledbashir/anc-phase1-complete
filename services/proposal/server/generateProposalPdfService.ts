@@ -44,14 +44,25 @@ export async function generateProposalPdfService(req: NextRequest) {
 
 		// Check for external Browserless service first (recommended for production)
 		const browserlessUrl = process.env.BROWSERLESS_URL;
+		console.log("BROWSERLESS_URL configured:", browserlessUrl ? `${browserlessUrl.slice(0, 50)}...` : "NOT SET");
 
 		if (browserlessUrl) {
-			// Connect to external Browserless service
-			console.log("Connecting to Browserless service:", browserlessUrl);
-			browser = await puppeteer.connect({
-				browserWSEndpoint: browserlessUrl,
-			});
-		} else if (ENV === "production") {
+			try {
+				// Connect to external Browserless service
+				console.log("Attempting Browserless connection...");
+				browser = await puppeteer.connect({
+					browserWSEndpoint: browserlessUrl,
+				});
+				console.log("Browserless connected successfully!");
+			} catch (e) {
+				const errMsg = e instanceof Error ? e.message : String(e);
+				console.error("Browserless connect failed:", errMsg);
+				console.error("Falling back to local Chromium...");
+				browser = null;
+			}
+		}
+		
+		if (!browser && ENV === "production") {
 			// Fallback: Try system Chromium (Docker) or @sparticuz/chromium (serverless)
 			const execPath = process.env.PUPPETEER_EXECUTABLE_PATH || await chromium.executablePath();
 			browser = await puppeteer.launch({
@@ -66,7 +77,7 @@ export async function generateProposalPdfService(req: NextRequest) {
 				executablePath: execPath,
 				headless: true,
 			});
-		} else {
+		} else if (!browser) {
 			// Development: use full puppeteer
 			const puppeteerFull = (await import("puppeteer")).default;
 			browser = await puppeteerFull.launch({
