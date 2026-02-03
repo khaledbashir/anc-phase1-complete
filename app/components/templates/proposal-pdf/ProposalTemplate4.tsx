@@ -1,5 +1,5 @@
 /**
- * ProposalTemplate4 - "ANC Bold"
+ * ProposalTemplate4 - "ANC Premium"
  * 
  * A dramatic, high-impact variant with:
  * - Dark hero header with gradient

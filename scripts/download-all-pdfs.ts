@@ -1,5 +1,5 @@
 /**
- * Download all PDF template variants (Budget / Proposal / LOI × Classic / Modern / Bold).
+ * Download all PDF template variants (Budget / Proposal / LOI × Classic / Modern / Premium).
  * Uses real data from an Excel file if EXCEL_PATH is set; otherwise uses minimal demo payload.
  *
  * Usage:

@@ -36,7 +36,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     const totals = internalAudit?.totals;
 
     const documentMode = resolveDocumentMode(details);
-    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "PROPOSAL" : "LETTER OF INTENT";
+    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : "SALES QUOTATION";
     const isLOI = documentMode === "LOI";
 
     const purchaserName = receiver?.name || "Client Name";
@@ -58,60 +58,36 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
     const ancAddress = sender?.address || "2 Manhattanville Road, Suite 402, Purchase, NY 10577";
 
+    // ===== PREMIUM TEMPLATE LOGIC (ID 4) =====
+    // This block is completely isolated. If templateId is 4, it renders and returns early.
     const templateId = details?.pdfTemplate ?? 2;
-    const template = templateId === 4 ? 'bold' : 'classic';
-
-    // Move declaration of showIntroText up so it's available in the Premium logic
-    const showIntroText = (details as any)?.showIntroText ?? true;
-
-    const formatFeet = (value: any) => {
-        const n = Number(value);
-        if (!isFinite(n)) return "";
-        const rounded = Math.round(n * 100) / 100;
-        const asInt = Math.round(rounded);
-        if (Math.abs(rounded - asInt) < 0.00001) return `${asInt}'`;
-        return `${rounded.toFixed(2)}'`;
-    };
-
-    const splitDisplayNameAndSpecs = (value: string) => {
-        const raw = (value || "").toString().trim();
-        if (!raw) return { header: "", specs: "" };
-        const idxParen = raw.indexOf("(");
-        const idxColon = raw.indexOf(":");
-        const idx =
-            idxParen === -1 ? idxColon : idxColon === -1 ? idxParen : Math.min(idxParen, idxColon);
-        if (idx === -1) return { header: raw, specs: "" };
-        const header = raw.slice(0, idx).trim().replace(/[-–—]\s*$/, "").trim();
-        const specs = raw.slice(idx).trim();
-        return { header, specs };
-    };
-
-    const getScreenLabel = (screen: any) => {
-        const label = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
-        const split = splitDisplayNameAndSpecs(label);
-        const header = split.header || label;
-        return header.length > 0 ? header : "Display";
-    };
-
-    const getScreenHeader = (screen: any) => {
-        // Priority: customDisplayName > externalName > name
-        const customName = (screen?.customDisplayName || "").toString().trim();
-        if (customName) return customName;
-
-        const externalName = (screen?.externalName || "").toString().trim();
-        if (externalName) return externalName;
-
-        // Just use the screen name - don't add dimensions/pitch (those are shown in the spec table)
-        const name = (screen?.name || "Display").toString().trim();
-        return name;
-    };
-
-    if (template === 'bold') {
-        // ===== ANC PREMIUM TEMPLATE (ID 4) =====
+    if (templateId === 4) {
         const docTitle = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "SALES QUOTATION" : "LETTER OF INTENT";
         const isLOI_premium = documentMode === "LOI";
         const showPricingTables_premium = (details as any)?.showPricingTables ?? true;
         const showSpecifications_premium = (details as any)?.showSpecifications ?? true;
+        const showIntroText_premium = (details as any)?.showIntroText ?? true;
+
+        // Private helpers for Premium Template to avoid touching anything below
+        const premiumSplitSpecs = (value: string) => {
+            const raw = (value || "").toString().trim();
+            if (!raw) return { header: "", specs: "" };
+            const idxParen = raw.indexOf("(");
+            const idxColon = raw.indexOf(":");
+            const idx = idxParen === -1 ? idxColon : idxColon === -1 ? idxParen : Math.min(idxParen, idxColon);
+            if (idx === -1) return { header: raw, specs: "" };
+            const header = raw.slice(0, idx).trim().replace(/[-–—]\s*$/, "").trim();
+            const specs = raw.slice(idx).trim();
+            return { header, specs };
+        };
+
+        const premiumGetScreenHeader = (screen: any) => {
+            const customName = (screen?.customDisplayName || "").toString().trim();
+            if (customName) return customName;
+            const externalName = (screen?.externalName || "").toString().trim();
+            if (externalName) return externalName;
+            return (screen?.name || "Display").toString().trim();
+        };
 
         const PremiumSectionHeader = ({ title }: { title: string }) => (
             <div className="border-b-2 border-black pb-2 mb-6 mt-10">
@@ -122,7 +98,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         const PremiumSpecTable = ({ screen }: { screen: any }) => (
             <div className="mb-8 break-inside-avoid">
                 <div className="flex justify-between items-center border-b-2 border-[#0A52EF] pb-1 mb-1">
-                    <h3 className="font-bold text-sm uppercase text-[#002C73] font-sans">{getScreenHeader(screen)}</h3>
+                    <h3 className="font-bold text-sm uppercase text-[#002C73] font-sans">{premiumGetScreenHeader(screen)}</h3>
                     <span className="font-bold text-sm uppercase text-[#002C73] font-sans">SPECIFICATIONS</span>
                 </div>
                 <table className="w-full text-[11px] border-collapse font-sans">
@@ -152,10 +128,10 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     const auditRow = isSharedView ? null : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
                     const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
                     const label = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
-                    const split = splitDisplayNameAndSpecs(label);
+                    const split = premiumSplitSpecs(label);
                     return {
                         key: `screen-${idx}`,
-                        name: split.header || getScreenLabel(screen),
+                        name: split.header || label,
                         specs: split.specs,
                         price: Number(price) || 0,
                     };
@@ -198,15 +174,15 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
         return (
             <ProposalLayout data={data} disableFixedFooter>
+                {/* Load extra weight 300 specifically for Premium template */}
+                <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300&display=swap" rel="stylesheet" />
                 <div style={{ fontFamily: "'Work Sans', sans-serif" }} className="min-h-[1000px] flex flex-col">
-                    {/* PREMIUM HEADER: Solid French Blue */}
                     <div className="-mx-10 -mt-10 bg-[#0A52EF] px-10 py-8 flex justify-between items-center mb-10">
                         <LogoSelectorServer theme="dark" width={180} height={90} className="p-0" />
                         <h1 className="text-3xl font-bold text-white uppercase tracking-tighter">
                             {docTitle}
                         </h1>
                     </div>
-
                     <div className="px-2">
                         <div className="mb-12">
                             <h2 className="text-4xl font-bold text-[#002C73] uppercase leading-tight mb-2">
@@ -216,17 +192,14 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                                 {details?.proposalName || "Project Quotation"}
                             </p>
                         </div>
-
-                        {showIntroText && (
+                        {showIntroText_premium && (
                             <div className="mb-12 text-sm text-[#6B7280] font-normal leading-relaxed text-justify">
                                 <p>
                                     ANC is pleased to present the following quotation for {receiver?.name || "the client"} regarding the proposed LED display systems and services described below.
                                 </p>
                             </div>
                         )}
-
                         {!isLOI_premium && showPricingTables_premium && <PremiumPricingSection />}
-
                         {!isLOI_premium && showSpecifications_premium && screens.length > 0 && (
                             <div className="mt-16 break-before-page">
                                 <PremiumSectionHeader title="Technical Specifications" />
@@ -235,7 +208,6 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                                 ))}
                             </div>
                         )}
-
                         {isLOI_premium && (
                             <div className="mt-12">
                                 <PremiumSectionHeader title="Statement of Work" />
@@ -243,7 +215,6 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                             </div>
                         )}
                     </div>
-
                     <div className="mt-auto pt-20">
                         <div className="h-4 bg-[#002C73] -mx-10 -mb-10" />
                     </div>
@@ -252,18 +223,62 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         );
     }
 
-    // ===== TOGGLES FROM DETAILS =====
-    const includePricingBreakdown = (details as any)?.includePricingBreakdown ?? true;
-    const showPricingTables = (details as any)?.showPricingTables ?? true;
-    const showBaseBidTable = (details as any)?.showBaseBidTable ?? true;
-    const showSpecifications = (details as any)?.showSpecifications ?? true;
-    const showCompanyFooter = (details as any)?.showCompanyFooter ?? true;
-    const showExhibitA = (details as any)?.showExhibitA ?? false;
-    const showExhibitB = (details as any)?.showExhibitB ?? false;
-    const showSignatureBlock = (details as any)?.showSignatureBlock ?? true;
-    const showPaymentTerms = (details as any)?.showPaymentTerms ?? true;
-    const effectiveShowPaymentTerms = documentMode === "LOI" && showPaymentTerms;
-    const effectiveShowSignatureBlock = documentMode === "LOI" && showSignatureBlock;
+    // ===== CLASSIC TEMPLATE LOGIC (START) =====
+    // FROM THIS POINT DOWN, THE CODE IS IDENTICAL TO THE BACKUP.
+    const formatFeet = (value: any) => {
+        const n = Number(value);
+        if (!isFinite(n)) return "";
+        const rounded = Math.round(n * 100) / 100;
+        const asInt = Math.round(rounded);
+        if (Math.abs(rounded - asInt) < 0.00001) return `${asInt}'`;
+        return `${rounded.toFixed(2)}'`;
+    };
+
+    const splitDisplayNameAndSpecs = (value: string) => {
+        const raw = (value || "").toString().trim();
+        if (!raw) return { header: "", specs: "" };
+        const idxParen = raw.indexOf("(");
+        const idxColon = raw.indexOf(":");
+        const idx =
+            idxParen === -1 ? idxColon : idxColon === -1 ? idxParen : Math.min(idxParen, idxColon);
+        if (idx === -1) return { header: raw, specs: "" };
+        const header = raw.slice(0, idx).trim().replace(/[-–—]\s*$/, "").trim();
+        const specs = raw.slice(idx).trim();
+        return { header, specs };
+    };
+
+    const getScreenLabel = (screen: any) => {
+        const label = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
+        const split = splitDisplayNameAndSpecs(label);
+        const header = split.header || label;
+        return header.length > 0 ? header : "Display";
+    };
+
+    const getScreenHeader = (screen: any) => {
+        const customName = (screen?.customDisplayName || "").toString().trim();
+        if (customName) return customName;
+
+        const externalName = (screen?.externalName || "").toString().trim();
+        if (externalName) return externalName;
+
+        const name = (screen?.name || "Display").toString().trim();
+        const serviceType = (screen?.serviceType || "").toString().toLowerCase();
+        const serviceLabel = serviceType.includes("top") ? "RIBBON DISPLAY" : serviceType ? "VIDEO DISPLAY" : "";
+
+        const heightFt = screen?.heightFt ?? screen?.height;
+        const widthFt = screen?.widthFt ?? screen?.width;
+        const pitchMm = screen?.pitchMm ?? screen?.pixelPitch;
+
+        const parts: string[] = [name];
+        if (serviceLabel) parts.push(serviceLabel);
+        if (heightFt != null && widthFt != null && Number(heightFt) > 0 && Number(widthFt) > 0) {
+            parts.push(`${formatFeet(heightFt)} H X ${formatFeet(widthFt)} W`);
+        }
+        if (pitchMm != null && Number(pitchMm) > 0) {
+            parts.push(`${Math.round(Number(pitchMm))}MM`);
+        }
+        return parts.filter(Boolean).join(" - ");
+    };
 
     // Helper for Section Title
     const SectionHeader = ({ title }: { title: string }) => (
@@ -272,16 +287,13 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         </div>
     );
 
-    // Custom specs section title (or default)
-    const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "Specifications";
-
     // Helper for Spec Table - MATCHES IMAGE 1
     const SpecTable = ({ screen }: { screen: any }) => (
         <div className="mb-8 break-inside-avoid">
             {/* Header Bar */}
             <div className="flex justify-between items-center border-b-2 border-[#0A52EF] pb-1 mb-1">
                 <h3 className="font-bold text-sm uppercase text-[#0A52EF] font-sans">{getScreenHeader(screen)}</h3>
-                <span className="font-bold text-sm uppercase text-[#0A52EF] font-sans">{specsSectionTitle}</span>
+                <span className="font-bold text-sm uppercase text-[#0A52EF] font-sans">Specifications</span>
             </div>
             <table className="w-full text-[11px] border-collapse font-sans">
                 <tbody>
@@ -309,18 +321,30 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (W)</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
                     </tr>
-                    {(screen.brightnessNits || screen.brightness) && (
-                        <tr className="bg-white border-b border-gray-200 last:border-b-0">
-                            <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
-                            <td className="p-1.5 text-right pr-4 text-gray-900">
-                                {formatNumberWithCommas(screen.brightnessNits || screen.brightness)} nits
-                            </td>
-                        </tr>
-                    )}
+                    <tr className="bg-white border-b border-gray-200 last:border-b-0">
+                        <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
+                        <td className="p-1.5 text-right pr-4 text-gray-900">
+                            {screen.brightnessNits ? `${formatNumberWithCommas(screen.brightnessNits)}` : "Standard"}
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     );
+
+    // ===== TOGGLES FROM DETAILS =====
+    const includePricingBreakdown = (details as any)?.includePricingBreakdown ?? true;
+    const showPricingTables = (details as any)?.showPricingTables ?? true;
+    const showIntroText = (details as any)?.showIntroText ?? true;
+    const showBaseBidTable = (details as any)?.showBaseBidTable ?? true;
+    const showSpecifications = (details as any)?.showSpecifications ?? true;
+    const showCompanyFooter = (details as any)?.showCompanyFooter ?? true;
+    const showExhibitA = (details as any)?.showExhibitA ?? false;
+    const showExhibitB = (details as any)?.showExhibitB ?? false;
+    const showSignatureBlock = (details as any)?.showSignatureBlock ?? true;
+    const showPaymentTerms = (details as any)?.showPaymentTerms ?? true;
+    const effectiveShowPaymentTerms = documentMode === "LOI" && showPaymentTerms;
+    const effectiveShowSignatureBlock = documentMode === "LOI" && showSignatureBlock;
 
     // Detailed Pricing Table - Shows category breakdown (when toggle is ON)
     const DetailedPricingTable = ({ screen }: { screen: any }) => {
@@ -392,15 +416,17 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         };
 
         const buildDescription = (screen: any) => {
+            const serviceType = (screen?.serviceType || "").toString().toLowerCase();
+            const serviceLabel = serviceType.includes("top") ? "Ribbon Display" : serviceType ? "Video Display" : "Display";
+
             const heightFt = screen?.heightFt ?? screen?.height;
             const widthFt = screen?.widthFt ?? screen?.width;
             const pitchMm = screen?.pitchMm ?? screen?.pixelPitch;
             const qty = screen?.quantity || 1;
-            const brightness = screen?.brightnessNits ?? screen?.brightness ?? screen?.nits;
 
             const parts: string[] = [];
+            parts.push(serviceLabel);
 
-            // Dimensions: show both rounded and exact feet
             if (heightFt != null && widthFt != null && Number(heightFt) > 0 && Number(widthFt) > 0) {
                 parts.push(`${toWholeFeet(heightFt)} H x ${toWholeFeet(widthFt)} W`);
                 parts.push(`${toExactFeet(heightFt)} H x ${toExactFeet(widthFt)} W`);
@@ -408,10 +434,6 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
             if (pitchMm != null && Number(pitchMm) > 0) {
                 parts.push(`${Math.round(Number(pitchMm))}mm`);
-            }
-
-            if (brightness != null && brightness !== "" && Number(brightness) > 0) {
-                parts.push(`${formatNumberWithCommas(Number(brightness))} nits`);
             }
 
             parts.push(`QTY ${qty}`);
@@ -605,18 +627,13 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         </div>
     );
 
-    // Default legal text for signature block
-    const defaultSignatureText = `Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.
-
-If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Payment is due within thirty (30) days of ANC's invoice(s).`;
-
-    const signatureText = ((details as any)?.signatureBlockText || "").trim() || defaultSignatureText;
-
     const SignatureBlock = () => (
         <div className="mt-12 break-inside-avoid">
-            <div className="text-[10px] text-gray-600 leading-relaxed text-justify mb-10 whitespace-pre-wrap" style={{ fontFamily: "'Helvetica Condensed', sans-serif" }}>
-                {signatureText}
-            </div>
+            <p className="text-[10px] text-gray-600 leading-relaxed text-justify mb-10" style={{ fontFamily: "'Helvetica Condensed', sans-serif" }}>
+                Please sign below to indicate Purchaser&apos;s agreement to purchase the Display System as described herein and to authorize ANC to commence production.
+                <br /><br />
+                If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties.
+            </p>
             <h4 className="font-bold text-[11px] uppercase mb-8 border-b-2 border-black pb-1">Agreed To And Accepted:</h4>
             <div className="space-y-6">
                 <div className="grid grid-cols-2 gap-8">
@@ -690,11 +707,11 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                         </p>
                     ) : documentMode === "PROPOSAL" ? (
                         <p>
-                            ANC is pleased to present the following proposal to {purchaserName} per the specifications and pricing below.
+                            ANC is pleased to present the following LED Display proposal to {purchaserName} per the specifications and pricing below.
                         </p>
                     ) : (
                         <p>
-                            ANC is pleased to present the following budget to {purchaserName} per the specifications and pricing below.
+                            ANC is pleased to present the following LED Display budget to {purchaserName} per the specifications and pricing below.
                         </p>
                     )}
                 </div>
@@ -739,9 +756,8 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
 
             {isLOI && (
                 <>
-                    {/* LOI Order per Natalia: Notes → Payment Terms → Legal Text → Signatures */}
-                    <LegalNotesSection />
                     {effectiveShowPaymentTerms && <PaymentTermsSection />}
+                    <LegalNotesSection />
                     {effectiveShowSignatureBlock && (
                         <div className="px-4">
                             <SignatureBlock />
@@ -752,7 +768,7 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
 
             {!isLOI && showSpecifications && (
                 <div className="break-before-page px-4">
-                    <SectionHeader title={specsSectionTitle.toUpperCase()} />
+                    <SectionHeader title="SPECIFICATIONS" />
                     {screens && screens.length > 0 ? (
                         screens.map((screen: any, idx: number) => (
                             <SpecTable key={idx} screen={screen} />
@@ -803,20 +819,55 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                 </div>
             )}
 
-            {/* LOI Exhibit A - Technical Specifications */}
-            {isLOI && showExhibitA && (
+            {isLOI && (showSpecifications || showExhibitA) && (
                 <div className="break-before-page px-4">
-                    <ExhibitA_TechnicalSpecs data={data} />
+                    {(showExhibitA || showSpecifications) && <ExhibitA_TechnicalSpecs data={data} />}
+
+                    {showExhibitA && (
+                        <div>
+                            <SectionHeader title="STATEMENT OF WORK" />
+                            <div className="space-y-6 text-[10px] leading-relaxed text-gray-700">
+                                <section className="break-inside-avoid">
+                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">1. PHYSICAL INSTALLATION</h4>
+                                    <div className="px-2 space-y-2">
+                                        <p>ANC assumes all base building structure is to be provided by others or is existing and is of sufficient capacity to support the proposed display systems.</p>
+                                        <p>ANC assumes reasonable access will be provided to the installation team and any unknown site conditions such as lane closures, site protection, permitting, etc. is not currently in this proposal.</p>
+                                    </div>
+                                </section>
+
+                                <section className="break-inside-avoid">
+                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">2. ELECTRICAL & DATA INSTALLATION</h4>
+                                    <div className="px-2 space-y-2">
+                                        <p>ANC assumes primary power feed will be provided by others or is existing, within 5' of the display location with sufficient amps; typically 208v 3-phase.</p>
+                                        <p>ANC will provide data cabling and labor to pull cable from control location to the display(s).</p>
+                                    </div>
+                                </section>
+
+                                <section className="break-inside-avoid">
+                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">3. CONTROL SYSTEM</h4>
+                                    <div className="px-2 space-y-2">
+                                        <p>Installation and commissioning of the ANC vSOFT™ Control System or specified CMS platform.</p>
+                                        <p>Includes configuration of screen layouts and zones per project specifications.</p>
+                                    </div>
+                                </section>
+
+                                <section className="break-inside-avoid">
+                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">4. GENERAL CONDITIONS</h4>
+                                    <div className="px-2 space-y-2">
+                                        <p>Price includes one (1) round of submittals and engineering shop drawings.</p>
+                                        <p>ANC has not included bonding of any kind unless specifically noted.</p>
+                                        <p>Shipping included at current market rates; subject to change due to global logistics impacts.</p>
+                                    </div>
+                                </section>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
-            {/* LOI Exhibit B - Scope of Work (custom text, only if provided) */}
-            {isLOI && (details as any)?.scopeOfWorkText && (
+            {isLOI && showExhibitB && (
                 <div className="break-before-page px-4">
-                    <SectionHeader title="EXHIBIT B - SCOPE OF WORK" />
-                    <div className="text-[10px] leading-relaxed text-gray-700 whitespace-pre-wrap">
-                        {(details as any).scopeOfWorkText}
-                    </div>
+                    <ExhibitB_CostSchedule data={data} />
                 </div>
             )}
 

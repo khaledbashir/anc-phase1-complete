@@ -36,6 +36,7 @@ const Step4Export = () => {
     const {
         generatePdf,
         downloadPdf,
+        downloadAllPdfVariants,
         previewPdfInTab,
         exportAudit,
         pdfUrl,
@@ -49,6 +50,7 @@ const Step4Export = () => {
     } = useProposalContext();
     const { watch, getValues, setValue } = useFormContext<ProposalType>();
     const [exporting, setExporting] = useState(false);
+    const [downloadingAllPdfs, setDownloadingAllPdfs] = useState(false);
     const [verificationLoading, setVerificationLoading] = useState(false);
     const [verificationResponse, setVerificationResponse] = useState<any | null>(null);
     const [verificationError, setVerificationError] = useState<string | null>(null);
@@ -165,11 +167,15 @@ const Step4Export = () => {
         if (proposalPdfLoading) return; // Don't regenerate if already loading
         
         const timeoutId = setTimeout(() => {
+            // We only want to trigger this if data actually changed. 
+            // react-hook-form's watch() might return same data if not changed.
             generatePdf(getValues());
-        }, 1000); // Debounce for 1 second
+        }, 2000); // Increased debounce to 2 seconds
         
         return () => clearTimeout(timeoutId);
-    }, [screens, generatePdf, getValues, pdfUrl, proposalPdfLoading]);
+        // CRITICAL: Remove pdfUrl and proposalPdfLoading from dependencies to stop infinite loop
+        // We only care if 'screens' array changed.
+    }, [screens, generatePdf, getValues]);
 
     const ensurePdfPreview = async () => {
         if (proposalPdfLoading) return;
@@ -576,6 +582,40 @@ const Step4Export = () => {
                                         >
                                             {exporting ? "Generating..." : "Download Bundle"}
                                             {!exporting && <Download className="w-3.5 h-3.5" />}
+                                        </button>
+                                    </div>
+
+                                    {/* All PDF Variants */}
+                                    <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 group-hover:scale-110 transition-transform">
+                                                <Columns className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                            </div>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">All PDF Variants</h4>
+                                                <p className="text-[11px] text-muted-foreground">Download 9 PDFs: Budget / Proposal / LOI × Classic / Modern / Premium (current data)</p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                if (mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked)) return;
+                                                setDownloadingAllPdfs(true);
+                                                try {
+                                                    await downloadAllPdfVariants();
+                                                } finally {
+                                                    setDownloadingAllPdfs(false);
+                                                }
+                                            }}
+                                            disabled={mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked)}
+                                            className={cn(
+                                                "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2",
+                                                (mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked))
+                                                    ? "bg-muted text-muted-foreground cursor-not-allowed"
+                                                    : "bg-emerald-600 text-white hover:bg-emerald-500 shadow-[0_0_20px_rgba(5,150,105,0.25)] hover:shadow-[0_0_30px_rgba(5,150,105,0.4)]"
+                                            )}
+                                        >
+                                            {downloadingAllPdfs ? "Generating 9…" : "Download All PDFs"}
+                                            {!downloadingAllPdfs && <Download className="w-3.5 h-3.5" />}
                                         </button>
                                     </div>
 

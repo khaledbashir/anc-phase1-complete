@@ -80,6 +80,7 @@ const defaultProposalContext = {
   generatePdf: async (data: ProposalType) => new Blob(),
   removeFinalPdf: () => { },
   downloadPdf: async () => { },
+  downloadAllPdfVariants: async () => Promise.resolve(),
   printPdf: () => { },
   printLivePreview: () => { },
   previewPdfInTab: () => { },
@@ -943,7 +944,7 @@ export const ProposalContextProvider = ({
       const documentTypeLabel =
         docMode === "LOI" ? "Letter of Intent" : docMode === "PROPOSAL" ? "Proposal" : "Budget";
       const templateId = details?.pdfTemplate ?? 2;
-      const templateLabel = templateId === 4 ? "Bold" : templateId === 3 ? "Modern" : "Classic";
+      const templateLabel = templateId === 4 ? "Premium" : templateId === 3 ? "Modern" : "Classic";
       const fileName = `${safeName(clientName)} ${documentTypeLabel} ${templateLabel}.pdf`;
       const a = document.createElement("a");
       a.href = url;
@@ -954,6 +955,95 @@ export const ProposalContextProvider = ({
       window.URL.revokeObjectURL(url);
     }
   };
+
+  const TEMPLATES = [
+    { id: 2, label: "Classic" },
+    { id: 3, label: "Modern" },
+    { id: 4, label: "Premium" },
+  ] as const;
+  const MODES = [
+    { mode: "BUDGET" as const, label: "Budget" },
+    { mode: "PROPOSAL" as const, label: "Proposal" },
+    { mode: "LOI" as const, label: "Letter of Intent" },
+  ] as const;
+
+  /**
+   * Downloads all 9 PDF variants (Budget/Proposal/LOI × Classic/Modern/Premium) with current form data.
+   */
+  const downloadAllPdfVariants = useCallback(async () => {
+    console.log("Starting batch download of all 9 PDF variants...");
+    const data = getValues();
+    const screens = (data?.details?.screens || []).map((s: any) => ({
+      name: s.name,
+      productType: s.productType ?? "",
+      heightFt: s.heightFt ?? s.height ?? 0,
+      widthFt: s.widthFt ?? s.width ?? 0,
+      quantity: s.quantity ?? 1,
+      pitchMm: s.pitchMm ?? s.pixelPitch ?? undefined,
+      costPerSqFt: s.costPerSqFt,
+      desiredMargin: s.desiredMargin,
+    }));
+    const projectAddress = `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim();
+    const audit = calculateProposalAudit(screens, {
+      taxRate: getValues("details.taxRateOverride"),
+      bondPct: getValues("details.bondRateOverride"),
+      structuralTonnage: getValues("details.metadata.structuralTonnage"),
+      reinforcingTonnage: getValues("details.metadata.reinforcingTonnage"),
+      projectAddress,
+      venue: getValues("details.venue"),
+    });
+    const clientName = (data.details?.clientName || data.details?.proposalName || "proposal").toString();
+    const safeName = (s: string) =>
+      s.replace(/[/\\:*?"<>|]/g, "").replace(/\s+/g, " ").trim().slice(0, 80) || "proposal";
+
+    for (const { mode, label: modeLabel } of MODES) {
+      for (const { id: templateId, label: templateLabel } of TEMPLATES) {
+        const isLOI = mode === "LOI";
+        const payload = {
+          ...data,
+          details: {
+            ...data.details,
+            pdfTemplate: templateId,
+            documentMode: mode,
+            documentType: isLOI ? "LOI" : "First Round",
+            pricingType: mode === "PROPOSAL" ? "Hard Quoted" : "Budget",
+            showPaymentTerms: isLOI,
+            showSignatureBlock: isLOI,
+            showExhibitA: isLOI || mode === "PROPOSAL",
+            showExhibitB: isLOI,
+          },
+          _audit: audit,
+        };
+        try {
+          const res = await fetch(GENERATE_PDF_API, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error(await res.text());
+          const blob = await res.blob();
+          if (blob.size === 0) continue;
+          const url = window.URL.createObjectURL(blob);
+          const fileName = `${safeName(clientName)} ${modeLabel} ${templateLabel}.pdf`;
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+
+          // Small delay to prevent browser from blocking multiple automatic downloads
+          await new Promise((resolve) => setTimeout(resolve, 600));
+        } catch (e) {
+          console.error(`PDF variant ${modeLabel} ${templateLabel} failed:`, e);
+          showError("Download All PDFs", `Failed to generate ${modeLabel} ${templateLabel}. Try again or use single PDF download.`);
+          return;
+        }
+      }
+    }
+    pdfGenerationSuccess();
+  }, [getValues, pdfGenerationSuccess, showError]);
 
   /**
    * Prints a PDF file.
@@ -2099,6 +2189,7 @@ export const ProposalContextProvider = ({
         generatePdf,
         removeFinalPdf,
         downloadPdf,
+        downloadAllPdfVariants,
         printPdf,
         printLivePreview,
         previewPdfInTab,
