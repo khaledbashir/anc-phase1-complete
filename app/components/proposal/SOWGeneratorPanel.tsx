@@ -241,26 +241,26 @@ export function SOWGeneratorPanel() {
   return (
     <Card className="bg-card/50 border-border overflow-hidden">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-brand-blue/10">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 rounded-lg bg-brand-blue/10 shrink-0">
               <Sparkles className="w-5 h-5 text-brand-blue" />
             </div>
-            <div>
-              <CardTitle className="text-foreground text-base">AI-Generated SOW</CardTitle>
-              <CardDescription className="text-muted-foreground text-xs">
+            <div className="min-w-0">
+              <CardTitle className="text-foreground text-base truncate">AI-Generated SOW</CardTitle>
+              <CardDescription className="text-muted-foreground text-xs truncate">
                 Context-aware Statement of Work
               </CardDescription>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {detectedRisks.length > 0 && (
-              <Badge variant="outline" className="text-[10px] border-brand-blue/30 text-brand-blue">
-                {detectedRisks.length} Risk{detectedRisks.length > 1 ? "s" : ""} Detected
+              <Badge variant="outline" className="text-[10px] border-brand-blue/30 text-brand-blue whitespace-nowrap">
+                {detectedRisks.length} Risk{detectedRisks.length > 1 ? "s" : ""}
               </Badge>
             )}
             {aiGeneratedSOW?.editedByUser && (
-              <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600">
+              <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600 whitespace-nowrap">
                 Edited
               </Badge>
             )}
@@ -268,7 +268,7 @@ export function SOWGeneratorPanel() {
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 shrink-0"
             >
               {isExpanded ? (
                 <ChevronUp className="w-4 h-4 text-muted-foreground" />

@@ -547,33 +547,31 @@ const Step4Export = () => {
                             <CardHeader className="border-b border-border/60 pb-3">
                                 <div className="flex items-center justify-between">
                                     <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                                        <MessageSquare className="w-4 h-4 text-brand-blue" />
-                                        AI-Generated SOW
+                                        <MessageSquare className="w-4 h-4 text-brand-blue shrink-0" />
+                                        <span className="truncate">AI-Generated SOW</span>
                                     </CardTitle>
                                 </div>
                             </CardHeader>
                             <CardContent className="p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex flex-col">
-                                        <Label htmlFor="showExhibitA" className="text-sm font-semibold text-foreground mb-1">
+                                <div className="flex items-start gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <Label htmlFor="showExhibitA" className="text-sm font-semibold text-foreground block mb-1">
                                             Include AI-Generated Statement of Work
                                         </Label>
-                                        <p className="text-[11px] text-muted-foreground">
+                                        <p className="text-[11px] text-muted-foreground leading-relaxed">
                                             Auto-generate Design Services and Construction Logistics sections based on RFP risks
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <Switch
-                                            id="showExhibitA"
-                                            checked={watch("details.showExhibitA") || false}
-                                            onCheckedChange={(checked) => setValue("details.showExhibitA", checked)}
-                                            className="data-[state=checked]:bg-brand-blue"
-                                        />
-                                    </div>
+                                    <Switch
+                                        id="showExhibitA"
+                                        checked={watch("details.showExhibitA") || false}
+                                        onCheckedChange={(checked) => setValue("details.showExhibitA", checked)}
+                                        className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5"
+                                    />
                                 </div>
                                 {watch("details.showExhibitA") && (
                                     <div className="mt-3 p-3 rounded-lg bg-brand-blue/5 border border-brand-blue/10">
-                                        <p className="text-[10px] text-brand-blue/80">
+                                        <p className="text-[10px] text-brand-blue/80 leading-relaxed">
                                             💡 AI will scan for <strong>Union</strong>, <strong>Outdoor/IP65</strong>, and <strong>Liquidated Damages</strong> keywords to generate context-aware SOW clauses
                                         </p>
                                     </div>
@@ -584,16 +582,16 @@ const Step4Export = () => {
                         {/* PDF Section Toggles - Organized by Document Type */}
                         <Card className="bg-card/40 border border-border/60 overflow-hidden mb-6">
                             <CardHeader className="border-b border-border/60 pb-3">
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                                        <Columns className="w-4 h-4 text-brand-blue" />
-                                        PDF Section Toggles
+                                <div className="flex items-center justify-between gap-2">
+                                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 min-w-0">
+                                        <Columns className="w-4 h-4 text-brand-blue shrink-0" />
+                                        <span className="truncate">PDF Section Toggles</span>
                                     </CardTitle>
-                                    <Badge variant="outline" className="text-[10px] border-brand-blue/30 text-brand-blue">
+                                    <Badge variant="outline" className="text-[10px] border-brand-blue/30 text-brand-blue whitespace-nowrap shrink-0">
                                         Hybrid Template
                                     </Badge>
                                 </div>
-                                <CardDescription className="text-xs text-muted-foreground">
+                                <CardDescription className="text-xs text-muted-foreground mt-1">
                                     Control which sections appear in the PDF. Organized by document type.
                                 </CardDescription>
                             </CardHeader>
@@ -617,12 +615,12 @@ const Step4Export = () => {
                                     {/* Budget Tab */}
                                     <TabsContent value="budget" className="space-y-1 mt-4">
                                         {/* Specifications Toggle */}
-                                        <div className="flex items-center justify-between py-3 border-b border-border/30">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showSpecifications" className="text-sm font-semibold text-foreground">
+                                        <div className="flex items-start justify-between py-3 border-b border-border/30 gap-4">
+                                            <div className="flex flex-col min-w-0">
+                                                <Label htmlFor="showSpecifications" className="text-sm font-semibold text-foreground block">
                                                     Technical Specifications
                                                 </Label>
-                                                <p className="text-[11px] text-muted-foreground">
+                                                <p className="text-[11px] text-muted-foreground leading-relaxed">
                                                     Include detailed screen specifications
                                                 </p>
                                             </div>
@@ -630,17 +628,17 @@ const Step4Export = () => {
                                                 id="showSpecifications"
                                                 checked={watch("details.showSpecifications") ?? true}
                                                 onCheckedChange={(checked) => setValue("details.showSpecifications", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
+                                                className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5"
                                             />
                                         </div>
 
                                         {/* Pricing Tables Toggle */}
-                                        <div className="flex items-center justify-between py-3 border-b border-border/30">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showPricingTables" className="text-sm font-semibold text-foreground">
+                                        <div className="flex items-start justify-between py-3 border-b border-border/30 gap-4">
+                                            <div className="flex flex-col min-w-0">
+                                                <Label htmlFor="showPricingTables" className="text-sm font-semibold text-foreground block">
                                                     Pricing Tables
                                                 </Label>
-                                                <p className="text-[11px] text-muted-foreground">
+                                                <p className="text-[11px] text-muted-foreground leading-relaxed">
                                                     Include pricing breakdown in the PDF
                                                 </p>
                                             </div>
@@ -648,17 +646,17 @@ const Step4Export = () => {
                                                 id="showPricingTables"
                                                 checked={watch("details.showPricingTables") ?? true}
                                                 onCheckedChange={(checked) => setValue("details.showPricingTables", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
+                                                className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5"
                                             />
                                         </div>
 
                                         {/* Notes Toggle */}
-                                        <div className="flex items-center justify-between py-3">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showNotes" className="text-sm font-semibold text-foreground">
+                                        <div className="flex items-start justify-between py-3 gap-4">
+                                            <div className="flex flex-col min-w-0">
+                                                <Label htmlFor="showNotes" className="text-sm font-semibold text-foreground block">
                                                     Notes Section
                                                 </Label>
-                                                <p className="text-[11px] text-muted-foreground">
+                                                <p className="text-[11px] text-muted-foreground leading-relaxed">
                                                     Include additional notes in the PDF
                                                 </p>
                                             </div>
@@ -666,7 +664,7 @@ const Step4Export = () => {
                                                 id="showNotes"
                                                 checked={watch("details.showNotes") ?? true}
                                                 onCheckedChange={(checked) => setValue("details.showNotes", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
+                                                className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5"
                                             />
                                         </div>
                                     </TabsContent>
