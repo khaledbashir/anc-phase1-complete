@@ -282,14 +282,14 @@ const Step1Ingestion = () => {
                                         </TabsList>
                                     </div>
 
-                                    <TabsContent value="excel" className="m-0">
-                                        <div className="h-[620px] max-h-[72vh] overflow-hidden">
+                                    <TabsContent value="excel" className="m-0 h-full data-[state=inactive]:hidden">
+                                        <div className="h-[620px] max-h-[72vh] min-h-[400px] overflow-hidden flex flex-col">
                                             <ExcelGridViewer />
                                         </div>
                                     </TabsContent>
 
-                                    <TabsContent value="screens" className="m-0">
-                                        <div className="h-[620px] max-h-[72vh] overflow-hidden">
+                                    <TabsContent value="screens" className="m-0 h-full data-[state=inactive]:hidden">
+                                        <div className="h-[620px] max-h-[72vh] min-h-[400px] overflow-hidden flex flex-col">
                                             <ScreensGridEditor />
                                         </div>
                                     </TabsContent>

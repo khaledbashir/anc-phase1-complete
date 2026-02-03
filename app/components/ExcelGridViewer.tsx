@@ -213,7 +213,7 @@ export default function ExcelGridViewer({
   if (!activeSheet) return null;
 
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="w-full h-full flex flex-col min-h-0">
       <div className="shrink-0 px-4 py-2 border-b border-border bg-background/60 flex items-center gap-2 overflow-x-auto">
         {sheets.map((s) => {
           const isActive = s.name === activeSheet.name;
@@ -232,35 +232,38 @@ export default function ExcelGridViewer({
         })}
       </div>
 
-      <div className={["flex-1 min-h-0", themeClass].join(" ")}>
-        <style jsx global>{`
-          .ag-theme-quartz,
-          .ag-theme-quartz-dark {
-            --ag-font-family: Work Sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-            --ag-font-size: 12px;
-            --ag-header-height: 34px;
-            --ag-row-height: 30px;
-          }
-          .ag-theme-quartz .ag-header-cell-label,
-          .ag-theme-quartz-dark .ag-header-cell-label {
-            font-weight: 700;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            font-size: 10px;
-          }
-        `}</style>
-        <AgGridReact
-          rowData={rowData as any[]}
-          columnDefs={columnDefs}
-          defaultColDef={defaultColDef}
-          rowSelection="single"
-          onGridReady={onGridReady}
-          onSelectionChanged={onSelectionChanged}
-          getRowClass={getRowClass as any}
-          stopEditingWhenCellsLoseFocus
-          suppressRowHoverHighlight={false}
-          animateRows={false}
-        />
+      {/* AG Grid needs an explicit-height container; flex-1 + absolute inset-0 gives it a definite size */}
+      <div className="flex-1 min-h-0 relative">
+        <div className={["absolute inset-0 w-full h-full", themeClass].join(" ")}>
+          <style jsx global>{`
+            .ag-theme-quartz,
+            .ag-theme-quartz-dark {
+              --ag-font-family: Work Sans, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+              --ag-font-size: 12px;
+              --ag-header-height: 34px;
+              --ag-row-height: 30px;
+            }
+            .ag-theme-quartz .ag-header-cell-label,
+            .ag-theme-quartz-dark .ag-header-cell-label {
+              font-weight: 700;
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
+              font-size: 10px;
+            }
+          `}</style>
+          <AgGridReact
+            rowData={rowData as any[]}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            rowSelection="single"
+            onGridReady={onGridReady}
+            onSelectionChanged={onSelectionChanged}
+            getRowClass={getRowClass as any}
+            stopEditingWhenCellsLoseFocus
+            suppressRowHoverHighlight={false}
+            animateRows={false}
+          />
+        </div>
       </div>
     </div>
   );
