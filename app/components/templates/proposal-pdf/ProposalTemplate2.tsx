@@ -462,7 +462,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             <p className="text-[10px] text-gray-600 leading-relaxed text-justify mb-10" style={{ fontFamily: "'Helvetica Condensed', sans-serif" }}>
                 Please sign below to indicate Purchaser&apos;s agreement to purchase the Display System as described herein and to authorize ANC to commence production.
                 <br /><br />
-                If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties.
+                If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Payment is due within thirty (30) days of ANC&apos;s invoice(s).
             </p>
             <h4 className="font-bold text-[11px] uppercase mb-8 border-b-2 border-black pb-1">Agreed To And Accepted:</h4>
             <div className="space-y-6">
@@ -586,8 +586,9 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
             {isLOI && (
                 <>
-                    {effectiveShowPaymentTerms && <PaymentTermsSection />}
+                    {/* LOI Order per Natalia: Notes → Payment Terms → Legal Text → Signatures */}
                     <LegalNotesSection />
+                    {effectiveShowPaymentTerms && <PaymentTermsSection />}
                     {effectiveShowSignatureBlock && (
                         <div className="px-4">
                             <SignatureBlock />
@@ -649,55 +650,20 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 </div>
             )}
 
-            {isLOI && (showSpecifications || showExhibitA) && (
+            {/* LOI Exhibit A - Technical Specifications */}
+            {isLOI && showExhibitA && (
                 <div className="break-before-page px-4">
-                    {(showExhibitA || showSpecifications) && <ExhibitA_TechnicalSpecs data={data} />}
-
-                    {showExhibitA && (
-                        <div>
-                            <SectionHeader title="STATEMENT OF WORK" />
-                            <div className="space-y-6 text-[10px] leading-relaxed text-gray-700">
-                                <section className="break-inside-avoid">
-                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">1. PHYSICAL INSTALLATION</h4>
-                                    <div className="px-2 space-y-2">
-                                        <p>ANC assumes all base building structure is to be provided by others or is existing and is of sufficient capacity to support the proposed display systems.</p>
-                                        <p>ANC assumes reasonable access will be provided to the installation team and any unknown site conditions such as lane closures, site protection, permitting, etc. is not currently in this proposal.</p>
-                                    </div>
-                                </section>
-
-                                <section className="break-inside-avoid">
-                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">2. ELECTRICAL & DATA INSTALLATION</h4>
-                                    <div className="px-2 space-y-2">
-                                        <p>ANC assumes primary power feed will be provided by others or is existing, within 5' of the display location with sufficient amps; typically 208v 3-phase.</p>
-                                        <p>ANC will provide data cabling and labor to pull cable from control location to the display(s).</p>
-                                    </div>
-                                </section>
-
-                                <section className="break-inside-avoid">
-                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">3. CONTROL SYSTEM</h4>
-                                    <div className="px-2 space-y-2">
-                                        <p>Installation and commissioning of the ANC vSOFT™ Control System or specified CMS platform.</p>
-                                        <p>Includes configuration of screen layouts and zones per project specifications.</p>
-                                    </div>
-                                </section>
-
-                                <section className="break-inside-avoid">
-                                    <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">4. GENERAL CONDITIONS</h4>
-                                    <div className="px-2 space-y-2">
-                                        <p>Price includes one (1) round of submittals and engineering shop drawings.</p>
-                                        <p>ANC has not included bonding of any kind unless specifically noted.</p>
-                                        <p>Shipping included at current market rates; subject to change due to global logistics impacts.</p>
-                                    </div>
-                                </section>
-                            </div>
-                        </div>
-                    )}
+                    <ExhibitA_TechnicalSpecs data={data} />
                 </div>
             )}
 
-            {isLOI && showExhibitB && (
+            {/* LOI Exhibit B - Scope of Work (custom text, only if provided) */}
+            {isLOI && (details as any)?.scopeOfWorkText && (
                 <div className="break-before-page px-4">
-                    <ExhibitB_CostSchedule data={data} />
+                    <SectionHeader title="EXHIBIT B - SCOPE OF WORK" />
+                    <div className="text-[10px] leading-relaxed text-gray-700 whitespace-pre-wrap">
+                        {(details as any).scopeOfWorkText}
+                    </div>
                 </div>
             )}
 

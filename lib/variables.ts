@@ -180,6 +180,7 @@ export const FORM_DEFAULT_VALUES = {
       accountNumber: "",
     },
     additionalNotes: "",
+    scopeOfWorkText: "", // Exhibit B - custom SOW text
     paymentTerms: "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion",
     totalAmountInWords: "",
     documentType: "First Round" as "LOI" | "First Round",
@@ -281,6 +282,7 @@ export const FORM_FILL_VALUES = {
       accountNumber: "445566998877",
     },
     additionalNotes: "Thank you for your business",
+    scopeOfWorkText: "",
     paymentTerms: "Net 30",
     signature: {
       data: "",

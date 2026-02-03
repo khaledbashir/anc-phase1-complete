@@ -277,6 +277,7 @@ const ProposalDetailsSchema = z.object({
     totalAmount: fieldValidators.nonNegativeNumber,
     totalAmountInWords: fieldValidators.string,
     additionalNotes: fieldValidators.stringOptional,
+    scopeOfWorkText: fieldValidators.stringOptional, // Exhibit B - custom SOW text
     paymentTerms: fieldValidators.stringMin1,
     signature: SignatureSchema.optional(),
     updatedAt: fieldValidators.stringOptional,

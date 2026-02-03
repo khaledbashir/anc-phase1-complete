@@ -15,7 +15,7 @@ import { useTranslationContext } from "@/contexts/TranslationContext";
 import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Icons
-import { Plus, FileText, CreditCard, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, FileText, CreditCard, ChevronDown, ChevronUp, ClipboardList } from "lucide-react";
 
 // Toast
 import { toast } from "@/components/ui/use-toast";
@@ -29,10 +29,12 @@ const Screens = () => {
     // Track which sections are expanded
     const [showPaymentTerms, setShowPaymentTerms] = useState(false);
     const [showNotes, setShowNotes] = useState(false);
+    const [showScopeOfWork, setShowScopeOfWork] = useState(false);
     
     // Watch current values
     const paymentTerms = useWatch({ control, name: "details.paymentTerms" }) || "";
     const additionalNotes = useWatch({ control, name: "details.additionalNotes" }) || "";
+    const scopeOfWorkText = useWatch({ control, name: "details.scopeOfWorkText" }) || "";
 
     const SCREENS_NAME = "details.screens";
     const { fields, append, remove, move } = useFieldArray({
@@ -207,6 +209,43 @@ const Screens = () => {
                         />
                         <p className="text-[10px] text-muted-foreground">
                             <span className="text-blue-500 font-semibold">LOI only</span> — Notes appear in the Legal Notes section of the LOI
+                        </p>
+                    </div>
+                )}
+            </div>
+
+            {/* Scope of Work Section (Exhibit B) */}
+            <div className="space-y-2">
+                <button
+                    type="button"
+                    onClick={() => setShowScopeOfWork(!showScopeOfWork)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 rounded-xl text-purple-500 font-bold text-sm transition-colors"
+                >
+                    <div className="flex items-center gap-2">
+                        <ClipboardList className="w-4 h-4" />
+                        <span>Scope of Work (Exhibit B)</span>
+                        {scopeOfWorkText && <span className="text-[10px] bg-purple-500/20 px-2 py-0.5 rounded">Has content</span>}
+                    </div>
+                    {showScopeOfWork ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                
+                {showScopeOfWork && (
+                    <div className="px-4 py-3 bg-card/50 border border-border rounded-xl space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <Textarea
+                            placeholder="Enter custom Scope of Work text for Exhibit B...
+
+Example:
+1. PHYSICAL INSTALLATION
+ANC assumes all base building structure is to be provided by others...
+
+2. ELECTRICAL & DATA INSTALLATION
+ANC assumes primary power feed will be provided by others..."
+                            value={scopeOfWorkText}
+                            onChange={(e) => setValue("details.scopeOfWorkText", e.target.value, { shouldDirty: true })}
+                            className="min-h-[200px] text-sm bg-background border-border font-mono"
+                        />
+                        <p className="text-[10px] text-muted-foreground">
+                            <span className="text-purple-500 font-semibold">LOI only</span> — If empty, Exhibit B will not appear in the PDF. Add text to include a custom Scope of Work.
                         </p>
                     </div>
                 )}
