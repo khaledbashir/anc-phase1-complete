@@ -9,7 +9,7 @@ export default async function ProposalRoute({ params }: { params: Promise<{ id: 
 
   // Pass ai meta via props to client wrapper
   return (
-    <div className="min-h-screen bg-zinc-950">
+    <div className="min-h-screen bg-background">
       {/* Client-side initializer: set localStorage with ai metadata before rendering Commander */}
       <script dangerouslySetInnerHTML={{ __html: `localStorage.setItem('aiWorkspaceSlug','${proposal.workspace?.aiWorkspaceSlug ?? ''}'); localStorage.setItem('aiThreadId','${proposal.aiThreadId ?? ''}'); localStorage.setItem('loadingProposalId','${proposal.id}');` }} />
       {/* Render the standard ProposalPage which will pick up the loadingProposalId as needed */}
