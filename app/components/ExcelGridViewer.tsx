@@ -264,6 +264,7 @@ export default function ExcelGridViewer({
             }
           `}</style>
           <AgGridReact
+            theme="legacy"
             rowData={rowData as any[]}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}

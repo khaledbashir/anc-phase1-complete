@@ -118,6 +118,7 @@ export default function ScreensGridEditor() {
       </div>
       <div className={["flex-1 min-h-0", themeClass].join(" ")}>
         <AgGridReact
+          theme="legacy"
           rowData={screens as any[]}
           columnDefs={columnDefs}
           defaultColDef={defaultColDef}
