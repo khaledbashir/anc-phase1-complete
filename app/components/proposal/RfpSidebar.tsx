@@ -21,12 +21,25 @@ const QUICK_PROMPTS = [
     { label: "Verify Warranties", prompt: "Extract all warranty requirements (years, coverage) from the document." },
 ];
 
+const citationLabel = (path: string): string => {
+    if (path === "receiver.name") return "Client name";
+    if (path === "details.proposalName") return "Proposal name";
+    if (path === "details.venue") return "Venue";
+    if (path === "details.metadata.structuralTonnage") return "Structural tonnage";
+    if (path === "details.metadata.reinforcingTonnage") return "Reinforcing tonnage";
+    const screenMatch = path.match(/^details\.screens\[(\d+)\]\.(.+)$/);
+    if (screenMatch) return `Screen ${Number(screenMatch[1]) + 1}: ${screenMatch[2].replace(/([A-Z])/g, " $1").replace(/^./, (s) => s.toUpperCase()).trim()}`;
+    return path;
+};
+
 const RfpSidebar = () => {
-    const { aiWorkspaceSlug, aiMessages, aiLoading, executeAiCommand, uploadRfpDocument, rfpDocumentUrl, rfpDocuments, deleteRfpDocument } = useProposalContext();
+    const { aiWorkspaceSlug, aiMessages, aiLoading, executeAiCommand, uploadRfpDocument, reExtractRfp, rfpDocumentUrl, rfpDocuments, deleteRfpDocument, aiCitations } = useProposalContext();
     const { watch } = useFormContext();
     const [input, setInput] = useState("");
     const [isUploading, setIsUploading] = useState(false);
     const [isVisionAnalyzing, setIsVisionAnalyzing] = useState(false);
+    const [visionWarning, setVisionWarning] = useState<string | null>(null);
+    const [isReExtracting, setIsReExtracting] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const formValues = watch();
@@ -56,13 +69,12 @@ const RfpSidebar = () => {
         try {
             const result: any = await uploadRfpDocument(file);
 
-            // Handle Smart Ingest Feedback
+            // Handle Smart Ingest Feedback and vision-off warning
+            if (result?.visionWarning) setVisionWarning(result.visionWarning);
             if (result?.filterStats) {
                 const { originalPages, keptPages, drawingCandidates } = result.filterStats;
                 const savings = Math.round((1 - keptPages / (originalPages || 1)) * 100);
-
                 const prompt = `I have uploaded ${file.name}. The Smart Filter reduced it from ${originalPages} to ${keptPages} pages (${savings}% noise reduction). ${drawingCandidates?.length ? `It also detected potential drawings on pages ${drawingCandidates.join(", ")}.` : ""} Please analyze the filtered content and extract the key technical requirements.`;
-
                 await executeAiCommand(prompt);
             }
         } catch (error) {
@@ -151,6 +163,16 @@ const RfpSidebar = () => {
                 </div>
             </div>
 
+            {visionWarning && (
+                <div className="px-4 py-2 border-b border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 flex items-center justify-between gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-500 shrink-0" />
+                    <span className="text-xs text-amber-800 dark:text-amber-200">{visionWarning}</span>
+                    <button type="button" onClick={() => setVisionWarning(null)} className="shrink-0 p-0.5 rounded hover:bg-amber-200/50 dark:hover:bg-amber-800/50" aria-label="Dismiss">
+                        <X className="w-3.5 h-3.5 text-amber-700 dark:text-amber-300" />
+                    </button>
+                </div>
+            )}
+
             {/* RFP Document Status */}
             <div className="px-4 py-2 border-b border-border bg-secondary/50 flex items-center justify-between">
                 <div className="flex items-center gap-2 overflow-hidden">
@@ -171,6 +193,21 @@ const RfpSidebar = () => {
                     )}
                 </label>
 
+                {aiWorkspaceSlug && rfpDocumentUrl && (
+                    <button
+                        type="button"
+                        onClick={async () => {
+                            setIsReExtracting(true);
+                            try { await reExtractRfp(); } finally { setIsReExtracting(false); }
+                        }}
+                        disabled={isReExtracting}
+                        className="flex items-center gap-1 text-[10px] font-bold text-[#0A52EF] hover:text-[#0A52EF] transition-colors disabled:opacity-50"
+                    >
+                        {isReExtracting ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                        RE-EXTRACT
+                    </button>
+                )}
+
                 {/* Vision Upload Button */}
                 <label className="cursor-pointer group ml-4 pl-4 border-l border-border">
                     <input type="file" className="hidden" accept="image/*" onChange={handleVisionUpload} disabled={isVisionAnalyzing} />
@@ -184,6 +221,23 @@ const RfpSidebar = () => {
                     )}
                 </label>
             </div>
+
+            {/* Extraction sources (citations for Trust but Verify) */}
+            {aiCitations && Object.keys(aiCitations).length > 0 && (
+                <div className="px-4 py-2 border-b border-border bg-muted/20">
+                    <p className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wider flex items-center gap-1">
+                        <Info className="w-3 h-3" /> Sources
+                    </p>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto custom-scrollbar">
+                        {Object.entries(aiCitations).map(([path, citation]) => (
+                            <div key={path} className="text-[10px]">
+                                <span className="font-medium text-foreground">{citationLabel(path)}</span>
+                                <p className="font-mono text-muted-foreground mt-0.5 break-all">{citation}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* RFP Vault List */}
             {rfpDocuments && rfpDocuments.length > 0 && (

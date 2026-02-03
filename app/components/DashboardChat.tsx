@@ -120,10 +120,10 @@ export default function DashboardChat() {
                     initial={{ opacity: 0, scale: 0.98, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.98, y: 20 }}
-                    className="absolute bottom-20 left-0 right-0 h-[500px] mb-4 bg-background/95 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50 pointer-events-auto"
+                    className="absolute bottom-20 left-0 right-0 max-h-[calc(100vh-7rem)] min-h-[320px] mb-4 bg-background/95 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50 pointer-events-auto"
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
+                    <div className="flex shrink-0 items-center justify-between px-6 py-4 border-b border-border/40">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-[#0A52EF]/10 rounded-lg flex items-center justify-center">
                                 <Brain className="w-4 h-4 text-[#0A52EF]" />
@@ -149,8 +149,8 @@ export default function DashboardChat() {
                         </div>
                     </div>
 
-                    {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
+                    {/* Messages - scrollable, takes remaining space */}
+                    <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-6 scrollbar-hide">
                         {messages.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-40">
                                 <Sparkles className="w-8 h-8 text-[#0A52EF]" />
@@ -223,6 +223,31 @@ export default function DashboardChat() {
                                 <div ref={messagesEndRef} />
                             </>
                         )}
+                    </div>
+
+                    {/* In-panel input - visible with chat so nothing is cut off */}
+                    <div className="shrink-0 border-t border-border/40 px-4 py-3 bg-muted/20">
+                        <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-background/80 px-3 py-2">
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                                disabled={isLoading}
+                                placeholder="Ask the Intelligence Core anything..."
+                                className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm text-foreground placeholder-muted-foreground disabled:opacity-50"
+                            />
+                            <button
+                                onClick={handleSend}
+                                disabled={!input.trim() || isLoading}
+                                className={cn(
+                                    "p-1.5 rounded-lg transition-all shrink-0",
+                                    input && !isLoading ? "text-[#0A52EF] hover:bg-[#0A52EF]/10" : "text-muted-foreground"
+                                )}
+                            >
+                                <Send className="w-4 h-4" />
+                            </button>
+                        </div>
                     </div>
                 </motion.div>
                 }

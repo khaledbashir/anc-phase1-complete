@@ -113,8 +113,9 @@ const defaultProposalContext = {
   aiWorkspaceSlug: null as string | null,
   rfpQuestions: [] as Array<{ id: string; question: string; answer: string | null; answered: boolean; order: number }>,
   uploadRfpDocument: (file: File) => Promise.resolve(),
+  reExtractRfp: () => Promise.resolve(null as any),
   answerRfpQuestion: (questionId: string, answer: string) => Promise.resolve(),
-  filterStats: null as { originalPages: number; keptPages: number; drawingCandidates: number[] } | null,
+  filterStats: null as { originalPages: number; keptPages: number; drawingCandidates: number[]; visionDisabled?: boolean } | null,
   sidebarMode: "HEALTH" as "HEALTH" | "CHAT",
   setSidebarMode: (mode: "HEALTH" | "CHAT") => { },
   // Command execution
@@ -125,6 +126,7 @@ const defaultProposalContext = {
   duplicateScreen: (index: number) => { },
   // AI & Verification
   aiFields: [] as string[],
+  aiCitations: {} as Record<string, string>,
   verifiedFields: {} as Record<string, { verifiedBy: string; verifiedAt: string }>,
   setFieldVerified: (fieldPath: string, userName: string) => { },
   aiFieldTimestamps: {} as Record<string, number>,
@@ -204,6 +206,7 @@ export const ProposalContextProvider = ({
   const [rfpDocuments, setRfpDocuments] = useState<Array<{ id: string; name: string; url: string; createdAt: string }>>([]);
   const [rfpQuestions, setRfpQuestions] = useState<Array<{ id: string; question: string; answer: string | null; answered: boolean; order: number }>>([]);
   const [aiFields, setAiFields] = useState<string[]>([]);
+  const [aiCitations, setAiCitations] = useState<Record<string, string>>({});
   const [verifiedFields, setVerifiedFields] = useState<Record<string, { verifiedBy: string; verifiedAt: string }>>({});
   const [aiFieldTimestamps, setAiFieldTimestamps] = useState<Record<string, number>>({});
   const [aiMessages, setAiMessages] = useState<any[]>([]);
@@ -553,6 +556,7 @@ export const ProposalContextProvider = ({
       // Cleanup AI state on project switch
       setAiMessages([]);
       setAiFields(d.aiFilledFields || details.metadata?.aiFilledFields || details.metadata?.filledByAI || []); // Hydrate AI fields
+      setAiCitations((d.aiCitations as Record<string, string>) || details.metadata?.aiCitations || {}); // Hydrate citations for Blue Glow tooltips
       setVerifiedFields((d.verifiedFields as any) || details.metadata?.verifiedFields || {}); // Hydrate Verified fields
       setProposalPdf(new Blob());
     }
@@ -648,7 +652,7 @@ export const ProposalContextProvider = ({
     }, 2000); // 2 second debounce
 
     return () => clearTimeout(handler);
-  }, [screens, projectId, getValues, watch, bondRateOverride, taxRateOverride, globalMargin]); // Re-run when screens or global settings change
+  }, [screens, projectId, getValues, watch, bondRateOverride, taxRateOverride, globalMargin, aiFields, aiCitations, verifiedFields]); // Re-run when screens, AI state, or global settings change
 
 
   useEffect(() => {
@@ -2218,6 +2222,7 @@ export const ProposalContextProvider = ({
         importANCExcel,
         // AI & Verification
         aiFields,
+        aiCitations,
         verifiedFields,
         setFieldVerified,
         aiFieldTimestamps,
@@ -2267,82 +2272,77 @@ export const ProposalContextProvider = ({
               // Refresh the vault list
               refreshRfpDocuments();
 
-              // Apply AI extracted data if available
+              // Apply AI extracted data if available (supports { value, citation } shape)
               if (data.extractedData) {
                 const ext = data.extractedData;
+                const v = (x: any) => (x != null && typeof x === "object" && "value" in x) ? x.value : x;
+                const c = (x: any) => (x != null && typeof x === "object" && "citation" in x && typeof (x as any).citation === "string") ? (x as any).citation : undefined;
                 const aiPopulated: string[] = [];
-                if (ext.receiver?.name) setValue("receiver.name", ext.receiver.name);
-                if (ext.details?.proposalName) setValue("details.proposalName", ext.details.proposalName);
-                if (ext.venue) {
-                  setValue("details.venue", ext.venue);
-                  aiPopulated.push("details.venue");
-                }
-                if (ext.rulesDetected?.structuralTonnage) {
-                  setValue("details.metadata.structuralTonnage", Number(ext.rulesDetected.structuralTonnage));
-                  aiPopulated.push("details.metadata.structuralTonnage");
-                }
-                if (ext.rulesDetected?.reinforcingTonnage) {
-                  setValue("details.metadata.reinforcingTonnage", Number(ext.rulesDetected.reinforcingTonnage));
-                  aiPopulated.push("details.metadata.reinforcingTonnage");
-                }
-
-                // CRITICAL: Set detected rules for Risk Engine
-                if (ext.rulesDetected) {
-                  setRulesDetected(ext.rulesDetected);
-                }
+                const citations: Record<string, string> = {};
+                const rName = v(ext.receiver?.name);
+                if (rName) { setValue("receiver.name", rName); aiPopulated.push("receiver.name"); const cit = c(ext.receiver?.name); if (cit) citations["receiver.name"] = cit; }
+                const pName = v(ext.details?.proposalName);
+                if (pName) { setValue("details.proposalName", pName); aiPopulated.push("details.proposalName"); const cit = c(ext.details?.proposalName); if (cit) citations["details.proposalName"] = cit; }
+                const venue = v(ext.details?.venue) ?? v(ext.venue);
+                if (venue) { setValue("details.venue", venue); aiPopulated.push("details.venue"); const cit = c(ext.details?.venue) ?? c(ext.venue); if (cit) citations["details.venue"] = cit; }
+                const structT = v(ext.rulesDetected?.structuralTonnage);
+                if (structT != null) { setValue("details.metadata.structuralTonnage", Number(structT)); aiPopulated.push("details.metadata.structuralTonnage"); const cit = c(ext.rulesDetected?.structuralTonnage); if (cit) citations["details.metadata.structuralTonnage"] = cit; }
+                const reinfT = v(ext.rulesDetected?.reinforcingTonnage);
+                if (reinfT != null) { setValue("details.metadata.reinforcingTonnage", Number(reinfT)); aiPopulated.push("details.metadata.reinforcingTonnage"); const cit = c(ext.rulesDetected?.reinforcingTonnage); if (cit) citations["details.metadata.reinforcingTonnage"] = cit; }
+                if (ext.rulesDetected) setRulesDetected(ext.rulesDetected);
 
                 if (ext.details?.screens && Array.isArray(ext.details.screens)) {
                   const normalized = ext.details.screens.map((s: any, idx: number) => {
                     const prefix = `details.screens[${idx}]`;
-                    if (s.name) aiPopulated.push(`${prefix}.name`);
-                    if (s.widthFt) aiPopulated.push(`${prefix}.widthFt`);
-                    if (s.heightFt) aiPopulated.push(`${prefix}.heightFt`);
-                    if (s.pitchMm) aiPopulated.push(`${prefix}.pitchMm`);
-                    if (s.pixelsH) aiPopulated.push(`${prefix}.pixelsH`);
-                    if (s.pixelsW) aiPopulated.push(`${prefix}.pixelsW`);
-                    if (s.brightness) aiPopulated.push(`${prefix}.brightness`);
+                    const name = v(s.name); const widthFt = v(s.widthFt); const heightFt = v(s.heightFt); const pitchMm = v(s.pitchMm);
+                    const quantity = v(s.quantity); const pixelsH = v(s.pixelResolutionH ?? s.pixelsH); const pixelsW = v(s.pixelResolutionW ?? s.pixelsW);
+                    const brightness = v(s.brightness); const serviceType = v(s.serviceType); const application = v(s.application);
+                    if (name) { aiPopulated.push(`${prefix}.name`); const cit = c(s.name); if (cit) citations[`${prefix}.name`] = cit; }
+                    if (widthFt != null) { aiPopulated.push(`${prefix}.widthFt`); const cit = c(s.widthFt); if (cit) citations[`${prefix}.widthFt`] = cit; }
+                    if (heightFt != null) { aiPopulated.push(`${prefix}.heightFt`); const cit = c(s.heightFt); if (cit) citations[`${prefix}.heightFt`] = cit; }
+                    if (pitchMm != null) { aiPopulated.push(`${prefix}.pitchMm`); const cit = c(s.pitchMm); if (cit) citations[`${prefix}.pitchMm`] = cit; }
+                    if (pixelsH != null) { aiPopulated.push(`${prefix}.pixelsH`); const cit = c(s.pixelResolutionH ?? s.pixelsH); if (cit) citations[`${prefix}.pixelsH`] = cit; }
+                    if (pixelsW != null) { aiPopulated.push(`${prefix}.pixelsW`); const cit = c(s.pixelResolutionW ?? s.pixelsW); if (cit) citations[`${prefix}.pixelsW`] = cit; }
+                    if (brightness != null) { aiPopulated.push(`${prefix}.brightness`); const cit = c(s.brightness); if (cit) citations[`${prefix}.brightness`] = cit; }
                     if (s.isReplacement !== undefined) aiPopulated.push(`${prefix}.isReplacement`);
 
                     return {
-                      name: s.name || "New Screen",
-                      externalName: s.externalName || s.name,
-                      widthFt: Number(s.widthFt || 0),
-                      heightFt: Number(s.heightFt || 0),
-                      quantity: Number(s.quantity || 1),
-                      pitchMm: Number(s.pitchMm || 10),
-                      pixelsH: Number(s.pixelsH || 0),
-                      pixelsW: Number(s.pixelsW || 0),
-                      brightness: s.brightness || "",
-                      serviceType: s.serviceType || "Front/Rear",
-                      isReplacement: !!s.isReplacement,
-                      useExistingStructure: !!s.useExistingStructure,
-                      includeSpareParts: s.includeSpareParts !== false,
+                      name: name || "New Screen",
+                      externalName: v(s.externalName) || name || "New Screen",
+                      widthFt: Number(widthFt ?? 0),
+                      heightFt: Number(heightFt ?? 0),
+                      quantity: Number(quantity ?? 1),
+                      pitchMm: Number(pitchMm ?? 10),
+                      pixelsH: Number(pixelsH ?? 0),
+                      pixelsW: Number(pixelsW ?? 0),
+                      brightness: brightness != null ? String(brightness) : "",
+                      serviceType: serviceType || "Front/Rear",
+                      application: application || "",
+                      isReplacement: !!v(s.isReplacement),
+                      useExistingStructure: !!v(s.useExistingStructure),
+                      includeSpareParts: v(s.includeSpareParts) !== false,
                     };
                   });
                   setValue("details.screens", normalized);
-                  if (ext.receiver?.name) {
-                    setValue("receiver.name", ext.receiver.name);
-                    aiPopulated.push("receiver.name");
-                  }
-                  if (ext.details?.proposalName) {
-                    setValue("details.proposalName", ext.details.proposalName);
-                    aiPopulated.push("details.proposalName");
-                  }
+                  if (rName) setValue("receiver.name", rName);
+                  if (pName) setValue("details.proposalName", pName);
                   setAiFields(aiPopulated);
+                  setAiCitations(prev => ({ ...prev, ...citations }));
 
-                  // Immediately recalculate audit for the new screens
                   try {
                     const { clientSummary, internalAudit } = calculateProposalAudit(normalized, {
                       taxRate: getValues("details.taxRateOverride"),
                       bondPct: getValues("details.bondRateOverride"),
-                      structuralTonnage: ext.rulesDetected?.structuralTonnage,
-                      reinforcingTonnage: ext.rulesDetected?.reinforcingTonnage,
+                      structuralTonnage: structT != null ? Number(structT) : undefined,
+                      reinforcingTonnage: reinfT != null ? Number(reinfT) : undefined,
                       projectAddress: `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
-                      venue: ext.venue ?? getValues("details.venue"),
+                      venue: venue ?? getValues("details.venue"),
                     });
                     setValue("details.internalAudit", internalAudit);
                     setValue("details.clientSummary", clientSummary);
                   } catch (e) { }
+                } else {
+                  setAiCitations(prev => ({ ...prev, ...citations }));
                 }
               }
               // Let the user know the magic happened!
@@ -2351,6 +2351,70 @@ export const ProposalContextProvider = ({
             }
           } catch (e) {
             console.error("RFP upload error", e);
+          }
+        },
+        reExtractRfp: async () => {
+          const proposalId = getValues().details?.proposalId;
+          const slug = getValues().details?.aiWorkspaceSlug;
+          if (!proposalId && !slug) return null;
+          try {
+            const res = await fetch("/api/rfp/extract", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ proposalId: proposalId || undefined, workspaceSlug: slug || undefined }),
+            });
+            const data = await res.json();
+            if (!data.ok || !data.extractedData) return data.extractedData ?? null;
+            const ext = data.extractedData;
+            const v = (x: any) => (x != null && typeof x === "object" && "value" in x) ? x.value : x;
+            const c = (x: any) => (x != null && typeof x === "object" && "citation" in x && typeof (x as any).citation === "string") ? (x as any).citation : undefined;
+            const aiPopulated: string[] = [];
+            const citations: Record<string, string> = {};
+            const rName = v(ext.receiver?.name); if (rName) { setValue("receiver.name", rName); aiPopulated.push("receiver.name"); const cit = c(ext.receiver?.name); if (cit) citations["receiver.name"] = cit; }
+            const pName = v(ext.details?.proposalName); if (pName) { setValue("details.proposalName", pName); aiPopulated.push("details.proposalName"); const cit = c(ext.details?.proposalName); if (cit) citations["details.proposalName"] = cit; }
+            const venue = v(ext.details?.venue) ?? v(ext.venue); if (venue) { setValue("details.venue", venue); aiPopulated.push("details.venue"); const cit = c(ext.details?.venue) ?? c(ext.venue); if (cit) citations["details.venue"] = cit; }
+            const structT = v(ext.rulesDetected?.structuralTonnage); if (structT != null) { setValue("details.metadata.structuralTonnage", Number(structT)); aiPopulated.push("details.metadata.structuralTonnage"); const cit = c(ext.rulesDetected?.structuralTonnage); if (cit) citations["details.metadata.structuralTonnage"] = cit; }
+            const reinfT = v(ext.rulesDetected?.reinforcingTonnage); if (reinfT != null) { setValue("details.metadata.reinforcingTonnage", Number(reinfT)); aiPopulated.push("details.metadata.reinforcingTonnage"); const cit = c(ext.rulesDetected?.reinforcingTonnage); if (cit) citations["details.metadata.reinforcingTonnage"] = cit; }
+            if (ext.rulesDetected) setRulesDetected(ext.rulesDetected);
+            if (ext.details?.screens && Array.isArray(ext.details.screens)) {
+              const normalized = ext.details.screens.map((s: any, idx: number) => {
+                const prefix = `details.screens[${idx}]`;
+                const name = v(s.name); const widthFt = v(s.widthFt); const heightFt = v(s.heightFt); const pitchMm = v(s.pitchMm);
+                const quantity = v(s.quantity); const pixelsH = v(s.pixelResolutionH ?? s.pixelsH); const pixelsW = v(s.pixelResolutionW ?? s.pixelsW);
+                const brightness = v(s.brightness); const serviceType = v(s.serviceType); const application = v(s.application);
+                if (name) { aiPopulated.push(`${prefix}.name`); const cit = c(s.name); if (cit) citations[`${prefix}.name`] = cit; }
+                if (widthFt != null) { aiPopulated.push(`${prefix}.widthFt`); const cit = c(s.widthFt); if (cit) citations[`${prefix}.widthFt`] = cit; }
+                if (heightFt != null) { aiPopulated.push(`${prefix}.heightFt`); const cit = c(s.heightFt); if (cit) citations[`${prefix}.heightFt`] = cit; }
+                if (pitchMm != null) { aiPopulated.push(`${prefix}.pitchMm`); const cit = c(s.pitchMm); if (cit) citations[`${prefix}.pitchMm`] = cit; }
+                if (brightness != null) { aiPopulated.push(`${prefix}.brightness`); const cit = c(s.brightness); if (cit) citations[`${prefix}.brightness`] = cit; }
+                return {
+                  name: name || "New Screen",
+                  externalName: v(s.externalName) || name || "New Screen",
+                  widthFt: Number(widthFt ?? 0), heightFt: Number(heightFt ?? 0), quantity: Number(quantity ?? 1), pitchMm: Number(pitchMm ?? 10),
+                  pixelsH: Number(pixelsH ?? 0), pixelsW: Number(pixelsW ?? 0), brightness: brightness != null ? String(brightness) : "",
+                  serviceType: serviceType || "Front/Rear", application: application || "", isReplacement: !!v(s.isReplacement), useExistingStructure: !!v(s.useExistingStructure), includeSpareParts: v(s.includeSpareParts) !== false,
+                };
+              });
+              setValue("details.screens", normalized);
+              if (rName) setValue("receiver.name", rName); if (pName) setValue("details.proposalName", pName);
+              setAiFields(aiPopulated);
+              setAiCitations(prev => ({ ...prev, ...citations }));
+              try {
+                const { clientSummary, internalAudit } = calculateProposalAudit(normalized, {
+                  taxRate: getValues("details.taxRateOverride"), bondPct: getValues("details.bondRateOverride"),
+                  structuralTonnage: structT != null ? Number(structT) : undefined, reinforcingTonnage: reinfT != null ? Number(reinfT) : undefined,
+                  projectAddress: `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""}`.trim(), venue: venue ?? getValues("details.venue"),
+                });
+                setValue("details.internalAudit", internalAudit); setValue("details.clientSummary", clientSummary);
+              } catch (e) { /* ignore */ }
+            } else {
+              setAiCitations(prev => ({ ...prev, ...citations }));
+            }
+            aiExtractionSuccess();
+            return data.extractedData;
+          } catch (e) {
+            console.error("Re-extract error", e);
+            return null;
           }
         },
         answerRfpQuestion: async (questionId: string, answer: string) => {

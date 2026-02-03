@@ -119,4 +119,53 @@ export class Glm4VisionClient {
         console.error("Vision Extraction Failed:", error);
         throw error;
     }
+    }
+
+    /**
+     * Describe a technical drawing in 2-3 sentences for RAG/search.
+     * Used so drawing pages become searchable (e.g. "Where is AV-101?").
+     * Returns plain text only — no JSON.
+     */
+    async describeForSearch(base64Image: string): Promise<string> {
+        let baseUrl = this.config.baseUrl || 'https://open.bigmodel.cn/api/paas/v4';
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+        const endpoint = `${baseUrl}/chat/completions`;
+        const payload = {
+            model: this.config.modelName || "glm-4v",
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "text",
+                            text: `Describe this technical drawing in 2-4 short sentences for search. Look for sheet labels "AV" (Audio-Visual) or "A" (Architectural). Include: (1) type (elevation, plan, detail, section, structural attachment), (2) sheet number or label (e.g. AV-101, A-2), (3) display/location labels (A, B, D1, Center Hung, Ribbon), (4) any structural attachment or "connection of provider supplied equipment to project structure" details. Use plain text only, no JSON or markdown.`
+                        },
+                        { type: "image_url", image_url: { url: base64Image } }
+                    ]
+                }
+            ],
+            temperature: 0.3,
+            max_tokens: 300
+        };
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.config.apiKey}`
+                },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const err = await response.text();
+                throw new Error(`GLM-4V describeForSearch: ${response.status} ${err}`);
+            }
+            const data = await response.json();
+            const text = (data.choices?.[0]?.message?.content ?? "").trim();
+            return text || "(Drawing page — no description extracted)";
+        } catch (e) {
+            console.warn("Vision describeForSearch failed:", e);
+            return "(Drawing page — vision description unavailable)";
+        }
+    }
 }

@@ -63,6 +63,20 @@ export class DrawingService {
     }
 
     /**
+     * Describe a drawing page in plain text for RAG embedding (OCR-style).
+     * So "Where is AV-101?" can find the right page. Returns text to append to filtered content.
+     */
+    async describePageForSearch(base64Image: string, pageNumber: number): Promise<string> {
+        try {
+            const desc = await this.visionClient.describeForSearch(base64Image);
+            return `Page ${pageNumber}: ${desc}`;
+        } catch (e) {
+            console.warn(`DrawingService describePageForSearch page ${pageNumber} failed:`, e);
+            return `Page ${pageNumber}: (Drawing — description unavailable)`;
+        }
+    }
+
+    /**
      * MOCK Method for testing without burning tokens
      */
     async mockProcess(): Promise<ExtractionResult[]> {

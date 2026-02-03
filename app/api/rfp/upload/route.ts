@@ -120,43 +120,41 @@ export async function POST(req: NextRequest) {
         const filterResult = await smartFilterPdf(buffer);
         console.log(`[RFP Upload] Filtered ${filterResult.totalPages} pages down to ${filterResult.retainedPages} signal pages.`);
 
-        // --- AUTO-VISION EXTRACTION ---
+        // --- AUTO-VISION: AV/A sheets, Elevation, Structural Attachment (8–10 pages) ---
+        const MAX_DRAWING_PAGES_TO_SCAN = 10;
+        const visionConfigured = !!(process.env.Z_AI_API_KEY || process.env.Z_AI_BASE_URL);
+        let visionDisabled = false;
+
         if (filterResult.drawingCandidates.length > 0) {
-          console.log(`[RFP Upload] Found ${filterResult.drawingCandidates.length} potential drawings. Scanning top 3...`);
-          const drawingService = new DrawingService();
-          const pagesToScan = filterResult.drawingCandidates.slice(0, 3);
-
-          let visionContext = "\n\n=== VISION EXTRACTION RESULTS (Drawings) ===\n";
-          let visionHits = 0;
-
-          for (const pageNum of pagesToScan) {
-            try {
-              console.log(`[RFP Upload] Vision scanning page ${pageNum}...`);
-              const screenshot = await screenshotPdfPage(buffer, pageNum);
-
-              if (screenshot) {
-                const base64 = `data:image/png;base64,${screenshot.toString('base64')}`;
-                const results = await drawingService.processDrawingPage(base64);
-
-                if (results.length > 0) {
-                  visionContext += `\n--- Page ${pageNum} Analysis ---\n`;
-                  results.forEach(r => {
-                    visionContext += `- Found ${r.field}: ${r.value} (Confidence: ${Math.round(r.confidence * 100)}%)\n`;
-                  });
-                  visionHits++;
+          if (visionConfigured) {
+            console.log(`[RFP Upload] Found ${filterResult.drawingCandidates.length} potential drawings. Scanning up to ${MAX_DRAWING_PAGES_TO_SCAN}...`);
+            const drawingService = new DrawingService();
+            const pagesToScan = filterResult.drawingCandidates.slice(0, MAX_DRAWING_PAGES_TO_SCAN);
+            let visionContext = "\n\n=== VISION (Drawings — searchable) ===\n";
+            for (const pageNum of pagesToScan) {
+              try {
+                console.log(`[RFP Upload] Vision scanning page ${pageNum}...`);
+                const screenshot = await screenshotPdfPage(buffer, pageNum);
+                if (screenshot) {
+                  const base64 = `data:image/png;base64,${screenshot.toString('base64')}`;
+                  const labels = await drawingService.processDrawingPage(base64);
+                  const searchDesc = await drawingService.describePageForSearch(base64, pageNum);
+                  visionContext += searchDesc + "\n";
+                  if (labels.length > 0) {
+                    visionContext += `  Labels: ${labels.map(r => `${r.field}=${r.value}`).join(", ")}\n`;
+                  }
                 }
+              } catch (vErr) {
+                console.error(`[RFP Upload] Vision failed for page ${pageNum}`, vErr);
               }
-            } catch (vErr) {
-              console.error(`[RFP Upload] Vision failed for page ${pageNum}`, vErr);
             }
-          }
-
-          if (visionHits > 0) {
             filterResult.filteredText += visionContext;
-            console.log(`[RFP Upload] Added vision context to embedding.`);
+            console.log(`[RFP Upload] Added vision descriptions to embedding (${pagesToScan.length} pages).`);
+          } else {
+            visionDisabled = true;
+            console.log(`[RFP Upload] Vision skipped (Z_AI not configured). Drawing candidates: ${filterResult.drawingCandidates.length}`);
           }
         }
-        // ------------------------------
 
         // Create synthetic text file for embedding (Signal Only)
         fileToEmbed = Buffer.from(filterResult.filteredText);
@@ -165,7 +163,8 @@ export async function POST(req: NextRequest) {
         filterStats = {
           originalPages: filterResult.totalPages,
           keptPages: filterResult.retainedPages,
-          drawingCandidates: filterResult.drawingCandidates
+          drawingCandidates: filterResult.drawingCandidates,
+          visionDisabled: visionDisabled
         };
 
         // Upload ORIGINAL for storage/compliance (Archive folder, NO embedding)
@@ -239,28 +238,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 4. Extract Data (AI Analysis)
-    // Now running against the FILTERED context, so it should be much faster and more accurate
-    console.log(`[RFP Upload] Analyzing document for extraction...`);
+    // 4. Extract Data (AI Analysis) — Boss-level: Division 11 priority, citations, 20-field targets
+    // Running against FILTERED signal-only context for speed and accuracy
+    console.log(`[RFP Upload] Analyzing document for extraction (Division 11 + citations)...`);
     const extractionPrompt = `
-      Analyze the uploaded RFP document "${file.name}" and extract the following technical specifications into a JSON object.
-      
-      Return ONLY valid JSON. No markdown formatting.
-      
-      Fields to extract:
-      - receiver.name: Client or Customer Name
-      - details.proposalName: Project Name or RFP Title
-      - details.venue: Venue or Location Name
-      - rulesDetected.structuralTonnage: Any mention of structural steel weight/tonnage
-      - rulesDetected.reinforcingTonnage: Any mention of rebar/reinforcing weight
-      - details.screens: Array of screens/displays found. For each screen include:
-        - name: Screen name/ID
-        - widthFt: Width in feet (convert if necessary)
-        - heightFt: Height in feet (convert if necessary)
-        - quantity: Number of units
-        - pitchMm: Pixel pitch in mm
-        - isReplacement: true if it replaces an existing screen
-        - useExistingStructure: true if it uses existing steel
+You are the ANC Digital Signage Expert AI. Analyze the RFP content and extract Equipment (EQ) and Quantities. Follow the 17/20 Rule: extract what you can; for the rest return null and the system will Gap Fill.
+
+PRIORITY: Search "Section 11 63 10" (LED Display Systems) and "Section 11 06 60" (Display Schedule). That data is Master Truth.
+
+CITATIONS (P0): Every extracted value MUST be: { "value": <actual>, "citation": "[Source: Section X, Page Y]" }. If no section/page found use "[Source: Document Analysis]". Do not hallucinate — citations prove the value is real.
+
+MISSING FIELDS: If you cannot identify a field, set it to null. Do not guess. Null triggers Gap Fill (the Chat Sidebar will ask the user, e.g. "Section 11 did not specify Service Type. Is this Front or Rear Service?").
+
+BRIGHTNESS: Capture the numeric value from the document (often labeled "Nits"). Store as number (e.g. 6000). The UI labels it "Brightness".
+
+EQ FIELDS TO EXTRACT (per screen, use { value, citation } or null):
+1. Screen Name  2. Quantity  3. Location/Zone  4. Application (indoor|outdoor)  5. Pixel Pitch (e.g. 10mm)
+6. Resolution Height (pixels)  7. Resolution Width (pixels)  8. Active Area Height (feet/inches)  9. Active Area Width (feet/inches)
+10. Brightness (number)  11. Service Type (front|rear)  12. Structural Tonnage (from Thornton Tomasetti/TTE reports, "tons")
+
+Also extract: receiver.name, details.proposalName, details.venue; rulesDetected.structuralTonnage, reinforcingTonnage, requiresUnionLabor, requiresSpareParts.
+
+OUTPUT: Return ONLY valid JSON. No markdown. details.screens = array of objects with the EQ fields above; each field is { value, citation } or null.
     `;
 
     let extractedData = null;
@@ -291,6 +290,9 @@ export async function POST(req: NextRequest) {
       workspaceSlug,
       extractedData,
       filterStats,
+      visionWarning: filterStats?.visionDisabled
+        ? "Vision disabled: Drawing analysis skipped. Please manually verify structural constraints."
+        : undefined,
       message: "RFP uploaded and analyzed successfully"
     });
 

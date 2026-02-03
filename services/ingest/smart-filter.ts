@@ -1,13 +1,28 @@
-// Keywords that indicate "Signal" (Technical/Pricing content)
+// Master Truth: pages containing these are ALWAYS kept
+const MUST_KEEP_PHRASES = [
+  "11 06 60", "11.06.60", "110660",           // Display Schedule
+  "11 63 10", "11.63.10", "116310",           // LED Display Systems
+  "section 11", "division 11",
+  "led display schedule", "display schedule",
+  "schedule of displays", "av schedule",
+  "exhibit b", "cost schedule", "bid form",   // WVU: pricing in Exhibit B - Cost Schedule
+  "exhibit a",                                // Statement of Work / SOW (secondary target)
+  "thornton tomasetti", "tte",                // Structural steel tonnage (Thornton Tomasetti / TTE)
+  "division 26", "26 51", "sports lighting",  // ANC scope: Division 26 Sports Lighting
+  "division 27", "27 41", "sound system"      // ANC scope: Division 27 Sound/Comms (e.g. 27 41 16.64)
+];
+
+// High-value signal (technical / pricing)
 const SIGNAL_KEYWORDS = [
-  "schedule", "pricing", "bid form", "display", "led", "specification", 
+  "schedule", "pricing", "bid form", "display", "led", "specification",
   "technical", "qty", "quantity", "pixel pitch", "resolution", "nits", "brightness",
   "cabinet", "module", "diode", "refresh rate", "viewing angle", "warranty",
   "spare parts", "maintenance", "structural", "steel", "weight", "lbs", "kg",
-  "power", "voltage", "amps", "circuit", "data", "fiber", "cat6"
+  "power", "voltage", "amps", "circuit", "data", "fiber", "cat6",
+  "division 27", "division 26", "section 11", "active area", "dimensions"
 ];
 
-// Keywords that indicate "Noise" (Legal/Boilerplate)
+// Noise (legal/boilerplate) — still penalize so non-master-truth pages rank lower
 const NOISE_KEYWORDS = [
   "indemnification", "insurance", "liability", "termination", "arbitration",
   "force majeure", "governing law", "jurisdiction", "severability", "waiver",
@@ -20,6 +35,7 @@ interface PageContent {
   text: string;
   score: number;
   isDrawingCandidate: boolean;
+  isMustKeep?: boolean;
 }
 
 export interface FilterResult {
@@ -85,6 +101,15 @@ export async function smartFilterPdf(fileBuffer: Buffer): Promise<FilterResult> 
       const text = String(p?.text ?? "");
       const lowerText = text.toLowerCase();
       let score = 0;
+      let isMustKeep = false;
+
+      for (const phrase of MUST_KEEP_PHRASES) {
+        if (lowerText.includes(phrase)) {
+          score += 25;
+          isMustKeep = true;
+          break;
+        }
+      }
 
       for (const kw of SIGNAL_KEYWORDS) {
         if (lowerText.includes(kw)) score += 6;
@@ -107,12 +132,14 @@ export async function smartFilterPdf(fileBuffer: Buffer): Promise<FilterResult> 
           lowerText.includes("section") ||
           lowerText.includes("plan") ||
           lowerText.includes("drawing") ||
-          lowerText.includes("dwg"));
+          lowerText.includes("dwg") ||
+          /\bav-\d+/i.test(text) ||
+          lowerText.includes("sheet") && (lowerText.includes("of") || /\d+/.test(text)));
 
       const isDrawingCandidate = looksLikeDrawing;
       if (isDrawingCandidate) score += 15;
 
-      return { pageNumber, text, score, isDrawingCandidate };
+      return { pageNumber, text, score, isDrawingCandidate, isMustKeep };
     });
 
     const totalPages = Number.isFinite(totalPagesFromDoc) && totalPagesFromDoc > 0
@@ -124,14 +151,18 @@ export async function smartFilterPdf(fileBuffer: Buffer): Promise<FilterResult> 
       .map((p) => p.pageNumber);
 
     const MIN_SCORE_TO_KEEP = 8;
-    const MAX_PAGES_TO_KEEP = totalPages > 250 ? 80 : 120;
-    const MAX_CHARS_TO_KEEP = 350_000;
+    // Cap how much we send to embedding (2,500-page RFP → keep only best ~100–150 pages + 450k chars)
+    const MAX_PAGES_TO_KEEP = totalPages > 250 ? 100 : 150;
+    const MAX_CHARS_TO_KEEP = 450_000;
 
-    const retained = pages
-      .filter((p) => p.isDrawingCandidate || p.score >= MIN_SCORE_TO_KEEP)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, MAX_PAGES_TO_KEEP)
-      .sort((a, b) => a.pageNumber - b.pageNumber);
+    const mustKeepPages = pages.filter((p) => p.isMustKeep === true);
+    const rest = pages.filter((p) => !p.isMustKeep && (p.isDrawingCandidate || p.score >= MIN_SCORE_TO_KEEP));
+    const restSorted = rest.sort((a, b) => b.score - a.score);
+    const restSlots = Math.max(0, MAX_PAGES_TO_KEEP - mustKeepPages.length);
+    const retained = [
+      ...mustKeepPages,
+      ...restSorted.slice(0, restSlots)
+    ].sort((a, b) => a.pageNumber - b.pageNumber);
 
     let filteredContent = `SMART_FILTER\nTOTAL_PAGES=${totalPages}\nRETAINED_PAGES=${retained.length}\nPAGES=${retained.map((p) => p.pageNumber).join(",")}\n\n`;
     let used = filteredContent.length;

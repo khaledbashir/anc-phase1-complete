@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isImmutable, isFinancialLocked, LOCKED_FINANCIAL_FIELDS, validateApprovalTransition } from "@/lib/proposal-lifecycle";
+import { analyzeGaps } from "@/lib/gap-analysis";
 
 import { prisma } from "@/lib/prisma";
 

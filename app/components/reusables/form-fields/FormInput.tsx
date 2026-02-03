@@ -36,8 +36,9 @@ const FormInput = ({
     ...props
 }: FormInputProps) => {
     const { control } = useFormContext();
-    const { aiFields, isFieldGhostActive, verifiedFields, setFieldVerified } = useProposalContext();
+    const { aiFields, aiCitations, isFieldGhostActive, verifiedFields, setFieldVerified } = useProposalContext();
     const isAiFilled = aiFields?.includes(name);
+    const citation = aiCitations?.[name];
     const isGhostActive = isFieldGhostActive?.(name) || false;
     const verificationInfo = verifiedFields?.[name];
     const isVerified = !!verificationInfo;
@@ -100,7 +101,12 @@ const FormInput = ({
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <strong className="text-[#0A52EF]">AI Extracted:</strong> This value was pulled automatically from the RFP. Please verify and lock this data.
+                                                        <strong className="text-[#0A52EF]">AI Extracted:</strong> This value was pulled from the RFP. Please verify and lock this data.
+                                                        {citation && (
+                                                            <>
+                                                                <br /><span className="text-muted-foreground mt-1 block font-mono text-[10px]">{citation}</span>
+                                                            </>
+                                                        )}
                                                     </>
                                                 )}
                                             </p>
