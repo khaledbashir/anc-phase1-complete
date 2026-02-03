@@ -32,7 +32,7 @@ export default function ExhibitA_TechnicalSpecs({ data }: ExhibitATechnicalSpecs
                 </h2>
             </div>
 
-            <div className="border border-gray-300">
+            <div className="border border-gray-300 break-inside-avoid">
                 <div className="grid grid-cols-12 text-[10px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300">
                     <div className="col-span-4 px-3 py-2">Display Name</div>
                     <div className="col-span-3 px-3 py-2">Dimensions</div>
@@ -63,7 +63,7 @@ export default function ExhibitA_TechnicalSpecs({ data }: ExhibitATechnicalSpecs
                                         : rawBrightness.toString();
 
                             return (
-                                <div key={screen?.id || `${name}-${idx}`} className="grid grid-cols-12 border-b border-gray-200 last:border-b-0">
+                                <div key={screen?.id || `${name}-${idx}`} className="grid grid-cols-12 border-b border-gray-200 last:border-b-0 break-inside-avoid">
                                     <div className="col-span-4 px-3 py-2 font-semibold">{name}</div>
                                     <div className="col-span-3 px-3 py-2 text-gray-800">
                                         {formatFeet(h)} x {formatFeet(w)}

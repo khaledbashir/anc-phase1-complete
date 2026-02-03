@@ -100,7 +100,7 @@ const ProposalTemplate3 = (data: ProposalTemplate3Props) => {
 
     // Modern Spec Card
     const SpecCard = ({ screen }: { screen: any }) => (
-        <div className="mb-6 rounded-lg overflow-hidden border" style={{ borderColor: colors.border, background: colors.surface }}>
+        <div className="mb-6 rounded-lg overflow-hidden border break-inside-avoid" style={{ borderColor: colors.border, background: colors.surface }}>
             <div className="px-5 py-3 border-b" style={{ borderColor: colors.border, background: colors.primaryLight }}>
                 <h3 className="font-semibold text-sm uppercase tracking-wide" style={{ color: colors.primary }}>
                     {getScreenHeader(screen)}
@@ -116,7 +116,7 @@ const ProposalTemplate3 = (data: ProposalTemplate3Props) => {
                     { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0}px` },
                     ...(screen.brightnessNits || screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(screen.brightnessNits || screen.brightness)} nits` }] : []),
                 ].map((item, idx) => (
-                    <div key={idx} className={`px-5 py-2.5 flex justify-between ${idx % 2 === 0 ? 'border-r' : ''} ${idx < 6 ? 'border-b' : ''}`} style={{ borderColor: colors.border }}>
+                    <div key={idx} className={`px-5 py-2.5 flex justify-between break-inside-avoid ${idx % 2 === 0 ? 'border-r' : ''} ${idx < 6 ? 'border-b' : ''}`} style={{ borderColor: colors.border }}>
                         <span style={{ color: colors.textLight }}>{item.label}</span>
                         <span className="font-medium" style={{ color: colors.text }}>{item.value}</span>
                     </div>

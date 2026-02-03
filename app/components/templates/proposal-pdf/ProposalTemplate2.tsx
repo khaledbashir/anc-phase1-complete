@@ -102,7 +102,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     <h3 className="font-bold text-sm uppercase text-[#002C73] font-sans">{premiumGetScreenHeader(screen)}</h3>
                     <span className="font-bold text-sm uppercase text-[#002C73] font-sans">SPECIFICATIONS</span>
                 </div>
-                <table className="w-full text-[11px] border-collapse font-sans">
+                <table className="w-full text-[11px] border-collapse font-sans break-inside-avoid">
                     <tbody>
                         {[
                             { label: "MM Pitch", value: `${screen.pitchMm ?? screen.pixelPitch ?? 0} mm` },
@@ -382,10 +382,10 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     <h3 className="font-bold text-sm uppercase text-[#0A52EF]">{getScreenHeader(screen)}</h3>
                     <span className="font-bold text-sm uppercase text-[#0A52EF]">Pricing</span>
                 </div>
-                <table className="w-full text-[11px] border-collapse">
+                <table className="w-full text-[11px] border-collapse break-inside-avoid">
                     <tbody>
                         {lineItems.map((row, idx) => (
-                            <tr key={row.label} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} border-b border-gray-100`}>
+                            <tr key={row.label} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} border-b border-gray-100 break-inside-avoid`}>
                                 <td className="p-1.5 pl-4 text-gray-700">{row.label}</td>
                                 <td className="p-1.5 pr-4 text-right text-gray-900 font-medium">{formatCurrency(row.value)}</td>
                             </tr>

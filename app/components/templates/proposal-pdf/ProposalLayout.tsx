@@ -38,6 +38,53 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                     <link href={fontHref} rel="stylesheet" />
                 </>
             )}
+            {/* Global print styles for proper page breaks */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                    @media print {
+                        /* Prevent table rows from breaking across pages */
+                        tr, .grid-row, [class*="grid-cols"] > div {
+                            page-break-inside: avoid;
+                            break-inside: avoid;
+                        }
+                        
+                        /* Prevent tables from breaking */
+                        table {
+                            page-break-inside: avoid;
+                            break-inside: avoid;
+                        }
+                        
+                        /* Ensure table headers repeat on each page */
+                        thead {
+                            display: table-header-group;
+                        }
+                        
+                        /* Prevent sections from breaking awkwardly */
+                        .break-inside-avoid, [class*="break-inside-avoid"] {
+                            page-break-inside: avoid;
+                            break-inside: avoid;
+                        }
+                        
+                        /* Force page breaks before major sections */
+                        .break-before-page, [class*="break-before-page"] {
+                            page-break-before: always;
+                            break-before: page;
+                        }
+                        
+                        /* Prevent orphans and widows */
+                        p, div {
+                            orphans: 3;
+                            widows: 3;
+                        }
+                        
+                        /* Ensure proper spacing around page breaks */
+                        .break-before-page {
+                            margin-top: 0;
+                            padding-top: 0;
+                        }
+                    }
+                `
+            }} />
         </>
     );
 
