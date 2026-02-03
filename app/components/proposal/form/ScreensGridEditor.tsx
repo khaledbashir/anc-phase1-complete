@@ -1,10 +1,14 @@
 "use client";
 
 import type { CellValueChangedEvent, ColDef, GetRowIdParams } from "ag-grid-community";
+import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { useMemo, useRef } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ProposalType } from "@/types";
+
+// Register AG Grid modules (required for v35+)
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 function toKey(screen: any) {
   if (screen?.id) return `id:${screen.id}`;

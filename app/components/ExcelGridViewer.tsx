@@ -2,9 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ColDef, GridReadyEvent, SelectionChangedEvent } from "ag-grid-community";
+import { ModuleRegistry, AllCommunityModule } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { cn } from "@/lib/utils";
+
+// Register AG Grid modules (required for v35+)
+ModuleRegistry.registerModules([AllCommunityModule]);
 
 type ExcelGridViewerProps = {
   highlightedRows?: number[];
