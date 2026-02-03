@@ -249,17 +249,14 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         };
 
         const buildDescription = (screen: any) => {
-            const serviceType = (screen?.serviceType || "").toString().toLowerCase();
-            const serviceLabel = serviceType.includes("top") ? "Ribbon Display" : serviceType ? "Video Display" : "Display";
-
             const heightFt = screen?.heightFt ?? screen?.height;
             const widthFt = screen?.widthFt ?? screen?.width;
             const pitchMm = screen?.pitchMm ?? screen?.pixelPitch;
             const qty = screen?.quantity || 1;
 
             const parts: string[] = [];
-            parts.push(serviceLabel);
 
+            // Dimensions: show both rounded and exact feet
             if (heightFt != null && widthFt != null && Number(heightFt) > 0 && Number(widthFt) > 0) {
                 parts.push(`${toWholeFeet(heightFt)} H x ${toWholeFeet(widthFt)} W`);
                 parts.push(`${toExactFeet(heightFt)} H x ${toExactFeet(widthFt)} W`);
