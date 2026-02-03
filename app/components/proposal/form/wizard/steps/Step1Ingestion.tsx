@@ -8,6 +8,7 @@ import ExcelGridViewer from "@/app/components/ExcelGridViewer";
 import ScreensGridEditor from "@/app/components/proposal/form/ScreensGridEditor";
 import { AiWand, FormInput } from "@/app/components";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Step1Ingestion = () => {
     const {
@@ -264,18 +265,35 @@ const Step1Ingestion = () => {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 h-[560px] max-h-[70vh]">
-                                <div className="h-full rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
-                                    <ScreensGridEditor />
-                                </div>
-                                <div className="h-full rounded-xl border border-border bg-card shadow-2xl overflow-hidden relative group">
-                                    <ExcelGridViewer />
-                                    <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                        <div className="bg-background/80 backdrop-blur text-[10px] text-muted-foreground px-2 py-1 rounded border border-border">
-                                            Workbook preview (read-only)
+                            <div className="rounded-2xl border border-border bg-card/30 overflow-hidden">
+                                <Tabs defaultValue="excel">
+                                    <div className="px-4 py-3 border-b border-border/70 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Workbook</span>
+                                                <span className="text-xs font-semibold text-foreground truncate max-w-[420px]">
+                                                    {excelPreview.fileName}
+                                                </span>
+                                            </div>
                                         </div>
+                                        <TabsList className="bg-muted/40">
+                                            <TabsTrigger value="excel">Excel</TabsTrigger>
+                                            <TabsTrigger value="screens">Screen Editor</TabsTrigger>
+                                        </TabsList>
                                     </div>
-                                </div>
+
+                                    <TabsContent value="excel" className="m-0">
+                                        <div className="h-[620px] max-h-[72vh] overflow-hidden">
+                                            <ExcelGridViewer />
+                                        </div>
+                                    </TabsContent>
+
+                                    <TabsContent value="screens" className="m-0">
+                                        <div className="h-[620px] max-h-[72vh] overflow-hidden">
+                                            <ScreensGridEditor />
+                                        </div>
+                                    </TabsContent>
+                                </Tabs>
                             </div>
                         </div>
                     )}

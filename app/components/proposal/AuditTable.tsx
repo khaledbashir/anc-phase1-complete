@@ -21,7 +21,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
   const [draft, setDraft] = useState("");
 
   if (!internalAudit || !internalAudit.perScreen) {
-    return <div className="p-8 text-center text-zinc-500 italic">No screen data available for audit.</div>;
+    return <div className="p-8 text-center text-muted-foreground italic">No screen data available for audit.</div>;
   }
 
   const { perScreen, totals } = internalAudit;
@@ -74,7 +74,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
   return (
     <div className="min-w-[1000px] text-xs font-mono">
       {/* Header Row */}
-      <div className="grid grid-cols-12 gap-2 bg-zinc-950 p-3 rounded-t-lg border-b border-zinc-800 text-zinc-400 font-bold">
+      <div className="grid grid-cols-12 gap-2 bg-muted p-3 rounded-t-lg border-b border-border text-muted-foreground font-bold">
         <div className="col-span-2">Screen Name</div>
         <div className="col-span-1 text-right">Qty</div>
         <div className="col-span-1 text-right">Area</div>
@@ -89,7 +89,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
       </div>
 
       {/* Data Rows */}
-      <div className="divide-y divide-zinc-800/50 bg-zinc-900/30">
+      <div className="divide-y divide-border bg-card/30">
         {perScreen.map((screen: any, idx: number) => {
           const calc = calculateRow(screen);
           const screenForm = screens?.[idx] || {};
@@ -111,7 +111,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
           dynamicTotals.finalClientTotal += calc.finalClientTotal;
 
           return (
-            <div key={idx} className="grid grid-cols-12 gap-2 p-3 hover:bg-zinc-800/50 transition-colors items-center text-zinc-300">
+            <div key={idx} className="grid grid-cols-12 gap-2 p-3 hover:bg-accent/50 transition-colors items-center text-foreground">
               <div className="col-span-2 font-semibold min-w-0" title={displayName}>
                 <div className="flex items-center gap-2 min-w-0">
                   {editIdx === idx ? (
@@ -119,7 +119,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
                       <Input
                         value={draft}
                         onChange={(e) => setDraft(e.target.value)}
-                        className="h-7 bg-zinc-950 border-zinc-700 text-white text-xs"
+                        className="h-7 bg-background border-input text-foreground text-xs"
                         autoFocus
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
@@ -172,7 +172,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
                       />
                       <button
                         type="button"
-                        className="p-1 rounded hover:bg-zinc-800 text-zinc-300"
+                        className="p-1 rounded hover:bg-accent text-foreground"
                         onClick={() => {
                           const newName = draft.trim();
                           // 1. Update Screen Name
@@ -215,7 +215,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
                       </button>
                       <button
                         type="button"
-                        className="p-1 rounded hover:bg-zinc-800 text-zinc-300"
+                        className="p-1 rounded hover:bg-accent text-foreground"
                         onClick={() => setEditIdx(null)}
                         title="Cancel"
                       >
@@ -227,7 +227,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
                       <div className="truncate">{displayName}</div>
                       <button
                         type="button"
-                        className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-white shrink-0"
+                        className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground shrink-0"
                         onClick={() => {
                           setDraft((screenForm?.customDisplayName || displayName).toString());
                           setEditIdx(idx);
@@ -239,7 +239,7 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
                     </>
                   )}
                 </div>
-                <div className="text-[10px] text-zinc-500 font-normal">{screen.pixelMatrix}</div>
+                <div className="text-[10px] text-muted-foreground font-normal">{screen.pixelMatrix}</div>
               </div>
               <div className="col-span-1 text-right">{screen.quantity}</div>
               <div className="col-span-1 text-right">{Number(screen.areaSqFt).toFixed(2)} sf</div>
@@ -259,10 +259,10 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
       </div>
 
       {/* Totals Footer */}
-      <div className="grid grid-cols-12 gap-2 bg-zinc-950 p-4 rounded-b-lg border-t-2 border-zinc-700 text-sm font-bold mt-2">
-        <div className="col-span-2 text-white">PROJECT TOTALS</div>
-        <div className="col-span-1 text-right text-zinc-500">-</div>
-        <div className="col-span-1 text-right text-zinc-500">-</div>
+      <div className="grid grid-cols-12 gap-2 bg-muted p-4 rounded-b-lg border-t-2 border-border text-sm font-bold mt-2">
+        <div className="col-span-2 text-foreground">PROJECT TOTALS</div>
+        <div className="col-span-1 text-right text-muted-foreground">-</div>
+        <div className="col-span-1 text-right text-muted-foreground">-</div>
         <div className="col-span-1 text-right text-indigo-400">{formatCurrency(dynamicTotals.hardware)}</div>
         <div className="col-span-1 text-right text-indigo-400">{formatCurrency(dynamicTotals.services)}</div>
         <div className="col-span-1 text-right text-red-400">{formatCurrency(dynamicTotals.totalCost)}</div>
