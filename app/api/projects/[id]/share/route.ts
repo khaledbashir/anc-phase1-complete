@@ -176,7 +176,10 @@ export async function POST(
                 showSignatureBlock: documentMode === "LOI" ? (cfg.showSignatureBlock ?? true) : false,
                 showAssumptions: false,
                 showExhibitA: cfg.showExhibitA ?? false,
-                showExhibitB: documentMode === "LOI" ? (cfg.showExhibitB ?? false) : false
+                showExhibitB: documentMode === "LOI" ? (cfg.showExhibitB ?? false) : false,
+                // Universal toggles for Hybrid Template
+                showNotes: cfg.showNotes ?? true,
+                showScopeOfWork: cfg.showScopeOfWork ?? false
             }
         };
 
