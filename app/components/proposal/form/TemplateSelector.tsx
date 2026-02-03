@@ -1,101 +1,134 @@
 "use client";
 
-import Image from "next/image";
-import { useState, useEffect } from "react";
-
-// RHF
-import { useFormContext } from "react-hook-form";
-
-// ShadCn
+import React from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+import { cn } from "@/lib/utils";
+import { Palette, Sparkles, Zap } from "lucide-react";
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 
-// Components
-import {
-    BaseButton,
-    ProposalTemplate2,
-} from "@/app/components";
+interface Template {
+    id: number;
+    name: string;
+    description: string;
+    icon: React.ReactNode;
+    color: string;
+    preview?: string;
+}
 
-// Template images
-import template2 from "@/public/assets/img/proposal-2-example.png";
-
-// Icons
-import { Check } from "lucide-react";
-
-// Types
-import { ProposalType } from "@/types";
+const templates: Template[] = [
+    {
+        id: 2,
+        name: "ANC Classic",
+        description: "The original approved design",
+        icon: <Palette className="w-4 h-4" />,
+        color: "#0A52EF",
+    },
+    {
+        id: 3,
+        name: "ANC Modern",
+        description: "Clean, minimalist design",
+        icon: <Sparkles className="w-4 h-4" />,
+        color: "#6366F1",
+    },
+    {
+        id: 4,
+        name: "ANC Bold",
+        description: "High-impact, dramatic style",
+        icon: <Zap className="w-4 h-4" />,
+        color: "#0F172A",
+    },
+];
 
 const TemplateSelector = () => {
-    const { watch, setValue } = useFormContext<ProposalType>();
-    const formValues = watch();
-    const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const { setValue, control } = useFormContext();
+    const currentTemplate = useWatch({ control, name: "details.pdfTemplate" }) || 2;
+    const [open, setOpen] = React.useState(false);
 
-    // Single consolidated template
-    const template = {
-        id: 2,
-        name: "ANC Proposal",
-        description: "Official ANC proposal format with specs, pricing, and SOW",
-        img: template2,
-        component: <ProposalTemplate2 {...formValues} />,
+    const selected = templates.find((t) => t.id === currentTemplate) || templates[0];
+
+    const handleSelect = (templateId: number) => {
+        setValue("details.pdfTemplate", templateId, { shouldDirty: true });
+        setOpen(false);
     };
 
-    // Auto-set template to 2 if not already set
-    if (!formValues.details.pdfTemplate || formValues.details.pdfTemplate !== 2) {
-        setValue("details.pdfTemplate", 2);
-    }
-
-    // Prevent flash by hiding preview until data is stable
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setIsInitialLoad(false);
-        }, 100);
-        return () => clearTimeout(timer);
-    }, []);
-
     return (
-        <>
-            <div className="space-y-4">
-                <Label className="text-lg font-semibold">Proposal Template:</Label>
-                <div className="grid grid-cols-1 max-w-md">
-                    <Card
-                        className="relative overflow-hidden border-[#0A52EF] ring-2 ring-[#0A52EF]/20"
-                    >
-                        {/* Fade-in overlay to prevent flash */}
-                        {isInitialLoad && (
-                            <div className="absolute inset-0 bg-white z-20 animate-pulse" />
-                        )}
-                        <div className="absolute top-4 right-4 z-10">
-                            <div className="flex items-center gap-2 bg-[#0A52EF] text-white px-3 py-1 rounded-full text-sm font-medium shadow-lg">
-                                <Check className="w-4 h-4" />
-                                Active
-                            </div>
-                        </div>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-lg">{template.name}</CardTitle>
-                            <CardDescription className="text-xs">
-                                {template.description}
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex flex-col items-center space-y-4">
-                            <div className="relative w-full aspect-[3/4] rounded-lg overflow-hidden border border-border">
-                                <Image
-                                    src={template.img}
-                                    alt={template.name}
-                                    fill
-                                    className="object-cover"
-                                />
-                            </div>
-                        </CardContent>
-                    </Card>
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className={cn(
+                        "gap-2 h-8 px-3 border-border/50 hover:bg-muted/50",
+                        "transition-all duration-200"
+                    )}
+                >
+                    <div
+                        className="w-3 h-3 rounded-sm"
+                        style={{ background: selected.color }}
+                    />
+                    <span className="text-xs font-medium">{selected.name}</span>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-72 p-2" align="start">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1.5 mb-1">
+                    PDF Template Style
                 </div>
-            </div>
-        </>
+                <div className="space-y-1">
+                    {templates.map((template) => (
+                        <button
+                            key={template.id}
+                            onClick={() => handleSelect(template.id)}
+                            className={cn(
+                                "w-full flex items-start gap-3 p-3 rounded-lg text-left transition-all",
+                                currentTemplate === template.id
+                                    ? "bg-primary/10 ring-1 ring-primary/30"
+                                    : "hover:bg-muted/50"
+                            )}
+                        >
+                            <div
+                                className="w-8 h-8 rounded-md flex items-center justify-center shrink-0"
+                                style={{
+                                    background: template.color,
+                                    color: template.id === 4 ? "#fff" : "#fff",
+                                }}
+                            >
+                                {template.icon}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-sm text-foreground">
+                                        {template.name}
+                                    </span>
+                                    {currentTemplate === template.id && (
+                                        <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-medium">
+                                            Active
+                                        </span>
+                                    )}
+                                    {template.id === 2 && (
+                                        <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">
+                                            Default
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                    {template.description}
+                                </p>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+                <div className="mt-3 pt-2 border-t border-border/50">
+                    <p className="text-[10px] text-muted-foreground px-2">
+                        Template affects PDF export only. Live preview updates automatically.
+                    </p>
+                </div>
+            </PopoverContent>
+        </Popover>
     );
 };
 

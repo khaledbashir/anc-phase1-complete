@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
 import SaveIndicator from "@/app/components/reusables/SaveIndicator";
 import WizardStepper from "@/app/components/proposal/form/wizard/WizardProgress";
+import TemplateSelector from "@/app/components/proposal/form/TemplateSelector";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { ProposalType } from "@/types";
 import { cn } from "@/lib/utils";
@@ -134,6 +135,9 @@ export function StudioHeader({
             {/* Right Actions - Global Controls */}
             <div className="flex items-center gap-3 shrink-0 flex-1 justify-end">
                 <ThemeToggle />
+
+                {/* Template Selector */}
+                <TemplateSelector />
 
                 {/* Document Mode Switcher: BUDGET | PROPOSAL | LOI — prominent and clear */}
                 <div className="flex items-center gap-1 rounded-xl border-2 border-primary/20 bg-background p-1 shadow-lg shadow-primary/5">
