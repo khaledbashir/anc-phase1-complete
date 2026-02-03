@@ -81,6 +81,7 @@ const defaultProposalContext = {
   removeFinalPdf: () => { },
   downloadPdf: async () => { },
   printPdf: () => { },
+  printLivePreview: () => { },
   previewPdfInTab: () => { },
   saveProposalData: () => { },
   saveDraft: (): Promise<{ created: boolean; projectId?: string; error?: string }> => Promise.resolve({ created: false }),
@@ -849,7 +850,17 @@ export const ProposalContextProvider = ({
       }
     } catch (err) {
       console.error("PDF generation catch error:", err);
-      showError("PDF Generation Failed", err instanceof Error ? err.message : "Unable to generate PDF. Please try again.");
+      const errorMsg = err instanceof Error ? err.message : "Unable to generate PDF";
+      
+      // Check if it's a server/Chromium error and offer print fallback
+      if (errorMsg.includes("libnspr4") || errorMsg.includes("chromium") || errorMsg.includes("browser process")) {
+        showError(
+          "Server PDF Unavailable",
+          "The PDF server is temporarily unavailable. Use 'Print Preview' button instead - select 'Save as PDF' in the print dialog."
+        );
+      } else {
+        showError("PDF Generation Failed", errorMsg + ". Try using 'Print Preview' as an alternative.");
+      }
     } finally {
       setProposalPdfLoading(false);
     }
@@ -930,6 +941,50 @@ export const ProposalContextProvider = ({
       }
     }
   };
+
+  /**
+   * Print the live preview directly (fallback when server PDF fails).
+   * Opens a print-optimized version of the preview.
+   */
+  const printLivePreview = useCallback(() => {
+    // Find the live preview iframe or container
+    const previewFrame = document.querySelector('iframe[title="PDF Preview"]') as HTMLIFrameElement;
+    if (previewFrame?.contentWindow) {
+      previewFrame.contentWindow.print();
+      return;
+    }
+    
+    // Fallback: find the preview container and print it
+    const previewContainer = document.querySelector('[data-preview-container]') as HTMLElement;
+    if (previewContainer) {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>ANC Proposal - Print</title>
+            <link href="https://cdn.tailwindcss.com" rel="stylesheet">
+            <style>
+              @media print {
+                body { margin: 0; padding: 20px; }
+                @page { size: A4; margin: 0.5in; }
+              }
+            </style>
+          </head>
+          <body>
+            ${previewContainer.innerHTML}
+            <script>window.onload = function() { window.print(); }</script>
+          </body>
+          </html>
+        `);
+        printWindow.document.close();
+      }
+    } else {
+      // Final fallback: just print the current page
+      window.print();
+    }
+  }, []);
 
   /**
    * Saves the proposal data to local storage.
@@ -2017,6 +2072,7 @@ export const ProposalContextProvider = ({
         removeFinalPdf,
         downloadPdf,
         printPdf,
+        printLivePreview,
         previewPdfInTab,
         saveProposalData,
         saveDraft,
