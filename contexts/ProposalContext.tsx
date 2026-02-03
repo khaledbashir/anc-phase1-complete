@@ -924,6 +924,8 @@ export const ProposalContextProvider = ({
 
   /**
    * Downloads a PDF file.
+   * Filename: "{Client Name} {Document Type} {Template Name}.pdf"
+   * e.g. "PDF-TEST Letter of Intent Classic.pdf"
    */
   const downloadPdf = async () => {
     let pdfBlob: Blob | null = proposalPdf;
@@ -933,10 +935,19 @@ export const ProposalContextProvider = ({
 
     if (pdfBlob instanceof Blob && pdfBlob.size > 0) {
       const url = window.URL.createObjectURL(pdfBlob);
-      const proposalName = (getValues("details.proposalName") || "proposal").toString().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9-_().]/g, "") || "proposal";
+      const details = getValues("details");
+      const clientName = (details?.clientName || details?.proposalName || "proposal").toString();
+      const safeName = (s: string) =>
+        s.replace(/[/\\:*?"<>|]/g, "").replace(/\s+/g, " ").trim().slice(0, 80) || "proposal";
+      const docMode = details?.documentMode ?? headerType;
+      const documentTypeLabel =
+        docMode === "LOI" ? "Letter of Intent" : docMode === "PROPOSAL" ? "Proposal" : "Budget";
+      const templateId = details?.pdfTemplate ?? 2;
+      const templateLabel = templateId === 4 ? "Bold" : templateId === 3 ? "Modern" : "Classic";
+      const fileName = `${safeName(clientName)} ${documentTypeLabel} ${templateLabel}.pdf`;
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${proposalName}.pdf`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

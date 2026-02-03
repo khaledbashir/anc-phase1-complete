@@ -73,14 +73,14 @@ export default function ProjectsPage() {
     }, [searchQuery, statusFilter]);
 
     return (
-        <div className="flex min-h-screen bg-background text-muted-foreground selection:bg-brand-blue/30">
+        <div className="flex min-h-screen min-w-0 bg-background text-muted-foreground selection:bg-brand-blue/30 overflow-x-hidden">
             <DashboardSidebar />
 
-            <div className="flex-1 flex flex-col min-w-0 relative ml-16">
+            <div className="flex-1 flex flex-col min-w-0 relative ml-16 md:ml-20 overflow-x-hidden">
                 {/* ✨ Elevated Header - Fixed at top */}
-                <header className="fixed top-0 left-16 right-0 h-16 border-b border-border flex items-center justify-between px-6 bg-background/95 backdrop-blur z-50">
+                <header className="fixed top-0 left-16 md:left-20 right-0 h-16 border-b border-border flex items-center justify-between gap-3 px-4 sm:px-6 bg-background/95 backdrop-blur z-50 min-w-0">
                     {/* Left: Logo + Search */}
-                    <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
                         {/* ANC Brand Mark */}
                         <Link href="/" className="flex items-center gap-2 shrink-0">
                             <div className="w-8 h-8 bg-gradient-to-br from-[#0A52EF] to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -108,8 +108,8 @@ export default function ProjectsPage() {
                         </div>
                     </div>
 
-                    {/* Right: Actions */}
-                    <div className="flex items-center gap-2">
+                    {/* Right: Actions - no shrink so buttons stay visible */}
+                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
                         {/* Notification Bell */}
                         <button className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all duration-200 relative">
                             <Bell className="w-4 h-4" />
@@ -147,9 +147,9 @@ export default function ProjectsPage() {
                                 </p>
                             </div>
 
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                                 {/* Status Toggles */}
-                                <div className="flex bg-muted/50 p-1 rounded-lg border border-border">
+                                <div className="flex bg-muted/50 p-1 rounded-lg border border-border shrink-0">
                                     {statusFilters.map(filter => (
                                         <button
                                             key={filter.key}
@@ -204,8 +204,8 @@ export default function ProjectsPage() {
                 </main>
 
                 {/* Midday-Style Bottom AI Chat - Positioned to account for sidebar */}
-                <div className="fixed bottom-0 left-16 right-0 p-8 flex justify-center pointer-events-none z-40">
-                    <div className="w-full max-w-3xl pointer-events-auto">
+                <div className="fixed bottom-0 left-16 md:left-20 right-0 p-4 sm:p-8 flex justify-center pointer-events-none z-40">
+                    <div className="w-full max-w-3xl min-w-0 pointer-events-auto">
                         <DashboardChat />
                     </div>
                 </div>

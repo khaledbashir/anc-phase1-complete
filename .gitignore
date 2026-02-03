@@ -12,6 +12,9 @@
 /.next/
 /out/
 
+# script-generated PDF bundle
+/exported-pdfs/
+
 # production
 /build
 

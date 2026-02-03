@@ -12,7 +12,8 @@
         "start": "next start",
         "lint": "next lint",
         "postinstall": "node -e \"const fs=require('fs');const cp=require('child_process');if(fs.existsSync('prisma/schema.prisma')||fs.existsSync('schema.prisma')){cp.execSync('npx prisma generate',{stdio:'inherit'});}else{console.log('postinstall: prisma schema not found, skipping prisma generate');}\"",
-        "analyze": "cross-env ANALYZE=true next build"
+        "analyze": "cross-env ANALYZE=true next build",
+        "download-pdfs": "npx tsx scripts/download-all-pdfs.ts"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.1.0",
