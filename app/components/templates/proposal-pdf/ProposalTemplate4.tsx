@@ -1,12 +1,12 @@
 /**
  * ProposalTemplate4 - "ANC Premium"
  * 
- * A dramatic, high-impact variant with:
- * - Dark hero header with gradient
- * - Bold, impactful typography
- * - Strong visual hierarchy
- * - Prominent slash patterns (55° brand element)
- * - High contrast sections
+ * A sophisticated, professional premium variant with:
+ * - Elegant header with refined typography
+ * - Premium color palette with subtle accents
+ * - Professional spacing and layout
+ * - Refined visual hierarchy
+ * - Corporate-grade presentation
  */
 
 import React from "react";
@@ -47,16 +47,19 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
 
     const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "SPECIFICATIONS";
 
-    // Bold color palette
+    // Premium professional color palette
     const colors = {
         primary: "#0A52EF",
-        dark: "#0F172A",
+        primaryDark: "#002C73",
         accent: "#3B82F6",
-        gold: "#F59E0B",
-        text: "#111827",
-        textMuted: "#6B7280",
+        gold: "#D4AF37",
+        text: "#1A1F2E",
+        textMuted: "#64748B",
+        textLight: "#94A3B8",
         white: "#FFFFFF",
-        surface: "#F8FAFC",
+        surface: "#FAFBFC",
+        border: "#E2E8F0",
+        borderLight: "#F1F5F9",
     };
 
     const getScreenHeader = (screen: any) => {
@@ -77,66 +80,63 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
         return parts.join(" | ");
     };
 
-    // Bold Slash Pattern (55° angle per ANC brand)
-    const SlashPattern = ({ count = 7, light = false }: { count?: number; light?: boolean }) => (
-        <div className="flex gap-1.5">
-            {[...Array(count)].map((_, i) => (
-                <div
-                    key={i}
-                    className="w-3 h-10"
-                    style={{
-                        background: light 
-                            ? `linear-gradient(145deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)`
-                            : `linear-gradient(145deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
-                        transform: "skewX(-35deg)",
-                    }}
-                />
-            ))}
-        </div>
-    );
-
-    // Bold Section Divider
+    // Premium Section Divider - Elegant and professional
     const SectionDivider = ({ title }: { title: string }) => (
-        <div className="mt-12 mb-8 flex items-center gap-4">
-            <div className="flex-1 h-1 rounded-full" style={{ background: colors.dark }} />
-            <h2 className="text-lg font-black tracking-[0.3em] uppercase" style={{ color: colors.dark }}>{title}</h2>
-            <div className="flex-1 h-1 rounded-full" style={{ background: colors.dark }} />
+        <div className="mt-16 mb-10">
+            <div className="flex items-center gap-4 mb-3">
+                <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, ${colors.primary} 0%, transparent 100%)` }} />
+                <div className="w-2 h-2 rounded-full" style={{ background: colors.primary }} />
+                <div className="h-px flex-1" style={{ background: `linear-gradient(90deg, transparent 0%, ${colors.border} 100%)` }} />
+            </div>
+            <h2 className="text-2xl font-bold tracking-wide" style={{ color: colors.text, letterSpacing: "0.05em" }}>
+                {title}
+            </h2>
         </div>
     );
 
-    // Bold Spec Table
+    // Premium Spec Table - Professional and elegant
     const BoldSpecTable = ({ screen }: { screen: any }) => (
-        <div className="mb-8 break-inside-avoid">
-            {/* Header with gradient */}
+        <div className="mb-10 break-inside-avoid" style={{ 
+            border: `1px solid ${colors.border}`,
+            borderRadius: "8px",
+            overflow: "hidden",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+        }}>
+            {/* Header */}
             <div 
-                className="px-6 py-4 flex justify-between items-center"
-                style={{ background: `linear-gradient(135deg, ${colors.dark} 0%, ${colors.primary} 100%)` }}
+                className="px-8 py-5"
+                style={{ 
+                    background: colors.primary,
+                    borderBottom: `2px solid ${colors.primaryDark}`
+                }}
             >
-                <h3 className="font-black text-base uppercase tracking-widest text-white">
+                <h3 className="text-lg font-bold tracking-wide text-white" style={{ letterSpacing: "0.05em" }}>
                     {getScreenHeader(screen)}
                 </h3>
-                <SlashPattern count={3} light />
             </div>
             
             {/* Specs Grid */}
-            <div className="border-x-2 border-b-2" style={{ borderColor: colors.dark }}>
+            <div>
                 {[
-                    { label: "PIXEL PITCH", value: `${screen.pitchMm ?? screen.pixelPitch ?? 0} mm`, highlight: true },
-                    { label: "QUANTITY", value: screen.quantity || 1 },
-                    { label: "DISPLAY HEIGHT", value: `${Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'` },
-                    { label: "DISPLAY WIDTH", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
-                    { label: "RESOLUTION (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} px` },
-                    { label: "RESOLUTION (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} px` },
-                    ...(screen.brightnessNits || screen.brightness ? [{ label: "BRIGHTNESS", value: `${formatNumberWithCommas(screen.brightnessNits || screen.brightness)} nits`, highlight: true }] : []),
+                    { label: "Pixel Pitch", value: `${screen.pitchMm ?? screen.pixelPitch ?? 0} mm`, highlight: true },
+                    { label: "Quantity", value: screen.quantity || 1 },
+                    { label: "Display Height", value: `${Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'` },
+                    { label: "Display Width", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
+                    { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} px` },
+                    { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} px` },
+                    ...(screen.brightnessNits || screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(screen.brightnessNits || screen.brightness)} nits`, highlight: true }] : []),
                 ].map((item: any, idx) => (
                     <div 
                         key={idx} 
-                        className={`flex justify-between px-6 py-3 text-sm ${idx % 2 === 0 ? '' : ''}`}
-                        style={{ background: idx % 2 === 0 ? colors.surface : colors.white }}
+                        className="flex justify-between items-center px-8 py-4 border-b"
+                        style={{ 
+                            background: idx % 2 === 0 ? colors.white : colors.surface,
+                            borderColor: colors.borderLight
+                        }}
                     >
-                        <span className="font-bold uppercase tracking-wider text-xs" style={{ color: colors.textMuted }}>{item.label}</span>
+                        <span className="text-sm font-medium" style={{ color: colors.textMuted }}>{item.label}</span>
                         <span 
-                            className="font-black"
+                            className="text-base font-bold"
                             style={{ color: item.highlight ? colors.primary : colors.text }}
                         >
                             {item.value}
@@ -147,7 +147,7 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
         </div>
     );
 
-    // Bold Pricing Section
+    // Premium Pricing Section - Professional layout
     const BoldPricingSection = () => {
         const softCostItems = internalAudit?.softCostItems || [];
         const lineItems = [
@@ -158,7 +158,7 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
             }).filter((it) => Math.abs(it.price) >= 0.01),
             ...softCostItems.map((item: any, idx: number) => ({
                 key: `soft-${idx}`,
-                name: (item?.name || "").toString().toUpperCase(),
+                name: (item?.name || "").toString(),
                 description: "",
                 price: Number(item?.sell || 0),
             })).filter((it: any) => Math.abs(it.price) >= 0.01),
@@ -166,21 +166,28 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
         const total = lineItems.reduce((sum, it) => sum + it.price, 0);
 
         return (
-            <div className="mt-8">
+            <div className="mt-8" style={{
+                border: `1px solid ${colors.border}`,
+                borderRadius: "8px",
+                overflow: "hidden",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+            }}>
                 {lineItems.map((item, idx) => (
                     <div 
                         key={item.key} 
-                        className={`flex justify-between items-start py-5 px-6 border-l-4 mb-4`}
+                        className="flex justify-between items-start py-6 px-8 border-b"
                         style={{ 
-                            borderLeftColor: colors.primary,
-                            background: idx % 2 === 0 ? colors.surface : colors.white 
+                            borderColor: colors.borderLight,
+                            background: idx % 2 === 0 ? colors.white : colors.surface 
                         }}
                     >
-                        <div>
-                            <div className="font-black uppercase tracking-wide" style={{ color: colors.text }}>{item.name}</div>
-                            {item.description && <div className="text-xs mt-1" style={{ color: colors.textMuted }}>{item.description}</div>}
+                        <div className="flex-1">
+                            <div className="text-base font-semibold mb-1" style={{ color: colors.text }}>{item.name}</div>
+                            {item.description && (
+                                <div className="text-sm mt-1" style={{ color: colors.textMuted }}>{item.description}</div>
+                            )}
                         </div>
-                        <div className="font-black text-xl" style={{ color: colors.text }}>
+                        <div className="text-xl font-bold ml-6" style={{ color: colors.text }}>
                             {formatCurrency(item.price)}
                         </div>
                     </div>
@@ -188,14 +195,16 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
                 
                 {/* Total */}
                 <div 
-                    className="mt-6 p-6 flex justify-between items-center"
-                    style={{ background: `linear-gradient(135deg, ${colors.dark} 0%, ${colors.primary} 100%)` }}
+                    className="px-8 py-6 flex justify-between items-center"
+                    style={{ 
+                        background: colors.primary,
+                        borderTop: `2px solid ${colors.primaryDark}`
+                    }}
                 >
-                    <div className="flex items-center gap-4">
-                        <SlashPattern count={4} light />
-                        <span className="font-black text-lg uppercase tracking-[0.2em] text-white">PROJECT TOTAL</span>
-                    </div>
-                    <span className="font-black text-3xl text-white">{formatCurrency(total)}</span>
+                    <span className="text-lg font-bold tracking-wide text-white uppercase" style={{ letterSpacing: "0.1em" }}>
+                        Project Total
+                    </span>
+                    <span className="text-3xl font-bold text-white">{formatCurrency(total)}</span>
                 </div>
             </div>
         );
@@ -208,11 +217,11 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
         return (
             <div className="mt-10">
                 <SectionDivider title="Payment Terms" />
-                <div className="space-y-2">
+                <div className="space-y-3 pl-2">
                     {lines.map((line, idx) => (
-                        <div key={idx} className="flex items-center gap-3">
-                            <div className="w-2 h-2" style={{ background: colors.primary, transform: "rotate(45deg)" }} />
-                            <span className="text-sm" style={{ color: colors.text }}>{line}</span>
+                        <div key={idx} className="flex items-start gap-4">
+                            <div className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: colors.primary }} />
+                            <span className="text-sm leading-relaxed" style={{ color: colors.text }}>{line}</span>
                         </div>
                     ))}
                 </div>
@@ -225,8 +234,15 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
         if (!raw) return null;
         return (
             <div className="mt-10">
-                <SectionDivider title="Notes" />
-                <div className="text-sm leading-relaxed whitespace-pre-wrap p-6 border-2" style={{ borderColor: colors.dark, color: colors.text }}>
+                <SectionDivider title="Additional Notes" />
+                <div 
+                    className="text-sm leading-relaxed whitespace-pre-wrap p-8 rounded-lg" 
+                    style={{ 
+                        background: colors.surface,
+                        border: `1px solid ${colors.border}`,
+                        color: colors.text 
+                    }}
+                >
                     {raw}
                 </div>
             </div>
@@ -275,13 +291,12 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
     );
 
     const BoldFooter = () => (
-        <div className="mt-16 pt-8 border-t-4" style={{ borderColor: colors.dark }}>
+        <div className="mt-16 pt-8 border-t" style={{ borderColor: colors.border }}>
             <div className="flex justify-between items-center">
                 <div>
-                    <div className="font-black text-xs tracking-[0.2em] uppercase" style={{ color: colors.dark }}>ANC Sports Enterprises, LLC</div>
-                    <div className="text-xs mt-1" style={{ color: colors.textMuted }}>2 Manhattanville Road, Suite 402 · Purchase, NY 10577 · anc.com</div>
+                    <div className="font-bold text-xs tracking-wide uppercase" style={{ color: colors.text }}>ANC Sports Enterprises, LLC</div>
+                    <div className="text-xs mt-1.5" style={{ color: colors.textMuted }}>2 Manhattanville Road, Suite 402 · Purchase, NY 10577 · anc.com</div>
                 </div>
-                <SlashPattern count={5} />
             </div>
         </div>
     );
@@ -293,38 +308,40 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
 
     return (
         <ProposalLayout data={data} disableFixedFooter>
-            {/* Hero Header */}
+            {/* Premium Header */}
             <div 
-                className="px-8 py-10 mb-8"
-                style={{ background: `linear-gradient(135deg, ${colors.dark} 0%, ${colors.primary} 100%)` }}
+                className="px-10 py-12 mb-12"
+                style={{ 
+                    background: `linear-gradient(135deg, ${colors.primaryDark} 0%, ${colors.primary} 100%)`,
+                    borderRadius: "0 0 12px 12px"
+                }}
             >
-                <div className="flex justify-between items-start">
-                    <LogoSelectorServer theme="dark" width={160} height={80} />
-                    <SlashPattern count={8} light />
+                <div className="flex justify-between items-start mb-10">
+                    <LogoSelectorServer theme="dark" width={180} height={90} />
                 </div>
-                <div className="mt-8">
-                    <div className="text-sm uppercase tracking-[0.4em] font-medium text-white/60 mb-2">{docLabel}</div>
-                    <h1 className="text-4xl font-black uppercase tracking-wide text-white leading-tight">
+                <div>
+                    <div className="text-xs uppercase tracking-[0.3em] font-medium text-white/70 mb-3">{docLabel}</div>
+                    <h1 className="text-4xl font-bold text-white leading-tight mb-2" style={{ letterSpacing: "-0.02em" }}>
                         {receiver?.name || "Client Name"}
                     </h1>
                     {details?.proposalName && (
-                        <div className="text-lg mt-2 text-white/80">{details.proposalName}</div>
+                        <div className="text-base mt-2 text-white/90 font-medium">{details.proposalName}</div>
                     )}
                 </div>
             </div>
 
             {/* Intro */}
-            <div className="px-8 mb-10">
-                <div className="text-sm leading-relaxed" style={{ color: colors.text }}>
+            <div className="px-10 mb-12">
+                <div className="text-base leading-relaxed max-w-3xl" style={{ color: colors.text }}>
                     {documentMode === "LOI" ? (
                         <p className="text-justify">
-                            This Sales Quotation establishes the terms by which <strong>{purchaserName}</strong>
-                            {purchaserAddress && ` (${purchaserAddress})`} and <strong>ANC Sports Enterprises, LLC</strong> agree 
+                            This Sales Quotation establishes the terms by which <strong style={{ color: colors.text }}>{purchaserName}</strong>
+                            {purchaserAddress && ` (${purchaserAddress})`} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> agree 
                             to the LED Display System defined in this document.
                         </p>
                     ) : (
                         <p>
-                            ANC is pleased to present this {documentMode.toLowerCase()} for <strong>{purchaserName}</strong> 
+                            ANC is pleased to present this {documentMode.toLowerCase()} for <strong style={{ color: colors.text }}>{purchaserName}</strong> 
                             {details?.proposalName && ` regarding ${details.proposalName}`}.
                         </p>
                     )}
@@ -333,7 +350,7 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
 
             {/* Pricing */}
             {!isLOI && (
-                <div className="px-8">
+                <div className="px-10">
                     <SectionDivider title="Project Pricing" />
                     <BoldPricingSection />
                 </div>
@@ -341,7 +358,7 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
 
             {/* LOI Sections */}
             {isLOI && (
-                <div className="px-8">
+                <div className="px-10">
                     <LegalNotesSection />
                     {showPaymentTerms && <PaymentTermsSection />}
                     {showSignatureBlock && <BoldSignatureBlock />}
@@ -350,7 +367,7 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
 
             {/* Specifications */}
             {!isLOI && showSpecifications && screens.length > 0 && (
-                <div className="px-8 break-before-page">
+                <div className="px-10 break-before-page">
                     <SectionDivider title={specsSectionTitle} />
                     {screens.map((screen: any, idx: number) => (
                         <BoldSpecTable key={idx} screen={screen} />
@@ -360,22 +377,29 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
 
             {/* LOI Exhibit A */}
             {isLOI && showExhibitA && (
-                <div className="break-before-page px-8">
+                <div className="break-before-page px-10">
                     <ExhibitA_TechnicalSpecs data={data} />
                 </div>
             )}
 
             {/* LOI Exhibit B */}
             {isLOI && (details as any)?.scopeOfWorkText && (
-                <div className="break-before-page px-8">
+                <div className="break-before-page px-10">
                     <SectionDivider title="Exhibit B – Scope of Work" />
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: colors.text }}>
+                    <div 
+                        className="text-sm leading-relaxed whitespace-pre-wrap p-6 rounded-lg" 
+                        style={{ 
+                            background: colors.surface,
+                            border: `1px solid ${colors.border}`,
+                            color: colors.text 
+                        }}
+                    >
                         {(details as any).scopeOfWorkText}
                     </div>
                 </div>
             )}
 
-            <div className="px-8">
+            <div className="px-10">
                 <BoldFooter />
             </div>
         </ProposalLayout>
