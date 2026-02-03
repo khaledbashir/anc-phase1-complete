@@ -933,10 +933,8 @@ export const ProposalContextProvider = ({
    * e.g. "PDF-TEST Letter of Intent Classic.pdf"
    */
   const downloadPdf = async () => {
-    let pdfBlob: Blob | null = proposalPdf;
-    if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
-      pdfBlob = await generatePdf(getValues());
-    }
+    // Always regenerate to ensure it uses current template/mode selection
+    const pdfBlob = await generatePdf(getValues());
 
     if (pdfBlob instanceof Blob && pdfBlob.size > 0) {
       const url = window.URL.createObjectURL(pdfBlob);
@@ -948,7 +946,7 @@ export const ProposalContextProvider = ({
       const documentTypeLabel =
         docMode === "LOI" ? "Letter of Intent" : docMode === "PROPOSAL" ? "Proposal" : "Budget";
       const templateId = details?.pdfTemplate ?? 2;
-      const templateLabel = templateId === 4 ? "Premium" : templateId === 3 ? "Modern" : "Classic";
+      const templateLabel = templateId === 4 ? "Bold" : templateId === 3 ? "Modern" : "Classic";
       const fileName = `${safeName(clientName)} ${documentTypeLabel} ${templateLabel}.pdf`;
       const a = document.createElement("a");
       a.href = url;
@@ -963,7 +961,7 @@ export const ProposalContextProvider = ({
   const TEMPLATES = [
     { id: 2, label: "Classic" },
     { id: 3, label: "Modern" },
-    { id: 4, label: "Premium" },
+    { id: 4, label: "Bold" },
   ] as const;
   const MODES = [
     { mode: "BUDGET" as const, label: "Budget" },
