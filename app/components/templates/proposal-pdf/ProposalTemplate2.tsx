@@ -36,7 +36,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     const totals = internalAudit?.totals;
 
     const documentMode = resolveDocumentMode(details);
-    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : "SALES QUOTATION";
+    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "PROPOSAL" : "LETTER OF INTENT";
     const isLOI = documentMode === "LOI";
 
     const purchaserName = receiver?.name || "Client Name";
@@ -540,11 +540,11 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         </p>
                     ) : documentMode === "PROPOSAL" ? (
                         <p>
-                            ANC is pleased to present the following LED Display proposal to {purchaserName} per the specifications and pricing below.
+                            ANC is pleased to present the following proposal to {purchaserName} per the specifications and pricing below.
                         </p>
                     ) : (
                         <p>
-                            ANC is pleased to present the following LED Display budget to {purchaserName} per the specifications and pricing below.
+                            ANC is pleased to present the following budget to {purchaserName} per the specifications and pricing below.
                         </p>
                     )}
                 </div>

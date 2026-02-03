@@ -1,9 +1,11 @@
 "use client";
 
 import { useFormContext, useWatch } from "react-hook-form";
-import { Calculator, FileText, Wand2, Sparkles, Box, Info, AlertCircle, Target } from "lucide-react";
+import { Calculator, FileText, Wand2, Sparkles, Box, Info, AlertCircle, Target, FileSignature } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Screens } from "@/app/components";
 import { Badge } from "@/components/ui/badge";
 import { useProposalContext } from "@/contexts/ProposalContext";
@@ -11,7 +13,7 @@ import { resolveDocumentMode } from "@/lib/documentMode";
 
 const Step2Intelligence = () => {
     const { aiWorkspaceSlug, filterStats, setSidebarMode } = useProposalContext();
-    const { control } = useFormContext();
+    const { control, setValue } = useFormContext();
     const screens = useWatch({
         name: "details.screens",
         control
@@ -117,7 +119,7 @@ const Step2Intelligence = () => {
                         mode === "PROPOSAL" ? "bg-blue-500/20 text-blue-500 border border-blue-500/30" :
                         "bg-emerald-500/20 text-emerald-500 border border-emerald-500/30"
                     }`}>
-                        {mode === "BUDGET" ? "Budget Estimate" : mode === "PROPOSAL" ? "Sales Quotation" : "Letter of Intent"}
+                        {mode === "BUDGET" ? "Budget Estimate" : mode === "PROPOSAL" ? "Proposal" : "Letter of Intent"}
                     </div>
                 </div>
                 
@@ -152,6 +154,46 @@ const Step2Intelligence = () => {
                     {mode === "LOI" && "Legal contract — includes payment terms and signature lines"}
                 </p>
             </div>
+
+            {/* LOI-specific fields: Payment Terms & Notes */}
+            {mode === "LOI" && (
+                <Card className="bg-card/50 border-emerald-500/30 border-2 overflow-hidden">
+                    <CardHeader className="pb-3 border-b border-border">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 rounded-lg bg-emerald-500/20">
+                                <FileSignature className="w-5 h-5 text-emerald-500" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-foreground text-base">LOI Contract Details</CardTitle>
+                                <CardDescription className="text-muted-foreground text-xs">These fields appear in the LOI document for signatures</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-5 space-y-5">
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold text-foreground uppercase tracking-wide">Payment Terms</Label>
+                            <Textarea
+                                placeholder="e.g., 50% on Deposit, 40% on Mobilization, 10% on Substantial Completion"
+                                defaultValue={details?.paymentTerms || "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion"}
+                                onChange={(e) => setValue("details.paymentTerms", e.target.value, { shouldDirty: true })}
+                                className="min-h-[80px] text-sm bg-background border-border"
+                            />
+                            <p className="text-[10px] text-muted-foreground">Define payment milestones for the contract</p>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label className="text-xs font-bold text-foreground uppercase tracking-wide">Additional Notes / Legal Notes</Label>
+                            <Textarea
+                                placeholder="Any additional terms, conditions, or notes to include in the LOI..."
+                                defaultValue={details?.additionalNotes || ""}
+                                onChange={(e) => setValue("details.additionalNotes", e.target.value, { shouldDirty: true })}
+                                className="min-h-[100px] text-sm bg-background border-border"
+                            />
+                            <p className="text-[10px] text-muted-foreground">Optional notes that will appear in the Legal Notes section</p>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <Card className="bg-card/50 border-border flex-1 flex flex-col overflow-hidden">
                 <CardHeader className="pb-3 shrink-0 border-b border-border">
