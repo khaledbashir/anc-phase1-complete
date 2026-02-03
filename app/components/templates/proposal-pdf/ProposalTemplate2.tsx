@@ -61,7 +61,6 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     // ===== PREMIUM TEMPLATE LOGIC (ID 4) =====
     // This block is completely isolated. If templateId is 4, it renders and returns early.
     const templateId = Number(details?.pdfTemplate ?? 2);
-    console.log(`[ProposalTemplate2] Rendering with Template ID: ${templateId}, Type: ${typeof templateId}`);
     
     if (templateId === 4) {
         const docTitle = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "SALES QUOTATION" : "LETTER OF INTENT";

@@ -211,8 +211,6 @@ const isDataUrl = (str: string) => str.startsWith("data:");
  */
 const getProposalTemplate = async (templateId: number) => {
     try {
-        // ID 4 is the new Premium template (isolated in Template 2 for now, but also exists in Template 4)
-        // However, the current system is consolidated to Template 2.
         const module = await import(
             `@/app/components/templates/proposal-pdf/ProposalTemplate2`
         );

@@ -62,6 +62,8 @@ export type ExcelPreview = {
 const defaultProposalContext = {
   proposalPdf: new Blob(),
   proposalPdfLoading: false,
+  pdfGenerationProgress: null as { value: number; label: string } | null,
+  pdfBatchProgress: null as { current: number; total: number; label: string } | null,
   excelImportLoading: false,
   excelPreviewLoading: false,
   excelPreview: null as ExcelPreview | null,
@@ -183,6 +185,8 @@ export const ProposalContextProvider = ({
   // Variables
   const [proposalPdf, setProposalPdf] = useState<Blob>(new Blob());
   const [proposalPdfLoading, setProposalPdfLoading] = useState<boolean>(false);
+  const [pdfGenerationProgress, setPdfGenerationProgress] = useState<{ value: number; label: string } | null>(null);
+  const [pdfBatchProgress, setPdfBatchProgress] = useState<{ current: number; total: number; label: string } | null>(null);
   const [excelImportLoading, setExcelImportLoading] = useState<boolean>(false);
   const [excelPreviewLoading, setExcelPreviewLoading] = useState<boolean>(false);
   const [excelPreview, setExcelPreview] = useState<ExcelPreview | null>(null);
@@ -808,11 +812,7 @@ export const ProposalContextProvider = ({
    */
   const generatePdf = useCallback(async (data: ProposalType): Promise<Blob> => {
     setProposalPdfLoading(true);
-    console.log("Generating PDF with data:", {
-      proposalId: data.details?.proposalId,
-      screenCount: data.details?.screens?.length,
-      venue: data.details?.venue
-    });
+    setPdfGenerationProgress({ value: 10, label: "Preparing…" });
     let generated: Blob = new Blob();
 
     try {
@@ -845,6 +845,7 @@ export const ProposalContextProvider = ({
         _audit: audit, // include both clientSummary and internalAudit for server-side rendering and archive
       };
 
+      setPdfGenerationProgress({ value: 35, label: "Generating PDF…" });
       const response = await fetch(GENERATE_PDF_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -857,18 +858,21 @@ export const ProposalContextProvider = ({
         throw new Error(`PDF generation failed: ${response.status} ${response.statusText} - ${errorText}`);
       }
 
+      setPdfGenerationProgress({ value: 75, label: "Downloading…" });
       const result = await response.blob();
-      console.log("PDF generated successfully, size:", result.size);
       generated = result;
       setProposalPdf(result);
 
       if (result.size > 0) {
+        setPdfGenerationProgress({ value: 100, label: "Done" });
+        setTimeout(() => setPdfGenerationProgress(null), 800);
         // Toast
         pdfGenerationSuccess();
       }
     } catch (err) {
       console.error("PDF generation catch error:", err);
       const errorMsg = err instanceof Error ? err.message : "Unable to generate PDF";
+      setPdfGenerationProgress(null);
       
       // Check if it's a server/Chromium error and offer print fallback
       if (errorMsg.includes("libnspr4") || errorMsg.includes("chromium") || errorMsg.includes("browser process")) {
@@ -971,7 +975,6 @@ export const ProposalContextProvider = ({
    * Downloads all 9 PDF variants (Budget/Proposal/LOI × Classic/Modern/Premium) with current form data.
    */
   const downloadAllPdfVariants = useCallback(async () => {
-    console.log("Starting batch download of all 9 PDF variants...");
     const data = getValues();
     const screens = (data?.details?.screens || []).map((s: any) => ({
       name: s.name,
@@ -996,8 +999,14 @@ export const ProposalContextProvider = ({
     const safeName = (s: string) =>
       s.replace(/[/\\:*?"<>|]/g, "").replace(/\s+/g, " ").trim().slice(0, 80) || "proposal";
 
+    const total = MODES.length * TEMPLATES.length;
+    setPdfBatchProgress({ current: 0, total, label: "Starting…" });
+
+    let current = 0;
     for (const { mode, label: modeLabel } of MODES) {
       for (const { id: templateId, label: templateLabel } of TEMPLATES) {
+        current += 1;
+        setPdfBatchProgress({ current, total, label: `${modeLabel} ${templateLabel}` });
         const isLOI = mode === "LOI";
         const payload = {
           ...data,
@@ -1037,11 +1046,13 @@ export const ProposalContextProvider = ({
           await new Promise((resolve) => setTimeout(resolve, 600));
         } catch (e) {
           console.error(`PDF variant ${modeLabel} ${templateLabel} failed:`, e);
+          setPdfBatchProgress(null);
           showError("Download All PDFs", `Failed to generate ${modeLabel} ${templateLabel}. Try again or use single PDF download.`);
           return;
         }
       }
     }
+    setPdfBatchProgress(null);
     pdfGenerationSuccess();
   }, [getValues, pdfGenerationSuccess, showError]);
 
@@ -2171,6 +2182,8 @@ export const ProposalContextProvider = ({
       value={{
         proposalPdf,
         proposalPdfLoading,
+        pdfGenerationProgress,
+        pdfBatchProgress,
         excelImportLoading,
         excelPreviewLoading,
         excelPreview,

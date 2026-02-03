@@ -1,4 +1,5 @@
 import React from "react";
+import { BASE_URL } from "@/lib/variables";
 
 type LogoSelectorServerProps = {
     theme?: "light" | "dark";
@@ -16,8 +17,7 @@ type LogoSelectorServerProps = {
  */
 const LogoSelectorServer = ({ theme = "light", width = 160, height = 80, className = "" }: LogoSelectorServerProps) => {
     // Use absolute URLs for PDF rendering
-    const rawBaseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://basheer-rag.prd42b.easypanel.host";
-    const baseUrl = rawBaseUrl.trim().replace(/\)+$/, "").replace(/\/+$/, "");
+    const baseUrl = (BASE_URL || "").trim().replace(/\)+$/, "").replace(/\/+$/, "");
     const logoSrc = theme === "light"
         ? `${baseUrl}/ANC_Logo_2023_blue.png`
         : `${baseUrl}/ANC_Logo_2023_white.png`;

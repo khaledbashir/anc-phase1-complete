@@ -41,6 +41,8 @@ const Step4Export = () => {
         exportAudit,
         pdfUrl,
         proposalPdfLoading,
+        pdfGenerationProgress,
+        pdfBatchProgress,
         excelPreview,
         excelSourceData,
         verificationManifest,
@@ -160,22 +162,6 @@ const Step4Export = () => {
             setTimeout(() => setExporting(false), 2000);
         }
     };
-
-    // Auto-regenerate PDF when screen data changes
-    useEffect(() => {
-        if (!pdfUrl) return; // Only regenerate if PDF was already generated
-        if (proposalPdfLoading) return; // Don't regenerate if already loading
-        
-        const timeoutId = setTimeout(() => {
-            // We only want to trigger this if data actually changed. 
-            // react-hook-form's watch() might return same data if not changed.
-            generatePdf(getValues());
-        }, 2000); // Increased debounce to 2 seconds
-        
-        return () => clearTimeout(timeoutId);
-        // CRITICAL: Remove pdfUrl and proposalPdfLoading from dependencies to stop infinite loop
-        // We only care if 'screens' array changed.
-    }, [screens, generatePdf, getValues]);
 
     const ensurePdfPreview = async () => {
         if (proposalPdfLoading) return;
@@ -558,6 +544,20 @@ const Step4Export = () => {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-0">
+                                {(proposalPdfLoading || pdfGenerationProgress) && (
+                                    <div className="px-4 py-3 border-b border-border/60 bg-muted/20">
+                                        <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                                            <span>{pdfGenerationProgress?.label || "Generating PDF…"}</span>
+                                            <span>{pdfGenerationProgress?.value ? `${pdfGenerationProgress.value}%` : ""}</span>
+                                        </div>
+                                        <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                                            <div
+                                                className="h-full bg-brand-blue transition-[width] duration-300"
+                                                style={{ width: `${pdfGenerationProgress?.value ?? 35}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 divide-y divide-zinc-800/60">
                                     {/* Primary Bundle Option */}
                                     <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors group">
@@ -600,7 +600,6 @@ const Step4Export = () => {
                                             onClick={async () => {
                                                 if (mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked)) return;
                                                 setDownloadingAllPdfs(true);
-                                                console.log("Download All 9 PDFs triggered...");
                                                 try {
                                                     await downloadAllPdfVariants();
                                                 } finally {
@@ -619,6 +618,20 @@ const Step4Export = () => {
                                             {!downloadingAllPdfs && <Download className="w-3.5 h-3.5" />}
                                         </button>
                                     </div>
+                                    {downloadingAllPdfs && pdfBatchProgress && (
+                                        <div className="px-4 pb-4 -mt-2">
+                                            <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
+                                                <span>{`Generating ${pdfBatchProgress.current}/${pdfBatchProgress.total}: ${pdfBatchProgress.label}`}</span>
+                                                <span>{`${Math.round((pdfBatchProgress.current / pdfBatchProgress.total) * 100)}%`}</span>
+                                            </div>
+                                            <div className="mt-2 h-1.5 rounded-full bg-muted overflow-hidden">
+                                                <div
+                                                    className="h-full bg-emerald-600 transition-[width] duration-300"
+                                                    style={{ width: `${(pdfBatchProgress.current / pdfBatchProgress.total) * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Individual Options */}
                                     <div className="grid grid-cols-2 divide-x divide-zinc-800/60">

@@ -20,8 +20,6 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		let templateId = body.details?.pdfTemplate ?? 2;
 		if (templateId === 1) templateId = 2;
 		
-		console.log(`[PDF Service] Generating with Template ID: ${templateId}, Mode: ${body.details?.documentMode}`);
-		
 		const ProposalTemplate = await getProposalTemplate(templateId);
 
 		if (!ProposalTemplate) {
@@ -95,7 +93,27 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 			console.error("Failed to load Tailwind CDN CSS, continuing without it");
 		}
 		try {
-			await page.evaluate(() => (document as any).fonts?.ready);
+			await page.evaluate(async () => {
+				if ((document as any).fonts?.ready) {
+					await (document as any).fonts.ready;
+				}
+			});
+		} catch {
+		}
+		try {
+			await page.evaluate(async () => {
+				const images = Array.from(document.images || []);
+				await Promise.all(
+					images.map((img) =>
+						img.complete
+							? Promise.resolve()
+							: new Promise<void>((resolve) => {
+									img.addEventListener("load", () => resolve(), { once: true });
+									img.addEventListener("error", () => resolve(), { once: true });
+								})
+					)
+				);
+			});
 		} catch {
 		}
 
