@@ -13,29 +13,49 @@ export function resolveDocumentMode(details: any): DocumentMode {
   return "BUDGET";
 }
 
+/**
+ * Apply document mode defaults - HYBRID TEMPLATE APPROACH
+ * 
+ * In the Hybrid Template, Notes, Scope of Work, and Signatures are
+ * OPTIONAL for ALL document types (Budget, Proposal, LOI).
+ * 
+ * We only set defaults if the values are undefined - we don't force
+ * them based on document type anymore. Users can toggle any section
+ * regardless of document mode.
+ */
 export function applyDocumentModeDefaults(mode: DocumentMode, current: any) {
   const base = { ...(current || {}) };
   base.documentMode = mode;
 
+  // Only set defaults if undefined - respect user's explicit choices
+  // This allows universal toggles for all document types
+  
   if (mode === "LOI") {
-    base.showPaymentTerms = true;
-    base.showSignatureBlock = true;
-    base.showExhibitA = true;
-    base.showExhibitB = true;
-    base.showSpecifications = false;
+    // LOI defaults - but user can override
+    if (base.showPaymentTerms === undefined) base.showPaymentTerms = true;
+    if (base.showSignatureBlock === undefined) base.showSignatureBlock = true;
+    if (base.showExhibitA === undefined) base.showExhibitA = true;
+    if (base.showExhibitB === undefined) base.showExhibitB = true;
+    if (base.showSpecifications === undefined) base.showSpecifications = false;
+    if (base.showNotes === undefined) base.showNotes = true;
+    if (base.showScopeOfWork === undefined) base.showScopeOfWork = false;
     return base;
   }
 
-  base.showPaymentTerms = false;
-  base.showSignatureBlock = false;
-  base.showSpecifications = true;
-  base.showExhibitB = false;
+  // Budget and Proposal defaults - but user can override
+  if (base.showPaymentTerms === undefined) base.showPaymentTerms = false;
+  if (base.showSignatureBlock === undefined) base.showSignatureBlock = false;
+  if (base.showSpecifications === undefined) base.showSpecifications = true;
+  if (base.showExhibitB === undefined) base.showExhibitB = false;
+  if (base.showNotes === undefined) base.showNotes = true;
+  if (base.showScopeOfWork === undefined) base.showScopeOfWork = false;
 
   if (mode === "PROPOSAL") {
-    base.showExhibitA = true;
+    if (base.showExhibitA === undefined) base.showExhibitA = true;
     return base;
   }
 
-  base.showExhibitA = false;
+  // BUDGET defaults
+  if (base.showExhibitA === undefined) base.showExhibitA = false;
   return base;
 }

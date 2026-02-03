@@ -332,6 +332,9 @@ const ProposalDetailsSchema = z.object({
     showAssumptions: z.boolean().optional().default(false), // Toggle for assumptions text (default OFF per client)
     showExhibitA: z.boolean().optional().default(false), // Toggle for Exhibit A (Statement of Work)
     showExhibitB: z.boolean().optional().default(false), // Toggle for Exhibit B (Cost Schedule)
+    // Universal toggles for Hybrid Template - available for ALL document types
+    showNotes: z.boolean().optional().default(true), // Toggle for Notes section (Budget, Proposal, LOI)
+    showScopeOfWork: z.boolean().optional().default(false), // Toggle for Scope of Work section (all doc types)
 });
 
 const ProposalSchema = z.object({

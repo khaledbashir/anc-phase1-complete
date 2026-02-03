@@ -147,18 +147,14 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 			format: "a4",
 			printBackground: true,
 			preferCSSPageSize: true,
-			displayHeaderFooter: true,
-			footerTemplate: `
-                <div style="font-family: 'Open Sans', sans-serif; font-size: 8px; width: 100%; padding: 0 40px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-                    <div>ANC Intelligence Core - Confidential Proposal</div>
-                    <div>Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
-                </div>
-            `,
+			// Disable browser header/footer to prevent timestamps/URLs
+			displayHeaderFooter: false,
+			// Reduced margins for tighter layout (more content on first page)
 			margin: {
-				top: "60px",
-				bottom: "70px",
-				left: "40px",
-				right: "40px",
+				top: "30px",
+				bottom: "30px",
+				left: "30px",
+				right: "30px",
 			},
 		});
 

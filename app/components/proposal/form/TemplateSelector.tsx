@@ -42,6 +42,13 @@ const templates: Template[] = [
         icon: <Zap className="w-4 h-4" />,
         color: "#0A52EF",
     },
+    {
+        id: 5,
+        name: "ANC Hybrid",
+        description: "Unified design for all document types",
+        icon: <Sparkles className="w-4 h-4" />,
+        color: "#002C73",
+    },
 ];
 
 const TemplateSelector = () => {
@@ -111,7 +118,12 @@ const TemplateSelector = () => {
                                     )}
                                     {template.id === 2 && (
                                         <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded font-medium">
-                                            Default
+                                            Classic
+                                        </span>
+                                    )}
+                                    {template.id === 5 && (
+                                        <span className="text-[10px] bg-brand-blue/20 text-brand-blue px-1.5 py-0.5 rounded font-medium">
+                                            New
                                         </span>
                                     )}
                                 </div>

@@ -38,10 +38,22 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                     <link href={fontHref} rel="stylesheet" />
                 </>
             )}
-            {/* Global print styles for proper page breaks */}
+            {/* Global print styles for proper page breaks and clean PDF output */}
             <style dangerouslySetInnerHTML={{
                 __html: `
                     @media print {
+                        /* Suppress browser print headers/footers (timestamps, URLs) */
+                        @page {
+                            margin: 0;
+                            size: auto;
+                        }
+                        
+                        /* Hide browser default headers/footers */
+                        html, body {
+                            margin: 0;
+                            padding: 0;
+                        }
+                        
                         /* Prevent table rows from breaking across pages */
                         tr, .grid-row, [class*="grid-cols"] > div {
                             page-break-inside: avoid;
@@ -81,6 +93,12 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                         .break-before-page {
                             margin-top: 0;
                             padding-top: 0;
+                        }
+                        
+                        /* Hide any remaining browser UI elements */
+                        .no-print, .browser-header, .browser-footer, 
+                        header:not(.proposal-header), footer:not(.proposal-footer) {
+                            display: none !important;
                         }
                     }
                 `

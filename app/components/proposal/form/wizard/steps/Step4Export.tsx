@@ -19,7 +19,11 @@ import {
     RefreshCw,
     Columns,
     MessageSquare,
-    Check
+    Check,
+    FileText,
+    PenTool,
+    DollarSign,
+    Settings
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -573,6 +577,133 @@ const Step4Export = () => {
                                         </p>
                                     </div>
                                 )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Universal Section Toggles - Available for ALL Document Types (Hybrid Template) */}
+                        <Card className="bg-card/40 border border-border/60 overflow-hidden mb-6">
+                            <CardHeader className="border-b border-border/60 pb-3">
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                                        <Columns className="w-4 h-4 text-brand-blue" />
+                                        PDF Section Toggles
+                                    </CardTitle>
+                                    <Badge variant="outline" className="text-[10px] border-brand-blue/30 text-brand-blue">
+                                        Hybrid Template
+                                    </Badge>
+                                </div>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                    Control which sections appear in the PDF. Available for Budget, Proposal, and LOI.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-4">
+                                {/* Notes Toggle */}
+                                <div className="flex items-center justify-between py-2 border-b border-border/30">
+                                    <div className="flex flex-col">
+                                        <Label htmlFor="showNotes" className="text-sm font-semibold text-foreground">
+                                            Notes Section
+                                        </Label>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Include additional notes in the PDF
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="showNotes"
+                                        checked={watch("details.showNotes") ?? true}
+                                        onCheckedChange={(checked) => setValue("details.showNotes", checked)}
+                                        className="data-[state=checked]:bg-brand-blue"
+                                    />
+                                </div>
+
+                                {/* Scope of Work Toggle */}
+                                <div className="flex items-center justify-between py-2 border-b border-border/30">
+                                    <div className="flex flex-col">
+                                        <Label htmlFor="showScopeOfWork" className="text-sm font-semibold text-foreground">
+                                            Scope of Work
+                                        </Label>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Include custom Scope of Work text
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="showScopeOfWork"
+                                        checked={watch("details.showScopeOfWork") || false}
+                                        onCheckedChange={(checked) => setValue("details.showScopeOfWork", checked)}
+                                        className="data-[state=checked]:bg-brand-blue"
+                                    />
+                                </div>
+
+                                {/* Signature Block Toggle */}
+                                <div className="flex items-center justify-between py-2 border-b border-border/30">
+                                    <div className="flex flex-col">
+                                        <Label htmlFor="showSignatureBlock" className="text-sm font-semibold text-foreground">
+                                            Signature Lines
+                                        </Label>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Include signature block for both parties
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="showSignatureBlock"
+                                        checked={watch("details.showSignatureBlock") ?? true}
+                                        onCheckedChange={(checked) => setValue("details.showSignatureBlock", checked)}
+                                        className="data-[state=checked]:bg-brand-blue"
+                                    />
+                                </div>
+
+                                {/* Payment Terms Toggle */}
+                                <div className="flex items-center justify-between py-2 border-b border-border/30">
+                                    <div className="flex flex-col">
+                                        <Label htmlFor="showPaymentTerms" className="text-sm font-semibold text-foreground">
+                                            Payment Terms
+                                        </Label>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Include payment terms section
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="showPaymentTerms"
+                                        checked={watch("details.showPaymentTerms") ?? true}
+                                        onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked)}
+                                        className="data-[state=checked]:bg-brand-blue"
+                                    />
+                                </div>
+
+                                {/* Specifications Toggle */}
+                                <div className="flex items-center justify-between py-2 border-b border-border/30">
+                                    <div className="flex flex-col">
+                                        <Label htmlFor="showSpecifications" className="text-sm font-semibold text-foreground">
+                                            Technical Specifications
+                                        </Label>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Include detailed screen specifications
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="showSpecifications"
+                                        checked={watch("details.showSpecifications") ?? true}
+                                        onCheckedChange={(checked) => setValue("details.showSpecifications", checked)}
+                                        className="data-[state=checked]:bg-brand-blue"
+                                    />
+                                </div>
+
+                                {/* Pricing Tables Toggle */}
+                                <div className="flex items-center justify-between py-2">
+                                    <div className="flex flex-col">
+                                        <Label htmlFor="showPricingTables" className="text-sm font-semibold text-foreground">
+                                            Pricing Tables
+                                        </Label>
+                                        <p className="text-[11px] text-muted-foreground">
+                                            Include pricing breakdown in the PDF
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="showPricingTables"
+                                        checked={watch("details.showPricingTables") ?? true}
+                                        onCheckedChange={(checked) => setValue("details.showPricingTables", checked)}
+                                        className="data-[state=checked]:bg-brand-blue"
+                                    />
+                                </div>
                             </CardContent>
                         </Card>
 
