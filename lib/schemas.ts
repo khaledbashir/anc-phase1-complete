@@ -278,6 +278,13 @@ const ProposalDetailsSchema = z.object({
     totalAmountInWords: fieldValidators.string,
     additionalNotes: fieldValidators.stringOptional,
     scopeOfWorkText: fieldValidators.stringOptional, // Exhibit B - custom SOW text
+    aiGeneratedSOW: z.object({
+        designServices: z.string().optional(),
+        constructionLogistics: z.string().optional(),
+        constraints: z.string().optional(),
+        generatedAt: z.string().optional(),
+        editedByUser: z.boolean().optional().default(false),
+    }).optional(),
     signatureBlockText: fieldValidators.stringOptional, // Custom legal text before signature lines
     specsSectionTitle: fieldValidators.stringOptional, // Custom title for specifications section (default: "SPECIFICATIONS")
     paymentTerms: fieldValidators.stringMin1,

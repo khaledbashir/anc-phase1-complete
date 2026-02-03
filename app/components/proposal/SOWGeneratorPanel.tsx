@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { RiskBadge, RiskCard, RiskType } from "./RiskBadge";
 import { 
   Sparkles, 
@@ -18,7 +19,10 @@ import {
   ChevronDown,
   ChevronUp,
   AlertCircle,
-  Wand2
+  Wand2,
+  Edit3,
+  Save,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -39,6 +43,7 @@ export function SOWGeneratorPanel() {
   const additionalNotes = useWatch({ control, name: "details.additionalNotes" });
   const aiWorkspaceSlug = useWatch({ control, name: "details.aiWorkspaceSlug" });
   const showExhibitA = useWatch({ control, name: "details.showExhibitA" });
+  const aiGeneratedSOW = useWatch({ control, name: "details.aiGeneratedSOW" });
   
   // Local state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -46,6 +51,10 @@ export function SOWGeneratorPanel() {
   const [detectedRisks, setDetectedRisks] = useState<RiskType[]>([]);
   const [sowSections, setSowSections] = useState<SOWSection[]>([]);
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null);
+  
+  // Inline editing state
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState<Record<string, string>>({});
 
   // Memoize screens info to prevent dependency issues
   const screensInfo = React.useMemo(() => ({
@@ -75,7 +84,14 @@ export function SOWGeneratorPanel() {
     if (riskScan.hasUnionRequirement) newRisks.push("union");
     if (riskScan.hasOutdoorRequirement) newRisks.push("outdoor");
     if (riskScan.hasLiquidatedDamages) newRisks.push("liquidatedDamages");
+    if (riskScan.hasPerformanceBond) newRisks.push("performanceBond");
+    if (riskScan.hasSpareParts) newRisks.push("spareParts");
     setDetectedRisks(newRisks);
+    
+    // Apply financial triggers to form state
+    if (riskScan.financialTriggers.bondRateOverride !== undefined) {
+      setValue("details.bondRateOverride", riskScan.financialTriggers.bondRateOverride, { shouldDirty: true });
+    }
     
     // Generate SOW content
     const projectContext = {
@@ -109,6 +125,23 @@ export function SOWGeneratorPanel() {
     }
     
     setSowSections(sections);
+    
+    // Save to form state
+    setValue("details.aiGeneratedSOW", {
+      designServices: generated.designServices,
+      constructionLogistics: generated.constructionLogistics,
+      constraints: generated.constraints,
+      generatedAt: new Date().toISOString(),
+      editedByUser: false
+    }, { shouldDirty: true });
+    
+    // Initialize edited content
+    const initialEdits: Record<string, string> = {};
+    sections.forEach(s => {
+      initialEdits[s.title] = s.content;
+    });
+    setEditedContent(initialEdits);
+    
     setLastGenerated(new Date());
     setIsGenerating(false);
     
@@ -116,7 +149,7 @@ export function SOWGeneratorPanel() {
     if (newRisks.length > 0) {
       setIsExpanded(true);
     }
-  }, [venue, location, proposalName, additionalNotes, screensInfo]);
+  }, [venue, location, proposalName, additionalNotes, screensInfo, setValue]);
 
   // Auto-generate on mount if we have AI workspace data
   useEffect(() => {
@@ -124,6 +157,42 @@ export function SOWGeneratorPanel() {
       generateSOW();
     }
   }, [aiWorkspaceSlug, generateSOW, lastGenerated, isGenerating]);
+
+  // Handle edit start
+  const startEditing = (sectionTitle: string, currentContent: string) => {
+    setEditingSection(sectionTitle);
+    setEditedContent(prev => ({
+      ...prev,
+      [sectionTitle]: currentContent
+    }));
+  };
+
+  // Handle edit save
+  const saveEdit = (sectionTitle: string) => {
+    const newContent = editedContent[sectionTitle];
+    
+    // Update local sections
+    setSowSections(prev => prev.map(s => 
+      s.title === sectionTitle ? { ...s, content: newContent } : s
+    ));
+    
+    // Update form state
+    const currentSOW = aiGeneratedSOW || {};
+    const updatedSOW = {
+      ...currentSOW,
+      [sectionTitle === "1. Design Services" ? "designServices" :
+       sectionTitle === "2. Construction Logistics" ? "constructionLogistics" : "constraints"]: newContent,
+      editedByUser: true
+    };
+    setValue("details.aiGeneratedSOW", updatedSOW, { shouldDirty: true });
+    
+    setEditingSection(null);
+  };
+
+  // Handle edit cancel
+  const cancelEdit = () => {
+    setEditingSection(null);
+  };
 
   // Get category styles
   const getCategoryStyles = (category: string) => {
@@ -178,6 +247,11 @@ export function SOWGeneratorPanel() {
             {detectedRisks.length > 0 && (
               <Badge variant="outline" className="text-[10px] border-brand-blue/30 text-brand-blue">
                 {detectedRisks.length} Risk{detectedRisks.length > 1 ? "s" : ""} Detected
+              </Badge>
+            )}
+            {aiGeneratedSOW?.editedByUser && (
+              <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-600">
+                Edited
               </Badge>
             )}
             <Button
@@ -243,23 +317,25 @@ export function SOWGeneratorPanel() {
           </div>
         )}
 
-        {/* Expanded SOW Preview */}
+        {/* Expanded SOW Preview with Inline Editor */}
         {isExpanded && sowSections.length > 0 && (
           <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                 Generated Sections
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={generateSOW}
-                disabled={isGenerating}
-                className="h-6 text-[10px] text-brand-blue hover:text-brand-blue/80"
-              >
-                <RefreshCw className="w-3 h-3 mr-1" />
-                Regenerate
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={generateSOW}
+                  disabled={isGenerating}
+                  className="h-6 text-[10px] text-brand-blue hover:text-brand-blue/80"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Regenerate
+                </Button>
+              </div>
             </div>
 
             {/* Risk Cards */}
@@ -271,16 +347,19 @@ export function SOWGeneratorPanel() {
               </div>
             )}
 
-            <ScrollArea className="h-[200px] rounded-lg border border-border bg-muted/20">
+            <ScrollArea className="h-[350px] rounded-lg border border-border bg-muted/20">
               <div className="p-4 space-y-4">
                 {sowSections.map((section, idx) => {
                   const styles = getCategoryStyles(section.category);
+                  const isEditing = editingSection === section.title;
+                  
                   return (
                     <div 
                       key={idx}
                       className={cn(
                         "p-3 rounded-lg bg-card border hover:shadow-sm transition-all",
-                        styles.border
+                        styles.border,
+                        isEditing && "ring-2 ring-brand-blue/30"
                       )}
                     >
                       <div className="flex items-center gap-2 mb-2">
@@ -299,10 +378,54 @@ export function SOWGeneratorPanel() {
                         >
                           {section.category}
                         </Badge>
+                        
+                        {/* Edit/Save Buttons */}
+                        {!isEditing ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => startEditing(section.title, section.content)}
+                            className="h-6 w-6 p-0 text-muted-foreground hover:text-brand-blue"
+                          >
+                            <Edit3 className="w-3 h-3" />
+                          </Button>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => saveEdit(section.title)}
+                              className="h-6 w-6 p-0 text-emerald-600 hover:text-emerald-700"
+                            >
+                              <Save className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={cancelEdit}
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-red-500"
+                            >
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        )}
                       </div>
-                      <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        {section.content}
-                      </p>
+                      
+                      {isEditing ? (
+                        <Textarea
+                          value={editedContent[section.title] || ""}
+                          onChange={(e) => setEditedContent(prev => ({
+                            ...prev,
+                            [section.title]: e.target.value
+                          }))}
+                          className="text-[11px] min-h-[100px] resize-y"
+                          placeholder={`Edit ${section.title}...`}
+                        />
+                      ) : (
+                        <p className="text-[11px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                          {section.content}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
@@ -332,6 +455,7 @@ export function SOWGeneratorPanel() {
               <span className="text-xs text-muted-foreground">
                 {sowSections.length} sections generated
                 {detectedRisks.length > 0 && ` • ${detectedRisks.length} risk${detectedRisks.length > 1 ? "s" : ""} detected`}
+                {aiGeneratedSOW?.editedByUser && " • Edited by user"}
               </span>
             </div>
             <Button
@@ -340,7 +464,7 @@ export function SOWGeneratorPanel() {
               onClick={() => setIsExpanded(true)}
               className="h-6 text-[10px] text-brand-blue"
             >
-              Preview
+              Preview & Edit
             </Button>
           </div>
         )}
@@ -351,7 +475,7 @@ export function SOWGeneratorPanel() {
             <AlertCircle className="w-4 h-4 text-muted-foreground mt-0.5" />
             <div className="flex-1">
               <p className="text-[10px] text-muted-foreground">
-                <strong>AI scans for:</strong> Union Labor, Outdoor/IP65, Liquidated Damages
+                <strong>AI scans for:</strong> Union Labor, Outdoor/IP65, Liquidated Damages, Performance Bond, Spare Parts
               </p>
               <p className="text-[10px] text-muted-foreground mt-1">
                 Upload RFP documents for automatic risk detection
@@ -364,6 +488,7 @@ export function SOWGeneratorPanel() {
         {lastGenerated && (
           <div className="text-[10px] text-muted-foreground text-right">
             Last generated: {lastGenerated.toLocaleTimeString()}
+            {aiGeneratedSOW?.editedByUser && " • Edited"}
           </div>
         )}
       </CardContent>

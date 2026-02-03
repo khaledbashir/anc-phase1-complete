@@ -244,44 +244,92 @@ export class RiskAwareSOWGenerator {
     
     /**
      * SCAN FOR RISK KEYWORDS
-     * Scans filtered RFP text for three specific risk categories:
-     * 1. Union / Prevailing Wage (Triggers Labor Clause)
+     * Scans filtered RFP text for risk categories that impact cost and compliance:
+     * 1. Union / Prevailing Wage / IBEW / Davis-Bacon (Triggers Labor Clause)
      * 2. Outdoor / IP65 (Triggers Weatherproofing Clause)
      * 3. Liquidated Damages (Triggers Schedule Adherence Clause)
+     * 4. Performance Bond - detects 100% bond requirements (Triggers cost override)
+     * 5. Spare Parts / Attic Stock - detects 5% vs 2% requirements (Triggers cost adjustment)
      */
     static scanForRiskKeywords(filteredRfpText: string): {
         hasUnionRequirement: boolean;
         hasOutdoorRequirement: boolean;
         hasLiquidatedDamages: boolean;
+        hasPerformanceBond: boolean;
+        has100PercentBond: boolean;
+        hasSpareParts: boolean;
+        has5PercentSpareParts: boolean;
         detectedKeywords: string[];
+        financialTriggers: {
+            bondRateOverride?: number; // 1.5% default, 100% if detected
+            sparePartsPercentage?: number; // 2% default, 5% if detected
+        };
     } {
         const textLower = filteredRfpText.toLowerCase();
         
-        const unionKeywords = ['union', 'prevailing wage', 'collective bargaining', 'ibew', 'davis-bacon'];
-        const outdoorKeywords = ['outdoor', 'ip65', 'weatherproof', 'weather resistant'];
-        const damagesKeywords = ['liquidated damages', 'liquidated damage', 'penalties per day'];
+        // Union and labor compliance
+        const unionKeywords = ['union', 'prevailing wage', 'collective bargaining', 'ibew', 'davis-bacon', 'wage determination'];
+        
+        // Outdoor and weatherproofing
+        const outdoorKeywords = ['outdoor', 'ip65', 'weatherproof', 'weather resistant', 'ip67', 'exterior'];
+        
+        // Liquidated damages
+        const damagesKeywords = ['liquidated damages', 'liquidated damage', 'penalties per day', 'delay damages'];
+        
+        // Performance bond - detect both standard and 100% requirements
+        const bondKeywords = ['performance bond', 'surety bond', 'contract bond'];
+        const hundredPercentBondKeywords = ['100% performance bond', '100% contract bond', 'full performance bond', '100% surety'];
+        
+        // Spare parts / Attic stock - detect both generic and 5% specific
+        const sparePartsKeywords = ['spare parts', 'attic stock', 'spare inventory', 'replacement parts'];
+        const fivePercentSpareKeywords = ['5% spare', '5% attic', 'five percent spare', '5% replacement'];
         
         const hasUnionRequirement = unionKeywords.some(keyword => textLower.includes(keyword));
         const hasOutdoorRequirement = outdoorKeywords.some(keyword => textLower.includes(keyword));
         const hasLiquidatedDamages = damagesKeywords.some(keyword => textLower.includes(keyword));
         
+        // Performance bond detection
+        const hasPerformanceBond = bondKeywords.some(keyword => textLower.includes(keyword));
+        const has100PercentBond = hundredPercentBondKeywords.some(keyword => textLower.includes(keyword));
+        
+        // Spare parts detection
+        const hasSpareParts = sparePartsKeywords.some(keyword => textLower.includes(keyword));
+        const has5PercentSpareParts = fivePercentSpareKeywords.some(keyword => textLower.includes(keyword));
+        
+        // Build detected keywords for UI
         const detectedKeywords = [
             ...(hasUnionRequirement ? ['Union/Prevailing Wage'] : []),
             ...(hasOutdoorRequirement ? ['Outdoor/IP65'] : []),
-            ...(hasLiquidatedDamages ? ['Liquidated Damages'] : [])
+            ...(hasLiquidatedDamages ? ['Liquidated Damages'] : []),
+            ...(hasPerformanceBond ? [`Performance Bond ${has100PercentBond ? '(100%)' : ''}`] : []),
+            ...(hasSpareParts ? [`Spare Parts ${has5PercentSpareParts ? '(5%)' : ''}`] : [])
         ];
+        
+        // Financial triggers for cost calculations
+        const financialTriggers = {
+            // Default 1.5%, but 100% if detected (Alfond Arena requirement)
+            bondRateOverride: has100PercentBond ? 1.0 : hasPerformanceBond ? 0.015 : undefined,
+            // Default 2%, but 5% if explicitly required
+            sparePartsPercentage: has5PercentSpareParts ? 0.05 : hasSpareParts ? 0.02 : undefined
+        };
         
         return {
             hasUnionRequirement,
             hasOutdoorRequirement,
             hasLiquidatedDamages,
-            detectedKeywords
+            hasPerformanceBond,
+            has100PercentBond,
+            hasSpareParts,
+            has5PercentSpareParts,
+            detectedKeywords,
+            financialTriggers
         };
     }
     
     /**
      * GENERATE RISK-AWARE SOW JSON
      * Generates the 3-section JSON object for Exhibit A based on detected risks
+     * Includes financial triggers for bond rates and spare parts percentages
      */
     static generateRiskAwareSOW(filteredRfpText: string, projectContext: any): {
         designServices: string;
@@ -291,12 +339,27 @@ export class RiskAwareSOWGenerator {
             union: boolean;
             outdoor: boolean;
             liquidatedDamages: boolean;
+            performanceBond: boolean;
+            hundredPercentBond: boolean;
+            spareParts: boolean;
+            fivePercentSpareParts: boolean;
+        };
+        financialTriggers: {
+            bondRateOverride?: number;
+            sparePartsPercentage?: number;
         };
     } {
         const risks = this.scanForRiskKeywords(filteredRfpText);
         
         // Design Services: Summarize design-build obligations from RFP
         let designServices = "ANC acts as the primary design-build contractor for the complete video, sound, and lighting systems as specified in the RFP. ANC will provide all engineering, shop drawings, and technical documentation required for permit submission and installation.";
+        
+        // Add PE stamp mention for certain project types
+        if (filteredRfpText.toLowerCase().includes('university') || 
+            filteredRfpText.toLowerCase().includes('college') ||
+            filteredRfpText.toLowerCase().includes('stadium')) {
+            designServices += " All structural drawings will be stamped by a licensed Professional Engineer (PE).";
+        }
         
         // Construction Logistics: Conditional based on risk detection
         let constructionLogistics = "ANC will provide all labor, materials, and equipment for installation.";
@@ -313,8 +376,29 @@ export class RiskAwareSOWGenerator {
             constructionLogistics += " A strict project schedule will be maintained to avoid liquidated damages penalties as specified in the contract terms.";
         }
         
-        // Constraints: Summarize access rules from RFP
+        // Spare parts mention in construction logistics
+        if (risks.hasSpareParts) {
+            const sparePercent = risks.has5PercentSpareParts ? "5%" : "2%";
+            constructionLogistics += ` A ${sparePercent} spare parts inventory (attic stock) will be provided for long-term serviceability.`;
+        }
+        
+        // Constraints: Summarize access rules and commercial terms from RFP
         const constraints: string[] = [];
+        
+        // Performance bond constraint
+        if (risks.hasPerformanceBond) {
+            if (risks.has100PercentBond) {
+                constraints.push("100% Performance Bond required - Cost basis adjusted accordingly.");
+            } else {
+                constraints.push("Performance Bond (1.5% default) required per standard terms.");
+            }
+        }
+        
+        // Spare parts constraint
+        if (risks.hasSpareParts) {
+            const sparePercent = risks.has5PercentSpareParts ? "5%" : "2%";
+            constraints.push(`${sparePercent} Spare Parts (Attic Stock) required - Included in pricing.`);
+        }
         
         // Common constraints to look for
         if (filteredRfpText.toLowerCase().includes('7am') || filteredRfpText.toLowerCase().includes('7am-5pm')) {
@@ -340,8 +424,13 @@ export class RiskAwareSOWGenerator {
             riskFlags: {
                 union: risks.hasUnionRequirement,
                 outdoor: risks.hasOutdoorRequirement,
-                liquidatedDamages: risks.hasLiquidatedDamages
-            }
+                liquidatedDamages: risks.hasLiquidatedDamages,
+                performanceBond: risks.hasPerformanceBond,
+                hundredPercentBond: risks.has100PercentBond,
+                spareParts: risks.hasSpareParts,
+                fivePercentSpareParts: risks.has5PercentSpareParts
+            },
+            financialTriggers: risks.financialTriggers
         };
     }
 }
