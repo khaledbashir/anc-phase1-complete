@@ -20,7 +20,38 @@ export function IntelligenceSidebar({ isVisible, onToggle }: { isVisible: boolea
     const { risks } = useProposalContext();
 
     const gaps = analyzeGaps(formValues);
-    const completionRate = calculateCompletionRate(gaps.length);
+    const completionRate = calculateCompletionRate(gaps.length, gaps);
+    
+    // Group gaps by field type to reduce clutter
+    const groupedGaps = gaps.reduce((acc, gap) => {
+        const key = gap.field;
+        if (!acc[key]) {
+            acc[key] = {
+                field: gap.field,
+                count: 0,
+                priority: gap.priority,
+                section: gap.section,
+                screens: [] as number[]
+            };
+        }
+        acc[key].count++;
+        if (gap.screenIndex !== undefined) {
+            acc[key].screens.push(gap.screenIndex + 1);
+        }
+        return acc;
+    }, {} as Record<string, { field: string; count: number; priority: string; section?: string; screens: number[] }>);
+    
+    const uniqueGaps = Object.values(groupedGaps).map((group, idx) => ({
+        id: `group-${idx}`,
+        field: group.field,
+        count: group.count,
+        priority: group.priority as "high" | "medium" | "low",
+        section: group.section,
+        screens: group.screens,
+        description: group.count > 1 && group.screens.length > 0
+            ? `${group.count} screens missing ${group.field.toLowerCase()} (Screens ${group.screens.slice(0, 3).join(", ")}${group.screens.length > 3 ? ` +${group.screens.length - 3} more` : ""})`
+            : gaps.find(g => g.field === group.field)?.description || `Missing ${group.field.toLowerCase()}`
+    }));
 
     const isDefaultClient = !formValues?.receiver?.name || formValues?.receiver?.name === "Client Name";
     const isNoScreens = (formValues?.details?.screens || []).length === 0;
@@ -114,35 +145,85 @@ export function IntelligenceSidebar({ isVisible, onToggle }: { isVisible: boolea
                         </div>
                     )}
 
-                    {/* Gaps */}
+                    {/* Gaps - Grouped and Prioritized */}
                     <div className="space-y-3">
-                        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                            Gaps ({gaps.length})
-                        </h4>
-                        {gaps.length > 0 ? gaps.map(gap => (
-                            <div
-                                key={gap.id}
-                                className={cn(
-                                    "p-4 rounded-xl border transition-all",
-                                    gap.priority === "high"
-                                        ? "bg-red-500/10 border-red-500/20"
-                                        : "bg-card/30 border-border"
-                                )}
-                            >
-                                <div className="flex items-start gap-3">
-                                    <div className={cn(
-                                        "mt-1 p-1.5 rounded-md",
-                                        gap.priority === "high" ? "bg-red-500/20 text-red-500" : "bg-amber-500/20 text-amber-500"
-                                    )}>
-                                        <Target className="w-3 h-3" />
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                Missing Items ({gaps.length})
+                            </h4>
+                            {uniqueGaps.length < gaps.length && (
+                                <span className="text-[9px] text-muted-foreground">
+                                    {uniqueGaps.length} unique
+                                </span>
+                            )}
+                        </div>
+                        
+                        {/* High Priority First */}
+                        {uniqueGaps.filter(g => g.priority === "high").length > 0 && (
+                            <div className="space-y-2">
+                                {uniqueGaps.filter(g => g.priority === "high").map(gap => (
+                                    <div
+                                        key={gap.id}
+                                        className="p-3 rounded-lg border bg-red-500/10 border-red-500/20"
+                                    >
+                                        <div className="flex items-start gap-2">
+                                            <AlertTriangle className="w-3.5 h-3.5 text-red-500 mt-0.5 shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-xs font-semibold text-foreground mb-0.5">{gap.field}</div>
+                                                <p className="text-[10px] text-muted-foreground leading-relaxed">{gap.description}</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex-1">
-                                        <div className="text-xs font-bold text-foreground mb-1">{gap.field}</div>
-                                        <p className="text-[11px] text-muted-foreground">{gap.description}</p>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
-                        )) : !isEmptyState && (
+                        )}
+                        
+                        {/* Medium Priority */}
+                        {uniqueGaps.filter(g => g.priority === "medium").length > 0 && (
+                            <div className="space-y-2">
+                                {uniqueGaps.filter(g => g.priority === "medium").map(gap => (
+                                    <div
+                                        key={gap.id}
+                                        className="p-3 rounded-lg border bg-amber-500/10 border-amber-500/20"
+                                    >
+                                        <div className="flex items-start gap-2">
+                                            <Target className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-xs font-semibold text-foreground mb-0.5">{gap.field}</div>
+                                                <p className="text-[10px] text-muted-foreground leading-relaxed">{gap.description}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                        
+                        {/* Low Priority - Collapsed by default if many */}
+                        {uniqueGaps.filter(g => g.priority === "low").length > 0 && (
+                            <details className="group">
+                                <summary className="cursor-pointer text-[10px] font-medium text-muted-foreground hover:text-foreground mb-2">
+                                    Optional Items ({uniqueGaps.filter(g => g.priority === "low").length})
+                                </summary>
+                                <div className="space-y-2 mt-2">
+                                    {uniqueGaps.filter(g => g.priority === "low").map(gap => (
+                                        <div
+                                            key={gap.id}
+                                            className="p-2.5 rounded-lg border bg-card/30 border-border/50"
+                                        >
+                                            <div className="flex items-start gap-2">
+                                                <Info className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-xs font-medium text-foreground mb-0.5">{gap.field}</div>
+                                                    <p className="text-[10px] text-muted-foreground leading-relaxed">{gap.description}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
+                        )}
+                        
+                        {uniqueGaps.length === 0 && !isEmptyState && (
                             <div className="p-6 border border-emerald-500/20 rounded-xl bg-emerald-500/10 text-center">
                                 <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
                                 <div className="text-sm font-bold text-foreground mb-1">All Systems Nominal</div>

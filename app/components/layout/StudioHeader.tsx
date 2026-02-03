@@ -57,7 +57,7 @@ export function StudioHeader({
 
     const gaps = analyzeGaps(formValues);
     // If empty state, force 0% completion instead of 100% (since gaps is empty array)
-    const completionRate = isEmptyState ? 0 : calculateCompletionRate(gaps.length);
+    const completionRate = isEmptyState ? 0 : calculateCompletionRate(gaps.length, gaps);
 
     const handleShare = async () => {
         const projectId = getValues("details.proposalId");

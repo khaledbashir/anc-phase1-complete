@@ -83,9 +83,9 @@ export function analyzeGaps(formValues: any): GapItem[] {
             // Pixel Specs
             if (!screen.pitchMm) gaps.push({ id: `s${index}-pitch`, field: "Pixel Pitch", screenIndex: index, priority: "high", description: `${label} missing pixel pitch`, section: "Screens" });
 
-            // Brightness (HDR/Nits)
+            // Brightness (HDR/Nits) - Lower priority, grouped
             if (!screen.brightness) {
-                gaps.push({ id: `s${index}-brit`, field: "Brightness", screenIndex: index, priority: "medium", description: `${label} missing brightness`, section: "Screens" });
+                gaps.push({ id: `s${index}-brit`, field: "Brightness", screenIndex: index, priority: "low", description: `${label} missing brightness`, section: "Screens" });
             }
 
 
@@ -113,9 +113,20 @@ export function analyzeGaps(formValues: any): GapItem[] {
     return gaps;
 }
 
-export function calculateCompletionRate(gapCount: number): number {
-    // 20 fields total is the baseline for 100% completion
-    // The "17/20 Logic" means 17 fields filled = 85%
+export function calculateCompletionRate(gapCount: number, gaps?: GapItem[]): number {
+    // Weight gaps by priority: high=2, medium=1, low=0.5
+    // This makes the score more meaningful - missing critical fields hurts more
+    if (gaps && gaps.length > 0) {
+        const weightedGaps = gaps.reduce((sum, gap) => {
+            if (gap.priority === "high") return sum + 2;
+            if (gap.priority === "medium") return sum + 1;
+            return sum + 0.5; // low priority
+        }, 0);
+        const maxWeight = CRITICAL_FIELDS_COUNT * 2; // Assume all high priority
+        const score = Math.max(0, Math.min(100, ((maxWeight - weightedGaps) / maxWeight) * 100));
+        return Math.round(score);
+    }
+    // Fallback to simple count if gaps array not provided
     const score = Math.max(0, Math.min(100, ((CRITICAL_FIELDS_COUNT - gapCount) / CRITICAL_FIELDS_COUNT) * 100));
     return Math.round(score);
 }

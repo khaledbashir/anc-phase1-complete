@@ -32,7 +32,7 @@ const RfpSidebar = () => {
     const formValues = watch();
     const gaps = analyzeGaps(formValues);
     const gapCount = gaps.length;
-    const completionRate = calculateCompletionRate(gapCount);
+    const completionRate = calculateCompletionRate(gapCount, gaps);
 
     useEffect(() => {
         if (scrollRef.current) {

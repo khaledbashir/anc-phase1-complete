@@ -62,7 +62,7 @@ const AiCommandBar = ({ isExpanded, onToggle }: AiCommandBarProps) => {
     const gaps = analyzeGaps(formValues);
     const highPriorityGaps = gaps.filter(g => g.priority === "high");
     const gapCount = gaps.length;
-    const completionRate = calculateCompletionRate(gapCount);
+    const completionRate = calculateCompletionRate(gapCount, gaps);
 
     useEffect(() => {
         if (scrollRef.current) {
