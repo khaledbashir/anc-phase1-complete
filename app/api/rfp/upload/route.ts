@@ -7,6 +7,7 @@ import { smartFilterStreaming, shouldUseStreaming } from "@/services/ingest/smar
 import { screenshotPdfPage } from "@/services/ingest/pdf-screenshot";
 import { DrawingService } from "@/services/vision/drawing-service";
 import { analyzeTTEContent, TonnageResult } from "@/services/ingest/tonnage-extractor";
+import { parseStandardExcel, generateANCProposal, isStandardFormat } from "@/scripts/convert-standard-excel";
 import { extractJson } from "@/lib/json-utils";
 
 export async function GET(req: NextRequest) {
@@ -112,6 +113,52 @@ export async function POST(req: NextRequest) {
     let originalDocPath = "";
     let filterStats = null;
     let fullTextForTTE = ""; // Store for TTE extraction
+    let excelExtractedData: any = null; // Store for Excel extraction
+
+    // 0. Handle Excel files (Natalia's proposals)
+    if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+      console.log(`[RFP Upload] Excel file detected: ${file.name}`);
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        // Read workbook for format detection
+        const XLSX = await import('xlsx');
+        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        
+        // Check if standard format
+        if (isStandardFormat(workbook)) {
+          console.log('[RFP Upload] Standard Excel format detected, parsing...');
+          const standardProposal = parseStandardExcel(buffer);
+          excelExtractedData = generateANCProposal(standardProposal);
+          
+          console.log(`[RFP Upload] Excel parsed: ${excelExtractedData.screens.length} screens, $${excelExtractedData.pricing.grandTotal} total`);
+          
+          // Create a text summary for embedding
+          const summaryText = `
+EXCEL PROPOSAL IMPORT
+Client: ${excelExtractedData.receiver.name}
+Project: ${excelExtractedData.details.proposalName}
+Screens: ${excelExtractedData.screens.length}
+Total: $${excelExtractedData.pricing.grandTotal} ${excelExtractedData.pricing.currency}
+
+Screens:
+${excelExtractedData.screens.map((s: any) => `- ${s.name}: ${s.widthFt.toFixed(1)}' x ${s.heightFt.toFixed(1)}', ${s.pitchMm}mm, Qty ${s.quantity}`).join('\n')}
+
+Line Items:
+${excelExtractedData.lineItems.map((li: any) => `- ${li.description}: $${li.sellPrice.toLocaleString()}`).join('\n')}
+`;
+          fileToEmbed = Buffer.from(summaryText);
+          filenameToEmbed = file.name.replace(/\.xlsx?$/i, '_extracted.txt');
+        } else {
+          console.log('[RFP Upload] Non-standard Excel format, skipping auto-parse');
+          // Fall through to normal upload
+        }
+      } catch (excelErr) {
+        console.warn('[RFP Upload] Excel parsing failed:', excelErr);
+        // Continue with normal upload
+      }
+    }
 
     // 0. Pre-process if PDF
     if (file.name.toLowerCase().endsWith(".pdf")) {
@@ -367,17 +414,27 @@ Include extractionSummary with totalFields, extractedFields, completionRate, hig
       console.warn("[RFP Upload] TTE extraction failed:", tteErr);
     }
 
+    // If we have Excel data, use it instead of AI-extracted data
+    const finalExtractedData = excelExtractedData || extractedData;
+    
+    if (excelExtractedData) {
+      console.log('[RFP Upload] Using Excel-extracted data (not AI)');
+    }
+
     return NextResponse.json({
       ok: true,
       url: dbUrl,
       workspaceSlug,
-      extractedData,
+      extractedData: finalExtractedData,
+      excelData: excelExtractedData, // Include raw Excel data for UI
       tonnageData,
       filterStats,
       visionWarning: filterStats?.visionDisabled
         ? "Vision disabled: Drawing analysis skipped. Please manually verify structural constraints."
         : undefined,
-      message: "RFP uploaded and analyzed successfully"
+      message: excelExtractedData 
+        ? "Excel proposal imported successfully with exact pricing" 
+        : "RFP uploaded and analyzed successfully"
     });
 
   } catch (error: any) {

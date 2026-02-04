@@ -2279,6 +2279,109 @@ export const ProposalContextProvider = ({
               // Refresh the vault list
               refreshRfpDocuments();
 
+              // Handle Excel import data (exact pricing from Natalia's Excel)
+              if (data.excelData && data.importType === "standard_excel") {
+                const excel = data.excelData;
+                const aiPopulated: string[] = [];
+                const citations: Record<string, string> = {};
+                
+                // Set receiver info
+                if (excel.receiver?.name) {
+                  setValue("receiver.name", excel.receiver.name);
+                  aiPopulated.push("receiver.name");
+                  citations["receiver.name"] = "[Source: Natalia Excel Import]";
+                }
+                
+                // Set proposal details
+                if (excel.details?.proposalName) {
+                  setValue("details.proposalName", excel.details.proposalName);
+                  aiPopulated.push("details.proposalName");
+                  citations["details.proposalName"] = "[Source: Natalia Excel Import]";
+                }
+                if (excel.details?.venue) {
+                  setValue("details.venue", excel.details.venue);
+                  aiPopulated.push("details.venue");
+                  citations["details.venue"] = "[Source: Natalia Excel Import]";
+                }
+                
+                // Set calculation mode to MIRROR for Excel imports (exact pricing)
+                setValue("details.calculationMode", "MIRROR");
+                setCalculationModeState("MIRROR");
+                
+                // Process screens from Excel
+                if (excel.screens && Array.isArray(excel.screens) && excel.screens.length > 0) {
+                  const normalized = excel.screens.map((s: any, idx: number) => {
+                    const prefix = `details.screens[${idx}]`;
+                    
+                    // Track all populated fields
+                    if (s.name) { aiPopulated.push(`${prefix}.name`); citations[`${prefix}.name`] = "[Source: Natalia Excel Import]"; }
+                    if (s.widthFt != null) { aiPopulated.push(`${prefix}.widthFt`); citations[`${prefix}.widthFt`] = "[Source: Natalia Excel Import]"; }
+                    if (s.heightFt != null) { aiPopulated.push(`${prefix}.heightFt`); citations[`${prefix}.heightFt`] = "[Source: Natalia Excel Import]"; }
+                    if (s.pitchMm != null) { aiPopulated.push(`${prefix}.pitchMm`); citations[`${prefix}.pitchMm`] = "[Source: Natalia Excel Import]"; }
+                    if (s.pixelsH != null) { aiPopulated.push(`${prefix}.pixelsH`); citations[`${prefix}.pixelsH`] = "[Source: Natalia Excel Import]"; }
+                    if (s.pixelsW != null) { aiPopulated.push(`${prefix}.pixelsW`); citations[`${prefix}.pixelsW`] = "[Source: Natalia Excel Import]"; }
+                    if (s.brightness != null) { aiPopulated.push(`${prefix}.brightness`); citations[`${prefix}.brightness`] = "[Source: Natalia Excel Import]"; }
+                    if (s.quantity != null) { aiPopulated.push(`${prefix}.quantity`); citations[`${prefix}.quantity`] = "[Source: Natalia Excel Import]"; }
+                    if (s.externalName) { aiPopulated.push(`${prefix}.externalName`); citations[`${prefix}.externalName`] = "[Source: Natalia Excel Import]"; }
+                    if (s.location) { aiPopulated.push(`${prefix}.location`); citations[`${prefix}.location`] = "[Source: Natalia Excel Import]"; }
+                    if (s.application) { aiPopulated.push(`${prefix}.application`); citations[`${prefix}.application`] = "[Source: Natalia Excel Import]"; }
+                    if (s.serviceType) { aiPopulated.push(`${prefix}.serviceType`); citations[`${prefix}.serviceType`] = "[Source: Natalia Excel Import]"; }
+                    if (s.installationType) { aiPopulated.push(`${prefix}.installationType`); citations[`${prefix}.installationType`] = "[Source: Natalia Excel Import]"; }
+                    if (s.isReplacement != null) { aiPopulated.push(`${prefix}.isReplacement`); citations[`${prefix}.isReplacement`] = "[Source: Natalia Excel Import]"; }
+                    if (s.useExistingStructure != null) { aiPopulated.push(`${prefix}.useExistingStructure`); citations[`${prefix}.useExistingStructure`] = "[Source: Natalia Excel Import]"; }
+                    if (s.includeSpareParts != null) { aiPopulated.push(`${prefix}.includeSpareParts`); citations[`${prefix}.includeSpareParts`] = "[Source: Natalia Excel Import]"; }
+                    if (s.isCurved != null) { aiPopulated.push(`${prefix}.isCurved`); citations[`${prefix}.isCurved`] = "[Source: Natalia Excel Import]"; }
+                    if (s.isDoubleSided != null) { aiPopulated.push(`${prefix}.isDoubleSided`); citations[`${prefix}.isDoubleSided`] = "[Source: Natalia Excel Import]"; }
+                    
+                    return {
+                      name: s.name || `Screen ${idx + 1}`,
+                      externalName: s.externalName || s.name || `Screen ${idx + 1}`,
+                      widthFt: Number(s.widthFt ?? 0),
+                      heightFt: Number(s.heightFt ?? 0),
+                      quantity: Number(s.quantity ?? 1),
+                      pitchMm: Number(s.pitchMm ?? 10),
+                      pixelsH: Number(s.pixelsH ?? 0),
+                      pixelsW: Number(s.pixelsW ?? 0),
+                      brightness: s.brightness != null ? String(s.brightness) : "",
+                      serviceType: s.serviceType || "Front/Rear",
+                      application: s.application || "",
+                      installationType: s.installationType || "",
+                      location: s.location || "",
+                      isReplacement: !!s.isReplacement,
+                      useExistingStructure: !!s.useExistingStructure,
+                      includeSpareParts: s.includeSpareParts !== false,
+                      isCurved: !!s.isCurved,
+                      isDoubleSided: !!s.isDoubleSided,
+                    };
+                  });
+                  
+                  setValue("details.screens", normalized);
+                  setAiFields(aiPopulated);
+                  setAiCitations(prev => ({ ...prev, ...citations }));
+                  
+                  // Calculate audit with Excel data
+                  try {
+                    const { clientSummary, internalAudit } = calculateProposalAudit(normalized, {
+                      taxRate: getValues("details.taxRateOverride"),
+                      bondPct: getValues("details.bondRateOverride"),
+                      projectAddress: `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                      venue: excel.details?.venue ?? getValues("details.venue"),
+                    });
+                    setValue("details.internalAudit", internalAudit);
+                    setValue("details.clientSummary", clientSummary);
+                  } catch (e) { 
+                    console.error("Audit calculation failed:", e);
+                  }
+                }
+                
+                // Set Excel source data for reference
+                setExcelSourceData(excel);
+                
+                // Show success toast
+                aiExtractionSuccess();
+                return data;
+              }
+
               // Apply AI extracted data if available (supports { value, citation } shape)
               if (data.extractedData) {
                 const ext = data.extractedData;

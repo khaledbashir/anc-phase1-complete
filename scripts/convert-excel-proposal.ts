@@ -178,7 +178,6 @@ export function generateProposalJson(excelBuffer: Buffer): any {
     },
     screens: converted.screens.map(s => ({
       name: s.name,
-      description: s.description,
       widthFt: s.widthFt,
       heightFt: s.heightFt,
       quantity: s.quantity,
