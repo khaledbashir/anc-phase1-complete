@@ -1,0 +1,429 @@
+/**
+ * NataliaMirrorTemplate - Enterprise-grade PDF template for Mirror Mode
+ *
+ * Renders PricingTable[] to match Natalia's Scotia Bank PDF exactly.
+ * Each location = separate table with footer + alternates.
+ */
+
+"use client";
+
+import React from "react";
+import { ProposalType } from "@/types";
+import {
+  PricingTable,
+  PricingDocument,
+  formatPricingCurrency,
+} from "@/types/pricing";
+import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
+interface NataliaMirrorTemplateProps extends ProposalType {
+  isSharedView?: boolean;
+}
+
+type DocumentMode = "BUDGET" | "PROPOSAL" | "LOI";
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) {
+  const { details, receiver } = data;
+
+  // Get pricing document from form data
+  const pricingDocument: PricingDocument | null = (details as any)?.pricingDocument || null;
+  const tables = pricingDocument?.tables || [];
+  const currency = pricingDocument?.currency || "USD";
+
+  // Document mode
+  const documentMode: DocumentMode =
+    (details?.documentType as DocumentMode) || "BUDGET";
+
+  // Client info
+  const clientName = receiver?.name || "Client Name";
+  const projectName = details?.proposalName || "Project";
+
+  // Document total
+  const documentTotal = tables.reduce((sum, t) => sum + t.grandTotal, 0);
+
+  return (
+    <div className="bg-white min-h-screen font-sans">
+      {/* Page container */}
+      <div className="max-w-[816px] mx-auto">
+        {/* Header */}
+        <Header
+          documentMode={documentMode}
+          clientName={clientName}
+          projectName={projectName}
+        />
+
+        {/* Intro text */}
+        <IntroSection
+          documentMode={documentMode}
+          clientName={clientName}
+          currency={currency}
+        />
+
+        {/* All pricing tables */}
+        {tables.map((table, idx) => (
+          <React.Fragment key={table.id}>
+            <PricingTableSection table={table} currency={currency} />
+            {table.alternates.length > 0 && (
+              <AlternatesSection
+                alternates={table.alternates}
+                currency={currency}
+              />
+            )}
+          </React.Fragment>
+        ))}
+
+        {/* Document total (if multiple tables) */}
+        {tables.length > 1 && (
+          <DocumentTotalSection total={documentTotal} currency={currency} />
+        )}
+
+        {/* LOI-specific sections */}
+        {documentMode === "LOI" && (
+          <>
+            <PaymentTermsSection />
+            <SignatureSection clientName={clientName} />
+          </>
+        )}
+
+        {/* Statement of Work */}
+        <StatementOfWorkSection details={details} />
+
+        {/* Footer */}
+        <Footer />
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// HEADER
+// ============================================================================
+
+function Header({
+  documentMode,
+  clientName,
+  projectName,
+}: {
+  documentMode: DocumentMode;
+  clientName: string;
+  projectName: string;
+}) {
+  const title =
+    documentMode === "BUDGET"
+      ? "BUDGET ESTIMATE"
+      : documentMode === "PROPOSAL"
+      ? "SALES QUOTATION"
+      : "LETTER OF INTENT";
+
+  return (
+    <div className="px-12 pt-8 pb-6 border-b-2 border-[#0A52EF]">
+      <div className="flex justify-between items-start">
+        <LogoSelectorServer theme="light" width={120} height={60} />
+        <div className="text-right">
+          <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">
+            {title}
+          </div>
+          <div className="text-xl font-bold text-[#0A52EF]">{clientName}</div>
+          <div className="text-xs text-gray-400">{projectName}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// INTRO SECTION
+// ============================================================================
+
+function IntroSection({
+  documentMode,
+  clientName,
+  currency,
+}: {
+  documentMode: DocumentMode;
+  clientName: string;
+  currency: "CAD" | "USD";
+}) {
+  const currencyNote =
+    currency === "CAD"
+      ? " All pricing and financial figures quoted in this proposal are in Canadian Dollars (CAD)."
+      : "";
+
+  const intro =
+    documentMode === "BUDGET"
+      ? `ANC is pleased to present the following LED Display budget for ${clientName} per the specifications and pricing below.${currencyNote}`
+      : documentMode === "PROPOSAL"
+      ? `ANC is pleased to present the following LED Display proposal for ${clientName} per the specifications and pricing below.${currencyNote}`
+      : `This Letter of Intent will set forth the terms by which ${clientName} ("Purchaser") and ANC Sports Enterprises, LLC ("ANC") agree that ANC will provide the LED Display System described below.${currencyNote}`;
+
+  return (
+    <div className="px-12 py-6">
+      <p className="text-[11px] text-gray-600 leading-relaxed text-justify">
+        {intro}
+      </p>
+    </div>
+  );
+}
+
+// ============================================================================
+// PRICING TABLE
+// ============================================================================
+
+function PricingTableSection({
+  table,
+  currency,
+}: {
+  table: PricingTable;
+  currency: "CAD" | "USD";
+}) {
+  const currencyLabel = `PRICING (${currency})`;
+
+  return (
+    <div className="px-12 py-4 break-inside-avoid">
+      {/* Table header */}
+      <div className="flex justify-between items-center border-b-2 border-gray-800 pb-2 mb-0">
+        <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
+          {table.name}
+        </h2>
+        <span className="text-sm font-bold text-gray-800 uppercase tracking-wide">
+          {currencyLabel}
+        </span>
+      </div>
+
+      {/* Line items */}
+      <div className="border-b border-gray-300">
+        {table.items.map((item, idx) => (
+          <div
+            key={`${table.id}-item-${idx}`}
+            className="flex justify-between py-2 border-b border-gray-100 text-[11px]"
+          >
+            <div className="flex-1 pr-4">
+              <span className="text-gray-700">{item.description}</span>
+            </div>
+            <div className="text-right font-medium text-gray-800 w-28">
+              {item.isIncluded ? (
+                <span className="text-green-600">INCLUDED</span>
+              ) : (
+                formatPricingCurrency(item.sellingPrice, currency)
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer rows */}
+      <div className="border-t-2 border-gray-800 mt-0">
+        {/* Subtotal */}
+        <div className="flex justify-between py-2 text-[11px] font-bold">
+          <span className="text-gray-800">SUBTOTAL:</span>
+          <span className="text-gray-800 w-28 text-right">
+            {formatPricingCurrency(table.subtotal, currency)}
+          </span>
+        </div>
+
+        {/* Tax */}
+        {table.tax && (
+          <div className="flex justify-between py-1 text-[11px]">
+            <span className="text-gray-600">{table.tax.label}</span>
+            <span className="text-gray-800 w-28 text-right">
+              {formatPricingCurrency(table.tax.amount, currency)}
+            </span>
+          </div>
+        )}
+
+        {/* Bond (only show if non-zero or if tax exists) */}
+        {(table.bond !== 0 || table.tax) && (
+          <div className="flex justify-between py-1 text-[11px]">
+            <span className="text-gray-600">BOND</span>
+            <span className="text-gray-800 w-28 text-right">
+              {formatPricingCurrency(table.bond, currency)}
+            </span>
+          </div>
+        )}
+
+        {/* Grand Total */}
+        <div className="flex justify-between py-2 text-sm font-bold border-t border-gray-300">
+          <span className="text-gray-800">GRAND TOTAL:</span>
+          <span className="text-[#0A52EF] w-28 text-right">
+            {formatPricingCurrency(table.grandTotal, currency)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ALTERNATES SECTION
+// ============================================================================
+
+function AlternatesSection({
+  alternates,
+  currency,
+}: {
+  alternates: PricingTable["alternates"];
+  currency: "CAD" | "USD";
+}) {
+  const currencyLabel = `PRICING (${currency})`;
+
+  return (
+    <div className="px-12 py-2 break-inside-avoid">
+      {/* Header */}
+      <div className="flex justify-between items-center border-b border-gray-400 pb-1 mb-0 bg-gray-50 -mx-2 px-2">
+        <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+          ALTERNATES - ADD TO COST ABOVE
+        </h3>
+        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+          {currencyLabel}
+        </span>
+      </div>
+
+      {/* Alternate items */}
+      {alternates.map((alt, idx) => (
+        <div
+          key={`alt-${idx}`}
+          className="flex justify-between py-1.5 text-[10px] border-b border-gray-100"
+        >
+          <span className="text-gray-600 italic">{alt.description}</span>
+          <span className="text-gray-800 w-28 text-right font-medium">
+            {formatPricingCurrency(alt.priceDifference, currency)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================================
+// DOCUMENT TOTAL (for multiple tables)
+// ============================================================================
+
+function DocumentTotalSection({
+  total,
+  currency,
+}: {
+  total: number;
+  currency: "CAD" | "USD";
+}) {
+  return (
+    <div className="px-12 py-6 mt-4 bg-[#0A52EF]/5 border-t-2 border-[#0A52EF]">
+      <div className="flex justify-between items-center">
+        <span className="text-lg font-bold text-gray-800">
+          PROJECT GRAND TOTAL:
+        </span>
+        <span className="text-2xl font-bold text-[#0A52EF]">
+          {formatPricingCurrency(total, currency)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// LOI SECTIONS
+// ============================================================================
+
+function PaymentTermsSection() {
+  return (
+    <div className="px-12 py-6 break-inside-avoid">
+      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-2 mb-4">
+        PAYMENT TERMS
+      </h3>
+      <ul className="text-[11px] text-gray-600 space-y-1">
+        <li>• 50% Deposit Upon Signing</li>
+        <li>• 40% on Mobilization</li>
+        <li>• 10% on Substantial Completion</li>
+      </ul>
+    </div>
+  );
+}
+
+function SignatureSection({ clientName }: { clientName: string }) {
+  return (
+    <div className="px-12 py-6 break-inside-avoid">
+      <p className="text-[10px] text-gray-500 mb-8">
+        Please sign below to indicate Purchaser's agreement to purchase the
+        Display System as described herein and to authorize ANC to commence
+        production.
+      </p>
+
+      <div className="grid grid-cols-2 gap-12">
+        {/* ANC Signature */}
+        <div>
+          <div className="text-xs font-semibold text-gray-600 mb-1">
+            AGREED TO AND ACCEPTED:
+          </div>
+          <div className="text-xs font-bold text-gray-800 mb-4">
+            ANC Sports Enterprises, LLC
+          </div>
+          <div className="border-b border-gray-400 mb-1 h-8" />
+          <div className="text-[10px] text-gray-500">SIGNATURE</div>
+          <div className="border-b border-gray-400 mb-1 h-6 mt-4" />
+          <div className="text-[10px] text-gray-500">NAME</div>
+          <div className="border-b border-gray-400 mb-1 h-6 mt-4" />
+          <div className="text-[10px] text-gray-500">DATE</div>
+        </div>
+
+        {/* Client Signature */}
+        <div>
+          <div className="text-xs font-semibold text-gray-600 mb-1">&nbsp;</div>
+          <div className="text-xs font-bold text-gray-800 mb-4">
+            {clientName}
+          </div>
+          <div className="border-b border-gray-400 mb-1 h-8" />
+          <div className="text-[10px] text-gray-500">SIGNATURE</div>
+          <div className="border-b border-gray-400 mb-1 h-6 mt-4" />
+          <div className="text-[10px] text-gray-500">NAME</div>
+          <div className="border-b border-gray-400 mb-1 h-6 mt-4" />
+          <div className="text-[10px] text-gray-500">DATE</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// STATEMENT OF WORK
+// ============================================================================
+
+function StatementOfWorkSection({ details }: { details: any }) {
+  const sow = details?.scopeOfWork;
+  if (!sow) return null;
+
+  return (
+    <div className="px-12 py-6 break-before-page">
+      <h2 className="text-lg font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-2 mb-6">
+        STATEMENT OF WORK
+      </h2>
+      <div
+        className="text-[10px] text-gray-600 leading-relaxed whitespace-pre-wrap"
+        dangerouslySetInnerHTML={{ __html: sow }}
+      />
+    </div>
+  );
+}
+
+// ============================================================================
+// FOOTER
+// ============================================================================
+
+function Footer() {
+  return (
+    <div className="px-12 py-4 mt-8 border-t border-gray-200 text-center">
+      <div className="text-[10px] text-gray-500">
+        ANC SPORTS ENTERPRISES, LLC
+      </div>
+      <div className="text-[9px] text-gray-400">
+        2 Manhattanville Road, Suite 402 · Purchase, NY 10577 · anc.com
+      </div>
+    </div>
+  );
+}

@@ -2179,6 +2179,14 @@ export const ProposalContextProvider = ({
         }
       }
 
+      // 4. NEW: Store PricingDocument for Natalia Mirror Mode
+      if ((data as any).pricingDocument) {
+        setValue("details.pricingDocument" as any, (data as any).pricingDocument, { shouldValidate: true, shouldDirty: true });
+        // Auto-enable mirror mode when pricingDocument is available
+        setValue("details.pricingMode" as any, "MIRROR", { shouldValidate: true, shouldDirty: true });
+        console.log("[CONTEXT] PricingDocument stored for Mirror Mode");
+      }
+
       aiExtractionSuccess();
       setActiveTab("audit");
     } finally {
