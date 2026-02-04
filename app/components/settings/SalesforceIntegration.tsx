@@ -279,7 +279,7 @@ export function SalesforceIntegration() {
                 )}
 
                 {/* Field Mapping Info */}
-                <div className="p-4 rounded-lg border border-border bg-blue-50/50 dark:bg-blue-950/20">
+                <div className="p-4 rounded-lg border border-border bg-[#0A52EF]/5 dark:bg-[#0A52EF]/10">
                     <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
                         <Info className="w-4 h-4 text-[#0A52EF]" />
                         Field Mapping

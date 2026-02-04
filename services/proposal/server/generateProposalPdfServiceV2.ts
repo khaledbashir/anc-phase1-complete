@@ -45,8 +45,13 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 			throw new Error("Failed to load ProposalTemplate2");
 		}
 
+		// PHASE 3: Strip Blue Glow metadata from client-facing PDF
+		// Use sanitizeForClient to remove all internal metadata (aiExtractedFields, verifiedFields, etc.)
+		// This ensures clean, professional PDF output without AI indicators or internal cost data
+		const sanitizedBody = sanitizeForClient<ProposalType>(body);
+
 		const htmlTemplate = ReactDOMServer.renderToStaticMarkup(
-			ProposalTemplate(body)
+			ProposalTemplate(sanitizedBody)
 		);
 
 		// IMPORTANT: page.setContent() loads into about:blank.

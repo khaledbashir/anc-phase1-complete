@@ -352,7 +352,7 @@ const RfpSidebar = () => {
                     >
                 {aiMessages.length === 0 && (
                     <div className="text-center py-10 space-y-4">
-                        <div className="bg-blue-100 dark:bg-blue-900/30 w-12 h-12 rounded-full flex items-center justify-center mx-auto">
+                        <div className="bg-[#0A52EF]/10 dark:bg-[#0A52EF]/20 w-12 h-12 rounded-full flex items-center justify-center mx-auto">
                             <MessageSquare className="w-6 h-6 text-[#0A52EF]" />
                         </div>
                         <div className="space-y-1">

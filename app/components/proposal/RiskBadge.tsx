@@ -59,9 +59,9 @@ export const RISK_CONFIGS: Record<RiskType, RiskConfig> = {
     type: "outdoor",
     label: "Outdoor/IP65",
     icon: Sun,
-    color: "text-blue-600",
-    bgColor: "bg-blue-500",
-    borderColor: "border-blue-200",
+    color: "text-[#0A52EF]",
+    bgColor: "bg-[#0A52EF]",
+    borderColor: "border-[#0A52EF]/20",
     description: "IP65 weatherproofing required",
     impact: "Adds HVAC, surge protection, and weather sealing costs",
     priority: "HIGH"
@@ -200,7 +200,7 @@ export function RiskBadge({
                   "text-[9px] ml-auto",
                   config.priority === "CRITICAL" && "border-red-300 text-red-600",
                   config.priority === "HIGH" && "border-amber-300 text-amber-600",
-                  config.priority === "MEDIUM" && "border-blue-300 text-blue-600"
+                  config.priority === "MEDIUM" && "border-[#0A52EF]/30 text-[#0A52EF]"
                 )}
               >
                 {config.priority}

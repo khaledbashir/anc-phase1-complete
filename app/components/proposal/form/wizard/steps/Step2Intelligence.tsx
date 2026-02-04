@@ -74,7 +74,7 @@ const Step2Intelligence = () => {
                     <span className="text-xs font-medium text-muted-foreground">Document Mode:</span>
                     <div className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wide ${
                         mode === "BUDGET" ? "bg-amber-500/20 text-amber-400" :
-                        mode === "PROPOSAL" ? "bg-blue-500/20 text-blue-400" :
+                        mode === "PROPOSAL" ? "bg-[#0A52EF]/20 text-[#0A52EF]" :
                         "bg-emerald-500/20 text-emerald-400"
                     }`}>
                         {mode === "BUDGET" ? "Budget" : mode === "PROPOSAL" ? "Proposal" : "LOI"}

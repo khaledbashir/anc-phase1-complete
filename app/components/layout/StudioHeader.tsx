@@ -160,7 +160,7 @@ export function StudioHeader({
                             )}
                             {headerType === "PROPOSAL" && (
                                 <>
-                                    <Receipt className="w-3.5 h-3.5 text-blue-500" />
+                                    <Receipt className="w-3.5 h-3.5 text-[#0A52EF]" />
                                     <span className="text-xs font-medium">Proposal</span>
                                 </>
                             )}
@@ -197,13 +197,13 @@ export function StudioHeader({
                                 headerType === "PROPOSAL" ? "bg-blue-500/10" : "hover:bg-muted/50"
                             )}
                         >
-                            <Receipt className="w-4 h-4 text-blue-500" />
+                            <Receipt className="w-4 h-4 text-[#0A52EF]" />
                             <div className="flex-1 text-left">
                                 <div className="font-semibold text-sm">Proposal</div>
                                 <div className="text-xs text-muted-foreground">Formal quote</div>
                             </div>
                             {headerType === "PROPOSAL" && (
-                                <div className="w-2 h-2 rounded-full bg-blue-500" />
+                                <div className="w-2 h-2 rounded-full bg-[#0A52EF]" />
                             )}
                         </button>
                         <button

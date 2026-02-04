@@ -73,8 +73,8 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
 
             {/* AI-Generated Risk Detection Banner */}
             {(riskScan.hasUnionRequirement || riskScan.hasOutdoorRequirement || riskScan.hasLiquidatedDamages) && (
-                <div className="mb-8 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                    <h4 className="text-[10px] font-bold text-blue-800 uppercase tracking-wider mb-2">
+                <div className="mb-8 p-4 bg-[#0A52EF]/5 border border-[#0A52EF]/20 rounded-xl">
+                    <h4 className="text-[10px] font-bold text-[#0A52EF] uppercase tracking-wider mb-2">
                         AI-Detected RFP Requirements
                     </h4>
                     <div className="flex flex-wrap gap-2">
@@ -84,7 +84,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                             </span>
                         )}
                         {riskScan.hasOutdoorRequirement && (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-medium bg-blue-100 text-blue-800">
+                            <span className="inline-flex items-center px-2 py-1 rounded text-[10px] font-medium bg-[#0A52EF]/10 text-[#0A52EF]">
                                 🌤️ Outdoor/IP65 Rated
                             </span>
                         )}
@@ -110,7 +110,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                             <div className="break-inside-avoid">
                                 <h5 className="text-[11px] font-bold text-[#0A52EF] border-b border-gray-100 pb-1 mb-2 uppercase tracking-wider flex items-center gap-2">
                                     Design Services
-                                    <span className="text-[8px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">AI-Generated</span>
+                                    <span className="text-[8px] px-1.5 py-0.5 bg-[#0A52EF]/10 text-[#0A52EF] rounded">AI-Generated</span>
                                 </h5>
                                 <p className="text-[10px] leading-relaxed text-gray-700 whitespace-pre-wrap text-justify">{aiGeneratedSOW.designServices}</p>
                             </div>
@@ -137,7 +137,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                             <div className="break-inside-avoid">
                                 <h5 className="text-[11px] font-bold text-[#0A52EF] border-b border-gray-100 pb-1 mb-2 uppercase tracking-wider flex items-center gap-2">
                                     Construction Logistics
-                                    <span className="text-[8px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">AI-Generated</span>
+                                    <span className="text-[8px] px-1.5 py-0.5 bg-[#0A52EF]/10 text-[#0A52EF] rounded">AI-Generated</span>
                                 </h5>
                                 <p className="text-[10px] leading-relaxed text-gray-700 whitespace-pre-wrap text-justify">{aiGeneratedSOW.constructionLogistics}</p>
                             </div>
@@ -186,7 +186,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                             <div className="break-inside-avoid">
                                 <h5 className="text-[11px] font-bold text-[#0A52EF] border-b border-gray-100 pb-1 mb-2 uppercase tracking-wider flex items-center gap-2">
                                     Project Constraints
-                                    <span className="text-[8px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">AI-Generated</span>
+                                    <span className="text-[8px] px-1.5 py-0.5 bg-[#0A52EF]/10 text-[#0A52EF] rounded">AI-Generated</span>
                                 </h5>
                                 <p className="text-[10px] leading-relaxed text-gray-700 whitespace-pre-wrap text-justify">{aiGeneratedSOW.constraints}</p>
                             </div>
