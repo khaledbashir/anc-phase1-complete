@@ -4,6 +4,7 @@ import chromium from "@sparticuz/chromium";
 import { getProposalTemplate } from "@/lib/helpers";
 import { ENV, TAILWIND_CDN } from "@/lib/variables";
 import { ProposalType } from "@/types";
+import { sanitizeForClient } from "@/lib/security/sanitizeForClient";
 
 function safeErrorMessage(err: unknown) {
 	const msg = err instanceof Error ? err.message : String(err);

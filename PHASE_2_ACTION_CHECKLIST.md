@@ -10,17 +10,47 @@
 
 These items require no additional information. Can start immediately.
 
-### A.1 Smart Filter — Streaming Parse (Issue #3)
+### ✅ A.1 Smart Filter — Streaming Parse (Issue #3) — COMPLETED 2026-02-04
 
 | Task | Effort | Owner | Status |
 |------|--------|-------|--------|
-| Implement tournament-style streaming parser | 3 days | Kimi | ⏳ Ready |
-| Process 2,500 pages in 300-page chunks | — | — | ⏳ Ready |
-| Keep top-scoring pages across all chunks | — | — | ⏳ Ready |
-| Output: Best 150 pages from full document | — | — | ⏳ Ready |
+| Implement tournament-style streaming parser | 3 days | Kimi | ✅ DONE |
+| Process 2,500 pages in 300-page chunks | — | — | ✅ DONE |
+| Score each page in chunk, keep top 50 | — | — | ✅ DONE |
+| Final round: keep best 150 pages overall | — | — | ✅ DONE |
+| Auto-detect when to use streaming (>300 pages) | — | — | ✅ DONE |
+| Integrate into RFP upload pipeline | — | — | ✅ DONE |
+
+**What Was Built:**
+- **File:** `services/ingest/smart-filter-streaming.ts` (250 lines)
+- **Strategy:** Tournament-style parsing
+  - Chunk 1: Pages 1-300 → Score all → Keep top 50
+  - Chunk 2: Pages 301-600 → Score all → Keep top 50
+  - ...continue for all chunks...
+  - Final: 9 chunks × 50 = 450 candidates → Keep best 150
+- **Auto-detection:** Uses streaming if >300 pages, standard if smaller
+- **Same scoring:** MUST_KEEP (+25), signal (+6), noise (-3), drawings (+15)
+
+**Example Flow (2,500 pages):**
+```
+Total: 2,500 pages
+Chunks: 9 (300 pages each, last one 100 pages)
+Per chunk: Keep top 50
+Candidates: 9 × 50 = 450 pages
+Final output: Best 150 pages by score
+```
+
+**Integration:**
+```typescript
+if (shouldUseStreaming(totalPages)) {
+  filterResult = await smartFilterStreaming(buffer, totalPages);
+} else {
+  filterResult = await smartFilterPdf(buffer); // Standard
+}
+```
 
 **Blockers:** None  
-**Decision needed:** Confirm this is the chosen approach (vs. background job)  
+**Next:** Test with actual 2,500-page RFP  
 
 ---
 
