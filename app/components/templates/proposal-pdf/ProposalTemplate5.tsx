@@ -253,7 +253,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {lineItems.map((item, idx) => (
                         <div 
                             key={item.key} 
-                            className="grid grid-cols-12 px-4 py-3 border-t break-inside-avoid" 
+                            className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid" 
                             style={{ 
                                 borderColor: colors.borderLight,
                                 background: idx % 2 === 1 ? colors.surface : colors.white
@@ -285,7 +285,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
                             Project Total
                         </div>
-                        <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
+                        <div className="col-span-4 text-right font-bold text-xs" style={{ color: colors.primaryDark }}>
                             {formatCurrency(subtotal)}
                         </div>
                     </div>
@@ -436,7 +436,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             {/* Pricing - Available for all document types when enabled */}
             {showPricingTables && (
                 <div className="px-6 break-inside-avoid">
-                    <SectionHeader title="Project Pricing" subtitle={`${screens.length} display system${screens.length !== 1 ? 's' : ''}`} />
+                    <SectionHeader title="Project Pricing" />
                     <PricingSection />
                 </div>
             )}
@@ -464,7 +464,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
             {/* Specifications - Available for all document types when enabled */}
             {showSpecifications && screens.length > 0 && (
-                <div className="px-6">
+                <div className="px-6 break-before-page">
                     <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
                     {screens.map((screen: any, idx: number) => (
                         <SpecTable key={idx} screen={screen} />
@@ -474,14 +474,14 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
             {/* Exhibit A - Technical Specs (when enabled) */}
             {showExhibitA && (
-                <div className="px-6">
+                <div className="px-6 break-before-page">
                     <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
                 </div>
             )}
 
             {/* Signature Block - Universal (available for all document types) */}
             {showSignatureBlock && (
-                <div className="px-6">
+                <div className="px-6 break-before-page">
                     <SignatureBlock />
                 </div>
             )}
