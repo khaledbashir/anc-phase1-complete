@@ -5,6 +5,7 @@ import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { smartFilterPdf } from "@/services/ingest/smart-filter";
 import { screenshotPdfPage } from "@/services/ingest/pdf-screenshot";
 import { DrawingService } from "@/services/vision/drawing-service";
+import { analyzeTTEContent, TonnageResult } from "@/services/ingest/tonnage-extractor";
 import { extractJson } from "@/lib/json-utils";
 
 export async function GET(req: NextRequest) {
@@ -109,6 +110,7 @@ export async function POST(req: NextRequest) {
     let filenameToEmbed = file.name;
     let originalDocPath = "";
     let filterStats = null;
+    let fullTextForTTE = ""; // Store for TTE extraction
 
     // 0. Pre-process if PDF
     if (file.name.toLowerCase().endsWith(".pdf")) {
@@ -118,6 +120,7 @@ export async function POST(req: NextRequest) {
 
       try {
         const filterResult = await smartFilterPdf(buffer);
+        fullTextForTTE = filterResult.fullText || ""; // Save for TTE extraction
         console.log(`[RFP Upload] Filtered ${filterResult.totalPages} pages down to ${filterResult.retainedPages} signal pages.`);
 
         // --- AUTO-VISION: AV/A sheets, Elevation, Structural Attachment (8–10 pages) ---
@@ -309,11 +312,48 @@ Include extractionSummary with totalFields, extractedFields, completionRate, hig
       console.error("[RFP Upload] AI Extraction failed", e);
     }
 
+    // 5. TTE Tonnage Extraction (separate from AI extraction for reliability)
+    let tonnageData: TonnageResult | null = null;
+    try {
+      // Use full text (not filtered) for TTE detection - it's usually a separate doc
+      tonnageData = analyzeTTEContent(fullTextForTTE);
+      
+      if (tonnageData.hasTTE) {
+        console.log(`[RFP Upload] TTE Report detected: ${tonnageData.totalTons} tons, $${tonnageData.steelCost} steel cost`);
+        
+        // Merge tonnage into extractedData
+        if (extractedData) {
+          extractedData.rulesDetected = extractedData.rulesDetected || {};
+          extractedData.rulesDetected.structuralTonnage = {
+            value: tonnageData.totalTons,
+            citation: "[Source: Thornton Tomasetti Report]",
+            confidence: tonnageData.confidence,
+            breakdown: tonnageData.items
+          };
+          extractedData.rulesDetected.reinforcingTonnage = {
+            value: tonnageData.items.find(i => i.type === 'reinforcing')?.tons || 0,
+            citation: "[Source: Thornton Tomasetti Report]",
+            confidence: 0.95
+          };
+          extractedData.rulesDetected.newSteelTonnage = {
+            value: tonnageData.items.find(i => i.type === 'new')?.tons || 0,
+            citation: "[Source: Thornton Tomasetti Report]",
+            confidence: 0.95
+          };
+        }
+      } else {
+        console.log("[RFP Upload] No TTE report detected in upload");
+      }
+    } catch (tteErr) {
+      console.warn("[RFP Upload] TTE extraction failed:", tteErr);
+    }
+
     return NextResponse.json({
       ok: true,
       url: dbUrl,
       workspaceSlug,
       extractedData,
+      tonnageData,
       filterStats,
       visionWarning: filterStats?.visionDisabled
         ? "Vision disabled: Drawing analysis skipped. Please manually verify structural constraints."
