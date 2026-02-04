@@ -64,9 +64,10 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                             const resolution = pixelsH && pixelsW ? `${pixelsH} x ${pixelsW}` : "";
                             const rawBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits;
                             const brightnessNumber = Number(rawBrightness);
+                            // FR-2.2 FIX: Never default to "Standard" - show actual value or leave blank
                             const brightnessText =
-                                rawBrightness == null || rawBrightness === ""
-                                    ? "Standard"
+                                rawBrightness == null || rawBrightness === "" || rawBrightness === 0
+                                    ? "" // Was "Standard" - now blank if no value
                                     : isFinite(brightnessNumber) && brightnessNumber > 0
                                         ? `${formatNumberWithCommas(brightnessNumber)} nits`
                                         : rawBrightness.toString();

@@ -67,6 +67,11 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
           currency={currency}
         />
 
+        {/* FR-2.3 FIX: LOI shows Project Grand Total BEFORE pricing tables */}
+        {documentMode === "LOI" && tables.length > 0 && (
+          <DocumentTotalSection total={documentTotal} currency={currency} isLOIPosition={true} />
+        )}
+
         {/* All pricing tables */}
         {tables.map((table, idx) => (
           <React.Fragment key={table.id}>
@@ -80,8 +85,8 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
           </React.Fragment>
         ))}
 
-        {/* Document total (if multiple tables) */}
-        {tables.length > 1 && (
+        {/* Document total (if multiple tables) - Budget/Proposal show at bottom */}
+        {documentMode !== "LOI" && tables.length > 1 && (
           <DocumentTotalSection total={documentTotal} currency={currency} />
         )}
 
@@ -309,12 +314,19 @@ function AlternatesSection({
 function DocumentTotalSection({
   total,
   currency,
+  isLOIPosition = false,
 }: {
   total: number;
   currency: "CAD" | "USD";
+  isLOIPosition?: boolean;
 }) {
+  // FR-2.3: Different styling for LOI (top position) vs Budget/Proposal (bottom)
+  const containerClass = isLOIPosition
+    ? "px-12 py-6 mb-4 bg-[#0A52EF]/10 border-2 border-[#0A52EF] rounded-lg"
+    : "px-12 py-6 mt-4 bg-[#0A52EF]/5 border-t-2 border-[#0A52EF]";
+
   return (
-    <div className="px-12 py-6 mt-4 bg-[#0A52EF]/5 border-t-2 border-[#0A52EF]">
+    <div className={containerClass}>
       <div className="flex justify-between items-center">
         <span className="text-lg font-bold text-gray-800">
           PROJECT GRAND TOTAL:
