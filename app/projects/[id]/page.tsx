@@ -97,6 +97,9 @@ function mapDbToFormSchema(dbProject: any) {
             showExhibitB: cfg.showExhibitB ?? false,
             showNotes: cfg.showNotes ?? true,
             showScopeOfWork: cfg.showScopeOfWork ?? false,
+            // FR-4.1 & FR-4.2: Manual overrides
+            tableHeaderOverrides: dbProject.tableHeaderOverrides || {},
+            customProposalNotes: dbProject.customProposalNotes || "",
         },
     };
 }

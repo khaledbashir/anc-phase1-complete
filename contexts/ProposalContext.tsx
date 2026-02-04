@@ -545,6 +545,9 @@ export const ProposalContextProvider = ({
           showExhibitB: details.showExhibitB ?? false,
           showNotes: (details as any).showNotes ?? true,
           showScopeOfWork: (details as any).showScopeOfWork ?? false,
+          // FR-4.1 & FR-4.2: Manual overrides
+          tableHeaderOverrides: (details as any).tableHeaderOverrides ?? {},
+          customProposalNotes: (details as any).customProposalNotes ?? "",
         },
       };
 

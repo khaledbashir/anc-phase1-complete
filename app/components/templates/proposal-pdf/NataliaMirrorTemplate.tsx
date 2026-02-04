@@ -38,6 +38,12 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   const tables = pricingDocument?.tables || [];
   const currency = pricingDocument?.currency || "USD";
 
+  // FR-4.1: Table header overrides (e.g., "G7" → "Ribbon Display")
+  const tableHeaderOverrides: Record<string, string> = (details as any)?.tableHeaderOverrides || {};
+
+  // FR-4.2: Custom proposal notes
+  const customProposalNotes: string = (details as any)?.customProposalNotes || "";
+
   // Document mode
   const documentMode: DocumentMode =
     (details?.documentType as DocumentMode) || "BUDGET";
@@ -48,6 +54,11 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
 
   // Document total
   const documentTotal = tables.reduce((sum, t) => sum + t.grandTotal, 0);
+
+  // Helper to get display name for a table (with override support)
+  const getTableDisplayName = (table: PricingTable): string => {
+    return tableHeaderOverrides[table.id] || table.name;
+  };
 
   return (
     <div className="bg-white min-h-screen font-sans">
@@ -75,7 +86,11 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
         {/* All pricing tables */}
         {tables.map((table, idx) => (
           <React.Fragment key={table.id}>
-            <PricingTableSection table={table} currency={currency} />
+            <PricingTableSection
+              table={table}
+              currency={currency}
+              displayName={getTableDisplayName(table)}
+            />
             {table.alternates.length > 0 && (
               <AlternatesSection
                 alternates={table.alternates}
@@ -90,10 +105,19 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
           <DocumentTotalSection total={documentTotal} currency={currency} />
         )}
 
+        {/* FR-4.2: Custom Notes - Budget/Proposal shows after pricing */}
+        {documentMode !== "LOI" && customProposalNotes && (
+          <CustomNotesSection notes={customProposalNotes} />
+        )}
+
         {/* LOI-specific sections */}
         {documentMode === "LOI" && (
           <>
             <PaymentTermsSection />
+            {/* FR-4.2: Custom Notes - LOI shows in Additional Notes section */}
+            {customProposalNotes && (
+              <CustomNotesSection notes={customProposalNotes} isLOI={true} />
+            )}
             <SignatureSection clientName={clientName} />
           </>
         )}
@@ -185,18 +209,21 @@ function IntroSection({
 function PricingTableSection({
   table,
   currency,
+  displayName,
 }: {
   table: PricingTable;
   currency: "CAD" | "USD";
+  displayName?: string; // FR-4.1: Optional override for table name
 }) {
   const currencyLabel = `PRICING (${currency})`;
+  const headerName = displayName || table.name;
 
   return (
     <div className="px-12 py-4 break-inside-avoid">
       {/* Table header */}
       <div className="flex justify-between items-center border-b-2 border-gray-800 pb-2 mb-0">
         <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
-          {table.name}
+          {headerName}
         </h2>
         <span className="text-sm font-bold text-gray-800 uppercase tracking-wide">
           {currencyLabel}
@@ -419,6 +446,33 @@ function StatementOfWorkSection({ details }: { details: any }) {
         className="text-[10px] text-gray-600 leading-relaxed whitespace-pre-wrap"
         dangerouslySetInnerHTML={{ __html: sow }}
       />
+    </div>
+  );
+}
+
+// ============================================================================
+// CUSTOM NOTES (FR-4.2)
+// ============================================================================
+
+function CustomNotesSection({
+  notes,
+  isLOI = false,
+}: {
+  notes: string;
+  isLOI?: boolean;
+}) {
+  if (!notes || notes.trim() === "") return null;
+
+  const title = isLOI ? "ADDITIONAL NOTES" : "NOTES";
+
+  return (
+    <div className="px-12 py-6 break-inside-avoid">
+      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-2 mb-4">
+        {title}
+      </h3>
+      <div className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-wrap">
+        {notes}
+      </div>
     </div>
   );
 }

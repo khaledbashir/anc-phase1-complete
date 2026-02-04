@@ -342,6 +342,10 @@ const ProposalDetailsSchema = z.object({
     // Universal toggles for Hybrid Template - available for ALL document types
     showNotes: z.boolean().optional().default(true), // Toggle for Notes section (Budget, Proposal, LOI)
     showScopeOfWork: z.boolean().optional().default(false), // Toggle for Scope of Work section (all doc types)
+    // FR-4.1: Manual Section Header Overrides (e.g., "G7" → "Ribbon Display")
+    tableHeaderOverrides: z.record(z.string()).optional().default({}),
+    // FR-4.2: Custom Proposal Notes (ad-hoc text injection)
+    customProposalNotes: z.string().optional(),
 });
 
 const ProposalSchema = z.object({

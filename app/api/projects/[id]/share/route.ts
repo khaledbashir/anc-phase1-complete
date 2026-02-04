@@ -179,7 +179,10 @@ export async function POST(
                 showExhibitB: documentMode === "LOI" ? (cfg.showExhibitB ?? false) : false,
                 // Universal toggles for Hybrid Template
                 showNotes: cfg.showNotes ?? true,
-                showScopeOfWork: cfg.showScopeOfWork ?? false
+                showScopeOfWork: cfg.showScopeOfWork ?? false,
+                // FR-4.1 & FR-4.2: Manual overrides
+                tableHeaderOverrides: (project as any).tableHeaderOverrides || {},
+                customProposalNotes: (project as any).customProposalNotes || ""
             }
         };
 
