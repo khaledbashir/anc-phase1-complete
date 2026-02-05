@@ -1,0 +1,5 @@
+#!/bin/sh
+# Reminder: do not merge rag and phase2/product-database. Push only to the branch you're on.
+branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+echo ">>> Pushing to branch: $branch. Do NOT merge rag and phase2/product-database. <<<"
+exit 0

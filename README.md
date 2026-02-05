@@ -1,6 +1,8 @@
 [![Discord](https://img.shields.io/badge/Discord-%40Invoify-000000?style=flat&logo=Discord&logoColor=#5865F2)](https://discord.gg/uhXKHbVKHZ)
 # Invoify
 
+**Branch policy:** See [BRANCHES.md](./BRANCHES.md) — two branches, never merge.
+
 Invoify is a web-based proposal generator application built with Next.js 13, TypeScript, React, and the Shadcn UI library. It provides an easy way to create and manage professional proposals.
 
 ![Invoify Website image](/public/assets/img/invoify-web-app.png)
