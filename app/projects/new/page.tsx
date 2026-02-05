@@ -1,22 +1,19 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect, useRef } from "react";
 import ProposalPage from "@/app/components/ProposalPage";
 import { useProposalContext } from "@/contexts/ProposalContext";
-import { useFormContext } from "react-hook-form";
-import type { ProposalType } from "@/types";
 
 export default function NewProjectPage() {
     const { newProposal } = useProposalContext();
-    const { getValues } = useFormContext<ProposalType>();
+    const hasReset = useRef(false);
 
-    useEffect(() => {
-        // ALWAYS reset when landing on /projects/new — no conditions.
-        // This must fire before Providers' draft hydration (child effects fire first)
-        // and clears localStorage so parent hydration finds nothing.
+    // Run BEFORE paint so user never sees old draft (useLayoutEffect)
+    useLayoutEffect(() => {
+        if (hasReset.current) return;
+        hasReset.current = true;
         newProposal({ silent: true });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [newProposal]);
 
     return <ProposalPage projectId="new" />;
 }

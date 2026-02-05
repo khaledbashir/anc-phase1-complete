@@ -872,30 +872,28 @@ export const ProposalContextProvider = ({
 
   /**
    * Clears state and redirects to start a fresh project.
+   * Clear localStorage FIRST so nothing re-hydrates old draft, then reset form.
+   * Memoized to avoid effect loops when used in /projects/new useLayoutEffect.
    */
-  const newProposal = (opts?: { silent?: boolean }) => {
-    reset(FORM_DEFAULT_VALUES);
-    setProposalPdf(new Blob());
-    setExcelPreview(null);
-    setExcelValidationOk(false);
-    setExcelSourceData(null);
-
-    // Clear the draft
+  const newProposal = useCallback((opts?: { silent?: boolean }) => {
     if (typeof window !== "undefined") {
       try {
         window.localStorage.removeItem(LOCAL_STORAGE_PROPOSAL_DRAFT_KEY);
         window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
       } catch { }
     }
+    reset(FORM_DEFAULT_VALUES);
+    setProposalPdf(new Blob());
+    setExcelPreview(null);
+    setExcelValidationOk(false);
+    setExcelSourceData(null);
 
-    // Toast
     if (!opts?.silent) newProposalSuccess();
 
-    // Force redirect to start fresh initialization
     if (typeof window !== "undefined" && window.location.pathname !== "/projects/new") {
       window.location.href = "/projects/new";
     }
-  };
+  }, [reset, newProposalSuccess]);
 
   /**
    * Resets the current form to the last saved state from the database.
