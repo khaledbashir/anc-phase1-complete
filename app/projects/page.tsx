@@ -169,12 +169,6 @@ export default function ProjectsPage() {
                                 <button className="p-2 text-muted-foreground hover:text-foreground transition-colors" onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}>
                                     {viewMode === "grid" ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
                                 </button>
-
-                                <NewProjectModal>
-                                    <button className="p-2 bg-white text-black rounded-lg hover:bg-zinc-200 transition-colors">
-                                        <Plus className="w-4 h-4" />
-                                    </button>
-                                </NewProjectModal>
                             </div>
                         </div>
 
