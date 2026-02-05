@@ -92,11 +92,11 @@ export function KimiVision({ onAnalysisComplete, prompt = "Analyze this image an
         throw new Error("Puter AI not available");
       }
 
-      // Kimi K2 with vision - send image as markdown
+      // Kimi K2.5 with vision - send image as markdown
       const message = `${prompt}\n\n![image](${image})`;
 
       const response = await window.puter.ai.chat(message, {
-        model: "moonshotai/kimi-k2",
+        model: "moonshotai/kimi-k2-5",
         stream: false,
       });
 
