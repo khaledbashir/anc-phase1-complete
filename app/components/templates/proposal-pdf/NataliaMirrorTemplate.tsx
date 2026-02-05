@@ -55,6 +55,10 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   // Document total
   const documentTotal = tables.reduce((sum, t) => sum + t.grandTotal, 0);
 
+  // Screen specifications from form (for Technical Specs section)
+  const screens = (details as any)?.screens || [];
+  const showSpecifications = (details as any)?.showSpecifications ?? true;
+
   // Helper to get display name for a table (with override support)
   const getTableDisplayName = (table: PricingTable): string => {
     return tableHeaderOverrides[table.id] || table.name;
@@ -103,6 +107,11 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
         {/* Document total (if multiple tables) - Budget/Proposal show at bottom */}
         {documentMode !== "LOI" && tables.length > 1 && (
           <DocumentTotalSection total={documentTotal} currency={currency} />
+        )}
+
+        {/* Technical Specifications - reads from details.screens (form data) */}
+        {showSpecifications && screens.length > 0 && (
+          <TechnicalSpecsSection screens={screens} />
         )}
 
         {/* FR-4.2: Custom Notes - Budget/Proposal shows after pricing */}
@@ -423,6 +432,98 @@ function SignatureSection({ clientName }: { clientName: string }) {
           <div className="text-[10px] text-gray-500">NAME</div>
           <div className="border-b border-gray-400 mb-1 h-6 mt-4" />
           <div className="text-[10px] text-gray-500">DATE</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// TECHNICAL SPECIFICATIONS (reads from details.screens for real-time updates)
+// ============================================================================
+
+function TechnicalSpecsSection({ screens }: { screens: any[] }) {
+  if (!screens || screens.length === 0) return null;
+
+  const formatFeet = (value: any) => {
+    const n = Number(value);
+    if (!isFinite(n) || n === 0) return "";
+    return `${n.toFixed(2)}'`;
+  };
+
+  const computePixels = (feetValue: any, pitchMm: any) => {
+    const ft = Number(feetValue);
+    const pitch = Number(pitchMm);
+    if (!isFinite(ft) || ft <= 0) return 0;
+    if (!isFinite(pitch) || pitch <= 0) return 0;
+    return Math.round((ft * 304.8) / pitch);
+  };
+
+  const formatNumberWithCommas = (num: number) => {
+    return num.toLocaleString("en-US");
+  };
+
+  return (
+    <div className="px-12 py-6 break-inside-avoid">
+      <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-2 mb-4">
+        EXHIBIT A: TECHNICAL SPECIFICATIONS
+      </h2>
+
+      <div className="border border-gray-300">
+        {/* Table Header */}
+        <div className="grid grid-cols-12 text-[9px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300 bg-gray-50">
+          <div className="col-span-4 px-2 py-1.5">Display Name</div>
+          <div className="col-span-2 px-2 py-1.5">Dimensions</div>
+          <div className="col-span-1 px-2 py-1.5 text-right">Pitch</div>
+          <div className="col-span-2 px-2 py-1.5 text-right">Resolution</div>
+          <div className="col-span-2 px-2 py-1.5 text-right">Brightness</div>
+          <div className="col-span-1 px-2 py-1.5 text-right">Qty</div>
+        </div>
+
+        {/* Table Body */}
+        <div className="text-[9px] text-gray-900">
+          {screens.map((screen: any, idx: number) => {
+            const name = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
+            const h = screen?.heightFt ?? screen?.height ?? 0;
+            const w = screen?.widthFt ?? screen?.width ?? 0;
+            const pitch = screen?.pitchMm ?? screen?.pixelPitch ?? 0;
+            const qty = Number(screen?.quantity || 1);
+            const pixelsH = screen?.pixelsH || computePixels(h, pitch);
+            const pixelsW = screen?.pixelsW || computePixels(w, pitch);
+            const resolution = pixelsH && pixelsW ? `${pixelsH} x ${pixelsW}` : "";
+            const rawBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits;
+            const brightnessNumber = Number(rawBrightness);
+            const brightnessText =
+              rawBrightness == null || rawBrightness === "" || rawBrightness === 0
+                ? ""
+                : isFinite(brightnessNumber) && brightnessNumber > 0
+                  ? `${formatNumberWithCommas(brightnessNumber)} nits`
+                  : rawBrightness.toString();
+
+            return (
+              <div
+                key={screen?.id || `screen-${idx}`}
+                className="grid grid-cols-12 border-b border-gray-200 last:border-b-0"
+              >
+                <div className="col-span-4 px-2 py-1.5 font-medium">{name}</div>
+                <div className="col-span-2 px-2 py-1.5 text-gray-700">
+                  {h > 0 && w > 0 ? `${formatFeet(h)} x ${formatFeet(w)}` : ""}
+                </div>
+                <div className="col-span-1 px-2 py-1.5 text-right tabular-nums">
+                  {pitch ? `${Number(pitch).toFixed(0)}mm` : ""}
+                </div>
+                <div className="col-span-2 px-2 py-1.5 text-right tabular-nums">
+                  {resolution}
+                </div>
+                <div className="col-span-2 px-2 py-1.5 text-right tabular-nums">
+                  {brightnessText}
+                </div>
+                <div className="col-span-1 px-2 py-1.5 text-right tabular-nums">
+                  {isFinite(qty) ? qty : ""}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
