@@ -346,6 +346,8 @@ const ProposalDetailsSchema = z.object({
     tableHeaderOverrides: z.record(z.string()).optional().default({}),
     // FR-4.2: Custom Proposal Notes (ad-hoc text injection)
     customProposalNotes: z.string().optional(),
+    // FR-4.3: Editable Introduction Text (custom header blurb with currency disclaimers)
+    introductionText: z.string().optional(),
 });
 
 const ProposalSchema = z.object({
