@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ProposalType } from "@/types";
 import bcrypt from "bcrypt";
-import { addDays } from "date-fns";
 import Decimal from "decimal.js";
 
 import { prisma } from "@/lib/prisma";
+
+function addDays(date: Date, days: number) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + Number(days || 0));
+    return d;
+}
 
 export async function POST(
     req: NextRequest,
