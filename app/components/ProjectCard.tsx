@@ -9,9 +9,14 @@ import {
     Briefcase,
     Layers,
     Trash2,
-    ArrowUpRight
+    ArrowUpRight,
+    FileDigit,
+    Clock,
+    DollarSign,
+    MonitorPlay
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
 
 interface Project {
     id: string;
@@ -25,6 +30,8 @@ interface Project {
     updatedAt: string;
     lastSavedAt: string | null;
     screenCount?: number;
+    documentCount?: number;
+    totalAmount?: number;
 }
 
 interface ProjectCardProps {
@@ -87,11 +94,34 @@ const ProjectCard = ({ project, onImport, onDelete }: ProjectCardProps) => {
                 </p>
             </div>
 
+            {/* Quick Stats Row */}
+            <div className="flex items-center gap-4 mt-4 mb-3">
+                {project.documentCount !== undefined && project.documentCount > 0 && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <FileDigit className="w-3.5 h-3.5" />
+                        <span>{project.documentCount} doc{project.documentCount !== 1 ? 's' : ''}</span>
+                    </div>
+                )}
+                {project.screenCount !== undefined && project.screenCount > 0 && (
+                    <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <MonitorPlay className="w-3.5 h-3.5" />
+                        <span>{project.screenCount} screen{project.screenCount !== 1 ? 's' : ''}</span>
+                    </div>
+                )}
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}</span>
+                </div>
+            </div>
+
             {/* Footer Metrics */}
-            <div className="flex items-end justify-between mt-auto">
+            <div className="flex items-end justify-between mt-auto pt-3 border-t border-border/40">
                 <div className="space-y-1">
-                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">Budget Allocation</div>
-                    <div className="text-sm font-medium text-foreground">$0.00</div>
+                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">Budget</div>
+                    <div className="text-sm font-medium text-foreground flex items-center gap-1">
+                        <DollarSign className="w-3.5 h-3.5" />
+                        {project.totalAmount ? project.totalAmount.toLocaleString() : '0.00'}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-3">
