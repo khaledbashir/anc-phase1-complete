@@ -4,14 +4,11 @@ import { useFormContext } from "react-hook-form";
 import { Upload, FileSpreadsheet, Sparkles, Shield, Zap, CheckCircle2, AlertTriangle, FileText, ExternalLink, Trash2, ChevronDown, ChevronUp, Settings2, RefreshCw } from "lucide-react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { useState, useEffect } from "react";
-import { useWatch } from "react-hook-form";
-import { applyDocumentModeDefaults, resolveDocumentMode } from "@/lib/documentMode";
 import ExcelGridViewer from "@/app/components/ExcelGridViewer";
 import ScreensGridEditor from "@/app/components/proposal/form/ScreensGridEditor";
-import { AiWand, FormInput, FormSelect } from "@/app/components";
+import { AiWand, FormInput } from "@/app/components";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { DocumentMode } from "@/lib/documentMode";
 
 const Step1Ingestion = () => {
     const {
@@ -26,13 +23,9 @@ const Step1Ingestion = () => {
         aiWorkspaceSlug
     } = useProposalContext();
 
-    const { getValues, setValue, control } = useFormContext();
+    const { getValues } = useFormContext();
     const [rfpUploading, setRfpUploading] = useState(false);
     const [showDetails, setShowDetails] = useState(!excelPreview);
-
-    // Watch documentMode for lifecycle changes
-    const rawMode = useWatch({ name: "details.documentMode", control }) as DocumentMode | undefined;
-    const details = useWatch({ name: "details", control });
 
     // Auto-collapse details when Excel is loaded ONLY if required fields are filled
     useEffect(() => {
@@ -46,42 +39,6 @@ const Step1Ingestion = () => {
             }
         }
     }, [excelPreview, getValues]);
-
-    // FR-2.3: Apply document mode defaults when lifecycle changes
-    useEffect(() => {
-        const nextMode = (rawMode || resolveDocumentMode(getValues("details"))) as DocumentMode;
-        const currentDetails = getValues("details") as any;
-        const isHydrating = !currentDetails?.documentMode;
-        const setOpts = isHydrating ? { shouldDirty: false } : { shouldDirty: true };
-        const updated = applyDocumentModeDefaults(nextMode, currentDetails);
-        const desiredDocumentType = nextMode === "LOI" ? "LOI" : "First Round";
-        const desiredPricingType = nextMode === "PROPOSAL" ? "Hard Quoted" : "Budget";
-
-        if (currentDetails?.documentMode !== nextMode) {
-            setValue("details.documentMode", nextMode, setOpts);
-        }
-        if (currentDetails?.documentType !== desiredDocumentType) {
-            setValue("details.documentType", desiredDocumentType as any, setOpts);
-        }
-        if (currentDetails?.pricingType !== desiredPricingType) {
-            setValue("details.pricingType", desiredPricingType as any, setOpts);
-        }
-
-        const updates: Array<[any, any]> = [
-            ["details.showPaymentTerms", updated.showPaymentTerms],
-            ["details.showSignatureBlock", updated.showSignatureBlock],
-            ["details.showExhibitA", updated.showExhibitA],
-            ["details.showExhibitB", updated.showExhibitB],
-            ["details.showSpecifications", updated.showSpecifications],
-        ];
-
-        for (const [path, value] of updates) {
-            const key = (path as string).split(".").slice(-1)[0];
-            if (currentDetails?.[key] !== value) {
-                setValue(path, value, setOpts);
-            }
-        }
-    }, [getValues, rawMode, setValue]);
 
     return (
         <div className="h-full flex flex-col bg-background/20">
@@ -180,18 +137,6 @@ const Step1Ingestion = () => {
                                             label="Zip"
                                             placeholder="Zip code"
                                             className="bg-background border-input"
-                                        />
-                                    </div>
-                                    {/* Document Lifecycle - FR-2.3: Budget → Proposal → LOI */}
-                                    <div className="md:col-span-2">
-                                        <FormSelect
-                                            name="details.documentMode"
-                                            label="Document Lifecycle"
-                                            options={[
-                                                { label: "Budget (Non-binding estimate)", value: "BUDGET" },
-                                                { label: "Proposal (Formal quote)", value: "PROPOSAL" },
-                                                { label: "LOI (Legal contract)", value: "LOI" },
-                                            ]}
                                         />
                                     </div>
                                 </div>
