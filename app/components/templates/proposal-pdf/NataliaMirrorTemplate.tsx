@@ -556,16 +556,16 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
   };
 
   return (
-    <div className="px-12 py-6 break-inside-avoid">
+    <div className="px-12 py-6 break-before-page">
       <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-2 mb-4">
         SPECIFICATIONS
       </h2>
 
-      <div className="border border-gray-300">
-        {/* Table Header */}
+      <div className="border border-gray-300 break-inside-avoid">
+        {/* Table Header - Fixed column widths to prevent overlapping */}
         <div className="grid grid-cols-12 text-[9px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300 bg-gray-50">
-          <div className="col-span-4 px-2 py-1.5">Display Name</div>
-          <div className="col-span-2 px-2 py-1.5">Dimensions</div>
+          <div className="col-span-3 px-2 py-1.5">Display Name</div>
+          <div className="col-span-3 px-2 py-1.5">Dimensions</div>
           <div className="col-span-1 px-2 py-1.5 text-right">Pitch</div>
           <div className="col-span-2 px-2 py-1.5 text-right">Resolution</div>
           <div className="col-span-2 px-2 py-1.5 text-right">Brightness</div>
@@ -595,10 +595,10 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
             return (
               <div
                 key={screen?.id || `screen-${idx}`}
-                className="grid grid-cols-12 border-b border-gray-200 last:border-b-0"
+                className="grid grid-cols-12 border-b border-gray-200 last:border-b-0 break-inside-avoid"
               >
-                <div className="col-span-4 px-2 py-1.5 font-medium">{name}</div>
-                <div className="col-span-2 px-2 py-1.5 text-gray-700">
+                <div className="col-span-3 px-2 py-1.5 font-medium">{name}</div>
+                <div className="col-span-3 px-2 py-1.5 text-gray-700">
                   {h > 0 && w > 0 ? `${formatFeet(h)} x ${formatFeet(w)}` : ""}
                 </div>
                 <div className="col-span-1 px-2 py-1.5 text-right tabular-nums">
