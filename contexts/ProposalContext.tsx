@@ -275,9 +275,9 @@ export const ProposalContextProvider = ({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    // CRITICAL: Don't hydrate if we're in the middle of creating a new project
-    if (isCreatingNewRef.current) {
-      console.log("[EXCEL PREVIEW] Skipping hydration - creating new project");
+    // CRITICAL: Don't hydrate Excel if on /projects/new or creating a new project
+    if (window.location.pathname === "/projects/new" || isCreatingNewRef.current) {
+      console.log("[EXCEL PREVIEW] Skipping hydration - new project page");
       return;
     }
     try {
