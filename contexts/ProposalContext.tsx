@@ -275,6 +275,11 @@ export const ProposalContextProvider = ({
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    // CRITICAL: Don't hydrate if we're in the middle of creating a new project
+    if (isCreatingNewRef.current) {
+      console.log("[EXCEL PREVIEW] Skipping hydration - creating new project");
+      return;
+    }
     try {
       const raw = window.localStorage.getItem(excelPreviewStorageKey);
       if (!raw) return;
@@ -875,24 +880,40 @@ export const ProposalContextProvider = ({
    * Clear localStorage FIRST so nothing re-hydrates old draft, then reset form.
    * Memoized to avoid effect loops when used in /projects/new useLayoutEffect.
    */
+  // Flag to prevent Excel hydration during new project creation
+  const isCreatingNewRef = useRef(false);
+
   const newProposal = useCallback((opts?: { silent?: boolean }) => {
+    isCreatingNewRef.current = true;
+    
     if (typeof window !== "undefined") {
       try {
         window.localStorage.removeItem(LOCAL_STORAGE_PROPOSAL_DRAFT_KEY);
         window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
+        // Also clear any other draft-related keys
+        window.localStorage.removeItem(`${LOCAL_STORAGE_EXCEL_PREVIEW_PREFIX}draft`);
       } catch { }
     }
-    reset(FORM_DEFAULT_VALUES);
-    setProposalPdf(new Blob());
+    
+    // Reset ALL Excel-related state immediately
     setExcelPreview(null);
     setExcelValidationOk(false);
     setExcelSourceData(null);
+    hadExcelPreviewRef.current = false;
+    
+    reset(FORM_DEFAULT_VALUES);
+    setProposalPdf(new Blob());
 
     if (!opts?.silent) newProposalSuccess();
 
     if (typeof window !== "undefined" && window.location.pathname !== "/projects/new") {
       window.location.href = "/projects/new";
     }
+    
+    // Reset the flag after a delay
+    setTimeout(() => {
+      isCreatingNewRef.current = false;
+    }, 100);
   }, [reset, newProposalSuccess]);
 
   /**
