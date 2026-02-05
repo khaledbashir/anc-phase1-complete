@@ -50,6 +50,7 @@ const SingleScreen = ({
     const { _t } = useTranslationContext();
     const { aiFields, verifiedFields, setFieldVerified } = useProposalContext();
     const [isExpanded, setIsExpanded] = useState(index === 0 && fields.length === 1);
+    const [showMargin, setShowMargin] = useState(false);
     const [showAdvanced, setShowAdvanced] = useState(false);
 
     const screenName = useWatch({ name: `${name}[${index}].name`, control });
@@ -361,55 +362,75 @@ const SingleScreen = ({
                         />
                     </div>
 
+                    {/* Desired Margin Toggle */}
+                    <button
+                        onClick={() => setShowMargin(!showMargin)}
+                        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <ChevronRight className={cn(
+                            "w-4 h-4 transition-transform",
+                            showMargin && "rotate-90"
+                        )} />
+                        Desired Margin
+                        <span className={cn(
+                            "ml-auto text-sm font-semibold",
+                            hasLowMargin ? "text-yellow-600" : "text-[#0A52EF]"
+                        )}>
+                            {(desiredMargin * 100 || 0).toFixed(0)}%
+                        </span>
+                    </button>
+
                     {/* Margin Slider - With Natalia Math Tooltip */}
-                    <div className={cn(
-                        "p-4 rounded-xl border space-y-3",
-                        aiFields?.includes(`${name}[${index}].desiredMargin`)
-                            ? "border-[#0A52EF]/50 bg-[#0A52EF]/10"
-                            : "border-border bg-muted/30"
-                    )}>
-                        <div className="flex justify-between items-center">
-                            <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <Label className="text-[11px] text-muted-foreground font-medium flex items-center gap-1 cursor-help">
-                                            <Zap className="w-3 h-3 text-yellow-500" />
-                                            Desired Margin
-                                            <Info className="w-3 h-3 text-muted-foreground hover:text-[#0A52EF] transition-colors" />
-                                        </Label>
-                                    </TooltipTrigger>
-                                    <TooltipContent
-                                        side="top"
-                                        className="max-w-xs bg-popover border-border text-popover-foreground p-3"
-                                    >
-                                        <p className="text-xs leading-relaxed">
-                                            <strong className="text-[#0A52EF]">Using ANC Strategic Logic:</strong> We use the Divisor Model <code className="bg-muted px-1 rounded">[Cost / (1 - Margin)]</code> to ensure your P&L profit matches your target percentage exactly.
-                                        </p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                            <span className={cn(
-                                "text-sm font-semibold",
-                                hasLowMargin ? "text-yellow-600" : "text-[#0A52EF]"
-                            )}>
-                                {(desiredMargin * 100 || 0).toFixed(0)}%
-                            </span>
+                    {showMargin && (
+                        <div className={cn(
+                            "p-4 rounded-xl border space-y-3",
+                            aiFields?.includes(`${name}[${index}].desiredMargin`)
+                                ? "border-[#0A52EF]/50 bg-[#0A52EF]/10"
+                                : "border-border bg-muted/30"
+                        )}>
+                            <div className="flex justify-between items-center">
+                                <TooltipProvider>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Label className="text-[11px] text-muted-foreground font-medium flex items-center gap-1 cursor-help">
+                                                <Zap className="w-3 h-3 text-yellow-500" />
+                                                Desired Margin
+                                                <Info className="w-3 h-3 text-muted-foreground hover:text-[#0A52EF] transition-colors" />
+                                            </Label>
+                                        </TooltipTrigger>
+                                        <TooltipContent
+                                            side="top"
+                                            className="max-w-xs bg-popover border-border text-popover-foreground p-3"
+                                        >
+                                            <p className="text-xs leading-relaxed">
+                                                <strong className="text-[#0A52EF]">Using ANC Strategic Logic:</strong> We use the Divisor Model <code className="bg-muted px-1 rounded">[Cost / (1 - Margin)]</code> to ensure your P&L profit matches your target percentage exactly.
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                                <span className={cn(
+                                    "text-sm font-semibold",
+                                    hasLowMargin ? "text-yellow-600" : "text-[#0A52EF]"
+                                )}>
+                                    {(desiredMargin * 100 || 0).toFixed(0)}%
+                                </span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0"
+                                max="0.8"
+                                step="0.01"
+                                {...register(`${name}[${index}].desiredMargin`, {
+                                    valueAsNumber: true,
+                                    onChange: (e) => setValue(`${name}[${index}].desiredMargin`, parseFloat(e.target.value))
+                                })}
+                                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-[#0A52EF]"
+                            />
+                            <p className="text-[10px] text-muted-foreground">
+                                Adjust margin to see real-time price impact
+                            </p>
                         </div>
-                        <input
-                            type="range"
-                            min="0"
-                            max="0.8"
-                            step="0.01"
-                            {...register(`${name}[${index}].desiredMargin`, {
-                                valueAsNumber: true,
-                                onChange: (e) => setValue(`${name}[${index}].desiredMargin`, parseFloat(e.target.value))
-                            })}
-                            className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-[#0A52EF]"
-                        />
-                        <p className="text-[10px] text-muted-foreground">
-                            Adjust margin to see real-time price impact
-                        </p>
-                    </div>
+                    )}
 
                     {/* Advanced Settings Toggle */}
                     <button
