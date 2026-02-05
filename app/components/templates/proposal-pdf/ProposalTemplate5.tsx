@@ -54,6 +54,27 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const ancAddress = sender?.address || "2 Manhattanville Road, Suite 402, Purchase, NY 10577";
     const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "SPECIFICATIONS";
 
+    // Detect product type from screens to adjust header text
+    const detectProductType = (): "LED" | "LCD" | "Display" => {
+        if (!screens || screens.length === 0) return "Display";
+        
+        const productTypes = new Set<string>();
+        screens.forEach((screen: any) => {
+            const type = (screen?.productType || "").toString().trim().toUpperCase();
+            if (type) productTypes.add(type);
+        });
+        
+        // If all screens are LCD, use LCD
+        if (productTypes.size === 1 && productTypes.has("LCD")) return "LCD";
+        // If all screens are LED, use LED
+        if (productTypes.size === 1 && productTypes.has("LED")) return "LED";
+        // Mixed or unknown, use generic "Display"
+        return "Display";
+    };
+    
+    const productType = detectProductType();
+    const displayTypeLabel = productType === "Display" ? "Display" : `${productType} Display`;
+
     // Hybrid color palette - Modern base with Bold accents
     const colors = {
         primary: "#0A52EF",
@@ -481,7 +502,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         ) : documentMode === "LOI" ? (
                             <p className="text-justify">
                                 This Sales Quotation establishes the terms by which <strong style={{ color: colors.text }}>{purchaserName}</strong>
-                                {purchaserAddress && <span> located at {purchaserAddress}</span>} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> located at {ancAddress} (collectively, the "Parties") agree that ANC will provide the LED Display System described below.
+                                {purchaserAddress && <span> located at {purchaserAddress}</span>} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> located at {ancAddress} (collectively, the "Parties") agree that ANC will provide the {displayTypeLabel} System described below.
                             </p>
                         ) : documentMode === "PROPOSAL" ? (
                             <p>
@@ -489,7 +510,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </p>
                         ) : (
                             <p>
-                                ANC is pleased to present the following LED Display budget to <strong style={{ color: colors.text }}>{purchaserName}</strong> per the specifications below.
+                                ANC is pleased to present the following {displayTypeLabel} budget to <strong style={{ color: colors.text }}>{purchaserName}</strong> per the specifications below.
                             </p>
                         )}
                     </div>
