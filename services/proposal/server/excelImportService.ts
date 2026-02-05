@@ -162,7 +162,7 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
 
     const screens: any[] = [];
     const perScreenAudits: ScreenAudit[] = [];
-    let altRowsSkipped = 0;
+    let altRowsDetected = 0;
     let blankRowsSkipped = 0;
 
     for (let i = headerRowIndex + 1; i < ledData.length; i++) {
@@ -205,12 +205,14 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             Number.isFinite(widthNum) &&
             widthNum > 0
         ) {
-            // REQ-111: Alternate Row Filter (Natalia Math)
-            // PRD: Rows starting with "ALT" or "Alternate" must be skipped to prevent inflated Base Bid.
-            if (isAlternateRowLabel(projectName)) {
-                console.log(`[MIRROR MODE] Skipping Alternate Row: "${projectName}"`);
-                altRowsSkipped++;
-                continue;
+            // REQ-111: Alternate Row Detection (Natalia Math)
+            // PRD: Rows starting with "ALT" or "Alternate" are flagged but preserved.
+            // Mirror Mode requires true 1:1 pass-through - templates decide what to render.
+            // Intelligence Mode can filter these out to prevent inflated Base Bid.
+            const isAlternate = isAlternateRowLabel(projectName);
+            if (isAlternate) {
+                console.log(`[EXCEL IMPORT] Detected Alternate Row (preserved): "${projectName}"`);
+                altRowsDetected++;
             }
 
             const pitch = row[colIdx.pitch];
@@ -256,6 +258,7 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
                 serviceType: colIdx.serviceType >= 0 ? row[colIdx.serviceType] : undefined,
                 structuralTonnage: colIdx.structuralTonnage >= 0 ? row[colIdx.structuralTonnage] : undefined,
                 isHDR: isHDR,
+                isAlternate: isAlternate, // Flag for templates to filter in Intelligence mode
                 quantity: Number(colIdx.quantity >= 0 ? row[colIdx.quantity] : 1) || 1,
                 lineItems: [],
                 hardwareCost,
@@ -434,7 +437,7 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
         screens,
         rowCount: ledData.length,
         screenCount: screens.length,
-        altRowsSkipped,
+        altRowsDetected,
         blankRowsSkipped,
         headerRowIndex,
         sheetsRead: ['LED Sheet', 'Margin Analysis'].filter(Boolean),
