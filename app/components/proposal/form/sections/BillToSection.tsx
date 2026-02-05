@@ -19,7 +19,8 @@ import { useTranslationContext } from "@/contexts/TranslationContext";
 import { Plus } from "lucide-react";
 
 const BillToSection = () => {
-    const { control } = useFormContext();
+    const { control, watch } = useFormContext();
+    const proposalId = watch("details.proposalId");
 
     const { _t } = useTranslationContext();
 
@@ -52,6 +53,7 @@ const BillToSection = () => {
                     <AiWand
                         fieldName="receiver.name"
                         targetFields={["receiver.address", "receiver.zipCode", "receiver.city", "receiver.country"]}
+                        proposalId={proposalId}
                     />
                 }
             />

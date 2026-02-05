@@ -23,7 +23,8 @@ const Step1Ingestion = () => {
         aiWorkspaceSlug
     } = useProposalContext();
 
-    const { getValues } = useFormContext();
+    const { getValues, watch } = useFormContext();
+    const proposalId = watch("details.proposalId");
     const [rfpUploading, setRfpUploading] = useState(false);
     const [showDetails, setShowDetails] = useState(!excelPreview);
 
@@ -111,6 +112,7 @@ const Step1Ingestion = () => {
                                             <AiWand
                                                 fieldName="receiver.name"
                                                 targetFields={["receiver.address", "receiver.city", "receiver.zipCode", "details.venue"]}
+                                                proposalId={proposalId}
                                             />
                                         }
                                     />

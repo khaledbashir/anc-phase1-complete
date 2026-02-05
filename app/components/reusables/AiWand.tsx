@@ -19,6 +19,7 @@ type AiWandProps = {
     fieldName: string;
     searchQuery?: string;
     targetFields: string[]; // Fields to fill (e.g., ["receiver.address", "receiver.city"])
+    proposalId?: string; // Project workspace to use for context
 };
 
 type EnrichCandidate = {
@@ -28,7 +29,7 @@ type EnrichCandidate = {
     results: Record<string, string>;
 };
 
-export default function AiWand({ fieldName, searchQuery, targetFields }: AiWandProps) {
+export default function AiWand({ fieldName, searchQuery, targetFields, proposalId }: AiWandProps) {
     const [loading, setLoading] = useState(false);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [candidates, setCandidates] = useState<EnrichCandidate[]>([]);
@@ -73,7 +74,7 @@ export default function AiWand({ fieldName, searchQuery, targetFields }: AiWandP
             const res = await fetch("/api/agent/enrich", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query, targetFields }),
+                body: JSON.stringify({ query, targetFields, proposalId }),
                 signal: controller.signal,
             });
             if (timeoutId) clearTimeout(timeoutId);

@@ -9,7 +9,7 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { query, targetFields } = body;
+        const { query, targetFields, proposalId } = body;
 
         const fields = Array.isArray(targetFields)
             ? targetFields.filter((f: unknown): f is string => typeof f === "string" && f.trim().length > 0)
@@ -23,7 +23,26 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "targetFields is required" }, { status: 400 });
         }
 
-        const workspace = process.env.ANYTHING_LLM_WORKSPACE || "anc-estimator";
+        // Use per-project workspace if proposalId provided, else fallback
+        let workspace = process.env.ANYTHING_LLM_WORKSPACE || "anc-estimator";
+        
+        if (proposalId) {
+            try {
+                const { prisma } = await import("@/lib/prisma");
+                const proposal = await prisma.proposal.findUnique({
+                    where: { id: proposalId },
+                    select: { aiWorkspaceSlug: true }
+                });
+                if (proposal?.aiWorkspaceSlug) {
+                    workspace = proposal.aiWorkspaceSlug;
+                    console.log(`[AI Wand] Using project workspace: ${workspace}`);
+                } else {
+                    console.log(`[AI Wand] No project workspace found for ${proposalId}, using fallback: ${workspace}`);
+                }
+            } catch (e) {
+                console.warn(`[AI Wand] Failed to lookup project workspace:`, e);
+            }
+        }
 
         const getByPath = (obj: unknown, path: string) => {
             if (!obj || typeof obj !== "object") return undefined;
