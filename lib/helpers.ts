@@ -14,9 +14,39 @@ import { CurrencyDetails } from "@/types";
  * @param {number} number - Number to format
  * @returns {string} A styled number to be displayed on the proposal
  */
-const formatNumberWithCommas = (number: number) => {
-    if (number == null || isNaN(number)) return "0.00";
-    return number.toLocaleString("en-US", {
+/**
+ * Sanitize brightness/spec values by stripping "nits" text before parsing
+ * Handles strings like "444 nits", "444Nits", "444 nits brightness", etc.
+ * @param value - The value to sanitize (string or number)
+ * @returns Cleaned number or 0 if unparseable
+ */
+export const cleanNitsFromSpecs = (value: any): number => {
+    if (value == null) return 0;
+    
+    // If already a number, return as-is
+    if (typeof value === 'number') {
+        return isNaN(value) ? 0 : value;
+    }
+    
+    // Convert to string and clean
+    const str = String(value).trim();
+    
+    // Remove "nits" (case-insensitive) and any surrounding whitespace
+    const cleaned = str.replace(/nits?\s*$/i, '').trim();
+    
+    // Parse the cleaned string
+    const parsed = parseFloat(cleaned);
+    
+    return isNaN(parsed) ? 0 : parsed;
+};
+
+const formatNumberWithCommas = (number: number | string) => {
+    // Handle string inputs with "nits" suffix
+    const cleaned = typeof number === 'string' ? cleanNitsFromSpecs(number) : number;
+    const num = typeof cleaned === 'number' ? cleaned : parseFloat(String(cleaned));
+    
+    if (num == null || isNaN(num)) return "0.00";
+    return num.toLocaleString("en-US", {
         style: "decimal",
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,

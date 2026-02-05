@@ -28,7 +28,6 @@ import { ProposalType } from "@/types";
 
 // Styles
 import { PDF_COLORS } from "./PdfStyles";
-import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
 
 interface ProposalTemplate5Props extends ProposalType {
     forceWhiteLogo?: boolean;
@@ -173,18 +172,19 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
 
         const lineItems = quoteItems.length > 0
-            ? quoteItems.map((it: any) => ({ price: Number(it.price || 0) || 0 }))
+            ? quoteItems.map((it: any) => ({ price: Number(it.price || 0) || 0, isAlternate: it.isAlternate || false }))
             : [
                 ...(screens || []).map((screen: any) => {
                     const auditRow = isSharedView
                         ? null
                         : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
                     const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
-                    return { price: Number(price) || 0 };
-                }).filter((it) => Math.abs(it.price) >= 0.01),
+                    return { price: Number(price) || 0, isAlternate: screen?.isAlternate || false };
+                }).filter((it) => it.isAlternate || Math.abs(it.price) >= 0.01),
                 ...softCostItems.map((item: any) => ({
                     price: Number(item?.sell || 0),
-                })).filter((it: any) => Math.abs(it.price) >= 0.01),
+                    isAlternate: item?.isAlternate || false,
+                })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
             ];
 
         return lineItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
@@ -206,7 +206,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             Project Grand Total
                         </div>
                         <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
-                            {formatCurrency(total)}
+                            {formatCurrency(total, total === 0 ? "[PROJECT TOTAL]" : undefined)}
                         </div>
                     </div>
                 </div>
@@ -263,8 +263,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     name: header.toUpperCase(),
                     description: combined,
                     price: Number(it.price || 0) || 0,
+                    isAlternate: it.isAlternate || false,
                 };
-            }).filter((it: any) => Math.abs(it.price) >= 0.01)
+            }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01)
             : [
                 ...(screens || []).map((screen: any, idx: number) => {
                     const auditRow = isSharedView
@@ -278,14 +279,16 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         name: (split.header || getScreenHeader(screen)).toUpperCase(),
                         description: split.specs || buildDescription(screen),
                         price: Number(price) || 0,
+                        isAlternate: screen?.isAlternate || false,
                     };
-                }).filter((it) => Math.abs(it.price) >= 0.01),
+                }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
                 ...softCostItems.map((item: any, idx: number) => ({
                     key: `soft-${idx}`,
                     name: (item?.name || "Item").toString().toUpperCase(),
                     description: (item?.description || "").toString(),
                     price: Number(item?.sell || 0),
-                })).filter((it: any) => Math.abs(it.price) >= 0.01),
+                    isAlternate: item?.isAlternate || false,
+                })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
             ];
         
         const subtotal = lineItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
