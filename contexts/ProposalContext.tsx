@@ -901,6 +901,9 @@ export const ProposalContextProvider = ({
     setExcelValidationOk(false);
     setExcelSourceData(null);
     setProposalPdf(new Blob());
+    setVerificationManifest(null);
+    setVerificationExceptions([]);
+    setActiveTab("client");
 
     // 3) Reset form to defaults (this clears form-held pricingDocument etc. if RHF replaces state)
     reset(FORM_DEFAULT_VALUES);
@@ -908,6 +911,7 @@ export const ProposalContextProvider = ({
     // 4) Force-clear workbook-related form fields in case they persist
     setValue("details.pricingDocument" as any, undefined, { shouldDirty: false });
     setValue("details.pricingMode" as any, "STANDARD", { shouldDirty: false });
+    setValue("marginAnalysis" as any, undefined, { shouldDirty: false });
 
     if (!opts?.silent) newProposalSuccess();
 

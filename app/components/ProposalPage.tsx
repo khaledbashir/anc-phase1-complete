@@ -49,11 +49,20 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   // Normalize projectId: treat the literal 'new' as no project
   const normalizedProjectId = projectId && projectId !== "new" ? projectId : null;
   const hasInitializedRef = useRef(false);
+  const lastProjectIdRef = useRef<string | undefined>(projectId);
+
+  // Reset the initialization guard when projectId actually changes (navigation)
+  useEffect(() => {
+    if (lastProjectIdRef.current !== projectId) {
+      hasInitializedRef.current = false;
+      lastProjectIdRef.current = projectId;
+    }
+  }, [projectId]);
 
   useEffect(() => {
     if (initialData && !excelImportLoading) {
-      // Only reset on initial mount or when navigating to an existing project.
-      // Skip if we already initialized (prevents clobbering after Excel import + redirect).
+      // Only reset on initial mount or when navigating to a different project.
+      // Skip if we already initialized this project (prevents clobbering after Excel import + redirect).
       if (!hasInitializedRef.current) {
         reset(initialData);
         hasInitializedRef.current = true;
