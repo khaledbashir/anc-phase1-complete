@@ -482,21 +482,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     return (
         <ProposalLayout data={data} disableFixedFooter>
-            {/* Hybrid Header - Client-approved: logo left, doc type + client in grey box with light blue diagonal stripe */}
-            <div className="flex justify-between items-stretch px-6 pt-6 pb-4 mb-6 border-b break-inside-avoid" style={{ borderColor: colors.border }}>
+            {/* Hybrid Header - Clean Modern style with left-aligned logo (no badge box) */}
+            <div className="flex justify-between items-start px-6 pt-6 pb-4 mb-6 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent' }}>
                 <LogoSelectorServer theme="light" width={140} height={70} className="p-0" />
-                <div
-                    className="text-right break-inside-avoid px-4 py-3 min-w-[200px]"
-                    style={{
-                        background: "#E5E7EB",
-                        backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(10, 82, 239, 0.12) 6px, rgba(10, 82, 239, 0.12) 12px)",
-                    }}
-                >
-                    <div className="text-xs uppercase tracking-widest font-semibold" style={{ color: "#0A52EF" }}>{docLabel}</div>
-                    <div className="text-sm mt-1" style={{ color: colors.textMuted }}>{receiver?.name || "Client Name"}</div>
-                    {details?.proposalName && (
-                        <div className="text-xs mt-0.5" style={{ color: colors.textLight }}>{details.proposalName}</div>
-                    )}
+                <div className="text-right break-inside-avoid" style={{ background: 'transparent' }}>
+                    <div className="text-xs uppercase tracking-widest font-bold" style={{ color: colors.primary, background: 'transparent' }}>{docLabel}</div>
+                    <h1 className="text-xl font-bold mt-1" style={{ color: colors.text, background: 'transparent' }}>{receiver?.name || "Client Name"}</h1>
+                    {details?.proposalName && <div className="text-xs mt-1" style={{ color: colors.textMuted, background: 'transparent' }}>{details.proposalName}</div>}
                 </div>
             </div>
 

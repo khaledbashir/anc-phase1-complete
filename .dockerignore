@@ -2,6 +2,8 @@ node_modules
 .next
 .env
 .env.local
+.env.*
+!.env.example
 .git
 *.log
 npm-debug.log*
@@ -17,3 +19,9 @@ coverage
 *.swp
 *.swo
 *~
+# Big assets not needed for build
+*.pdf
+*.tar.gz
+ppp/
+rfp-sources/
+.cursor

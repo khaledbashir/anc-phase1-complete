@@ -419,9 +419,28 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     // REQ-User-Feedback: Structure Margin Analysis data for exact PDF mirroring
     const marginAnalysis = groupMarginAnalysisRows(marginRows);
 
+    const extractClientName = (): string => {
+        const searchRows = ledData.slice(0, 10);
+        for (const row of searchRows) {
+            for (let c = 0; c < (row?.length ?? 0); c++) {
+                const cell = (row[c] ?? "").toString().trim();
+                const afterProject = cell.replace(/^Project\s+Name:\s*/i, "").trim();
+                if (afterProject && afterProject !== cell) return afterProject;
+                if (/^Client:?\s*(.+)$/i.test(cell)) return cell.replace(/^Client:?\s*/i, "").trim() || "New Project";
+            }
+        }
+        const fromFirst = ledData[0]?.[0]?.toString().replace(/^Project\s+Name:\s*/i, "").trim();
+        if (fromFirst && fromFirst.length >= 2 && !/^[a-z]{2,8}$/.test(fromFirst)) return fromFirst;
+        if (fileName && typeof fileName === "string") {
+            const base = fileName.replace(/\.xlsx?$/i, "").replace(/\s*[-–]\s*\d{4}-\d{2}-\d{2}.*$/, "").trim();
+            if (base.length >= 2) return base;
+        }
+        return "New Project";
+    };
+
     const formData = {
         receiver: {
-            name: ledData[0][0]?.replace('Project Name: ', '') || 'New Project',
+            name: extractClientName(),
         },
         details: {
             proposalName: 'ANC LED Display Proposal',
