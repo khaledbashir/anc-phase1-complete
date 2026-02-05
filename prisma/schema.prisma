@@ -284,8 +284,21 @@ model ChangeRequest {
   resolvedAt     DateTime?
   resolvedBy     String?
 
+  // Client Review Annotator fields
+  pinX            Float?
+  pinY            Float?
+  pinNumber       Int?
+  screenshotData  String?    @db.Text
+  audioData       String?    @db.Text
+  audioDuration   Float?
+  transcript      String?    @db.Text
+  aiCategory      String?
+  aiConfidence    Float?
+  sessionId       String?
+
   @@index([proposalId])
   @@index([shareHash])
+  @@index([sessionId])
 }
 
 model ActivityLog {

@@ -210,6 +210,56 @@ export async function updateWorkspaceSettings(slug: string, settings: any): Prom
 }
 
 /**
+ * Client Review Annotator: AI Triage
+ * Categorizes client feedback annotations into actionable categories.
+ * Used by the share request API after batch annotation submission.
+ */
+export async function triageAnnotations(
+    workspaceSlug: string,
+    annotations: Array<{ id: string; transcript: string }>
+): Promise<Array<{ id: string; category: string; confidence: number }>> {
+    if (annotations.length === 0) return [];
+
+    const annotationList = annotations
+        .map((a, i) => `[${i + 1}] "${a.transcript}"`)
+        .join("\n");
+
+    const prompt = `You are a proposal review assistant for ANC Sports (LED display manufacturer). Categorize each client feedback item into exactly ONE category:
+- pricing: About costs, prices, totals, discounts, or budget
+- specs: About technical specifications, pixel pitch, dimensions, brightness
+- design: About layout, appearance, naming, or visual presentation
+- approval: Client confirming, agreeing, or approving something
+- question: Client asking a question or requesting clarification
+- other: Anything that doesn't fit above
+
+Respond ONLY with a valid JSON array. Each element: { "index": <number>, "category": "<category>", "confidence": <0.0-1.0> }
+
+Client feedback items:
+${annotationList}`;
+
+    const response = await queryVault(workspaceSlug, prompt, "chat");
+
+    try {
+        const jsonMatch = response.match(/\[[\s\S]*?\]/);
+        if (!jsonMatch) {
+            return annotations.map((a) => ({ id: a.id, category: "other", confidence: 0 }));
+        }
+
+        const parsed = JSON.parse(jsonMatch[0]);
+        return annotations.map((a, i) => {
+            const item = parsed.find((p: any) => p.index === i + 1);
+            return {
+                id: a.id,
+                category: item?.category || "other",
+                confidence: typeof item?.confidence === "number" ? item.confidence : 0,
+            };
+        });
+    } catch {
+        return annotations.map((a) => ({ id: a.id, category: "other", confidence: 0 }));
+    }
+}
+
+/**
  * Smart Assembly Agent: Retrieves verbatim scope blocks from legal brain
  */
 export async function getScopeBlock(productType: string, isUnion: boolean): Promise<string> {

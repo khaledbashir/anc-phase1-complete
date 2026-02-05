@@ -188,7 +188,7 @@ export const FORM_DEFAULT_VALUES = {
     documentType: "First Round" as "LOI" | "First Round",
     pricingType: "Budget" as "Hard Quoted" | "Budget",
     documentMode: "BUDGET" as "BUDGET" | "PROPOSAL" | "LOI",
-    pdfTemplate: 1,
+    pdfTemplate: 5, // Enterprise Standard: ANC Hybrid Template
     screens: [],
     internalAudit: {},
     clientSummary: {},
@@ -297,7 +297,7 @@ export const FORM_FILL_VALUES = {
     documentType: "First Round" as "LOI" | "First Round",
     pricingType: "Hard Quoted" as "Hard Quoted" | "Budget",
     documentMode: "PROPOSAL" as "BUDGET" | "PROPOSAL" | "LOI",
-    pdfTemplate: 1,
+    pdfTemplate: 5, // Enterprise Standard: ANC Hybrid Template
     venue: "Generic" as "Milan Puskar Stadium" | "WVU Coliseum" | "Generic",
   },
 };

@@ -241,8 +241,10 @@ const isDataUrl = (str: string) => str.startsWith("data:");
  */
 const getProposalTemplate = async (templateId: number) => {
     // Map template IDs to component names
-    // Template 1 doesn't exist, map to 2 (Classic)
-    const actualId = templateId === 1 ? 2 : templateId;
+    // Template 5 (ANC Hybrid) is the enterprise standard
+    // Templates 1, 2 (Classic), and 4 (Premium) are deprecated and map to 5 (Hybrid)
+    const DEPRECATED_TEMPLATES = [1, 2, 4];
+    const actualId = DEPRECATED_TEMPLATES.includes(templateId) ? 5 : templateId;
     const templateName = `ProposalTemplate${actualId}`;
     
     try {

@@ -50,8 +50,10 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 			console.log("[PDF Generation] Using NataliaMirrorTemplate for mirror mode");
 		} else {
 			// Fallback to standard templates by ID
-			let templateId = body.details?.pdfTemplate ?? 2;
-			if (templateId === 1) templateId = 2;
+			let templateId = body.details?.pdfTemplate ?? 5; // Default to template 5 (ANC Hybrid - Enterprise Standard)
+			// REQ-Fix: Templates 1, 2, 4 are deprecated. Map to 5 (Hybrid) which is the enterprise standard.
+			const DEPRECATED_TEMPLATES = [1, 2, 4];
+			if (DEPRECATED_TEMPLATES.includes(templateId)) templateId = 5;
 			ProposalTemplate = await getProposalTemplate(templateId);
 		}
 

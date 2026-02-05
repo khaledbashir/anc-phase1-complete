@@ -1002,20 +1002,39 @@ const Step4Export = () => {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        {changeRequests.slice(0, 6).map((r: any) => (
+                                        {changeRequests.slice(0, 10).map((r: any) => (
                                             <div key={r.id} className="rounded-2xl border border-border bg-card/30 p-4">
                                                 <div className="flex items-start justify-between gap-4">
-                                                    <div className="min-w-0">
-                                                        <div className="text-xs font-bold text-foreground truncate">
-                                                            {r.requesterName}
-                                                            {r.requesterEmail ? (
-                                                                <span className="text-muted-foreground font-semibold"> • {r.requesterEmail}</span>
-                                                            ) : null}
+                                                    <div className="min-w-0 flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            {r.pinNumber != null && (
+                                                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold shrink-0">
+                                                                    {r.pinNumber}
+                                                                </span>
+                                                            )}
+                                                            <div className="text-xs font-bold text-foreground truncate">
+                                                                {r.requesterName}
+                                                                {r.requesterEmail ? (
+                                                                    <span className="text-muted-foreground font-semibold"> • {r.requesterEmail}</span>
+                                                                ) : null}
+                                                            </div>
                                                         </div>
+                                                        {r.aiCategory && (
+                                                            <Badge className="mt-1.5 bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px]">
+                                                                {r.aiCategory}
+                                                            </Badge>
+                                                        )}
                                                         <div className="mt-1 text-[11px] text-muted-foreground">
                                                             {r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}
                                                         </div>
                                                     </div>
+                                                    {r.screenshotData && (
+                                                        <img
+                                                            src={r.screenshotData}
+                                                            alt="Context"
+                                                            className="w-20 h-14 rounded-lg border border-border object-cover shrink-0"
+                                                        />
+                                                    )}
                                                     <div className="shrink-0 flex items-center gap-2">
                                                         {r.status === "RESOLVED" ? (
                                                             <Badge className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
@@ -1034,8 +1053,15 @@ const Step4Export = () => {
                                                     </div>
                                                 </div>
                                                 <div className="mt-3 text-xs text-foreground whitespace-pre-wrap">
-                                                    {r.message}
+                                                    {r.transcript || r.message}
                                                 </div>
+                                                {r.audioData && (
+                                                    <div className="mt-2">
+                                                        <audio controls preload="none" className="h-8 w-full [&::-webkit-media-controls-panel]:bg-card">
+                                                            <source src={r.audioData} type="audio/webm" />
+                                                        </audio>
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>

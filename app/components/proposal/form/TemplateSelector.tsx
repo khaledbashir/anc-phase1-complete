@@ -4,10 +4,13 @@ import React from "react";
 import { Sparkles } from "lucide-react";
 
 /**
- * TemplateSelector - Phase 1: Single template (Standard/Hybrid)
- *
+ * TemplateSelector - Enterprise Standard: ANC Hybrid Template (ID 5)
+ * 
+ * As of February 2026, Template 5 (ANC Hybrid) is the enterprise standard.
+ * Templates 1, 2 (Classic), and 4 (Premium/Bold) are deprecated.
+ * 
  * In Mirror Mode, NataliaMirrorTemplate is always used regardless of this setting.
- * This component is kept for UI consistency but only shows the active template.
+ * This component displays the active enterprise-standard template.
  */
 const TemplateSelector = () => {
     return (

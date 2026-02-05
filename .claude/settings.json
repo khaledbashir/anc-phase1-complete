@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"\nconst { Client } = require\\(''pg''\\);\nconst c = new Client\\({ connectionString: ''postgres://postgres:32e4654c47db3b3f2a1e@10.0.1.196:5432/nata?sslmode=disable'' }\\);\nc.connect\\(\\).then\\(\\(\\) => c.query\\(''SELECT 1 AS ok''\\)\\).then\\(r => { console.log\\(''CONNECTED:'', r.rows[0]\\); c.end\\(\\); }\\).catch\\(e => console.error\\(''FAILED:'', e.message\\)\\);\n\")"
+    ]
+  }
+}
