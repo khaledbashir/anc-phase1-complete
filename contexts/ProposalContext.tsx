@@ -109,7 +109,7 @@ const defaultProposalContext = {
   activeTab: "client",
   setActiveTab: (tab: string) => { },
   onFormSubmit: (values: ProposalType) => { },
-  newProposal: () => { },
+  newProposal: (_opts?: { silent?: boolean }) => { },
   resetProposal: () => { },
   generatePdf: async (data: ProposalType) => new Blob(),
   removeFinalPdf: () => { },
@@ -873,7 +873,7 @@ export const ProposalContextProvider = ({
   /**
    * Clears state and redirects to start a fresh project.
    */
-  const newProposal = () => {
+  const newProposal = (opts?: { silent?: boolean }) => {
     reset(FORM_DEFAULT_VALUES);
     setProposalPdf(new Blob());
     setExcelPreview(null);
@@ -889,10 +889,12 @@ export const ProposalContextProvider = ({
     }
 
     // Toast
-    newProposalSuccess();
+    if (!opts?.silent) newProposalSuccess();
 
     // Force redirect to start fresh initialization
-    window.location.href = "/projects/new";
+    if (typeof window !== "undefined" && window.location.pathname !== "/projects/new") {
+      window.location.href = "/projects/new";
+    }
   };
 
   /**
