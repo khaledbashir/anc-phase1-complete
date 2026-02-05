@@ -117,7 +117,7 @@ const Step3Math = () => {
             parts.push(`${Math.round(Number(pitchMm))}mm`);
         }
         if (brightness != null && brightness !== "" && Number(brightness) > 0) {
-            parts.push(`${Number(brightness).toLocaleString()} nits`);
+            parts.push(`${Number(brightness).toLocaleString()} Brightness`);
         }
         parts.push(`QTY ${qty}`);
         return parts.filter(Boolean).join(" - ");

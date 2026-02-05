@@ -20,7 +20,7 @@ import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 import ExhibitA_TechnicalSpecs from "@/app/components/templates/proposal-pdf/exhibits/ExhibitA_TechnicalSpecs";
 
 // Helpers
-import { formatNumberWithCommas, formatCurrency } from "@/lib/helpers";
+import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText } from "@/lib/helpers";
 import { resolveDocumentMode } from "@/lib/documentMode";
 
 // Types
@@ -107,7 +107,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // ===== HELPERS =====
     const getScreenHeader = (screen: any) => {
-        return (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
+        const raw = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
+        return sanitizeNitsForDisplay(raw) || "Display";
     };
 
     const splitDisplayNameAndSpecs = (value: string) => {
@@ -133,7 +134,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             parts.push(`${Number(heightFt).toFixed(1)}' × ${Number(widthFt).toFixed(1)}'`);
         }
         if (pitchMm && Number(pitchMm) > 0) parts.push(`${pitchMm}mm pitch`);
-        if (brightness && Number(brightness) > 0) parts.push(`${formatNumberWithCommas(brightness)} nits`);
+        if (brightness && Number(brightness) > 0) parts.push(`${formatNumberWithCommas(brightness)} Brightness`);
         if (qty > 1) parts.push(`QTY ${qty}`);
         return parts.join(" · ");
     };
@@ -169,8 +170,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     { label: "Width", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
                     { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0}px` },
                     { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0}px` },
-                    ...(screen.brightnessNits ?? screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(Number(screen.brightnessNits ?? screen.brightness) || 0)} nits` }] : []),
-                ].map((item, idx) => (
+                    ...(screen.brightnessNits ?? screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(Number(screen.brightnessNits ?? screen.brightness) || 0)} Brightness` }] : []),
+                ]
+                    .filter((item) => !/Pixel\s*Density|HDR\s*Status/i.test(item.label))
+                    .map((item, idx) => (
                     <div 
                         key={idx} 
                         className={`px-4 py-2 flex justify-between break-inside-avoid ${idx % 2 === 0 ? '' : ''} ${idx < 6 ? 'border-b' : ''}`} 
@@ -277,11 +280,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 };
                 desc = stripLeadingLocation(rawLocation, desc);
                 desc = stripLeadingLocation(effectiveLocation, desc);
-                const combined = [split.specs, desc].filter(Boolean).join(" ").trim();
+                let combined = [split.specs, desc].filter(Boolean).join(" ").trim();
+                combined = stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(combined));
                 
                 return {
                     key: it.id || `quote-${idx}`,
-                    name: header.toUpperCase(),
+                    name: sanitizeNitsForDisplay(header).toUpperCase(),
                     description: combined,
                     price: Number(it.price || 0) || 0,
                     isAlternate: it.isAlternate || false,
@@ -295,18 +299,20 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
                     const label = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
                     const split = splitDisplayNameAndSpecs(label);
+                    const rawDesc = split.specs || buildDescription(screen);
+                    const cleanDesc = stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(rawDesc));
                     return {
                         key: `screen-${screen?.id || screen?.name || idx}`,
-                        name: (split.header || getScreenHeader(screen)).toUpperCase(),
-                        description: split.specs || buildDescription(screen),
+                        name: (split.header ? sanitizeNitsForDisplay(split.header) : getScreenHeader(screen)).toUpperCase(),
+                        description: cleanDesc,
                         price: Number(price) || 0,
                         isAlternate: screen?.isAlternate || false,
                     };
                 }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
                 ...softCostItems.map((item: any, idx: number) => ({
                     key: `soft-${idx}`,
-                    name: (item?.name || "Item").toString().toUpperCase(),
-                    description: (item?.description || "").toString(),
+                    name: sanitizeNitsForDisplay((item?.name || "Item").toString()).toUpperCase(),
+                    description: stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay((item?.description || "").toString())),
                     price: Number(item?.sell || 0),
                     isAlternate: item?.isAlternate || false,
                 })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),

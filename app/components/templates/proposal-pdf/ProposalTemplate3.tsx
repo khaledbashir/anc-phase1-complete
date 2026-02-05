@@ -17,7 +17,7 @@ import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 import ExhibitA_TechnicalSpecs from "@/app/components/templates/proposal-pdf/exhibits/ExhibitA_TechnicalSpecs";
 
 // Helpers
-import { formatNumberWithCommas, formatCurrency } from "@/lib/helpers";
+import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay } from "@/lib/helpers";
 import { resolveDocumentMode } from "@/lib/documentMode";
 
 // Types
@@ -65,10 +65,10 @@ const ProposalTemplate3 = (data: ProposalTemplate3Props) => {
 
     const getScreenHeader = (screen: any) => {
         const customName = (screen?.customDisplayName || "").toString().trim();
-        if (customName) return customName;
+        if (customName) return sanitizeNitsForDisplay(customName);
         const externalName = (screen?.externalName || "").toString().trim();
-        if (externalName) return externalName;
-        return (screen?.name || "Display").toString().trim();
+        if (externalName) return sanitizeNitsForDisplay(externalName);
+        return sanitizeNitsForDisplay((screen?.name || "Display").toString().trim()) || "Display";
     };
 
     const buildDescription = (screen: any) => {
@@ -82,7 +82,7 @@ const ProposalTemplate3 = (data: ProposalTemplate3Props) => {
             parts.push(`${Number(heightFt).toFixed(1)}' × ${Number(widthFt).toFixed(1)}'`);
         }
         if (pitchMm && Number(pitchMm) > 0) parts.push(`${pitchMm}mm`);
-        if (brightness && Number(brightness) > 0) parts.push(`${formatNumberWithCommas(brightness)} nits`);
+        if (brightness && Number(brightness) > 0) parts.push(`${formatNumberWithCommas(brightness)} Brightness`);
         if (qty > 1) parts.push(`×${qty}`);
         return parts.join(" · ");
     };
@@ -114,8 +114,10 @@ const ProposalTemplate3 = (data: ProposalTemplate3Props) => {
                     { label: "Width", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
                     { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0}px` },
                     { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0}px` },
-                    ...(screen.brightnessNits || screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(screen.brightnessNits || screen.brightness)} nits` }] : []),
-                ].map((item, idx) => (
+                    ...(screen.brightnessNits || screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(screen.brightnessNits || screen.brightness)} Brightness` }] : []),
+                ]
+                    .filter((item) => !/Pixel\s*Density|HDR\s*Status/i.test(item.label))
+                    .map((item, idx) => (
                     <div key={idx} className={`px-5 py-2.5 flex justify-between break-inside-avoid ${idx % 2 === 0 ? 'border-r' : ''} ${idx < 6 ? 'border-b' : ''}`} style={{ borderColor: colors.border }}>
                         <span style={{ color: colors.textLight }}>{item.label}</span>
                         <span className="font-medium" style={{ color: colors.text }}>{item.value}</span>

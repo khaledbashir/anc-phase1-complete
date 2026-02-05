@@ -17,7 +17,7 @@ import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 import ExhibitA_TechnicalSpecs from "@/app/components/templates/proposal-pdf/exhibits/ExhibitA_TechnicalSpecs";
 
 // Helpers
-import { formatNumberWithCommas, formatCurrency } from "@/lib/helpers";
+import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay } from "@/lib/helpers";
 import { resolveDocumentMode } from "@/lib/documentMode";
 
 // Types
@@ -63,7 +63,8 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
     };
 
     const getScreenHeader = (screen: any) => {
-        return (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
+        const raw = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
+        return sanitizeNitsForDisplay(raw) || "Display";
     };
 
     const buildDescription = (screen: any) => {
@@ -75,7 +76,7 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
         const parts: string[] = [];
         if (heightFt && widthFt) parts.push(`${Number(heightFt).toFixed(1)}' H × ${Number(widthFt).toFixed(1)}' W`);
         if (pitchMm) parts.push(`${pitchMm}mm pitch`);
-        if (brightness) parts.push(`${formatNumberWithCommas(brightness)} nits`);
+        if (brightness) parts.push(`${formatNumberWithCommas(brightness)} Brightness`);
         if (qty > 1) parts.push(`QTY ${qty}`);
         return parts.join(" | ");
     };
@@ -124,8 +125,10 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
                     { label: "Display Width", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
                     { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} px` },
                     { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} px` },
-                    ...(screen.brightnessNits ?? screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(Number(screen.brightnessNits ?? screen.brightness) || 0)} nits`, highlight: true }] : []),
-                ].map((item: any, idx) => (
+                    ...(screen.brightnessNits ?? screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(Number(screen.brightnessNits ?? screen.brightness) || 0)} Brightness`, highlight: true }] : []),
+                ]
+                    .filter((item: any) => !/Pixel\s*Density|HDR\s*Status/i.test(item.label))
+                    .map((item: any, idx) => (
                     <div 
                         key={idx} 
                         className="flex justify-between items-center px-8 py-4 border-b"

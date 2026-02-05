@@ -11,7 +11,7 @@ import ExhibitB_CostSchedule from "@/app/components/templates/proposal-pdf/exhib
 import { MirrorPricingSection, PremiumMirrorPricingSection } from "./MirrorPricingSection";
 
 // Helpers
-import { formatNumberWithCommas, isDataUrl, formatCurrency } from "@/lib/helpers";
+import { formatNumberWithCommas, isDataUrl, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText } from "@/lib/helpers";
 import { resolveDocumentMode } from "@/lib/documentMode";
 
 // Variables
@@ -287,7 +287,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
         if (pitchMm != null && Number(pitchMm) > 0) {
             parts.push(`${Math.round(Number(pitchMm))}MM`);
         }
-        return parts.filter(Boolean).join(" - ");
+        return sanitizeNitsForDisplay(parts.filter(Boolean).join(" - ")) || "Display";
     };
 
     // Helper for Section Title
@@ -334,7 +334,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     <tr className="bg-white border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
                         <td className="p-1.5 text-right pr-4 text-gray-900">
-                            {screen.brightnessNits ? `${formatNumberWithCommas(screen.brightnessNits)}` : "Standard"}
+                            {screen.brightnessNits ? `${formatNumberWithCommas(screen.brightnessNits)} Brightness` : "Standard"}
                         </td>
                     </tr>
                 </tbody>
@@ -508,9 +508,10 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         desc = stripLeadingLocation(rawLocation, desc);
                         desc = stripLeadingLocation(effectiveLocation, desc); // Also strip new name just in case
 
-                        const combined = [split.specs, desc].filter(Boolean).join(" ").trim();
+                        let combined = [split.specs, desc].filter(Boolean).join(" ").trim();
+                        combined = stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(combined));
                         return {
-                            locationName: header.toUpperCase(),
+                            locationName: sanitizeNitsForDisplay(header).toUpperCase(),
                             description: combined,
                         };
                     })(),
@@ -524,10 +525,12 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
                         const label = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
                         const split = splitDisplayNameAndSpecs(label);
+                        const rawDesc = split.specs || buildDescription(screen);
+                        const cleanDesc = stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(rawDesc));
                         return {
                             key: `screen-${screen?.id || screen?.name || idx}`,
-                            locationName: (split.header || getScreenLabel(screen)).toUpperCase(),
-                            description: split.specs || buildDescription(screen),
+                            locationName: (split.header ? sanitizeNitsForDisplay(split.header) : getScreenLabel(screen)).toUpperCase(),
+                            description: cleanDesc,
                             price: Number(price) || 0,
                         };
                     }).filter((it) => Math.abs(it.price) >= 0.01),
@@ -536,8 +539,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                             const sell = Number(item?.sell || 0);
                             return {
                                 key: `soft-${idx}`,
-                                locationName: (item?.name || "Item").toString().toUpperCase(),
-                                description: (item?.description || "").toString(),
+                                locationName: sanitizeNitsForDisplay((item?.name || "Item").toString()).toUpperCase(),
+                                description: stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay((item?.description || "").toString())),
                                 price: sell,
                             };
                         })

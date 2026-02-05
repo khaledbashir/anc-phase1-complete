@@ -40,6 +40,27 @@ export const cleanNitsFromSpecs = (value: any): number => {
     return isNaN(parsed) ? 0 : parsed;
 };
 
+/**
+ * UAT: The word "Nits" must never appear in client-facing copy. Replace with "Brightness".
+ * Use on Display Name, Description, and any rendered spec text (e.g. "2.5MM SMD - 1000 NITS" -> "2.5MM SMD - 1000 Brightness").
+ */
+export const sanitizeNitsForDisplay = (text: string | null | undefined): string => {
+    if (text == null || typeof text !== 'string') return '';
+    return text.replace(/\s*nits\b/gi, ' Brightness').replace(/\bnits\b/gi, 'Brightness').trim();
+};
+
+/**
+ * UAT: Natalia requested removal of "Pixel Density" and "HDR Status" from client PDFs (technical fluff).
+ * Strip these phrases and their values from spec/description text.
+ */
+export const stripDensityAndHDRFromSpecText = (text: string | null | undefined): string => {
+    if (text == null || typeof text !== 'string') return '';
+    let out = text
+        .replace(/\s*Pixel\s+Density[^.]*\.?\s*[\d.]*\s*pixels?[^;\n]*/gi, '')
+        .replace(/\s*HDR\s+Status[^;\n]*/gi, '');
+    return out.replace(/\s{2,}/g, ' ').trim();
+};
+
 const formatNumberWithCommas = (number: number | string) => {
     // Handle string inputs with "nits" suffix
     const cleaned = typeof number === 'string' ? cleanNitsFromSpecs(number) : number;

@@ -1,6 +1,6 @@
 import React from "react";
 import { ProposalType } from "@/types";
-import { formatNumberWithCommas } from "@/lib/helpers";
+import { formatNumberWithCommas, sanitizeNitsForDisplay } from "@/lib/helpers";
 
 type ExhibitATechnicalSpecsProps = {
     data: ProposalType;
@@ -54,7 +54,8 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                 <div className="text-[10px] text-gray-900">
                     {screens.length > 0 ? (
                         screens.map((screen: any, idx: number) => {
-                            const name = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
+                            const rawName = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
+                            const name = sanitizeNitsForDisplay(rawName);
                             const h = screen?.heightFt ?? screen?.height ?? 0;
                             const w = screen?.widthFt ?? screen?.width ?? 0;
                             const pitch = screen?.pitchMm ?? screen?.pixelPitch ?? 0;
@@ -64,13 +65,13 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                             const resolution = pixelsH && pixelsW ? `${pixelsH} x ${pixelsW}` : "";
                             const rawBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits;
                             const brightnessNumber = Number(rawBrightness);
-                            // FR-2.2 FIX: Never default to "Standard" - show actual value or leave blank
+                            // FR-2.2 FIX: Never default to "Standard" - show actual value or leave blank. UAT: "Nits" -> "Brightness".
                             const brightnessText =
                                 rawBrightness == null || rawBrightness === "" || rawBrightness === 0
                                     ? "" // Was "Standard" - now blank if no value
                                     : isFinite(brightnessNumber) && brightnessNumber > 0
-                                        ? `${formatNumberWithCommas(brightnessNumber)} nits`
-                                        : rawBrightness.toString();
+                                        ? `${formatNumberWithCommas(brightnessNumber)} Brightness`
+                                        : sanitizeNitsForDisplay(rawBrightness.toString());
 
                             return (
                                 <div 

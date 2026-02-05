@@ -575,7 +575,8 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
         {/* Table Body */}
         <div className="text-[9px] text-gray-900">
           {screens.map((screen: any, idx: number) => {
-            const name = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
+            const rawName = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
+            const name = rawName.replace(/\s*nits\b/gi, " Brightness").replace(/\bnits\b/gi, "Brightness").trim();
             const h = screen?.heightFt ?? screen?.height ?? 0;
             const w = screen?.widthFt ?? screen?.width ?? 0;
             const pitch = screen?.pitchMm ?? screen?.pixelPitch ?? 0;
@@ -589,8 +590,8 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
               rawBrightness == null || rawBrightness === "" || rawBrightness === 0
                 ? ""
                 : isFinite(brightnessNumber) && brightnessNumber > 0
-                  ? `${formatNumberWithCommas(brightnessNumber)} nits`
-                  : rawBrightness.toString();
+                  ? `${formatNumberWithCommas(brightnessNumber)} Brightness`
+                  : String(rawBrightness).replace(/\s*nits\b/gi, " Brightness").replace(/\bnits\b/gi, "Brightness").trim();
 
             return (
               <div
