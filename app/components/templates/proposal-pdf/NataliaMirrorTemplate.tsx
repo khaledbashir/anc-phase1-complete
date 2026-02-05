@@ -55,7 +55,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   // Address info for LOI legal paragraph
   const clientAddress = receiver?.address || (details as any)?.clientAddress || "";
   const clientCity = receiver?.city || (details as any)?.clientCity || "";
-  const clientZip = receiver?.zip || (details as any)?.clientZip || "";
+  const clientZip = receiver?.zipCode || (details as any)?.clientZip || "";
   const purchaserAddress = [clientAddress, clientCity, clientZip].filter(Boolean).join(", ");
 
   // Document total
