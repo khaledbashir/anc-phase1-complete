@@ -988,7 +988,7 @@ export const ProposalContextProvider = ({
 
       setPdfGenerationProgress({ value: 35, label: "Generating PDF…" });
       // Pre-render validation: warn if Project Total is 0 (data mapping / pricing not found)
-      const grandTotal = audit?.internalAudit?.totals?.grandTotal ?? audit?.internalAudit?.totals?.total ?? 0;
+      const grandTotal = audit?.internalAudit?.totals?.finalClientTotal ?? 0;
       if (Number(grandTotal) === 0 && screens.length > 0) {
         console.warn("[PDF] Data Mapping Failed: Pricing not found. Project Total is $0.");
         showError("Data Mapping Failed", "Pricing not found. Project Total is $0. Check Excel mapping or screen pricing.");
