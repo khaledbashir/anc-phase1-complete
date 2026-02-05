@@ -260,12 +260,19 @@ function parseAllRows(data: any[][], columnMap: ColumnMap): RawRow[] {
 
 /**
  * Parse number from cell (handles currency formatting)
+ * Defensive: never throws. Returns NaN for unparseable values.
  */
 function parseNumber(value: any): number {
-  if (typeof value === "number") return value;
-  if (!value) return NaN;
-  const str = String(value).replace(/[$,]/g, "").trim();
-  return parseFloat(str);
+  if (value === null || value === undefined) return NaN;
+  if (typeof value === "number") return isNaN(value) ? NaN : value;
+  try {
+    const str = String(value).replace(/[$,\s]/g, "").replace(/[()]/g, "-").trim();
+    if (!str || str === "-" || str.toUpperCase() === "N/A" || str.toUpperCase() === "INCLUDED") return NaN;
+    const result = parseFloat(str);
+    return isFinite(result) ? result : NaN;
+  } catch {
+    return NaN;
+  }
 }
 
 // ============================================================================

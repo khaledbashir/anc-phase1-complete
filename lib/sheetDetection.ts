@@ -93,7 +93,10 @@ export function findSheetByKeywords(
 
 /** Find "Margin Analysis" type sheet (Margin, Analysis, Total, etc.) */
 export function findMarginAnalysisSheet(workbook: { SheetNames?: string[]; Sheets?: WorkbookSheets }): string | null {
-  return findSheetByKeywords(workbook, {
+  // Tier 1: Exact patterns (highest confidence)
+  // Tier 2: Require both keywords
+  // Tier 3: Require any keyword pair
+  const result = findSheetByKeywords(workbook, {
     exactPatterns: [
       /^margin\s*analysis\s*\(cad\)$/i,
       /^margin\s*analysis\s*\(usd\)$/i,
@@ -102,6 +105,15 @@ export function findMarginAnalysisSheet(workbook: { SheetNames?: string[]; Sheet
     requireAll: ["margin", "analysis"],
     requireAnySet: [["margin", "total"], ["margin", "analysis"], ["analysis", "total"]],
   });
+  if (result) return result;
+
+  // Tier 4: Fallback — any sheet containing "margin" or "pricing" alone
+  const names = workbook.SheetNames ?? Object.keys(workbook.Sheets ?? {});
+  const fallback = names.find((n) => {
+    const norm = n.toLowerCase().replace(/[\s\-_]+/g, " ").trim();
+    return norm.includes("margin") || norm.includes("pricing") || norm.includes("bid form");
+  });
+  return fallback ?? null;
 }
 
 /** Find "LED Sheet" / "LED Cost Sheet" type sheet */

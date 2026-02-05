@@ -402,12 +402,24 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
         totals.finalClientTotal += softCostTotal;
     }
 
+    // SubTotal Row Reconciliation:
+    // The Excel "Sub Total (Bid Form)" row is the estimator's source of truth.
+    // But we must NOT blindly overwrite the aggregated total (which includes soft costs).
+    // Strategy: Use SubTotal row if it's >= aggregated total (it likely includes soft costs).
+    // If SubTotal < aggregated, it means soft costs were added on top — keep the larger value.
     if (subTotalRow) {
-        totals.totalCost = Number(subTotalRow.cost || totals.totalCost);
-        totals.sellPrice = Number(subTotalRow.sell || totals.sellPrice);
-        totals.ancMargin = Number(subTotalRow.marginAmount || totals.ancMargin);
-        totals.margin = Number(subTotalRow.marginAmount || totals.margin);
-        totals.finalClientTotal = Number(subTotalRow.sell || totals.finalClientTotal);
+        const subTotalSell = Number(subTotalRow.sell || 0);
+        const subTotalCost = Number(subTotalRow.cost || 0);
+
+        // If SubTotal row has valid numbers AND is >= our computed total, use it (it's more authoritative)
+        if (subTotalSell > 0 && subTotalSell >= totals.finalClientTotal) {
+            totals.totalCost = subTotalCost || totals.totalCost;
+            totals.sellPrice = subTotalSell;
+            totals.ancMargin = Number(subTotalRow.marginAmount || totals.ancMargin);
+            totals.margin = Number(subTotalRow.marginAmount || totals.margin);
+            totals.finalClientTotal = subTotalSell;
+        }
+        // Otherwise: SubTotal is less than our aggregate (soft costs were injected) — keep the higher aggregate
     }
     const internalAudit: InternalAudit = {
         perScreen: perScreenAudits,
@@ -544,18 +556,25 @@ function parseMarginAnalysisRows(data: any[][]) {
 
         // Use dynamic indices
         const labelRaw = labelIndex >= 0 ? row[labelIndex] : row[0];
-        const label = typeof labelRaw === "string" ? labelRaw.trim() : "";
+        const label = (labelRaw !== null && labelRaw !== undefined && typeof labelRaw === "string") ? labelRaw.trim() : String(labelRaw ?? "").trim();
         const labelNorm = norm(labelRaw);
 
-        const cost = costIndex >= 0 ? Number(row[costIndex]) : Number(row[1]);
+        // Defensive number parsing: handle null, undefined, 'INCLUDED', 'N/A'
+        const safeNum = (v: any) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+        const costRaw = costIndex >= 0 ? row[costIndex] : row[1];
+        const cost = safeNum(costRaw);
         const sellRaw = sellIndex >= 0 ? row[sellIndex] : row[2];
-        const sell = Number(sellRaw);
-        const marginAmount = marginAmountIndex >= 0 ? Number(row[marginAmountIndex]) : Number(row[3]);
-        const marginPct = marginPctIndex >= 0 ? Number(row[marginPctIndex]) : Number(row[4]);
+        const sell = safeNum(sellRaw);
+        const marginAmount = safeNum(marginAmountIndex >= 0 ? row[marginAmountIndex] : row[3]);
+        const marginPct = safeNum(marginPctIndex >= 0 ? row[marginPctIndex] : row[4]);
+
+        // A row is numeric if the original cells had actual numbers (not just empty → 0)
+        const hasRealNumericData =
+            (costRaw !== null && costRaw !== undefined && costRaw !== "" && Number.isFinite(Number(costRaw))) ||
+            (sellRaw !== null && sellRaw !== undefined && sellRaw !== "" && Number.isFinite(Number(sellRaw)));
 
         const numericRow =
-            Number.isFinite(cost) &&
-            Number.isFinite(sell) &&
+            hasRealNumericData &&
             label.length > 0;
 
         const isTotalLike =

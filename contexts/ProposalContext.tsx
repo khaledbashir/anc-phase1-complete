@@ -100,6 +100,7 @@ const defaultProposalContext = {
   excelPreviewLoading: false,
   excelPreview: null as ExcelPreview | null,
   excelValidationOk: false,
+  excelDiagnostics: null as { warnings: string[]; errors: string[]; totalOk: boolean } | null,
   excelSourceData: null as any,
   verificationManifest: null as VerificationManifest | null,
   verificationExceptions: [] as VerificationException[],
@@ -227,6 +228,7 @@ export const ProposalContextProvider = ({
   const [excelPreview, setExcelPreview] = useState<ExcelPreview | null>(null);
   const [excelValidationOk, setExcelValidationOk] = useState<boolean>(false);
   const [excelSourceData, setExcelSourceData] = useState<any | null>(null);
+  const [excelDiagnostics, setExcelDiagnostics] = useState<{ warnings: string[]; errors: string[]; totalOk: boolean } | null>(null);
   const [verificationManifest, setVerificationManifest] = useState<VerificationManifest | null>(null);
   const [verificationExceptions, setVerificationExceptions] = useState<VerificationException[]>([]);
   const [activeTab, setActiveTab] = useState<string>("client");
@@ -515,20 +517,27 @@ export const ProposalContextProvider = ({
   }, [watch]);
 
   // Real-time Risk Detection
+  const risksRef = useRef<RiskItem[]>([]);
   useEffect(() => {
     const subscription = watch(() => {
       const currentValues = getValues();
       if (!currentValues?.details) return; // Defensive check
 
-      const detected = detectRisks(currentValues, rulesDetected);
+      try {
+        const detected = detectRisks(currentValues, rulesDetected);
 
-      // Simple deep equality check to prevent loops
-      if (JSON.stringify(detected) !== JSON.stringify(risks)) {
-        setRisks(detected);
+        // Compare against ref (NOT state) to prevent infinite re-render loop
+        if (JSON.stringify(detected) !== JSON.stringify(risksRef.current)) {
+          risksRef.current = detected;
+          setRisks(detected);
+        }
+      } catch (e) {
+        // Defensive: never crash the render loop on risk detection failure
+        console.warn("[Risk Detection] Error:", e);
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, rulesDetected, risks, getValues]);
+  }, [watch, rulesDetected, getValues]);
 
   // Hydrate from initialData if provided (Server Component support)
   useEffect(() => {
@@ -903,6 +912,7 @@ export const ProposalContextProvider = ({
     setProposalPdf(new Blob());
     setVerificationManifest(null);
     setVerificationExceptions([]);
+    setExcelDiagnostics(null);
     setActiveTab("client");
 
     // 3) Reset form to defaults (this clears form-held pricingDocument etc. if RHF replaces state)
@@ -2314,8 +2324,18 @@ export const ProposalContextProvider = ({
     setExcelPreview(null);
     setExcelValidationOk(false);
     setExcelSourceData(null);
+    setVerificationManifest(null);
+    setVerificationExceptions([]);
+    setExcelDiagnostics(null);
+
+    // NUCLEAR RESET: Flush ALL form fields so no ghost data survives a re-upload
+    setValue("details.screens", [], { shouldDirty: false });
+    setValue("details.items", [], { shouldDirty: false });
+    setValue("details.internalAudit" as any, {}, { shouldDirty: false });
+    setValue("details.clientSummary" as any, {}, { shouldDirty: false });
     setValue("details.pricingDocument" as any, undefined, { shouldDirty: false });
     setValue("details.pricingMode" as any, "STANDARD", { shouldDirty: false });
+    setValue("marginAnalysis" as any, undefined, { shouldDirty: false });
 
     loadExcelPreview(file);
     const formData = new FormData();
@@ -2457,6 +2477,34 @@ export const ProposalContextProvider = ({
         console.log("[CONTEXT] PricingDocument stored for Mirror Mode");
       }
 
+      // VISUAL VALIDATION: Compute diagnostics for the "Check Engine Light"
+      const diagnosticWarnings: string[] = [];
+      const diagnosticErrors: string[] = [];
+
+      const importedScreens = getValues("details.screens") || [];
+      const importedAudit = getValues("details.internalAudit") as any;
+      const auditTotal = Number(importedAudit?.totals?.finalClientTotal || importedAudit?.totals?.sellPrice || 0);
+
+      if (importedScreens.length === 0) {
+        diagnosticErrors.push("No display screens were extracted from the Excel file. Check that the LED Sheet tab exists and has valid rows.");
+      }
+      if (auditTotal === 0 && importedScreens.length > 0) {
+        diagnosticWarnings.push("Project total is $0.00. The Margin Analysis tab may be missing, or the total row could not be located. Check your Excel for a \"Sub Total (Bid Form)\" or \"Grand Total\" row.");
+      }
+      if (!data.formData?.details?.marginAnalysis || data.formData.details.marginAnalysis.length === 0) {
+        diagnosticWarnings.push("No Margin Analysis sheet was found. Non-LED costs (structural, electrical, PM) will not appear in the proposal.");
+      }
+      const pricingDoc = (data as any).pricingDocument || (data.formData?.details as any)?.pricingDocument;
+      if (!pricingDoc) {
+        diagnosticWarnings.push("Mirror Mode pricing data could not be extracted. The proposal will use Intelligence Mode calculations instead.");
+      }
+
+      setExcelDiagnostics({
+        warnings: diagnosticWarnings,
+        errors: diagnosticErrors,
+        totalOk: auditTotal > 0 && importedScreens.length > 0,
+      });
+
       aiExtractionSuccess();
       setActiveTab("audit");
 
@@ -2493,6 +2541,7 @@ export const ProposalContextProvider = ({
         excelPreviewLoading,
         excelPreview,
         excelValidationOk,
+        excelDiagnostics,
         excelSourceData,
         verificationManifest,
         verificationExceptions,

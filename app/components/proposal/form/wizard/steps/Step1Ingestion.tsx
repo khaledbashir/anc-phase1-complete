@@ -17,6 +17,7 @@ const Step1Ingestion = () => {
         excelPreview,
         excelPreviewLoading,
         excelValidationOk,
+        excelDiagnostics,
         uploadRfpDocument,
         rfpDocuments,
         deleteRfpDocument,
@@ -224,13 +225,17 @@ const Step1Ingestion = () => {
                         <div className="flex flex-col h-full space-y-4">
                             {/* Toolbar / Status Bar */}
                             <div className="flex items-center justify-between px-1">
+                                {/* Status Bar: Validation + Diagnostics */}
+                            <div className="flex flex-col gap-2">
                                 <div className="flex items-center gap-4">
-                                    <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border ${excelValidationOk ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-amber-500/10 border-amber-500/20 text-amber-400"}`}>
-                                        {excelValidationOk ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
-                                        <span className="font-medium">{excelValidationOk ? "Excel Validated" : "Validation Issues"}</span>
+                                    <div className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border ${excelDiagnostics?.totalOk ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : excelDiagnostics?.errors?.length ? "bg-red-500/10 border-red-500/20 text-red-400" : excelValidationOk ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" : "bg-amber-500/10 border-amber-500/20 text-amber-400"}`}>
+                                        {(excelDiagnostics?.totalOk || (!excelDiagnostics && excelValidationOk)) ? <CheckCircle2 className="w-3.5 h-3.5" /> : <AlertTriangle className="w-3.5 h-3.5" />}
+                                        <span className="font-medium">
+                                            {excelDiagnostics?.errors?.length ? "Parse Errors" : excelDiagnostics?.warnings?.length ? "Parsed with Warnings" : excelDiagnostics?.totalOk ? "Excel Validated" : excelValidationOk ? "Excel Validated" : "Validation Issues"}
+                                        </span>
                                     </div>
 
-                                    {/* RFP Quick Upload in Preview Mode */}
+                                    {/* RFP Quick Upload in Preview Mode */}}
                                     <div className="flex items-center gap-2">
                                         <label className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
                                             <FileText className="w-3.5 h-3.5" />
@@ -265,6 +270,26 @@ const Step1Ingestion = () => {
                                 <div className="text-[10px] text-muted-foreground font-mono">
                                     {excelPreview.fileName}
                                 </div>
+                                </div>
+
+                                {/* Check Engine Light: Diagnostic Messages */}
+                                {excelDiagnostics && (excelDiagnostics.errors.length > 0 || excelDiagnostics.warnings.length > 0) && (
+                                    <div className="space-y-1">
+                                        {excelDiagnostics.errors.map((err, i) => (
+                                            <div key={`err-${i}`} className="flex items-start gap-2 text-xs px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
+                                                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                                <span>{err}</span>
+                                            </div>
+                                        ))}
+                                        {excelDiagnostics.warnings.map((warn, i) => (
+                                            <div key={`warn-${i}`} className="flex items-start gap-2 text-xs px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                                                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                                <span>{warn}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                             </div>
 
                             <div className="rounded-2xl border border-border bg-card/30 overflow-hidden">
