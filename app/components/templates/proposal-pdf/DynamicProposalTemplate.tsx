@@ -20,17 +20,13 @@ const DynamicProposalTemplate = (props: ProposalType) => {
     const pricingMode = (props.details as any)?.pricingMode;
     const useMirrorMode = pricingDocument?.tables?.length > 0 || pricingMode === "MIRROR";
 
-    // If Mirror Mode, use NataliaMirrorTemplate
-    if (useMirrorMode && pricingDocument) {
-        return <NataliaMirrorTemplate {...props} />;
-    }
-
-    // Otherwise, use standard template selection
+    // CRITICAL: Move template selection logic BEFORE any early returns
+    // to ensure consistent hook call order (Rules of Hooks compliance)
     const rawId = props.details?.pdfTemplate || 2;
-    // REQ-Fix: ProposalTemplate1 does not exist, map 1 -> 2
     const templateId = rawId === 1 ? 2 : rawId;
     const templateName = `ProposalTemplate${templateId}`;
 
+    // Hook MUST be called on every render, not conditionally
     const DynamicProposal = useMemo(
         () =>
             dynamic<ProposalType>(
@@ -45,6 +41,11 @@ const DynamicProposalTemplate = (props: ProposalType) => {
             ),
         [templateName]
     );
+
+    // NOW safe to do conditional rendering (after all hooks)
+    if (useMirrorMode && pricingDocument) {
+        return <NataliaMirrorTemplate {...props} />;
+    }
 
     return <DynamicProposal {...props} />;
 };
