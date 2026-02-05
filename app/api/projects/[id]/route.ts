@@ -76,11 +76,12 @@ export async function PATCH(
         }
 
         const body = await req.json();
+
+        // Extract receiverData (sent as nested object by auto-save)
+        const receiverData = body.receiverData;
+
         const {
             clientName,
-            clientAddress,
-            clientCity,
-            clientZip,
             proposalName,
             venue,
             status,
@@ -103,6 +104,11 @@ export async function PATCH(
             aiFilledFields, // REQ-126: AI verification tracking
             verifiedFields  // REQ-126: Human-verified fields
         } = body;
+
+        // Map address from receiverData (nested) or flat fields
+        const clientAddress = body.clientAddress ?? receiverData?.address;
+        const clientCity = body.clientCity ?? receiverData?.city;
+        const clientZip = body.clientZip ?? receiverData?.zipCode;
 
         // REQ-126: Blue Glow Verification Gate - Block APPROVED transition if unverified AI fields exist
         if (status === "APPROVED" && existingProject.status !== "APPROVED") {
