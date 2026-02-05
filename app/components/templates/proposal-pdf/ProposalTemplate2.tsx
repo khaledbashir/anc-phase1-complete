@@ -212,7 +212,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                         )}
                         {!isLOI_premium && showSpecifications_premium && screens.length > 0 && (
                             <div className="mt-16 break-before-page">
-                                <PremiumSectionHeader title="Technical Specifications" />
+                                <PremiumSectionHeader title="Specifications" />
                                 {screens.map((screen: any, idx: number) => (
                                     <PremiumSpecTable key={idx} screen={screen} />
                                 ))}

@@ -53,7 +53,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     })();
 
     const ancAddress = sender?.address || "2 Manhattanville Road, Suite 402, Purchase, NY 10577";
-    const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "TECHNICAL SPECIFICATIONS";
+    const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "SPECIFICATIONS";
 
     // Hybrid color palette - Modern base with Bold accents
     const colors = {

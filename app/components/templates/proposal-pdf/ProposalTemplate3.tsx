@@ -50,7 +50,7 @@ const ProposalTemplate3 = (data: ProposalTemplate3Props) => {
     })();
 
     const ancAddress = sender?.address || "2 Manhattanville Road, Suite 402, Purchase, NY 10577";
-    const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "Technical Specifications";
+    const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "Specifications";
 
     // Modern color palette
     const colors = {

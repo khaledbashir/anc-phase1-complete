@@ -515,7 +515,7 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
   return (
     <div className="px-12 py-6 break-inside-avoid">
       <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-2 mb-4">
-        EXHIBIT A: TECHNICAL SPECIFICATIONS
+        SPECIFICATIONS
       </h2>
 
       <div className="border border-gray-300">
