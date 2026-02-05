@@ -132,6 +132,11 @@ model Proposal {
   lastVerifiedBy         String?
   lastVerifiedAt         DateTime?           // Forensic audit of the most recent verification event
   
+  // Excel Import: Pricing Document & Margin Analysis persistence
+  pricingDocument        Json?               // Full PricingDocument from Excel Mirror Mode
+  marginAnalysis         Json?               // Margin analysis tables (non-LED items: structural, electrical, PM)
+  pricingMode            String?             // "MIRROR" | "STANDARD"
+  
   // REQ-WVU: Contractual Handover specific fields
   insuranceRateOverride  Decimal?            // Separate from Performance Bond
   overheadRate           Decimal?            @default(0.10) // Change Order Overhead %

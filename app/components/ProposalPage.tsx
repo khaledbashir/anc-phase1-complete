@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useFormContext } from "react-hook-form";
 import { Wizard, useWizard } from "react-use-wizard";
 
@@ -48,15 +48,21 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   // Initialize form with server data
   // Normalize projectId: treat the literal 'new' as no project
   const normalizedProjectId = projectId && projectId !== "new" ? projectId : null;
+  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
-    if (initialData) {
-      reset(initialData);
+    if (initialData && !excelImportLoading) {
+      // Only reset on initial mount or when navigating to an existing project.
+      // Skip if we already initialized (prevents clobbering after Excel import + redirect).
+      if (!hasInitializedRef.current) {
+        reset(initialData);
+        hasInitializedRef.current = true;
+      }
     }
     if (normalizedProjectId) {
       setValue("details.proposalId" as any, normalizedProjectId);
     }
-  }, [initialData, normalizedProjectId, reset, setValue]);
+  }, [initialData, normalizedProjectId, reset, setValue, excelImportLoading]);
 
   // Auto-Save
   const { status: saveStatus } = useAutoSave({

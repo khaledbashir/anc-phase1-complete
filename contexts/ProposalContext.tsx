@@ -1486,6 +1486,17 @@ export const ProposalContextProvider = ({
             userEmail: formValues?.receiver?.email || "noreply@anc.com",
             createInitialProposal: true,
             clientName,
+            calculationMode: (formValues as any)?.details?.calculationMode || "INTELLIGENCE",
+            excelData: {
+              screens: formValues?.details?.screens,
+              receiverName: formValues?.receiver?.name,
+              proposalName: formValues?.details?.proposalName,
+              internalAudit: formValues?.details?.internalAudit,
+              pricingDocument: (formValues as any)?.details?.pricingDocument,
+              marginAnalysis: (formValues as any)?.marginAnalysis,
+              pricingMode: (formValues as any)?.details?.pricingMode,
+              clientSummary: formValues?.details?.clientSummary,
+            },
           }),
         });
         const json = await resp.json().catch(() => null);
@@ -1538,6 +1549,10 @@ export const ProposalContextProvider = ({
         quoteItems: (formValues as any)?.details?.quoteItems,
         paymentTerms: (formValues as any)?.details?.paymentTerms,
         additionalNotes: (formValues as any)?.details?.additionalNotes,
+        // CRITICAL: Persist Excel pricing data to prevent data loss on navigation
+        pricingDocument: (formValues as any)?.details?.pricingDocument,
+        marginAnalysis: (formValues as any)?.marginAnalysis,
+        pricingMode: (formValues as any)?.details?.pricingMode,
       };
       const res = await fetch(`/api/projects/${effectiveId}`, {
         method: "PATCH",

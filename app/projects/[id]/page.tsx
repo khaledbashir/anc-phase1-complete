@@ -100,7 +100,12 @@ function mapDbToFormSchema(dbProject: any) {
             // FR-4.1 & FR-4.2: Manual overrides
             tableHeaderOverrides: dbProject.tableHeaderOverrides || {},
             customProposalNotes: dbProject.customProposalNotes || "",
+            // Excel Mirror Mode: Restore pricing data from DB
+            pricingDocument: dbProject.pricingDocument || undefined,
+            pricingMode: dbProject.pricingMode || "STANDARD",
         },
+        // Restore margin analysis at root level (non-LED items)
+        marginAnalysis: dbProject.marginAnalysis || undefined,
     };
 }
 

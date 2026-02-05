@@ -83,6 +83,10 @@ export function useAutoSave({
                     screens: formData.details?.screens, // Deep sync screens
                     taxRateOverride: formData.details?.taxRateOverride,
                     bondRateOverride: formData.details?.bondRateOverride,
+                    // CRITICAL: Persist Excel pricing data to prevent data loss
+                    pricingDocument: (formData.details as any)?.pricingDocument,
+                    marginAnalysis: (formData as any)?.marginAnalysis,
+                    pricingMode: (formData.details as any)?.pricingMode,
                 }),
             });
 

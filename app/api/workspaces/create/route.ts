@@ -21,6 +21,10 @@ export interface CreateWorkspaceRequest {
     receiverName?: string;
     proposalName?: string;
     internalAudit?: any;
+    pricingDocument?: any;
+    marginAnalysis?: any;
+    pricingMode?: string;
+    clientSummary?: any;
   };
 }
 
@@ -68,6 +72,10 @@ export async function POST(request: NextRequest) {
           status: "DRAFT",
           calculationMode: body.calculationMode === "MIRROR" ? "MIRROR" : "INTELLIGENCE",
           internalAudit: body.excelData?.internalAudit ? JSON.stringify(body.excelData.internalAudit) : undefined,
+          clientSummary: body.excelData?.clientSummary ? JSON.stringify(body.excelData.clientSummary) : undefined,
+          pricingDocument: body.excelData?.pricingDocument || undefined,
+          marginAnalysis: body.excelData?.marginAnalysis || undefined,
+          pricingMode: body.excelData?.pricingMode || undefined,
           screens: body.excelData?.screens ? {
             create: body.excelData.screens.map((screen: any) => ({
               name: screen.name || "Unnamed Screen",
