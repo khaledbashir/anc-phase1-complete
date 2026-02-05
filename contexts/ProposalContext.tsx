@@ -6,6 +6,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -58,6 +59,37 @@ export type ExcelPreview = {
   sheets: ExcelPreviewSheet[];
   loadedAt: number;
 };
+
+const LOCAL_STORAGE_EXCEL_PREVIEW_PREFIX = "anc:excelPreview:";
+
+function getExcelPreviewStorageKey(proposalId: unknown) {
+  const normalizedRaw =
+    typeof proposalId === "string" && proposalId.trim() !== "" ? proposalId.trim() : "draft";
+  const normalized = normalizedRaw === "new" ? "draft" : normalizedRaw;
+  return `${LOCAL_STORAGE_EXCEL_PREVIEW_PREFIX}${normalized}`;
+}
+
+function computeExcelValidationOkFromSheets(sheets: ExcelPreviewSheet[]) {
+  const ledSheet = sheets.find((s) => {
+    const n = (s?.name || "").toLowerCase();
+    return (n.includes("led") && n.includes("sheet")) || n.includes("led cost sheet");
+  });
+  return !!ledSheet?.hasNumericDimensions && !ledSheet?.validationIssue;
+}
+
+function isExcelPreviewCandidate(value: unknown): value is ExcelPreview {
+  if (!value || typeof value !== "object") return false;
+  const v = value as any;
+  if (typeof v.fileName !== "string") return false;
+  if (!Array.isArray(v.sheets)) return false;
+  if (typeof v.loadedAt !== "number") return false;
+  for (const s of v.sheets) {
+    if (!s || typeof s !== "object") return false;
+    if (typeof (s as any).name !== "string") return false;
+    if (!Array.isArray((s as any).grid)) return false;
+  }
+  return true;
+}
 
 const defaultProposalContext = {
   proposalPdf: new Blob(),
@@ -198,6 +230,69 @@ export const ProposalContextProvider = ({
   const [verificationManifest, setVerificationManifest] = useState<VerificationManifest | null>(null);
   const [verificationExceptions, setVerificationExceptions] = useState<VerificationException[]>([]);
   const [activeTab, setActiveTab] = useState<string>("client");
+
+  const watchedProposalId = watch("details.proposalId");
+  const excelPreviewStorageKey = useMemo(
+    () => getExcelPreviewStorageKey(watchedProposalId),
+    [watchedProposalId]
+  );
+  const hadExcelPreviewRef = useRef(false);
+  const excelPreviewPersistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasExcelPreview = !!excelPreview;
+  const excelPreviewLoadedAt = excelPreview?.loadedAt ?? 0;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (excelPreviewPersistTimerRef.current) {
+      clearTimeout(excelPreviewPersistTimerRef.current);
+      excelPreviewPersistTimerRef.current = null;
+    }
+    try {
+      if (!excelPreview) {
+        if (!hadExcelPreviewRef.current) return;
+        window.localStorage.removeItem(excelPreviewStorageKey);
+        setExcelValidationOk(false);
+        return;
+      }
+      hadExcelPreviewRef.current = true;
+      excelPreviewPersistTimerRef.current = setTimeout(() => {
+        try {
+          window.localStorage.setItem(excelPreviewStorageKey, JSON.stringify(excelPreview));
+        } catch (e) {
+          console.warn("[EXCEL PREVIEW] Failed to persist preview:", e);
+        }
+      }, 250);
+    } catch (e) {
+      console.warn("[EXCEL PREVIEW] Failed to persist preview:", e);
+    }
+    return () => {
+      if (excelPreviewPersistTimerRef.current) {
+        clearTimeout(excelPreviewPersistTimerRef.current);
+        excelPreviewPersistTimerRef.current = null;
+      }
+    };
+  }, [excelPreview, excelPreviewStorageKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(excelPreviewStorageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!isExcelPreviewCandidate(parsed)) {
+        window.localStorage.removeItem(excelPreviewStorageKey);
+        return;
+      }
+      const shouldHydrate =
+        !hasExcelPreview || (typeof parsed.loadedAt === "number" && parsed.loadedAt > excelPreviewLoadedAt);
+      if (!shouldHydrate) return;
+      hadExcelPreviewRef.current = true;
+      setExcelPreview(parsed);
+      setExcelValidationOk(computeExcelValidationOkFromSheets(parsed.sheets));
+    } catch (e) {
+      console.warn("[EXCEL PREVIEW] Failed to hydrate preview:", e);
+    }
+  }, [excelPreviewStorageKey, hasExcelPreview, excelPreviewLoadedAt]);
 
   // Alerts
   const [lowMarginAlerts, setLowMarginAlerts] = useState<Array<{ name: string; marginPct: number }>>([]);
@@ -781,11 +876,15 @@ export const ProposalContextProvider = ({
   const newProposal = () => {
     reset(FORM_DEFAULT_VALUES);
     setProposalPdf(new Blob());
+    setExcelPreview(null);
+    setExcelValidationOk(false);
+    setExcelSourceData(null);
 
     // Clear the draft
     if (typeof window !== "undefined") {
       try {
         window.localStorage.removeItem(LOCAL_STORAGE_PROPOSAL_DRAFT_KEY);
+        window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
       } catch { }
     }
 
