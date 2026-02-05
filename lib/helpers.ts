@@ -243,7 +243,7 @@ const getProposalTemplate = async (templateId: number) => {
     // Map template IDs to component names
     // Template 5 (ANC Hybrid) is the enterprise standard
     // Templates 1, 2 (Classic), and 4 (Premium) are deprecated and map to 5 (Hybrid)
-    const DEPRECATED_TEMPLATES = [1, 2, 4];
+    const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
     const actualId = DEPRECATED_TEMPLATES.includes(templateId) ? 5 : templateId;
     const templateName = `ProposalTemplate${actualId}`;
     

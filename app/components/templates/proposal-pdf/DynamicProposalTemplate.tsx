@@ -25,7 +25,7 @@ const DynamicProposalTemplate = (props: ProposalType) => {
     // Enterprise Standard: Template 5 (ANC Hybrid) is the default
     // Templates 1, 2, 4 are deprecated and map to 5
     const rawId = props.details?.pdfTemplate || 5;
-    const DEPRECATED_TEMPLATES = [1, 2, 4];
+    const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
     const templateId = DEPRECATED_TEMPLATES.includes(rawId) ? 5 : rawId;
     const templateName = `ProposalTemplate${templateId}`;
 

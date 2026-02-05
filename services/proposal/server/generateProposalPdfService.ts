@@ -44,7 +44,7 @@ export async function generateProposalPdfService(req: NextRequest) {
 		const ReactDOMServer = (await import("react-dom/server")).default;
 		let templateId = body.details?.pdfTemplate ?? 5; // Default to template 5 (ANC Hybrid - Enterprise Standard)
 		// REQ-Fix: Templates 1, 2, 4 are deprecated. Map to 5 (Hybrid) which is the enterprise standard.
-		const DEPRECATED_TEMPLATES = [1, 2, 4];
+		const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
 		if (DEPRECATED_TEMPLATES.includes(templateId)) templateId = 5;
 		const ProposalTemplate = await getProposalTemplate(templateId);
 

@@ -8,5 +8,23 @@ npx prisma generate
 echo "Syncing database schema..."
 npx prisma db push --accept-data-loss || echo "Schema sync completed (some warnings expected)"
 
+# Data migration: Ensure all proposals use Hybrid template (Template 5)
+# Templates 1, 2, 3, 4 are deprecated — this is idempotent and safe to run every deploy
+echo "Ensuring Hybrid template (Template 5) for all proposals..."
+npx prisma db execute --stdin <<'SQL' 2>/dev/null || echo "Template migration skipped (may already be applied)"
+UPDATE "Proposal"
+SET "documentConfig" = jsonb_set(
+    COALESCE("documentConfig"::jsonb, '{}'::jsonb),
+    '{pdfTemplate}',
+    '5'::jsonb,
+    true
+)
+WHERE "documentConfig" IS NOT NULL
+  AND (
+    "documentConfig"::jsonb->>'pdfTemplate' IN ('1', '2', '3', '4')
+    OR ("documentConfig"::jsonb->'pdfTemplate')::int IN (1, 2, 3, 4)
+  );
+SQL
+
 # Start the application
 exec npm start

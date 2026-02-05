@@ -1063,8 +1063,7 @@ export const ProposalContextProvider = ({
       const docMode = details?.documentMode ?? headerType;
       const documentTypeLabel =
         docMode === "LOI" ? "Letter of Intent" : docMode === "PROPOSAL" ? "Proposal" : "Budget";
-      const templateId = details?.pdfTemplate ?? 5; // Default to Hybrid (Enterprise Standard)
-      const templateLabel = templateId === 5 ? "Hybrid" : templateId === 3 ? "Modern" : "Hybrid";
+      const templateLabel = "Hybrid"; // Enterprise Standard (Template 5)
       const fileName = `${safeName(clientName)} ${documentTypeLabel} ${templateLabel}.pdf`;
       const a = document.createElement("a");
       a.href = url;
@@ -1077,7 +1076,7 @@ export const ProposalContextProvider = ({
   };
 
   // Enterprise Standard: Template 5 (ANC Hybrid) is the only supported template
-  // Templates 1, 2, 4 are deprecated but kept for backward compatibility in rendering
+  // Templates 1, 2, 3, 4 are deprecated but kept for backward compatibility in rendering
   const TEMPLATES = [
     { id: 5, label: "ANC Standard (Hybrid)" },
   ] as const;
