@@ -186,6 +186,68 @@ export async function queryVault(
 }
 
 /**
+ * Query with @agent mode (Web Search + RAG)
+ * @param workspaceSlug The workspace to query
+ * @param message The prompt (will be prefixed with @agent)
+ */
+export async function queryAgent(
+    workspaceSlug: string,
+    message: string
+): Promise<string> {
+    // Prefix with @agent to invoke agent mode
+    const agentMessage = message.startsWith("@agent") ? message : `@agent ${message}`;
+    const payload = JSON.stringify({ message: agentMessage, mode: "chat" });
+    const headers = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
+    } as Record<string, string>;
+
+    // Primary endpoint
+    const primary = `${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/chat`;
+
+    // Fallbacks
+    const altBase = ANYTHING_LLM_BASE_URL.replace("/api/v1", "/v1");
+    const fallbacks = [
+        `${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/stream-chat`,
+        `${altBase}/workspace/${workspaceSlug}/chat`,
+        `${altBase}/workspace/${workspaceSlug}/stream-chat`,
+    ];
+
+    const tryEndpoint = async (endpoint: string) => {
+        const res = await fetch(endpoint, { method: "POST", headers, body: payload });
+        const text = await res.text();
+        try {
+            const data = JSON.parse(text);
+            return { ok: res.ok, data, text: undefined as string | undefined };
+        } catch {
+            return { ok: res.ok, data: undefined, text };
+        }
+    };
+
+    try {
+        let attempt = await tryEndpoint(primary);
+        if (!attempt.ok || (attempt.data && attempt.data.type === "abort" && attempt.data.error)) {
+            for (const ep of fallbacks) {
+                attempt = await tryEndpoint(ep);
+                if (attempt.ok && attempt.data && attempt.data.type !== "abort") break;
+            }
+        }
+
+        if (attempt.data) {
+            const d: any = attempt.data;
+            return d.textResponse || d.text || "";
+        }
+        if (attempt.text) {
+            return attempt.text;
+        }
+        throw new Error("No response from AnythingLLM Agent");
+    } catch (error: any) {
+        console.error("queryAgent failed:", error);
+        return `Error retrieving data from agent: ${error.message}`;
+    }
+}
+
+/**
  * Update Workspace Settings (Automate Agent & LLM config)
  * @param slug The workspace slug
  * @param settings Settings object (chatModel, web_search, etc.)

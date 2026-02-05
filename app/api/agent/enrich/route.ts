@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { queryVault } from "@/lib/anything-llm";
+import { queryVault, queryAgent } from "@/lib/anything-llm";
 import { extractJson } from "@/lib/json-utils";
 import { searchVenueAddress } from "@/lib/serper";
 
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
         const prompt = `The user provided a venue/client query that may contain typos: "${query}".
 
-First, correct the query text if needed. Then return up to 5 likely matches.
+Use web search to find the official address and venue information, then cross-reference with any RFP documents in this workspace.
 
 Return ONLY valid JSON with this exact shape:
 {
@@ -98,11 +98,13 @@ Rules:
 - Each results value must be a string (or empty string if unknown)
 - If ambiguous (multiple similarly named venues), include multiple candidates
 - Do not include any text outside JSON
+- Cite your sources (web search results or RFP documents)
 
 Search target: "${normalizedQuery}"`;
 
         const ask = async (p: string) => {
-            const textResponse = await queryVault(workspace, p, "chat");
+            // Use @agent mode for web search + RAG capabilities
+            const textResponse = await queryAgent(workspace, p);
             const jsonText = extractJson(textResponse);
             return jsonText;
         };
