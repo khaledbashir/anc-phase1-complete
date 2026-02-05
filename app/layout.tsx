@@ -89,6 +89,26 @@ export default function RootLayout({
                             src="https://basheer-umami.prd42b.easypanel.host/script.js"
                             data-website-id="d981769e-1a25-49dd-9e09-0533ee7ce145"
                         ></script>
+
+                        {/* Userback Widget */}
+                        <script
+                            dangerouslySetInnerHTML={{
+                                __html: `
+                                    window.Userback = window.Userback || {};
+                                    Userback.access_token = "A-OXUdlawX3Chq2DNUpjOh8n5hA";
+                                    Userback.user_data = {
+                                        id: "123456",
+                                        info: {
+                                            name: "someone",
+                                            email: "someone@example.com"
+                                        }
+                                    };
+                                    (function(d) {
+                                        var s = d.createElement('script');s.async = true;s.src = 'https://static.userback.io/widget/v1.js';(d.head || d.body).appendChild(s);
+                                    })(document);
+                                `
+                            }}
+                        />
                     </Providers>
                 </NextIntlClientProvider>
             </body>
