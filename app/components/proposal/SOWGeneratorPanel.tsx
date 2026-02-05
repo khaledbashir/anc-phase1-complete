@@ -154,11 +154,9 @@ export function SOWGeneratorPanel() {
     
     setLastGenerated(new Date());
     setIsGenerating(false);
-    
-    // Auto-expand if risks detected
-    if (newRisks.length > 0) {
-      setIsExpanded(true);
-    }
+
+    // Do NOT auto-expand - keep panel collapsed by default
+    // User must manually click to expand and review SOW content
   }, [venue, location, proposalName, additionalNotes, screensInfo, setValue]);
 
   // Auto-generate on mount if we have AI workspace data
