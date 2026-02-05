@@ -285,6 +285,16 @@ const Step4Export = () => {
                     </p>
                 </div>
 
+                {Number(totalValue) === 0 && screens.length > 0 && (
+                    <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 flex items-center gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+                        <div>
+                            <div className="font-semibold text-amber-200">Data Mapping Failed: Pricing not found</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">Project Total is $0. Check Excel mapping or screen pricing in the Math step.</div>
+                        </div>
+                    </div>
+                )}
+
                 {mirrorMode && (
                     <Card className="bg-card/40 border border-border/60 overflow-hidden mb-10">
                         <CardHeader className="border-b border-border/60">

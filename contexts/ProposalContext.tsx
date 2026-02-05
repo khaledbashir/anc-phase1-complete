@@ -987,6 +987,13 @@ export const ProposalContextProvider = ({
       };
 
       setPdfGenerationProgress({ value: 35, label: "Generating PDF…" });
+      // Pre-render validation: warn if Project Total is 0 (data mapping / pricing not found)
+      const grandTotal = audit?.internalAudit?.totals?.grandTotal ?? audit?.internalAudit?.totals?.total ?? 0;
+      if (Number(grandTotal) === 0 && screens.length > 0) {
+        console.warn("[PDF] Data Mapping Failed: Pricing not found. Project Total is $0.");
+        showError("Data Mapping Failed", "Pricing not found. Project Total is $0. Check Excel mapping or screen pricing.");
+      }
+
       const response = await fetch(GENERATE_PDF_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -2271,10 +2278,26 @@ export const ProposalContextProvider = ({
 
   /**
    * Import an ANC Master Excel file and update the proposal state.
-   * 
-   * @param {File} file - The Excel file to import.
+   * Nuclear reset on re-upload: flush all Excel-related state so no old data survives.
    */
   const importANCExcel = async (file: File) => {
+    // Nuclear reset: flush Excel/preview state before loading new file (stops leaks, zero-price bug, infinite loops)
+    isCreatingNewRef.current = true;
+    if (typeof window !== "undefined") {
+      try {
+        const currentProposalId = getValues("details.proposalId");
+        window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
+        window.localStorage.removeItem(getExcelPreviewStorageKey(currentProposalId));
+        window.localStorage.removeItem(getExcelPreviewStorageKey("new"));
+      } catch { }
+    }
+    hadExcelPreviewRef.current = false;
+    setExcelPreview(null);
+    setExcelValidationOk(false);
+    setExcelSourceData(null);
+    setValue("details.pricingDocument" as any, undefined, { shouldDirty: false });
+    setValue("details.pricingMode" as any, "STANDARD", { shouldDirty: false });
+
     loadExcelPreview(file);
     const formData = new FormData();
     formData.append("file", file);
@@ -2287,7 +2310,13 @@ export const ProposalContextProvider = ({
       });
 
       if (!res.ok) {
-        throw new Error(await res.text());
+        const text = await res.text();
+        let msg = text;
+        try {
+          const j = JSON.parse(text);
+          if (j?.error) msg = j.error;
+        } catch { /* use text as-is */ }
+        throw new Error(msg);
       }
 
       const data = await res.json();
@@ -2424,8 +2453,13 @@ export const ProposalContextProvider = ({
       } catch (saveError) {
         console.error("[EXCEL IMPORT] Error auto-saving after import:", saveError);
       }
+    } catch (err) {
+      console.error("Excel import error:", err);
+      const message = err instanceof Error ? err.message : String(err);
+      showError("Excel import failed", message);
     } finally {
       setExcelImportLoading(false);
+      setTimeout(() => { isCreatingNewRef.current = false; }, 500);
     }
   };
 

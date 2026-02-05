@@ -4,6 +4,7 @@ import { formatDimension, formatCurrencyInternal } from '@/lib/math';
 import { computeManifest } from '@/lib/verification';
 import { detectExceptions } from '@/lib/exceptions';
 import { VerificationManifest, Exception } from '@/types/verification';
+import { findLedOrCostSheet, findMarginAnalysisSheet } from '@/lib/sheetDetection';
 
 interface ParsedANCProposal {
     formData: any; // Matches ProposalType structure
@@ -25,14 +26,18 @@ function isAlternateRowLabel(label: string) {
 export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<ParsedANCProposal> {
     const workbook = xlsx.read(buffer, { type: 'buffer' });
 
-    // 1. Primary Data Source: "LED Sheet" (New format) or "LED Cost Sheet" (Legacy fallback)
-    const ledSheetName = workbook.Sheets['LED Sheet'] ? 'LED Sheet' : 'LED Cost Sheet';
-    const ledSheet = workbook.Sheets[ledSheetName];
-    if (!ledSheet) throw new Error('Sheet "LED Sheet" or "LED Cost Sheet" not found');
+    // 1. Primary Data Source: fuzzy match LED / Cost / Sheet (e.g. "LED Sheet", "LED Cost Sheet", "Copy of LED Sheet")
+    const ledSheetName = findLedOrCostSheet(workbook);
+    const ledSheet = ledSheetName ? workbook.Sheets[ledSheetName] : null;
+    if (!ledSheet) {
+        const names = (workbook.SheetNames || Object.keys(workbook.Sheets || {})).join(', ') || 'none';
+        throw new Error(`No sheet matching LED/Cost/Sheet found. Tab names in file: ${names}. Rename a tab to include "LED" and "Sheet" (or "Cost").`);
+    }
     const ledData: any[][] = xlsx.utils.sheet_to_json(ledSheet, { header: 1 });
 
-    // 2. Financial Source of Truth: "Margin Analysis"
-    const marginSheet = workbook.Sheets['Margin Analysis'];
+    // 2. Financial Source of Truth: fuzzy match Margin / Analysis / Total
+    const marginSheetName = findMarginAnalysisSheet(workbook);
+    const marginSheet = marginSheetName ? workbook.Sheets[marginSheetName] : null;
     const marginData: any[][] = marginSheet ? xlsx.utils.sheet_to_json(marginSheet, { header: 1 }) : [];
 
     // --- ROBUST COLUMN MAPPING ---

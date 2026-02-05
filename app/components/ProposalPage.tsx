@@ -22,6 +22,7 @@ import {
 import { useProposalContext } from "@/contexts/ProposalContext";
 
 import AuditTable from "@/app/components/proposal/AuditTable";
+import { ProposalFormErrorBoundary } from "@/app/components/ProposalFormErrorBoundary";
 import { Badge } from "@/components/ui/badge";
 
 // Types
@@ -84,26 +85,28 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
       </div>
 
       <div className="flex-1 overflow-auto custom-scrollbar">
-        {activeStep === 0 && (
-          <WizardStep>
-            <Step1Ingestion />
-          </WizardStep>
-        )}
-        {activeStep === 1 && (
-          <WizardStep>
-            <Step2Intelligence />
-          </WizardStep>
-        )}
-        {activeStep === 2 && (
-          <WizardStep>
-            <Step3Math />
-          </WizardStep>
-        )}
-        {activeStep === 3 && (
-          <WizardStep>
-            <Step4Export />
-          </WizardStep>
-        )}
+        <ProposalFormErrorBoundary>
+          {activeStep === 0 && (
+            <WizardStep>
+              <Step1Ingestion />
+            </WizardStep>
+          )}
+          {activeStep === 1 && (
+            <WizardStep>
+              <Step2Intelligence />
+            </WizardStep>
+          )}
+          {activeStep === 2 && (
+            <WizardStep>
+              <Step3Math />
+            </WizardStep>
+          )}
+          {activeStep === 3 && (
+            <WizardStep>
+              <Step4Export />
+            </WizardStep>
+          )}
+        </ProposalFormErrorBoundary>
       </div>
     </div>
   );

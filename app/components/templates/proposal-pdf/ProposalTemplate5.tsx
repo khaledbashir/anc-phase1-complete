@@ -169,7 +169,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     { label: "Width", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
                     { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0}px` },
                     { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0}px` },
-                    ...(screen.brightnessNits || screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(screen.brightnessNits || screen.brightness)} nits` }] : []),
+                    ...(screen.brightnessNits ?? screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(Number(screen.brightnessNits ?? screen.brightness) || 0)} nits` }] : []),
                 ].map((item, idx) => (
                     <div 
                         key={idx} 
@@ -528,11 +528,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             {/* Per Natalia Feb 4 meeting: "put that one table ahead of everything else" */}
             {isLOI && showPricingTables && <LOISummaryTable />}
 
-            {/* Pricing - Available for all document types when enabled */}
+            {/* Pricing - entire block stays together; push to next page if doesn't fit */}
             {showPricingTables && (
                 <div className="px-6 break-inside-avoid">
                     <SectionHeader title={isLOI ? "Detailed Breakdown" : "Project Pricing"} />
-                    <PricingSection />
+                    <div className="break-inside-avoid">
+                        <PricingSection />
+                    </div>
                 </div>
             )}
 
@@ -557,13 +559,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 </div>
             )}
 
-            {/* Specifications - Available for all document types when enabled */}
+            {/* Specifications - entire block stays together; push to next page if doesn't fit */}
             {showSpecifications && screens.length > 0 && (
-                <div className="px-6 break-before-page">
+                <div className="px-6 break-inside-avoid break-before-page">
                     <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
-                    {screens.map((screen: any, idx: number) => (
-                        <SpecTable key={idx} screen={screen} />
-                    ))}
+                    <div className="break-inside-avoid">
+                        {screens.map((screen: any, idx: number) => (
+                            <SpecTable key={idx} screen={screen} />
+                        ))}
+                    </div>
                 </div>
             )}
 

@@ -14,6 +14,7 @@ import {
   createTableId,
   detectCurrency,
 } from "@/types/pricing";
+import { findMarginAnalysisSheet } from "@/lib/sheetDetection";
 
 // ============================================================================
 // TYPES
@@ -65,10 +66,10 @@ export function parsePricingTables(
   workbook: any,
   fileName: string = "import.xlsx"
 ): PricingDocument | null {
-  // 1. Find Margin Analysis sheet
+  // 1. Find Margin Analysis sheet (fuzzy: Margin-Analysis, Margin Analysis (CAD), etc.)
   const sheetName = findMarginAnalysisSheet(workbook);
   if (!sheetName) {
-    console.log("[PRICING PARSER] No Margin Analysis sheet found");
+    console.warn("[PRICING PARSER] No sheet matching Margin/Analysis/Total found");
     return null;
   }
   console.log(`[PRICING PARSER] Found sheet: "${sheetName}"`);
@@ -125,32 +126,6 @@ export function parsePricingTables(
     documentTotal,
     metadata,
   };
-}
-
-// ============================================================================
-// SHEET DETECTION
-// ============================================================================
-
-/**
- * Find the Margin Analysis sheet (supports variations)
- */
-function findMarginAnalysisSheet(workbook: any): string | null {
-  const sheetNames = Object.keys(workbook.Sheets);
-
-  // Priority order for matching
-  const patterns = [
-    /^margin\s*analysis\s*\(cad\)$/i,
-    /^margin\s*analysis\s*\(usd\)$/i,
-    /^margin\s*analysis$/i,
-    /margin\s*analysis/i,
-  ];
-
-  for (const pattern of patterns) {
-    const match = sheetNames.find((name) => pattern.test(name));
-    if (match) return match;
-  }
-
-  return null;
 }
 
 // ============================================================================
