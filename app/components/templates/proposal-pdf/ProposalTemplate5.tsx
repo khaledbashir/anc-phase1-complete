@@ -52,7 +52,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     })();
 
     const ancAddress = sender?.address || "2 Manhattanville Road, Suite 402, Purchase, NY 10577";
-    const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "SPECIFICATIONS";
+    const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "TECHNICAL SPECIFICATIONS";
 
     // Detect product type from screens to adjust header text
     const detectProductType = (): "LED" | "LCD" | "Display" => {
@@ -331,7 +331,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {lineItems.map((item, idx) => (
                         <div 
                             key={item.key} 
-                            className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid" 
+                            className="grid grid-cols-12 px-4 py-3 border-t break-inside-avoid"
                             style={{ 
                                 borderColor: colors.borderLight,
                                 background: idx % 2 === 1 ? colors.surface : colors.white
@@ -364,7 +364,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
                                 Project Total
                             </div>
-                            <div className="col-span-4 text-right font-bold text-xs" style={{ color: colors.primaryDark }}>
+                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.primaryDark }}>
                                 {formatCurrency(subtotal)}
                             </div>
                         </div>
