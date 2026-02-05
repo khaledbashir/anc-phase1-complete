@@ -2188,6 +2188,8 @@ export const ProposalContextProvider = ({
         setValue("details.pricingDocument" as any, pricingDocument, { shouldValidate: true, shouldDirty: true });
         // Auto-enable mirror mode when pricingDocument is available
         setValue("details.pricingMode" as any, "MIRROR", { shouldValidate: true, shouldDirty: true });
+        // Hide Technical Specifications by default in Mirror Mode (toggle available in Step 4)
+        setValue("details.showSpecifications", false, { shouldDirty: true });
         console.log("[CONTEXT] PricingDocument stored for Mirror Mode");
       }
 

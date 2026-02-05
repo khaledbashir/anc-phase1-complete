@@ -63,7 +63,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
 
   // Screen specifications from form (for Technical Specs section)
   const screens = (details as any)?.screens || [];
-  const showSpecifications = (details as any)?.showSpecifications ?? true;
+  const showSpecifications = (details as any)?.showSpecifications ?? false;
 
   // Issue #2 Fix: Build mapping from screen group → custom display name
   // screen.group matches pricing table names (both come from Margin Analysis headers)
