@@ -56,8 +56,9 @@ const Providers = ({ children }: ProvidersProps) => {
     defaultValues: FORM_DEFAULT_VALUES,
   });
 
-  // Hydrate once on mount
+  // Hydrate once on mount — skip for /projects/new (must start clean)
   useEffect(() => {
+    if (typeof window !== "undefined" && window.location.pathname === "/projects/new") return;
     const draft = readDraftFromLocalStorage();
     if (draft) {
       form.reset(draft, { keepDefaultValues: false });

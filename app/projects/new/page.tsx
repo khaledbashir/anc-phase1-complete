@@ -11,11 +11,11 @@ export default function NewProjectPage() {
     const { getValues } = useFormContext<ProposalType>();
 
     useEffect(() => {
-        const currentProposalId = (getValues("details.proposalId") ?? "").toString().trim();
-        if (currentProposalId) {
-            newProposal({ silent: true });
-        }
-    }, [getValues, newProposal]);
+        // ALWAYS reset when landing on /projects/new — no conditions.
+        // This must fire before Providers' draft hydration (child effects fire first)
+        // and clears localStorage so parent hydration finds nothing.
+        newProposal({ silent: true });
+    }, [newProposal]);
 
     return <ProposalPage projectId="new" />;
 }

@@ -41,7 +41,8 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 
 		// Bug #1 Fix: Check for mirror mode and use NataliaMirrorTemplate when applicable
 		const pricingDocument = (body.details as any)?.pricingDocument;
-		const useMirrorMode = pricingDocument?.tables?.length > 0 || (body.details as any)?.mirrorMode === true;
+		const pricingMode = (body.details as any)?.pricingMode;
+		const useMirrorMode = pricingMode === "MIRROR" && pricingDocument?.tables?.length > 0;
 
 		let ProposalTemplate: any;
 		if (useMirrorMode && pricingDocument) {

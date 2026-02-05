@@ -18,7 +18,9 @@ const DynamicProposalTemplate = (props: ProposalType) => {
     // Check if Natalia Mirror Mode should be used
     const pricingDocument = (props.details as any)?.pricingDocument;
     const pricingMode = (props.details as any)?.pricingMode;
-    const useMirrorMode = pricingDocument?.tables?.length > 0 || pricingMode === "MIRROR";
+    // Mirror Mode is ONLY active when explicitly enabled via pricingMode toggle
+    // Having pricingDocument alone does NOT force Mirror — user chooses the template
+    const useMirrorMode = pricingMode === "MIRROR" && pricingDocument?.tables?.length > 0;
 
     // CRITICAL: Move template selection logic BEFORE any early returns
     // to ensure consistent hook call order (Rules of Hooks compliance)
