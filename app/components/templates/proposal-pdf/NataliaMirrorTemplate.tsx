@@ -71,6 +71,27 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   const screens = (details as any)?.screens || [];
   const showSpecifications = (details as any)?.showSpecifications ?? true;
 
+  // Detect product type from screens to adjust header text
+  const detectProductType = (): "LED" | "LCD" | "Display" => {
+    if (!screens || screens.length === 0) return "Display";
+    
+    const productTypes = new Set<string>();
+    screens.forEach((screen: any) => {
+      const type = (screen?.productType || "").toString().trim().toUpperCase();
+      if (type) productTypes.add(type);
+    });
+    
+    // If all screens are LCD, use LCD
+    if (productTypes.size === 1 && productTypes.has("LCD")) return "LCD";
+    // If all screens are LED, use LED
+    if (productTypes.size === 1 && productTypes.has("LED")) return "LED";
+    // Mixed or unknown, use generic "Display"
+    return "Display";
+  };
+  
+  const productType = detectProductType();
+  const displayTypeLabel = productType === "Display" ? "Display" : `${productType} Display`;
+
   // Issue #2 Fix: Build mapping from screen group → custom display name
   // screen.group matches pricing table names (both come from Margin Analysis headers)
   const screenNameMap: Record<string, string> = {};
@@ -107,6 +128,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
           purchaserAddress={purchaserAddress}
           projectName={projectName}
           customIntroText={introductionText}
+          displayTypeLabel={displayTypeLabel}
         />
 
         {/* FR-2.3 FIX: LOI shows Project Grand Total BEFORE pricing tables */}
@@ -220,6 +242,7 @@ function IntroSection({
   purchaserAddress,
   projectName,
   customIntroText,
+  displayTypeLabel,
 }: {
   documentMode: DocumentMode;
   clientName: string;
@@ -227,9 +250,13 @@ function IntroSection({
   purchaserAddress?: string;
   projectName?: string;
   customIntroText?: string;
+  displayTypeLabel?: string;
 }) {
   // FR-4.3: Use custom intro text if provided, otherwise generate default
   let intro: string;
+
+  // Debug logging
+  console.log('[NataliaMirrorTemplate IntroSection] displayTypeLabel:', displayTypeLabel);
 
   if (customIntroText?.trim()) {
     intro = customIntroText.trim();
@@ -248,10 +275,10 @@ function IntroSection({
 
     intro =
       documentMode === "BUDGET"
-        ? `ANC is pleased to present the following LED Display budget for ${clientName} per the specifications and pricing below.${currencyNote}`
+        ? `ANC is pleased to present the following ${displayTypeLabel} budget for ${clientName} per the specifications and pricing below.${currencyNote}`
         : documentMode === "PROPOSAL"
-        ? `ANC is pleased to present the following LED Display proposal for ${clientName} per the specifications and pricing below.${currencyNote}`
-        : `This Letter of Intent will set forth the terms by which ${clientName} ("Purchaser")${purchaserLocationClause} and ANC Sports Enterprises, LLC ("ANC") located at ${ancAddress} (collectively, the "Parties") agree that ANC will provide the following LED Display and services (the "Display System") described below${projectClause}.${currencyNote}`;
+        ? `ANC is pleased to present the following ${displayTypeLabel} proposal for ${clientName} per the specifications and pricing below.${currencyNote}`
+        : `This Letter of Intent will set forth the terms by which ${clientName} ("Purchaser")${purchaserLocationClause} and ANC Sports Enterprises, LLC ("ANC") located at ${ancAddress} (collectively, the "Parties") agree that ANC will provide the following ${displayTypeLabel} and services (the "Display System") described below${projectClause}.${currencyNote}`;
   }
 
   return (
