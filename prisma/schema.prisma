@@ -233,15 +233,17 @@ model BidVersion {
 }
 
 model ScreenConfig {
-  id         String         @id @default(cuid())
-  proposalId String
-  name       String
-  externalName String?
-  pixelPitch Float
-  width      Float
-  height     Float
-  lineItems  CostLineItem[]
-  proposal   Proposal       @relation(fields: [proposalId], references: [id])
+  id                      String                @id @default(cuid())
+  proposalId              String
+  name                    String
+  externalName            String?
+  pixelPitch              Float
+  width                   Float
+  height                  Float
+  manufacturerProductId   String?               // Phase 2: linked product from spec query
+  manufacturerProduct     ManufacturerProduct?  @relation(fields: [manufacturerProductId], references: [id])
+  lineItems               CostLineItem[]
+  proposal                Proposal              @relation(fields: [proposalId], references: [id])
 }
 
 model CostLineItem {
@@ -319,25 +321,87 @@ model SignatureAuditTrail {
   id              String   @id @default(cuid())
   proposalId      String
   proposal        Proposal @relation(fields: [proposalId], references: [id])
-  
+
   // Signer Identity
   signerEmail     String
   signerName      String
   signerTitle     String?
   signerRole      String   // "ANC_REPRESENTATIVE" | "PURCHASER"
-  
+
   // Authentication Evidence
   ipAddress       String
   userAgent       String?
   authMethod      String   // "EMAIL_LINK" | "SSO" | "MANUAL"
-  
+
   // Document Integrity
   documentHash    String   // SHA-256 of proposal JSON at signing moment
   pdfHash         String?  // SHA-256 of generated PDF
   auditExcelHash  String?  // SHA-256 of Internal Audit Excel
-  
+
   // Timestamps
   signedAt        DateTime @default(now())
-  
+
   @@index([proposalId])
+}
+
+// ============================================================================
+// PHASE 2: Product Database & Spec Query System
+// ============================================================================
+
+// Structured product catalog — replaces hardcoded LED_MODULES in data/catalogs/led-products.ts
+// Each row = one LED cabinet/module from a manufacturer's product line
+model ManufacturerProduct {
+  id                      String   @id @default(cuid())
+  manufacturer            String   // "LG", "Yaham", "Absen", "Unilumin"
+  productFamily           String   // "GSQA", "LAA", "S3", "A Series"
+  modelNumber             String   @unique
+  displayName             String   // Human-readable: "LG GSQA 3.9mm Indoor"
+
+  // Physical specs
+  pixelPitch              Float    // mm (e.g., 3.9, 6.0, 10.0)
+  cabinetWidthMm          Float    // Cabinet width in millimeters
+  cabinetHeightMm         Float    // Cabinet height in millimeters
+  cabinetDepthMm          Float?   // Cabinet depth in millimeters (not always known)
+  weightKgPerCabinet      Float    // Weight per cabinet in kilograms
+
+  // Optical specs
+  maxNits                 Float    // Maximum brightness (e.g., 7500)
+  typicalNits             Float?   // Typical operating brightness
+  refreshRate             Int?     // Hz (e.g., 3840)
+
+  // Electrical specs
+  maxPowerWattsPerCab     Float    // Maximum power per cabinet
+  typicalPowerWattsPerCab Float?   // Typical power per cabinet
+
+  // Environmental
+  environment             String   // "indoor", "outdoor", "indoor_outdoor"
+  ipRating                String?  // "IP65", "IP54", etc.
+  operatingTempMin        Float?   // Celsius
+  operatingTempMax        Float?   // Celsius
+
+  // Service/Install
+  serviceType             String   @default("front") // "front", "rear", "front_rear"
+  supportsHalfModule      Boolean  @default(false)
+  isCurved                Boolean  @default(false)
+
+  // Pricing (ANC internal)
+  costPerSqFt             Decimal? // ANC buy cost per sq ft
+  msrpPerSqFt             Decimal? // Manufacturer suggested retail
+
+  // Flexible overflow — for Matt's additional parameters we don't know yet
+  // e.g. { viewingAngle: 160, contrastRatio: "5000:1", certifications: ["UL", "FCC"] }
+  extendedSpecs           Json?
+
+  // Metadata
+  sourceSpreadsheet       String?  // Which Excel file this was imported from
+  isActive                Boolean  @default(true) // Soft-delete for discontinued products
+  importedAt              DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  // Relations
+  screenConfigs           ScreenConfig[]
+
+  @@index([pixelPitch, environment])
+  @@index([manufacturer])
+  @@index([isActive])
 }

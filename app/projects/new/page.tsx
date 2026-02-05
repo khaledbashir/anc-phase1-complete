@@ -15,7 +15,8 @@ export default function NewProjectPage() {
         // This must fire before Providers' draft hydration (child effects fire first)
         // and clears localStorage so parent hydration finds nothing.
         newProposal({ silent: true });
-    }, [newProposal]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return <ProposalPage projectId="new" />;
 }

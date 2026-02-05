@@ -30,9 +30,17 @@ export async function POST(req: NextRequest) {
     }
 
     // System prompt instructing the model to output JSON actions when appropriate
-    const systemPrompt = `You are the ANC Engine Controller. You have tools to modify the proposal. When the user asks for something, output a JSON object with the action. Available Actions: - { type: 'ADD_SCREEN', payload: { name, width, height, pitch, productType, quantity } } - { type: 'UPDATE_CLIENT', payload: { name, address } } - { type: 'SET_MARGIN', payload: { value } } If no action is needed, reply with plain text. When returning an action, output only the JSON object and nothing else.
+    const systemPrompt = `You are the ANC Engine Controller. You have tools to modify the proposal. When the user asks for something, output a JSON object with the action. Available Actions:
+- { type: 'ADD_SCREEN', payload: { name, width, height, pitch, productType, quantity } }
+- { type: 'UPDATE_CLIENT', payload: { name, address } }
+- { type: 'SET_MARGIN', payload: { value } }
+- { type: 'SPEC_QUERY', payload: { pixelPitch?, environment?, brightnessMin?, manufacturer?, targetWidthFt?, targetHeightFt?, quantity?, serviceType? } }
 
-Proactive Recommendations: When you detect specific specs from an RFP or document, proactively suggest products from the ANC Catalog. For example: "I have detected 10mm pitch in the RFP. Based on our ANC Catalog, I recommend LG GPPA062 for this environment. Shall I proceed with the 20% structural math?"`;
+Use SPEC_QUERY when the user asks about LED product specs, wants to find a product, or describes screen requirements (e.g. "I need a 6mm outdoor display 11x21ft 7500 nits"). Parse their natural language into the structured payload fields. For environment, use "indoor" or "outdoor". For serviceType, use "front", "rear", or "front_rear".
+
+If no action is needed, reply with plain text. When returning an action, output only the JSON object and nothing else.
+
+Proactive Recommendations: When you detect specific specs from an RFP or document, proactively suggest products from the ANC Catalog.`;
     // validateDocumentGaps: Analyze document and detect missing required fields for ADD_SCREEN action
     const validateDocumentGaps = (docText: string | null | undefined) => {
       if (!docText) return { hasGaps: false, missingFields: [] };
@@ -239,6 +247,40 @@ Proactive Recommendations: When you detect specific specs from an RFP or documen
 
       return { hasGaps: missingFields.length > 0, missingFields, rfpCompliance };
     };
+
+    // Phase 2: Intercept SPEC_QUERY actions and resolve them server-side
+    try {
+      const responseText = result.body?.textResponse || result.body?.response || result.bodyText || "";
+      const jsonMatch = responseText.match(/\{[\s\S]*"type"\s*:\s*"SPEC_QUERY"[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (parsed.type === "SPEC_QUERY" && parsed.payload) {
+          // Execute spec query against ManufacturerProduct DB
+          const specRes = await fetch(new URL("/api/spec/query", req.url).toString(), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(parsed.payload),
+          });
+          const specData = await specRes.json();
+
+          return NextResponse.json({
+            ok: true,
+            data: {
+              type: "action",
+              action: {
+                type: "SPEC_QUERY",
+                payload: {
+                  query: parsed.payload,
+                  results: specData,
+                },
+              },
+            },
+          }, { status: 200 });
+        }
+      }
+    } catch (e) {
+      // Not a SPEC_QUERY or parse failed — continue with normal flow
+    }
 
     // After chat, attempt to perform a vector-search to see if there's a product match
     try {

@@ -140,11 +140,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // ===== COMPONENTS =====
 
-    // Hybrid Section Header - Clean Modern style
+    // Hybrid Section Header - Vertical blue bar (client-approved look)
     const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
         <div className="mb-6 mt-8 break-inside-avoid">
             <div className="flex items-center gap-3 mb-2">
-                <div className="w-1 h-5 rounded-full" style={{ background: `linear-gradient(180deg, ${colors.primary} 0%, ${colors.accent} 100%)` }} />
+                <div className="w-1 h-5 shrink-0" style={{ background: colors.primary }} />
                 <h2 className="text-base font-bold tracking-wide uppercase" style={{ color: colors.text }}>{title}</h2>
             </div>
             {subtitle && <p className="text-xs ml-4" style={{ color: colors.textMuted }}>{subtitle}</p>}
@@ -355,16 +355,16 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         </div>
                     ))}
 
-                    {/* Total - Hidden for LOI (shown at top instead) */}
+                    {/* Total - Hidden for LOI (shown at top instead); white row per reference */}
                     {!isLOI && (
                         <div
                             className="grid grid-cols-12 px-4 py-3 border-t-2 break-inside-avoid"
-                            style={{ borderColor: colors.primary, background: colors.primaryLight }}
+                            style={{ borderColor: colors.border, background: colors.white }}
                         >
-                            <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
+                            <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.text }}>
                                 Project Total
                             </div>
-                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.primaryDark }}>
+                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
                                 {formatCurrency(subtotal)}
                             </div>
                         </div>
@@ -482,14 +482,21 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     return (
         <ProposalLayout data={data} disableFixedFooter>
-            {/* Hybrid Header - Clean Modern style with left-aligned logo */}
-            <div className="flex justify-between items-start px-6 pt-6 pb-4 mb-6 border-b break-inside-avoid" style={{ borderColor: colors.border }}>
-                {/* Logo left-aligned, flush with content margin */}
+            {/* Hybrid Header - Client-approved: logo left, doc type + client in grey box with light blue diagonal stripe */}
+            <div className="flex justify-between items-stretch px-6 pt-6 pb-4 mb-6 border-b break-inside-avoid" style={{ borderColor: colors.border }}>
                 <LogoSelectorServer theme="light" width={140} height={70} className="p-0" />
-                <div className="text-right break-inside-avoid">
-                    <div className="text-xs uppercase tracking-widest font-bold" style={{ color: colors.primary }}>{docLabel}</div>
-                    <h1 className="text-xl font-bold mt-1" style={{ color: colors.text }}>{receiver?.name || "Client Name"}</h1>
-                    {details?.proposalName && <div className="text-xs mt-1" style={{ color: colors.textMuted }}>{details.proposalName}</div>}
+                <div
+                    className="text-right break-inside-avoid px-4 py-3 min-w-[200px]"
+                    style={{
+                        background: "#E5E7EB",
+                        backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(10, 82, 239, 0.12) 6px, rgba(10, 82, 239, 0.12) 12px)",
+                    }}
+                >
+                    <div className="text-xs uppercase tracking-widest font-semibold" style={{ color: "#0A52EF" }}>{docLabel}</div>
+                    <div className="text-sm mt-1" style={{ color: colors.textMuted }}>{receiver?.name || "Client Name"}</div>
+                    {details?.proposalName && (
+                        <div className="text-xs mt-0.5" style={{ color: colors.textLight }}>{details.proposalName}</div>
+                    )}
                 </div>
             </div>
 

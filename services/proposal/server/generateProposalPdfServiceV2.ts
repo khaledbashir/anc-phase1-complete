@@ -5,7 +5,6 @@ import { getProposalTemplate } from "@/lib/helpers";
 import { ENV, TAILWIND_CDN } from "@/lib/variables";
 import { ProposalType } from "@/types";
 import { sanitizeForClient } from "@/lib/security/sanitizeForClient";
-import NataliaMirrorTemplate from "@/app/components/templates/proposal-pdf/NataliaMirrorTemplate";
 
 function safeErrorMessage(err: unknown) {
 	const msg = err instanceof Error ? err.message : String(err);
@@ -39,24 +38,11 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 	try {
 		const ReactDOMServer = (await import("react-dom/server")).default;
 
-		// Bug #1 Fix: Check for mirror mode and use NataliaMirrorTemplate when applicable
-		const pricingDocument = (body.details as any)?.pricingDocument;
-		const pricingMode = (body.details as any)?.pricingMode;
-		const useMirrorMode = pricingMode === "MIRROR" && pricingDocument?.tables?.length > 0;
-
-		let ProposalTemplate: any;
-		if (useMirrorMode && pricingDocument) {
-			// Use mirror template for pricing document data
-			ProposalTemplate = NataliaMirrorTemplate;
-			console.log("[PDF Generation] Using NataliaMirrorTemplate for mirror mode");
-		} else {
-			// Fallback to standard templates by ID
-			let templateId = body.details?.pdfTemplate ?? 5; // Default to template 5 (ANC Hybrid - Enterprise Standard)
-			// REQ-Fix: Templates 1, 2, 4 are deprecated. Map to 5 (Hybrid) which is the enterprise standard.
-			const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
-			if (DEPRECATED_TEMPLATES.includes(templateId)) templateId = 5;
-			ProposalTemplate = await getProposalTemplate(templateId);
-		}
+		// Hybrid only: Budget, Proposal, LOI all use Template 5 (Mirror template removed)
+		let templateId = body.details?.pdfTemplate ?? 5;
+		const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
+		if (DEPRECATED_TEMPLATES.includes(templateId)) templateId = 5;
+		const ProposalTemplate = await getProposalTemplate(templateId);
 
 		if (!ProposalTemplate) {
 			throw new Error("Failed to load ProposalTemplate");

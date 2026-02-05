@@ -1,21 +1,31 @@
 /**
  * Product Engine - Eric Gruner's "Module-by-Module" Calculation
- * 
+ *
  * P0 REQUIREMENT: "Slightly Smaller" Rule
  * The calculated screen size must be LESS THAN OR EQUAL TO (<=) the Target RFP size.
  * We cannot build a screen larger than the steel opening.
- * 
+ *
  * Formula: ModulesHigh = Math.floor(TargetHeight / ModuleHeight)
  * Formula: ActualHeight = ModulesHigh * ModuleHeight
- * 
+ *
  * Usage:
  * 1. Find the best LED module for given specs (pitch, environment)
  * 2. Calculate exact screen dimensions that fit within structural opening
  * 3. Return actual dimensions, module counts, resolution, weight, power
  * 4. Feed actual dimensions into Natalia Math for accurate cost basis
+ *
+ * Phase 2: Also supports ManufacturerProduct from database via adapter.
  */
 
 import { LED_MODULES, LedModule } from "@/data/catalogs/led-products";
+import type { ManufacturerProduct } from "@prisma/client";
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const LB_PER_KG = 2.20462;
+const MM_PER_INCH = 25.4;
 
 // ============================================================================
 // TYPES
@@ -45,6 +55,31 @@ export interface BestFitResult {
     totalWeightLbs: number;  // Total weight
     maxPowerWatts: number;   // Max power consumption
     fitPercentage: number;   // How much of target space is utilized (0-100)
+}
+
+// ============================================================================
+// ADAPTER: ManufacturerProduct → LedModule
+// ============================================================================
+
+/**
+ * Convert a database ManufacturerProduct to the LedModule interface
+ * used by the existing ProductEngine. Backwards-compatible adapter.
+ */
+export function manufacturerProductToLedModule(product: ManufacturerProduct): LedModule {
+    return {
+        id: product.modelNumber,
+        manufacturer: product.manufacturer,
+        name: product.displayName,
+        widthMm: product.cabinetWidthMm,
+        heightMm: product.cabinetHeightMm,
+        widthInches: product.cabinetWidthMm / MM_PER_INCH,
+        heightInches: product.cabinetHeightMm / MM_PER_INCH,
+        pitch: product.pixelPitch,
+        nits: product.maxNits,
+        weightLbs: product.weightKgPerCabinet * LB_PER_KG,
+        maxPowerWatts: product.maxPowerWattsPerCab,
+        supportsHalfModule: product.supportsHalfModule,
+    };
 }
 
 // ============================================================================
@@ -193,6 +228,63 @@ export class ProductEngine {
     }
 
     /**
+     * Find best fit from a pre-filtered list of ManufacturerProducts (from database).
+     * Uses the same "Slightly Smaller" logic as findBestFit, but with DB-backed products.
+     */
+    static findBestFitFromProducts(
+        spec: TargetSpec,
+        products: ManufacturerProduct[]
+    ): BestFitResult {
+        // Convert DB products to LedModule interface
+        const modules = products.map(manufacturerProductToLedModule);
+
+        if (modules.length === 0) {
+            // Fallback to hardcoded catalog
+            return this.findBestFit(spec);
+        }
+
+        // Find closest pitch match
+        const targetPitch = spec.pixelPitch || (spec.isOutdoor ? 10 : 3.9);
+        modules.sort((a, b) => Math.abs(a.pitch - targetPitch) - Math.abs(b.pitch - targetPitch));
+        const bestModule = modules[0];
+
+        // Calculate "Slightly Smaller" dimensions
+        const targetWidthMm = spec.targetWidthFt * 304.8;
+        const targetHeightMm = spec.targetHeightFt * 304.8;
+
+        const modulesWide = Math.max(1, Math.floor(targetWidthMm / bestModule.widthMm));
+        const modulesHigh = Math.max(1, Math.floor(targetHeightMm / bestModule.heightMm));
+
+        const actualWidthMm = modulesWide * bestModule.widthMm;
+        const actualHeightMm = modulesHigh * bestModule.heightMm;
+        const actualWidthFt = actualWidthMm / 304.8;
+        const actualHeightFt = actualHeightMm / 304.8;
+
+        const totalModules = modulesWide * modulesHigh;
+
+        return {
+            module: bestModule,
+            actualWidthFt,
+            actualHeightFt,
+            actualWidthMm,
+            actualHeightMm,
+            actualWidthInches: actualWidthMm / 25.4,
+            actualHeightInches: actualHeightMm / 25.4,
+            modulesWide,
+            modulesHigh,
+            totalModules,
+            resolutionX: Math.round(actualWidthMm / bestModule.pitch),
+            resolutionY: Math.round(actualHeightMm / bestModule.pitch),
+            totalWeightLbs: totalModules * bestModule.weightLbs,
+            maxPowerWatts: totalModules * bestModule.maxPowerWatts,
+            fitPercentage: Math.min(
+                100,
+                (actualWidthFt * actualHeightFt) / (spec.targetWidthFt * spec.targetHeightFt) * 100
+            ),
+        };
+    }
+
+    /**
      * Batch calculate best fit for multiple screens
      */
     static findBestFitBatch(specs: TargetSpec[]): BestFitResult[] {
@@ -201,7 +293,7 @@ export class ProductEngine {
 
     /**
      * Validate that a screen fits within structural constraints
-     * 
+     *
      * @result True if screen is smaller than or equal to target
      */
     static validateFit(result: BestFitResult, targetWidthFt: number, targetHeightFt: number): boolean {

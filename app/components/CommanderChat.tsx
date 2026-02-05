@@ -1,27 +1,62 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Send, Bot, User, Loader2, PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { SpecSheetCard } from "@/app/components/proposal/SpecSheetCard"
 
 // Contexts
 import { useProposalContext } from "@/contexts/ProposalContext";
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  gaps?: string[];
+  specResults?: { results: any[]; query: Record<string, unknown> };
+}
 
 export function CommanderChat() {
   const { applyCommand } = useProposalContext();
 
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [input, setInput] = useState("")
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Local state for messages (replacing complex hook for now)
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string, gaps?: string[] }[]>([
+  // Local state for messages
+  const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "assistant", content: "Commander ready. I'm your Senior Estimator partner. Drop an RFP or tell me what we're building today." }
   ])
   const [isLoading, setIsLoading] = useState(false)
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: "smooth" })
+    }
+  }, [messages, isLoading])
+
+  const handleAddScreenFromSpec = (result: any) => {
+    applyCommand({
+      type: "ADD_SCREEN",
+      payload: {
+        name: result.product.displayName,
+        productType: `${result.product.manufacturer} ${result.product.productFamily}`,
+        pitch: result.product.pixelPitch,
+        width: result.screenDimensions.widthFt,
+        height: result.screenDimensions.heightFt,
+        quantity: result.quantity,
+        costPerSqFt: 120, // Default — real pricing from ManufacturerProduct.costPerSqFt when available
+      },
+    })
+    setMessages(prev => [...prev, {
+      role: "assistant",
+      content: `Added ${result.product.displayName} (${result.screenDimensions.widthFt}' x ${result.screenDimensions.heightFt}') to the proposal.`,
+    }])
+  }
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -34,7 +69,6 @@ export function CommanderChat() {
 
     try {
       // Call the API route with history
-      // include workspace/thread context if available
       const aiWorkspaceSlug = typeof window !== "undefined" ? localStorage.getItem("aiWorkspaceSlug") : null;
       const aiThreadSlug = typeof window !== "undefined" ? localStorage.getItem("aiThreadId") : null;
 
@@ -58,7 +92,7 @@ export function CommanderChat() {
         } catch (e) {
           // Use raw text
         }
-        setMessages(prev => [...prev, { role: "assistant", content: `❌ ${errorMsg}` }])
+        setMessages(prev => [...prev, { role: "assistant", content: `Error: ${errorMsg}` }])
         setIsLoading(false)
         return
       }
@@ -75,11 +109,26 @@ export function CommanderChat() {
         return
       }
 
+      // Handle SPEC_QUERY results — render SpecSheetCard
+      if (data?.data?.action?.type === "SPEC_QUERY") {
+        const payload = data.data.action.payload;
+        const resultData = payload.results || {};
+        const matches = resultData.matches || [];
+        setMessages(prev => [...prev, {
+          role: "assistant",
+          content: matches.length > 0
+            ? `Found ${matches.length} matching product${matches.length > 1 ? "s" : ""}:`
+            : "No products match your criteria.",
+          specResults: matches.length > 0 ? { results: matches, query: payload.query } : undefined,
+        }])
+        return
+      }
+
       // Handle direct actions
       if (data?.data?.type === "action" && data.data.action) {
         const action = data.data.action;
         applyCommand(action);
-        setMessages(prev => [...prev, { role: "assistant", content: `✅ I've updated the proposal: ${action.type}. The "Advanced" math is applied.` }])
+        setMessages(prev => [...prev, { role: "assistant", content: `Updated the proposal: ${action.type}. The "Advanced" math is applied.` }])
         return
       }
 
@@ -96,7 +145,8 @@ export function CommanderChat() {
 
       // Fallback to raw object
       else if (data && typeof data === "object") {
-        setMessages(prev => [...prev, { role: "assistant", content: JSON.stringify(data) }])
+        const textResponse = data?.data?.textResponse || data?.data?.response || "";
+        setMessages(prev => [...prev, { role: "assistant", content: textResponse || JSON.stringify(data) }])
       }
 
       else {
@@ -137,12 +187,12 @@ export function CommanderChat() {
             <div className="flex flex-col gap-6">
               {messages.map((m, i) => (
                 <div key={i} className={cn("flex gap-3", m.role === "user" ? "flex-row-reverse" : "")}>
-                  <Avatar className="h-8 w-8 border border-border">
+                  <Avatar className="h-8 w-8 border border-border shrink-0">
                     <AvatarFallback className="bg-muted text-muted-foreground">
                       {m.role === "user" ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex flex-col gap-2 max-w-[85%]">
+                  <div className="flex flex-col gap-2 max-w-[85%] min-w-0">
                     <div className={cn(
                       "rounded-lg px-3 py-2 text-sm shadow-sm",
                       m.role === "user"
@@ -151,6 +201,17 @@ export function CommanderChat() {
                     )}>
                       {m.content}
                     </div>
+
+                    {/* Spec Query Results */}
+                    {m.specResults && (
+                      <SpecSheetCard
+                        results={m.specResults.results}
+                        query={m.specResults.query}
+                        onAddScreen={handleAddScreenFromSpec}
+                      />
+                    )}
+
+                    {/* Gap fill buttons */}
                     {m.gaps && m.gaps.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-1">
                         {m.gaps.map(gap => (
@@ -175,6 +236,7 @@ export function CommanderChat() {
                   <span className="text-xs">Thinking...</span>
                 </div>
               )}
+              <div ref={scrollRef} />
             </div>
           </ScrollArea>
         ) : (

@@ -1,0 +1,276 @@
+/**
+ * Seed ManufacturerProduct table from existing hardcoded LED_MODULES catalog.
+ *
+ * Run: npx tsx prisma/seed-products.ts
+ *
+ * This migrates the 14 hardcoded modules in data/catalogs/led-products.ts
+ * into the new ManufacturerProduct database table, adding environment and
+ * service type classifications that were previously inferred from naming.
+ */
+
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+// Mapped from data/catalogs/led-products.ts with added Phase 2 fields
+const SEED_PRODUCTS = [
+    // ===================== LG PRODUCTS =====================
+    {
+        manufacturer: "LG",
+        productFamily: "GSQA",
+        modelNumber: "LG-GSQA-039",
+        displayName: "LG GSQA 3.9mm Indoor",
+        pixelPitch: 3.9,
+        cabinetWidthMm: 250,
+        cabinetHeightMm: 250,
+        weightKgPerCabinet: 2.04, // 4.5 lbs
+        maxNits: 7500,
+        maxPowerWattsPerCab: 85,
+        environment: "indoor",
+        serviceType: "front_rear",
+        supportsHalfModule: true,
+    },
+    {
+        manufacturer: "LG",
+        productFamily: "GSQA",
+        modelNumber: "LG-GSQA-027",
+        displayName: "LG GSQA 2.7mm Fine Pitch",
+        pixelPitch: 2.7,
+        cabinetWidthMm: 250,
+        cabinetHeightMm: 250,
+        weightKgPerCabinet: 1.91, // 4.2 lbs
+        maxNits: 1200,
+        maxPowerWattsPerCab: 75,
+        environment: "indoor",
+        serviceType: "front",
+        supportsHalfModule: true,
+    },
+    {
+        manufacturer: "LG",
+        productFamily: "GSQA",
+        modelNumber: "LG-GSQA-019",
+        displayName: "LG GSQA 1.9mm Ultra Fine",
+        pixelPitch: 1.9,
+        cabinetWidthMm: 250,
+        cabinetHeightMm: 250,
+        weightKgPerCabinet: 1.81, // 4.0 lbs
+        maxNits: 800,
+        maxPowerWattsPerCab: 65,
+        environment: "indoor",
+        serviceType: "front",
+        supportsHalfModule: true,
+    },
+    {
+        manufacturer: "LG",
+        productFamily: "LAA",
+        modelNumber: "LG-LAA-100",
+        displayName: "LG LAA 10mm Outdoor",
+        pixelPitch: 10,
+        cabinetWidthMm: 500,
+        cabinetHeightMm: 500,
+        weightKgPerCabinet: 9.98, // 22 lbs
+        maxNits: 8000,
+        maxPowerWattsPerCab: 280,
+        environment: "outdoor",
+        serviceType: "rear",
+        supportsHalfModule: false,
+    },
+    {
+        manufacturer: "LG",
+        productFamily: "LAA",
+        modelNumber: "LG-LAA-060",
+        displayName: "LG LAA 6mm Outdoor",
+        pixelPitch: 6,
+        cabinetWidthMm: 500,
+        cabinetHeightMm: 500,
+        weightKgPerCabinet: 9.07, // 20 lbs
+        maxNits: 7000,
+        maxPowerWattsPerCab: 250,
+        environment: "outdoor",
+        serviceType: "rear",
+        supportsHalfModule: false,
+    },
+
+    // ===================== YAHAM PRODUCTS =====================
+    {
+        manufacturer: "Yaham",
+        productFamily: "S3",
+        modelNumber: "YAHAM-S3-100",
+        displayName: "Yaham S3 10mm Standard",
+        pixelPitch: 10,
+        cabinetWidthMm: 320,
+        cabinetHeightMm: 320,
+        weightKgPerCabinet: 5.44, // 12 lbs
+        maxNits: 5000,
+        maxPowerWattsPerCab: 200,
+        environment: "indoor_outdoor",
+        serviceType: "front_rear",
+        supportsHalfModule: true,
+    },
+    {
+        manufacturer: "Yaham",
+        productFamily: "S3",
+        modelNumber: "YAHAM-S3-060",
+        displayName: "Yaham S3 6mm Indoor",
+        pixelPitch: 6,
+        cabinetWidthMm: 320,
+        cabinetHeightMm: 320,
+        weightKgPerCabinet: 4.99, // 11 lbs
+        maxNits: 3000,
+        maxPowerWattsPerCab: 180,
+        environment: "indoor",
+        serviceType: "front_rear",
+        supportsHalfModule: true,
+    },
+    {
+        manufacturer: "Yaham",
+        productFamily: "S3",
+        modelNumber: "YAHAM-S3-039",
+        displayName: "Yaham S3 3.9mm Fine Pitch",
+        pixelPitch: 3.9,
+        cabinetWidthMm: 320,
+        cabinetHeightMm: 320,
+        weightKgPerCabinet: 4.54, // 10 lbs
+        maxNits: 1500,
+        maxPowerWattsPerCab: 160,
+        environment: "indoor",
+        serviceType: "front",
+        supportsHalfModule: true,
+    },
+    {
+        manufacturer: "Yaham",
+        productFamily: "Outdoor",
+        modelNumber: "YAHAM-OUT-160",
+        displayName: "Yaham Outdoor 16mm Stadium",
+        pixelPitch: 16,
+        cabinetWidthMm: 500,
+        cabinetHeightMm: 500,
+        weightKgPerCabinet: 11.34, // 25 lbs
+        maxNits: 10000,
+        maxPowerWattsPerCab: 350,
+        environment: "outdoor",
+        serviceType: "rear",
+        supportsHalfModule: false,
+    },
+    {
+        manufacturer: "Yaham",
+        productFamily: "Outdoor",
+        modelNumber: "YAHAM-OUT-100",
+        displayName: "Yaham Outdoor 10mm Stadium",
+        pixelPitch: 10,
+        cabinetWidthMm: 500,
+        cabinetHeightMm: 500,
+        weightKgPerCabinet: 10.43, // 23 lbs
+        maxNits: 8000,
+        maxPowerWattsPerCab: 300,
+        environment: "outdoor",
+        serviceType: "rear",
+        supportsHalfModule: false,
+    },
+
+    // ===================== ABSEN PRODUCTS =====================
+    {
+        manufacturer: "Absen",
+        productFamily: "A Series",
+        modelNumber: "ABSEN-A27",
+        displayName: "Absen A Series 2.7mm",
+        pixelPitch: 2.7,
+        cabinetWidthMm: 300,
+        cabinetHeightMm: 300,
+        weightKgPerCabinet: 2.72, // 6 lbs
+        maxNits: 1000,
+        maxPowerWattsPerCab: 90,
+        environment: "indoor",
+        serviceType: "front",
+        supportsHalfModule: true,
+    },
+    {
+        manufacturer: "Absen",
+        productFamily: "A Series",
+        modelNumber: "ABSEN-A39",
+        displayName: "Absen A Series 3.9mm",
+        pixelPitch: 3.9,
+        cabinetWidthMm: 300,
+        cabinetHeightMm: 300,
+        weightKgPerCabinet: 2.95, // 6.5 lbs
+        maxNits: 1500,
+        maxPowerWattsPerCab: 100,
+        environment: "indoor",
+        serviceType: "front",
+        supportsHalfModule: true,
+    },
+
+    // ===================== UNILUMIN PRODUCTS =====================
+    {
+        manufacturer: "Unilumin",
+        productFamily: "UTV",
+        modelNumber: "UNILUMIN-UTV-P19",
+        displayName: "Unilumin UTV 1.9mm Broadcast",
+        pixelPitch: 1.9,
+        cabinetWidthMm: 250,
+        cabinetHeightMm: 250,
+        weightKgPerCabinet: 1.81, // 4 lbs
+        maxNits: 600,
+        maxPowerWattsPerCab: 60,
+        environment: "indoor",
+        serviceType: "front",
+        supportsHalfModule: true,
+    },
+    {
+        manufacturer: "Unilumin",
+        productFamily: "UTV",
+        modelNumber: "UNILUMIN-UTV-P27",
+        displayName: "Unilumin UTV 2.7mm Indoor",
+        pixelPitch: 2.7,
+        cabinetWidthMm: 250,
+        cabinetHeightMm: 250,
+        weightKgPerCabinet: 1.91, // 4.2 lbs
+        maxNits: 1000,
+        maxPowerWattsPerCab: 70,
+        environment: "indoor",
+        serviceType: "front",
+        supportsHalfModule: true,
+    },
+];
+
+async function main() {
+    console.log("Seeding ManufacturerProduct table...\n");
+
+    let created = 0;
+    let skipped = 0;
+
+    for (const product of SEED_PRODUCTS) {
+        const existing = await prisma.manufacturerProduct.findUnique({
+            where: { modelNumber: product.modelNumber },
+        });
+
+        if (existing) {
+            console.log(`  SKIP ${product.modelNumber} (already exists)`);
+            skipped++;
+            continue;
+        }
+
+        await prisma.manufacturerProduct.create({
+            data: {
+                ...product,
+                sourceSpreadsheet: "led-products.ts (Phase 1 hardcoded catalog)",
+            },
+        });
+        console.log(`  CREATE ${product.modelNumber} — ${product.displayName}`);
+        created++;
+    }
+
+    console.log(`\nDone: ${created} created, ${skipped} skipped.`);
+
+    const total = await prisma.manufacturerProduct.count();
+    console.log(`Total products in database: ${total}`);
+}
+
+main()
+    .catch((e) => {
+        console.error("Seed failed:", e);
+        process.exit(1);
+    })
+    .finally(async () => {
+        await prisma.$disconnect();
+    });
