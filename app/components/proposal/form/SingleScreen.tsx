@@ -19,6 +19,7 @@ import { useProposalContext } from "@/contexts/ProposalContext";
 // Icons
 import { ChevronDown, ChevronUp, Trash2, Copy, ShieldCheck, Zap, AlertTriangle, CheckCircle2, ChevronRight, Info } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -34,6 +35,8 @@ type SingleScreenProps = {
     moveFieldDown: (index: number) => void;
     removeField: (index: number) => void;
     duplicateField?: (index: number) => void;
+    isSelected?: boolean;
+    onToggleSelect?: () => void;
 };
 
 const SingleScreen = ({
@@ -45,6 +48,8 @@ const SingleScreen = ({
     moveFieldDown,
     removeField,
     duplicateField,
+    isSelected = false,
+    onToggleSelect,
 }: SingleScreenProps) => {
     const { control, setValue, register, formState: { errors } } = useFormContext();
     const { _t } = useTranslationContext();
@@ -103,6 +108,22 @@ const SingleScreen = ({
                 className="w-full p-4 flex items-center justify-between hover:bg-accent/30 transition-colors"
             >
                 <div className="flex items-center gap-3">
+                    {/* Select checkbox - stop propagation so clicking doesn't expand card */}
+                    {onToggleSelect && (
+                        <div
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleSelect();
+                            }}
+                            className="flex items-center shrink-0"
+                        >
+                            <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => onToggleSelect()}
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                    )}
                     {/* Status Indicator */}
                     <div className={cn(
                         "w-2 h-2 rounded-full",

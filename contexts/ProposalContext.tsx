@@ -877,44 +877,48 @@ export const ProposalContextProvider = ({
 
   /**
    * Clears state and redirects to start a fresh project.
-   * Clear localStorage FIRST so nothing re-hydrates old draft, then reset form.
-   * Memoized to avoid effect loops when used in /projects/new useLayoutEffect.
+   * Must clear every source of "old" state so new project is truly clean.
    */
-  // Flag to prevent Excel hydration during new project creation
   const isCreatingNewRef = useRef(false);
 
   const newProposal = useCallback((opts?: { silent?: boolean }) => {
     isCreatingNewRef.current = true;
-    
+
+    // 1) Clear Excel keys for BOTH current proposalId AND draft (hydration uses one of these)
     if (typeof window !== "undefined") {
       try {
+        const currentProposalId = getValues("details.proposalId");
         window.localStorage.removeItem(LOCAL_STORAGE_PROPOSAL_DRAFT_KEY);
         window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
-        // Also clear any other draft-related keys
-        window.localStorage.removeItem(`${LOCAL_STORAGE_EXCEL_PREVIEW_PREFIX}draft`);
+        window.localStorage.removeItem(getExcelPreviewStorageKey(currentProposalId));
+        window.localStorage.removeItem(getExcelPreviewStorageKey("new"));
       } catch { }
     }
-    
-    // Reset ALL Excel-related state immediately
+
+    // 2) Wipe Excel/context state so UI never shows old workbook
+    hadExcelPreviewRef.current = false;
     setExcelPreview(null);
     setExcelValidationOk(false);
     setExcelSourceData(null);
-    hadExcelPreviewRef.current = false;
-    
-    reset(FORM_DEFAULT_VALUES);
     setProposalPdf(new Blob());
+
+    // 3) Reset form to defaults (this clears form-held pricingDocument etc. if RHF replaces state)
+    reset(FORM_DEFAULT_VALUES);
+
+    // 4) Force-clear workbook-related form fields in case they persist
+    setValue("details.pricingDocument" as any, undefined, { shouldDirty: false });
+    setValue("details.pricingMode" as any, "STANDARD", { shouldDirty: false });
 
     if (!opts?.silent) newProposalSuccess();
 
     if (typeof window !== "undefined" && window.location.pathname !== "/projects/new") {
       window.location.href = "/projects/new";
     }
-    
-    // Reset the flag after a delay
+
     setTimeout(() => {
       isCreatingNewRef.current = false;
-    }, 100);
-  }, [reset, newProposalSuccess]);
+    }, 500);
+  }, [reset, newProposalSuccess, getValues, setValue]);
 
   /**
    * Resets the current form to the last saved state from the database.

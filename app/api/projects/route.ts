@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
                 skip: offset,
                 include: {
                     _count: {
-                        select: { screens: true }
+                        select: { screens: true, rfpDocuments: true }
                     },
                     versions: {
                         orderBy: { versionNumber: "desc" },
@@ -77,6 +77,7 @@ export async function GET(req: NextRequest) {
         let projects = projectsRaw.map(p => ({
             ...p,
             screenCount: p._count.screens,
+            documentCount: p._count.rfpDocuments,
             totalAmount: p.versions[0]?.totalSellingPrice || 0
         }));
 

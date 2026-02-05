@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 
 // RHF
 import { useFieldArray, useFormContext, useWatch } from "react-hook-form";
@@ -18,7 +18,7 @@ import { useTranslationContext } from "@/contexts/TranslationContext";
 import { useProposalContext } from "@/contexts/ProposalContext";
 
 // Icons
-import { Plus, Settings2, ChevronDown, ChevronUp, FileText, FileSpreadsheet, FileCheck } from "lucide-react";
+import { Plus, Settings2, ChevronDown, ChevronUp, FileText, FileSpreadsheet, FileCheck, Trash2 } from "lucide-react";
 
 // Toast
 import { toast } from "@/components/ui/use-toast";
@@ -28,9 +28,9 @@ import { ProposalType } from "@/types";
 const Screens = () => {
     const { control, getValues, setValue } = useFormContext<ProposalType>();
     const { _t } = useTranslationContext();
-    
-    // Single accordion state for all document settings
-    const [showDocSettings, setShowDocSettings] = useState(false);
+
+    // Selection for bulk delete
+    const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
     
     // Watch current values
     const paymentTerms = useWatch({ control, name: "details.paymentTerms" }) || "";
@@ -78,9 +78,12 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
     const removeScreen = (index: number) => {
         const screens = getValues(SCREENS_NAME);
         if (!screens) return;
-        
+
         const deletedScreen = screens[index];
         remove(index);
+        setSelectedIndices((prev) =>
+            new Set([...prev].filter((i) => i !== index).map((i) => (i > index ? i - 1 : i)))
+        );
 
         toast({
             title: "Screen removed",
@@ -101,6 +104,29 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
             ),
         });
     };
+
+    const toggleSelect = useCallback((index: number) => {
+        setSelectedIndices((prev) => {
+            const next = new Set(prev);
+            if (next.has(index)) next.delete(index);
+            else next.add(index);
+            return new Set(next);
+        });
+    }, []);
+
+    const deleteSelected = useCallback(() => {
+        const sorted = [...selectedIndices].sort((a, b) => b - a);
+        sorted.forEach((idx) => remove(idx));
+        setSelectedIndices(new Set());
+        const n = sorted.length;
+        toast({
+            title: n === 1 ? "Screen removed" : "Screens removed",
+            description: `${n} screen${n > 1 ? "s" : ""} deleted.`,
+        });
+    }, [selectedIndices, remove]);
+
+    // Single accordion state for all document settings
+    const [showDocSettings, setShowDocSettings] = useState(false);
 
     const moveScreenUp = (index: number) => {
         if (index > 0) move(index, index - 1);
@@ -141,6 +167,30 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                 </div>
             )}
 
+            {selectedIndices.size > 0 && (
+                <div className="flex items-center gap-3 px-3 py-2 rounded-lg border border-primary/30 bg-primary/5">
+                    <span className="text-sm font-medium text-foreground">
+                        {selectedIndices.size} selected
+                    </span>
+                    <BaseButton
+                        variant="destructive"
+                        size="sm"
+                        onClick={deleteSelected}
+                        className="gap-1.5"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                        Delete selected
+                    </BaseButton>
+                    <button
+                        type="button"
+                        onClick={() => setSelectedIndices(new Set())}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                        Clear selection
+                    </button>
+                </div>
+            )}
+
             <div className="space-y-3">
                 {fields.map((field, index) => (
                     <SingleScreen
@@ -153,6 +203,8 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                         moveFieldDown={moveScreenDown}
                         removeField={removeScreen}
                         duplicateField={duplicateScreen}
+                        isSelected={selectedIndices.has(index)}
+                        onToggleSelect={() => toggleSelect(index)}
                     />
                 ))}
             </div>
