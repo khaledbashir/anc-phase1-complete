@@ -65,6 +65,7 @@ export default function DashboardChat() {
         if (!input.trim() || isLoading) return;
 
         const userMessage = input;
+        const useAgent = userMessage.startsWith("@agent");
         setInput("");
         setMessages(prev => [...prev, { role: "user", content: userMessage }]);
         setIsLoading(true);
@@ -75,7 +76,8 @@ export default function DashboardChat() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     message: userMessage,
-                    workspace: "dashboard-vault"
+                    workspace: "dashboard-vault",
+                    useAgent
                 }),
             });
 
@@ -130,7 +132,7 @@ export default function DashboardChat() {
                             </div>
                             <div>
                                 <h3 className="text-sm font-bold text-foreground">Intelligence Core</h3>
-                                <p className="text-[10px] text-muted-foreground">Connected to dashboard-vault</p>
+                                <p className="text-[10px] text-muted-foreground">Connected to dashboard-vault • @agent enabled</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -157,8 +159,29 @@ export default function DashboardChat() {
                                 <div className="max-w-sm space-y-2">
                                     <p className="text-sm font-bold text-foreground">Strategic Intelligence Ready</p>
                                     <p className="text-xs text-muted-foreground">
-                                        Ask me anything about your proposals, budgets, or project history. I have access to all documents in the vault.
+                                        Ask me anything about proposals, budgets, or project history.
+                                        I can search the web and your RFP documents.
                                     </p>
+                                    <div className="flex flex-wrap gap-2 justify-center mt-4">
+                                        <button 
+                                            onClick={() => { setInput("What projects are we working on?"); }}
+                                            className="px-3 py-1.5 bg-muted/50 hover:bg-muted rounded-full text-[10px] text-muted-foreground transition-colors"
+                                        >
+                                            What projects?
+                                        </button>
+                                        <button 
+                                            onClick={() => { setInput("Find address for TIAA Bank Field"); }}
+                                            className="px-3 py-1.5 bg-muted/50 hover:bg-muted rounded-full text-[10px] text-muted-foreground transition-colors"
+                                        >
+                                            Find venue address
+                                        </button>
+                                        <button 
+                                            onClick={() => { setInput("@agent search for LED display trends 2024"); }}
+                                            className="px-3 py-1.5 bg-muted/50 hover:bg-muted rounded-full text-[10px] text-muted-foreground transition-colors"
+                                        >
+                                            Web search
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
@@ -224,49 +247,24 @@ export default function DashboardChat() {
                             </>
                         )}
                     </div>
-
-                    {/* In-panel input - visible with chat so nothing is cut off */}
-                    <div className="shrink-0 border-t border-border/40 px-4 py-3 bg-muted/20">
-                        <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-background/80 px-3 py-2">
-                            <input
-                                type="text"
-                                value={input}
-                                onChange={(e) => setInput(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                                disabled={isLoading}
-                                placeholder="Ask the Intelligence Core anything..."
-                                className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm text-foreground placeholder-muted-foreground disabled:opacity-50"
-                            />
-                            <button
-                                onClick={handleSend}
-                                disabled={!input.trim() || isLoading}
-                                className={cn(
-                                    "p-1.5 rounded-lg transition-all shrink-0",
-                                    input && !isLoading ? "text-[#0A52EF] hover:bg-[#0A52EF]/10" : "text-muted-foreground"
-                                )}
-                            >
-                                <Send className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </div>
                 </motion.div>
                 }
             </AnimatePresence>
 
-            {/* Bottom Command Bar */}
+            {/* Single Input Bar - Always visible */}
             <div className={cn(
                 "w-full h-14 bg-background/80 backdrop-blur-xl border border-border/40 rounded-xl flex items-center px-4 transition-all duration-300 pointer-events-auto shadow-sm",
                 isOpen && !isMinimized ? "ring-2 ring-[#0A52EF]/20 border-[#0A52EF]/50" : "hover:border-border"
             )}>
                 <div className="flex items-center gap-3 mr-4">
-                    <Command className="w-4 h-4 text-muted-foreground" />
+                    <Brain className="w-4 h-4 text-[#0A52EF]" />
                     <div className="w-px h-6 bg-border" />
                 </div>
 
                 <input
                     ref={inputRef}
                     type="text"
-                    placeholder="Ask the Intelligence Core anything..."
+                    placeholder={isOpen ? "Ask anything... (prefix with @agent for web search)" : "Ask the Intelligence Core anything..."}
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onFocus={() => { setIsOpen(true); setIsMinimized(false); }}
@@ -281,6 +279,9 @@ export default function DashboardChat() {
                             <div className="px-1.5 py-0.5 border border-border rounded text-[9px] font-bold text-muted-foreground">⌘</div>
                             <div className="px-1.5 py-0.5 border border-border rounded text-[9px] font-bold text-muted-foreground">K</div>
                         </div>
+                    )}
+                    {input.startsWith("@agent") && (
+                        <span className="text-[10px] text-[#0A52EF] bg-[#0A52EF]/10 px-2 py-0.5 rounded">Web+Docs</span>
                     )}
                     <button
                         onClick={handleSend}
