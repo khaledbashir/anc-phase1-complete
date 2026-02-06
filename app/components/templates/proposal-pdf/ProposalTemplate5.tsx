@@ -67,13 +67,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     // Detect product type from screens to adjust header text
     const detectProductType = (): "LED" | "LCD" | "Display" => {
         if (!screens || screens.length === 0) return "Display";
-        
+
         const productTypes = new Set<string>();
         screens.forEach((screen: any) => {
             const type = (screen?.productType || "").toString().trim().toUpperCase();
             if (type) productTypes.add(type);
         });
-        
+
         // If all screens are LCD, use LCD
         if (productTypes.size === 1 && productTypes.has("LCD")) return "LCD";
         // If all screens are LED, use LED
@@ -81,7 +81,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         // Mixed or unknown, use generic "Display"
         return "Display";
     };
-    
+
     const productType = detectProductType();
     const displayTypeLabel = productType === "Display" ? "Display" : `${productType} Display`;
 
@@ -237,18 +237,18 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 ]
                     .filter((item) => !/Pixel\s*Density|HDR\s*Status/i.test(item.label))
                     .map((item, idx) => (
-                    <div 
-                        key={idx} 
-                        className={`px-4 py-2 flex justify-between break-inside-avoid ${idx % 2 === 0 ? '' : ''} ${idx < 6 ? 'border-b' : ''}`} 
-                        style={{ 
-                            borderColor: colors.borderLight,
-                            background: idx % 2 === 0 ? colors.white : colors.surface
-                        }}
-                    >
-                        <span style={{ color: colors.textMuted, fontSize: '10px' }}>{item.label}</span>
-                        <span className="font-semibold whitespace-nowrap" style={{ color: colors.text, fontSize: '10px' }}>{item.value}</span>
-                    </div>
-                ))}
+                        <div
+                            key={idx}
+                            className={`px-4 py-2 flex justify-between break-inside-avoid ${idx % 2 === 0 ? '' : ''} ${idx < 6 ? 'border-b' : ''}`}
+                            style={{
+                                borderColor: colors.borderLight,
+                                background: idx % 2 === 0 ? colors.white : colors.surface
+                            }}
+                        >
+                            <span style={{ color: colors.textMuted, fontSize: '10px' }}>{item.label}</span>
+                            <span className="font-semibold whitespace-nowrap" style={{ color: colors.text, fontSize: '10px' }}>{item.value}</span>
+                        </div>
+                    ))}
             </div>
         </div>
     );
@@ -319,9 +319,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const masterTable = pricingTables[masterTableIndex];
         if (!masterTable) return null;
 
-        const tableHeaderOverrides = ((details as any)?.tableHeaderOverrides || []) as string[];
+        const tableHeaderOverrides = ((details as any)?.tableHeaderOverrides || {}) as Record<string, string>;
         const tableName = (masterTable?.name ?? "").toString().trim();
-        const label = (tableHeaderOverrides[masterTableIndex] ?? screenNameMap[tableName] ?? (tableName || "Project Total")).toString().trim();
+        const tableId = masterTable?.id;
+        const override = tableId ? tableHeaderOverrides[tableId] : undefined;
+        // Priority: Override > Screen Name Map > Original Name
+        const label = (override ?? screenNameMap[tableName] ?? (tableName || "Project Total")).toString().trim();
 
         // Gather rows from the master table
         const rows = (masterTable?.rows || []) as any[];
@@ -424,7 +427,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const softCostItems = internalAudit?.softCostItems || [];
         const pricingDocument = (details as any)?.pricingDocument;
         const pricingTables = (pricingDocument?.tables || []) as Array<{ id?: string; name?: string; grandTotal?: number }>;
-        const tableHeaderOverrides = ((details as any)?.tableHeaderOverrides || []) as string[];
+        const tableHeaderOverrides = ((details as any)?.tableHeaderOverrides || {}) as Record<string, string>;
 
         type LineItem = { key: string; name: string; description: string; price: number };
         let lineItems: LineItem[];
@@ -436,7 +439,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 .map(({ table, origIdx }) => {
                     // Priority: explicit override > screen name edit (via group map) > Excel table name
                     const tableName = (table?.name ?? "").toString().trim();
-                    const label = (tableHeaderOverrides[origIdx] ?? screenNameMap[tableName] ?? (tableName || "Item")).toString().trim();
+                    const tableId = table?.id;
+                    const override = tableId ? tableHeaderOverrides[tableId] : undefined;
+                    const label = (override || screenNameMap[tableName] || (tableName || "Item")).toString().trim();
                     const grandTotal = Number(table?.grandTotal ?? 0);
                     return {
                         key: table?.id || `table-${origIdx}`,
@@ -528,14 +533,14 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 {/* Modern table container */}
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     {/* Header */}
-                    <div 
-                        className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid" 
+                    <div
+                        className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
                         style={{ background: colors.primary, color: colors.white }}
                     >
                         <div className="col-span-8">Description</div>
                         <div className="col-span-4 text-right">Amount</div>
                     </div>
-                    
+
                     {/* Items - Classic hierarchy: UPPERCASE BOLD name, smaller specs (tight rows) */}
                     {lineItems.map((item, idx) => (
                         <div
@@ -682,10 +687,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 {/* Dark blue slash accent from Bold template */}
                 <div className="flex items-center gap-1 break-inside-avoid">
                     {[...Array(5)].map((_, i) => (
-                        <div 
-                            key={i} 
-                            className="w-4 h-1 rounded-full opacity-30 break-inside-avoid" 
-                            style={{ background: colors.primaryDark, transform: `skewX(-20deg)` }} 
+                        <div
+                            key={i}
+                            className="w-4 h-1 rounded-full opacity-30 break-inside-avoid"
+                            style={{ background: colors.primaryDark, transform: `skewX(-20deg)` }}
                         />
                     ))}
                 </div>
@@ -725,6 +730,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 ANC is pleased to present the following {displayTypeLabel} budget to <strong style={{ color: colors.text }}>{purchaserName}</strong> per the specifications below.
                             </p>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Prompt 58: Custom Proposal Notes (Fix 3) */}
+            {((details as any)?.customProposalNotes) && (
+                <div className="px-6 mb-6 break-inside-avoid">
+                    <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: colors.textMuted }}>
+                        {(details as any).customProposalNotes}
                     </div>
                 </div>
             )}
