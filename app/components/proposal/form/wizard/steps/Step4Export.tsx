@@ -20,7 +20,9 @@ import {
     Check,
     FileText,
     FileCheck,
-    ChevronRight
+    ChevronRight,
+    ChevronDown,
+    PenLine
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,6 +67,7 @@ const Step4Export = () => {
     const [changeRequestsLoading, setChangeRequestsLoading] = useState(false);
     const [changeRequests, setChangeRequests] = useState<any[]>([]);
     const [isVerificationExpanded, setIsVerificationExpanded] = useState(false);
+    const [isTextEditOpen, setIsTextEditOpen] = useState(false);
 
     // Get proposal data
     const screens = watch("details.screens") || [];
@@ -538,349 +541,199 @@ const Step4Export = () => {
                             </Card>
                         )}
 
-                        {/* PDF sections are controlled by the Document Mode (Budget/Proposal/LOI) in the toolbar */}
-                        <Card className="bg-card/40 border border-border/60 overflow-hidden mb-6">
-                            <CardContent className="p-4">
-                                <p className="text-xs text-muted-foreground text-center">
-                                    PDF sections are controlled by the <span className="text-foreground font-semibold">Document Mode</span> switcher in the toolbar above.
-                                    <br />
-                                    <span className="text-[10px]">Budget = estimate only • Proposal = formal quote • LOI = contract with signatures</span>
-                                </p>
-                            </CardContent>
-                        </Card>
-
-                        {/* AI-Generated SOW Toggle - Intelligence Mode only */}
-                        {!mirrorMode && (
-                        <Card className="bg-card/40 border border-border/60 overflow-hidden mb-6">
-                            <CardHeader className="border-b border-border/60 pb-3">
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                                        <MessageSquare className="w-4 h-4 text-brand-blue shrink-0" />
-                                        <span className="truncate">AI-Generated SOW</span>
-                                    </CardTitle>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-4">
-                                <div className="flex items-start gap-4">
-                                    <div className="flex-1 min-w-0">
-                                        <Label htmlFor="showExhibitA" className="text-sm font-semibold text-foreground block mb-1">
-                                            Include AI-Generated Statement of Work
-                                        </Label>
-                                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                            Auto-generate Design Services and Construction Logistics sections based on RFP risks
-                                        </p>
-                                    </div>
-                                    <Switch
-                                        id="showExhibitA"
-                                        checked={watch("details.showExhibitA") || false}
-                                        onCheckedChange={(checked) => setValue("details.showExhibitA", checked)}
-                                        className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5"
-                                    />
-                                </div>
-                                {watch("details.showExhibitA") && (
-                                    <div className="mt-3 p-3 rounded-lg bg-brand-blue/5 border border-brand-blue/10">
-                                        <p className="text-[10px] text-brand-blue/80 leading-relaxed">
-                                            💡 AI will scan for <strong>Union</strong>, <strong>Outdoor/IP65</strong>, and <strong>Liquidated Damages</strong> keywords to generate context-aware SOW clauses
-                                        </p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                        )}
-
-                        {/* PDF Section Toggles - Organized by Document Type */}
-                        <Card className="bg-card/40 border border-border/60 overflow-hidden mb-6">
-                            <CardHeader className="border-b border-border/60 pb-3">
+                        {/* ─── Edit Document Text — collapsible, collapsed by default ─── */}
+                        <Card className="bg-card/40 border border-border/60 overflow-hidden">
+                            <CardHeader
+                                className="border-b border-border/60 pb-3 cursor-pointer select-none"
+                                onClick={() => setIsTextEditOpen(!isTextEditOpen)}
+                            >
                                 <div className="flex items-center justify-between gap-2">
                                     <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 min-w-0">
-                                        <Columns className="w-4 h-4 text-brand-blue shrink-0" />
-                                        <span className="truncate">PDF Section Toggles</span>
+                                        <PenLine className="w-4 h-4 text-brand-blue shrink-0" />
+                                        <span className="truncate">Edit Document Text</span>
                                     </CardTitle>
-                                    <Badge variant="outline" className="text-[10px] border-brand-blue/30 text-brand-blue whitespace-nowrap shrink-0">
-                                        Hybrid Template
-                                    </Badge>
+                                    <ChevronDown className={cn(
+                                        "w-4 h-4 text-muted-foreground transition-transform shrink-0",
+                                        isTextEditOpen && "rotate-180"
+                                    )} />
                                 </div>
                                 <CardDescription className="text-xs text-muted-foreground mt-1">
-                                    Control which sections appear in the PDF. Organized by document type.
+                                    PDF section toggles, notes, and custom text fields
                                 </CardDescription>
                             </CardHeader>
-                            <CardContent className="p-4">
-                                <Tabs defaultValue="budget" className="w-full">
-                                    <TabsList className="grid w-full grid-cols-3">
-                                        <TabsTrigger value="budget" className="flex items-center gap-1.5">
-                                            <FileSpreadsheet className="w-3.5 h-3.5" />
-                                            Budget
-                                        </TabsTrigger>
-                                        <TabsTrigger value="proposal" className="flex items-center gap-1.5">
-                                            <FileText className="w-3.5 h-3.5" />
-                                            Proposal
-                                        </TabsTrigger>
-                                        <TabsTrigger value="loi" className="flex items-center gap-1.5">
-                                            <FileCheck className="w-3.5 h-3.5" />
-                                            LOI
-                                        </TabsTrigger>
-                                    </TabsList>
-                                    
-                                    {/* Budget Tab */}
-                                    <TabsContent value="budget" className="space-y-1 mt-4">
-                                        {/* Specifications Toggle */}
-                                        <div className="flex items-start justify-between py-3 border-b border-border/30 gap-4">
-                                            <div className="flex flex-col min-w-0">
-                                                <Label htmlFor="showSpecifications" className="text-sm font-semibold text-foreground block">
-                                                    Technical Specifications
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                                    Include detailed screen specifications
-                                                </p>
-                                            </div>
-                                            <Switch
-                                                id="showSpecifications"
-                                                checked={watch("details.showSpecifications") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showSpecifications", checked)}
-                                                className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5"
-                                            />
-                                        </div>
+                            {isTextEditOpen && (
+                                <CardContent className="p-4 space-y-6">
+                                    {/* Document Mode hint */}
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        PDF sections are controlled by the <span className="text-foreground font-semibold">Document Mode</span> switcher in the toolbar above.
+                                        <br />
+                                        <span className="text-[10px]">Budget = estimate only • Proposal = formal quote • LOI = contract with signatures</span>
+                                    </p>
 
-                                        {/* Pricing Tables Toggle */}
-                                        <div className="flex items-start justify-between py-3 border-b border-border/30 gap-4">
-                                            <div className="flex flex-col min-w-0">
-                                                <Label htmlFor="showPricingTables" className="text-sm font-semibold text-foreground block">
-                                                    Pricing Tables
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                                    Include pricing breakdown in the PDF
-                                                </p>
+                                    {/* AI-Generated SOW Toggle - Intelligence Mode only */}
+                                    {!mirrorMode && (
+                                        <div className="rounded-xl border border-border/60 p-4">
+                                            <div className="flex items-start gap-4">
+                                                <div className="flex-1 min-w-0">
+                                                    <Label htmlFor="showExhibitA" className="text-sm font-semibold text-foreground block mb-1">
+                                                        Include AI-Generated Statement of Work
+                                                    </Label>
+                                                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                                                        Auto-generate Design Services and Construction Logistics sections based on RFP risks
+                                                    </p>
+                                                </div>
+                                                <Switch
+                                                    id="showExhibitA"
+                                                    checked={watch("details.showExhibitA") || false}
+                                                    onCheckedChange={(checked) => setValue("details.showExhibitA", checked)}
+                                                    className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5"
+                                                />
                                             </div>
-                                            <Switch
-                                                id="showPricingTables"
-                                                checked={watch("details.showPricingTables") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showPricingTables", checked)}
-                                                className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5"
-                                            />
+                                            {watch("details.showExhibitA") && (
+                                                <div className="mt-3 p-3 rounded-lg bg-brand-blue/5 border border-brand-blue/10">
+                                                    <p className="text-[10px] text-brand-blue/80 leading-relaxed">
+                                                        AI will scan for <strong>Union</strong>, <strong>Outdoor/IP65</strong>, and <strong>Liquidated Damages</strong> keywords to generate context-aware SOW clauses
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
+                                    )}
 
-                                        {/* Notes Toggle */}
-                                        <div className="flex items-start justify-between py-3 gap-4">
-                                            <div className="flex flex-col min-w-0">
-                                                <Label htmlFor="showNotes" className="text-sm font-semibold text-foreground block">
-                                                    Notes Section
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                                    Include additional notes in the PDF
-                                                </p>
-                                            </div>
-                                            <Switch
-                                                id="showNotes"
-                                                checked={watch("details.showNotes") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showNotes", checked)}
-                                                className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5"
-                                            />
-                                        </div>
-                                    </TabsContent>
-                                    
-                                    {/* Proposal Tab */}
-                                    <TabsContent value="proposal" className="space-y-1 mt-4">
-                                        {/* Specifications Toggle */}
-                                        <div className="flex items-center justify-between py-3 border-b border-border/30">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showSpecifications-proposal" className="text-sm font-semibold text-foreground">
-                                                    Technical Specifications
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Include detailed screen specifications
-                                                </p>
-                                            </div>
-                                            <Switch
-                                                id="showSpecifications-proposal"
-                                                checked={watch("details.showSpecifications") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showSpecifications", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
-                                            />
-                                        </div>
+                                    {/* PDF Section Toggles */}
+                                    <Tabs defaultValue="budget" className="w-full">
+                                        <TabsList className="grid w-full grid-cols-3">
+                                            <TabsTrigger value="budget" className="flex items-center gap-1.5">
+                                                <FileSpreadsheet className="w-3.5 h-3.5" />
+                                                Budget
+                                            </TabsTrigger>
+                                            <TabsTrigger value="proposal" className="flex items-center gap-1.5">
+                                                <FileText className="w-3.5 h-3.5" />
+                                                Proposal
+                                            </TabsTrigger>
+                                            <TabsTrigger value="loi" className="flex items-center gap-1.5">
+                                                <FileCheck className="w-3.5 h-3.5" />
+                                                LOI
+                                            </TabsTrigger>
+                                        </TabsList>
 
-                                        {/* Pricing Tables Toggle */}
-                                        <div className="flex items-center justify-between py-3 border-b border-border/30">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showPricingTables-proposal" className="text-sm font-semibold text-foreground">
-                                                    Pricing Tables
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Include pricing breakdown in the PDF
-                                                </p>
+                                        {/* Budget Tab */}
+                                        <TabsContent value="budget" className="space-y-1 mt-4">
+                                            <div className="flex items-start justify-between py-3 border-b border-border/30 gap-4">
+                                                <div className="flex flex-col min-w-0">
+                                                    <Label htmlFor="showSpecifications" className="text-sm font-semibold text-foreground block">Technical Specifications</Label>
+                                                    <p className="text-[11px] text-muted-foreground leading-relaxed">Include detailed screen specifications</p>
+                                                </div>
+                                                <Switch id="showSpecifications" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
                                             </div>
-                                            <Switch
-                                                id="showPricingTables-proposal"
-                                                checked={watch("details.showPricingTables") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showPricingTables", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
-                                            />
-                                        </div>
+                                            <div className="flex items-start justify-between py-3 border-b border-border/30 gap-4">
+                                                <div className="flex flex-col min-w-0">
+                                                    <Label htmlFor="showPricingTables" className="text-sm font-semibold text-foreground block">Pricing Tables</Label>
+                                                    <p className="text-[11px] text-muted-foreground leading-relaxed">Include pricing breakdown in the PDF</p>
+                                                </div>
+                                                <Switch id="showPricingTables" checked={watch("details.showPricingTables") ?? true} onCheckedChange={(checked) => setValue("details.showPricingTables", checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
+                                            </div>
+                                            <div className="flex items-start justify-between py-3 gap-4">
+                                                <div className="flex flex-col min-w-0">
+                                                    <Label htmlFor="showNotes" className="text-sm font-semibold text-foreground block">Notes Section</Label>
+                                                    <p className="text-[11px] text-muted-foreground leading-relaxed">Include additional notes in the PDF</p>
+                                                </div>
+                                                <Switch id="showNotes" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
+                                            </div>
+                                        </TabsContent>
 
-                                        {/* Payment Terms Toggle */}
-                                        <div className="flex items-center justify-between py-3 border-b border-border/30">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showPaymentTerms-proposal" className="text-sm font-semibold text-foreground">
-                                                    Payment Terms
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Include payment terms section
-                                                </p>
+                                        {/* Proposal Tab */}
+                                        <TabsContent value="proposal" className="space-y-1 mt-4">
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showSpecifications-proposal" className="text-sm font-semibold text-foreground">Technical Specifications</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include detailed screen specifications</p>
+                                                </div>
+                                                <Switch id="showSpecifications-proposal" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
-                                            <Switch
-                                                id="showPaymentTerms-proposal"
-                                                checked={watch("details.showPaymentTerms") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
-                                            />
-                                        </div>
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showPricingTables-proposal" className="text-sm font-semibold text-foreground">Pricing Tables</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include pricing breakdown in the PDF</p>
+                                                </div>
+                                                <Switch id="showPricingTables-proposal" checked={watch("details.showPricingTables") ?? true} onCheckedChange={(checked) => setValue("details.showPricingTables", checked)} className="data-[state=checked]:bg-brand-blue" />
+                                            </div>
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showPaymentTerms-proposal" className="text-sm font-semibold text-foreground">Payment Terms</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include payment terms section</p>
+                                                </div>
+                                                <Switch id="showPaymentTerms-proposal" checked={watch("details.showPaymentTerms") ?? true} onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked)} className="data-[state=checked]:bg-brand-blue" />
+                                            </div>
+                                            <div className="flex items-center justify-between py-3">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showNotes-proposal" className="text-sm font-semibold text-foreground">Notes Section</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include additional notes in the PDF</p>
+                                                </div>
+                                                <Switch id="showNotes-proposal" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-brand-blue" />
+                                            </div>
+                                        </TabsContent>
 
-                                        {/* Notes Toggle */}
-                                        <div className="flex items-center justify-between py-3">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showNotes-proposal" className="text-sm font-semibold text-foreground">
-                                                    Notes Section
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Include additional notes in the PDF
-                                                </p>
+                                        {/* LOI Tab */}
+                                        <TabsContent value="loi" className="space-y-1 mt-4">
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showSpecifications-loi" className="text-sm font-semibold text-foreground">Technical Specifications</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include detailed screen specifications</p>
+                                                </div>
+                                                <Switch id="showSpecifications-loi" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
-                                            <Switch
-                                                id="showNotes-proposal"
-                                                checked={watch("details.showNotes") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showNotes", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
-                                            />
-                                        </div>
-                                    </TabsContent>
-                                    
-                                    {/* LOI Tab */}
-                                    <TabsContent value="loi" className="space-y-1 mt-4">
-                                        {/* Specifications Toggle */}
-                                        <div className="flex items-center justify-between py-3 border-b border-border/30">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showSpecifications-loi" className="text-sm font-semibold text-foreground">
-                                                    Technical Specifications
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Include detailed screen specifications
-                                                </p>
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showPricingTables-loi" className="text-sm font-semibold text-foreground">Pricing Tables</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include pricing breakdown in the PDF</p>
+                                                </div>
+                                                <Switch id="showPricingTables-loi" checked={watch("details.showPricingTables") ?? true} onCheckedChange={(checked) => setValue("details.showPricingTables", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
-                                            <Switch
-                                                id="showSpecifications-loi"
-                                                checked={watch("details.showSpecifications") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showSpecifications", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
-                                            />
-                                        </div>
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showPaymentTerms-loi" className="text-sm font-semibold text-foreground">Payment Terms</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include payment terms section</p>
+                                                </div>
+                                                <Switch id="showPaymentTerms-loi" checked={watch("details.showPaymentTerms") ?? true} onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked)} className="data-[state=checked]:bg-brand-blue" />
+                                            </div>
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showSignatureBlock" className="text-sm font-semibold text-foreground">Signature Lines</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include signature block for both parties</p>
+                                                </div>
+                                                <Switch id="showSignatureBlock" checked={watch("details.showSignatureBlock") ?? true} onCheckedChange={(checked) => setValue("details.showSignatureBlock", checked)} className="data-[state=checked]:bg-brand-blue" />
+                                            </div>
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showScopeOfWork" className="text-sm font-semibold text-foreground">Scope of Work</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include custom Scope of Work text (Exhibit B)</p>
+                                                </div>
+                                                <Switch id="showScopeOfWork" checked={watch("details.showScopeOfWork") || false} onCheckedChange={(checked) => setValue("details.showScopeOfWork", checked)} className="data-[state=checked]:bg-brand-blue" />
+                                            </div>
+                                            <div className="flex items-center justify-between py-3">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showNotes-loi" className="text-sm font-semibold text-foreground">Notes Section</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include additional notes in the PDF</p>
+                                                </div>
+                                                <Switch id="showNotes-loi" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-brand-blue" />
+                                            </div>
+                                        </TabsContent>
+                                    </Tabs>
 
-                                        {/* Pricing Tables Toggle */}
-                                        <div className="flex items-center justify-between py-3 border-b border-border/30">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showPricingTables-loi" className="text-sm font-semibold text-foreground">
-                                                    Pricing Tables
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Include pricing breakdown in the PDF
-                                                </p>
-                                            </div>
-                                            <Switch
-                                                id="showPricingTables-loi"
-                                                checked={watch("details.showPricingTables") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showPricingTables", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
-                                            />
-                                        </div>
-
-                                        {/* Payment Terms Toggle */}
-                                        <div className="flex items-center justify-between py-3 border-b border-border/30">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showPaymentTerms-loi" className="text-sm font-semibold text-foreground">
-                                                    Payment Terms
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Include payment terms section
-                                                </p>
-                                            </div>
-                                            <Switch
-                                                id="showPaymentTerms-loi"
-                                                checked={watch("details.showPaymentTerms") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
-                                            />
-                                        </div>
-
-                                        {/* Signature Block Toggle */}
-                                        <div className="flex items-center justify-between py-3 border-b border-border/30">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showSignatureBlock" className="text-sm font-semibold text-foreground">
-                                                    Signature Lines
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Include signature block for both parties
-                                                </p>
-                                            </div>
-                                            <Switch
-                                                id="showSignatureBlock"
-                                                checked={watch("details.showSignatureBlock") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showSignatureBlock", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
-                                            />
-                                        </div>
-
-                                        {/* Scope of Work Toggle */}
-                                        <div className="flex items-center justify-between py-3 border-b border-border/30">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showScopeOfWork" className="text-sm font-semibold text-foreground">
-                                                    Scope of Work
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Include custom Scope of Work text (Exhibit B)
-                                                </p>
-                                            </div>
-                                            <Switch
-                                                id="showScopeOfWork"
-                                                checked={watch("details.showScopeOfWork") || false}
-                                                onCheckedChange={(checked) => setValue("details.showScopeOfWork", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
-                                            />
-                                        </div>
-
-                                        {/* Notes Toggle */}
-                                        <div className="flex items-center justify-between py-3">
-                                            <div className="flex flex-col">
-                                                <Label htmlFor="showNotes-loi" className="text-sm font-semibold text-foreground">
-                                                    Notes Section
-                                                </Label>
-                                                <p className="text-[11px] text-muted-foreground">
-                                                    Include additional notes in the PDF
-                                                </p>
-                                            </div>
-                                            <Switch
-                                                id="showNotes-loi"
-                                                checked={watch("details.showNotes") ?? true}
-                                                onCheckedChange={(checked) => setValue("details.showNotes", checked)}
-                                                className="data-[state=checked]:bg-brand-blue"
-                                            />
-                                        </div>
-                                    </TabsContent>
-                                </Tabs>
-                            </CardContent>
+                                    {/* Text Editor Panel */}
+                                    <TextEditorPanel />
+                                </CardContent>
+                            )}
                         </Card>
 
-                        {/* Text Editor Panel */}
-                        <TextEditorPanel />
+                        {/* ─── Spacer between text editing and export ─── */}
+                        <div className="h-2" />
 
-                        {/* Simplified Export */}
-                        <Card className="bg-card/40 border border-border/60 overflow-hidden">
-                            <CardHeader className="border-b border-border/60 pb-3">
-                                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                                    <Download className="w-4 h-4 text-brand-blue" />
-                                    Export Suite
-                                </CardTitle>
-                            </CardHeader>
+                        {/* ─── EXPORT SUITE — Hero Section ─── */}
+                        <Card className="bg-card/50 border-2 border-brand-blue/30 overflow-hidden shadow-[0_0_30px_rgba(10,82,239,0.08)]">
                             <CardContent className="p-0">
                                 {(proposalPdfLoading || pdfGenerationProgress) && (
-                                    <div className="px-4 py-3 border-b border-border/60 bg-muted/20">
+                                    <div className="px-6 py-3 border-b border-border/60 bg-muted/20">
                                         <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
                                             <span>{pdfGenerationProgress?.label || "Generating PDF…"}</span>
                                             <span>{pdfGenerationProgress?.value ? `${pdfGenerationProgress.value}%` : ""}</span>
@@ -894,7 +747,7 @@ const Step4Export = () => {
                                     </div>
                                 )}
                                 {pdfBatchProgress && (
-                                    <div className="px-4 py-3 border-b border-border/60 bg-muted/20">
+                                    <div className="px-6 py-3 border-b border-border/60 bg-muted/20">
                                         <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground">
                                             <span>{`Generating ${pdfBatchProgress.current}/${pdfBatchProgress.total}: ${pdfBatchProgress.label}`}</span>
                                             <span>{`${Math.round((pdfBatchProgress.current / pdfBatchProgress.total) * 100)}%`}</span>
@@ -907,86 +760,83 @@ const Step4Export = () => {
                                         </div>
                                     </div>
                                 )}
-                                <div className="grid grid-cols-1 divide-y divide-zinc-800/60">
-                                    {/* Primary Bundle Option */}
-                                    <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors group">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-brand-blue/10 flex items-center justify-center border border-brand-blue/20 group-hover:scale-110 transition-transform">
-                                                <Zap className="w-5 h-5 text-brand-blue" />
+
+                                {/* Hero Download Bundle */}
+                                <div className="px-6 py-8 flex flex-col items-center text-center gap-4">
+                                    <div className="w-14 h-14 rounded-2xl bg-brand-blue/10 flex items-center justify-center border border-brand-blue/20">
+                                        <Zap className="w-7 h-7 text-brand-blue" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-base font-bold text-foreground">Export Documents</h4>
+                                        <p className="text-xs text-muted-foreground mt-1">Budget PDF, Proposal PDF, LOI PDF, and Internal Audit Excel</p>
+                                    </div>
+                                    <button
+                                        onClick={handleGlobalExport}
+                                        disabled={mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked)}
+                                        className={cn(
+                                            "w-full max-w-sm px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
+                                            (mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked))
+                                                ? "bg-muted text-muted-foreground cursor-not-allowed"
+                                                : "bg-brand-blue text-white hover:bg-brand-blue/90 shadow-[0_0_20px_rgba(10,82,239,0.3)] hover:shadow-[0_0_30px_rgba(10,82,239,0.5)]"
+                                        )}
+                                        title={
+                                            isGatekeeperLocked && unverifiedAiFields.length > 0
+                                                ? `Verify ${unverifiedAiFields.length} more field${unverifiedAiFields.length !== 1 ? 's' : ''} to export`
+                                                : undefined
+                                        }
+                                    >
+                                        {exporting ? "Generating..." : (
+                                            <>
+                                                <Download className="w-4 h-4" />
+                                                Download Bundle
+                                                {isGatekeeperLocked && unverifiedAiFields.length > 0 && (
+                                                    <span className="ml-1 text-[10px] opacity-75">
+                                                        ({unverifiedAiFields.length} to verify)
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                {/* Individual Options */}
+                                <div className="border-t border-border/60 grid grid-cols-2 divide-x divide-zinc-800/60">
+                                    <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-muted/50 text-muted-foreground">
+                                                <FileSpreadsheet className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <h4 className="text-sm font-bold text-foreground group-hover:text-brand-blue transition-colors">Global Export Bundle</h4>
-                                                <p className="text-[11px] text-muted-foreground">Downloads Budget PDF, Proposal PDF, LOI PDF, and Internal Audit Excel</p>
+                                                <div className="text-xs font-bold text-foreground">Excel Only</div>
+                                                <div className="text-[10px] text-muted-foreground">Audit Workbook</div>
                                             </div>
                                         </div>
                                         <button
-                                            onClick={handleGlobalExport}
-                                            disabled={mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked)}
-                                            className={cn(
-                                                "px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2",
-                                                (mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked))
-                                                    ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                                    : "bg-brand-blue text-foreground hover:bg-brand-blue/90 shadow-[0_0_20px_rgba(10,82,239,0.3)] hover:shadow-[0_0_30px_rgba(10,82,239,0.5)]"
-                                            )}
-                                            title={
-                                                isGatekeeperLocked && unverifiedAiFields.length > 0
-                                                    ? `Verify ${unverifiedAiFields.length} more field${unverifiedAiFields.length !== 1 ? 's' : ''} to export`
-                                                    : undefined
-                                            }
+                                            onClick={exportAudit}
+                                            disabled={(mirrorMode && !isMirrorReadyToExport) || isGatekeeperLocked}
+                                            className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            {exporting ? "Generating..." : (
-                                                <>
-                                                    Download Bundle
-                                                    {isGatekeeperLocked && unverifiedAiFields.length > 0 && (
-                                                        <span className="ml-1 text-[10px] opacity-75">
-                                                            ({unverifiedAiFields.length} to verify)
-                                                        </span>
-                                                    )}
-                                                </>
-                                            )}
-                                            {!exporting && <Download className="w-3.5 h-3.5" />}
+                                            <Download className="w-4 h-4" />
                                         </button>
                                     </div>
 
-                                    {/* Individual Options */}
-                                    <div className="grid grid-cols-2 divide-x divide-zinc-800/60">
-                                        <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-lg bg-muted/50 text-muted-foreground">
-                                                    <FileSpreadsheet className="w-4 h-4" />
-                                                </div>
-                                                <div>
-                                                    <div className="text-xs font-bold text-foreground">Excel Only</div>
-                                                    <div className="text-[10px] text-muted-foreground">Audit Workbook</div>
-                                                </div>
+                                    <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-muted/50 text-muted-foreground">
+                                                <Eye className="w-4 h-4" />
                                             </div>
-                                            <button
-                                                onClick={exportAudit}
-                                                disabled={(mirrorMode && !isMirrorReadyToExport) || isGatekeeperLocked}
-                                                className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                <Download className="w-4 h-4" />
-                                            </button>
-                                        </div>
-
-                                        <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <div className="p-2 rounded-lg bg-muted/50 text-muted-foreground">
-                                                    <Eye className="w-4 h-4" />
-                                                </div>
-                                                <div>
-                                                    <div className="text-xs font-bold text-foreground">PDF Only</div>
-                                                    <div className="text-[10px] text-muted-foreground">Client Proposal</div>
-                                                </div>
+                                            <div>
+                                                <div className="text-xs font-bold text-foreground">PDF Only</div>
+                                                <div className="text-[10px] text-muted-foreground">Client Proposal</div>
                                             </div>
-                                            <button
-                                                onClick={downloadPdf}
-                                                disabled={mirrorMode ? isPdfPreviewBlocked : (!allScreensValid || isGatekeeperLocked)}
-                                                className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                <Download className="w-4 h-4" />
-                                            </button>
                                         </div>
+                                        <button
+                                            onClick={downloadPdf}
+                                            disabled={mirrorMode ? isPdfPreviewBlocked : (!allScreensValid || isGatekeeperLocked)}
+                                            className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            <Download className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
                             </CardContent>

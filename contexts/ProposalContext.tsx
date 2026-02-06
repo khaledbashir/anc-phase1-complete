@@ -1486,8 +1486,8 @@ export const ProposalContextProvider = ({
 
     /**
      * Downloads a PDF file.
-     * Filename: "{Client Name} {Document Type} {Template Name}.pdf"
-     * e.g. "PDF-TEST Letter of Intent Classic.pdf"
+     * Filename: "ANC_{ClientName}_{DocumentType}_{YYYY-MM-DD}.pdf"
+     * e.g. "ANC_Indiana_Fever_Proposal_2026-02-06.pdf"
      */
     const downloadPdf = async () => {
         // Always regenerate to ensure it uses current template/mode selection
@@ -1501,21 +1501,21 @@ export const ProposalContextProvider = ({
                 details?.proposalName ||
                 "proposal"
             ).toString();
-            const safeName = (s: string) =>
+            const safeUnderscored = (s: string) =>
                 s
                     .replace(/[/\\:*?"<>|]/g, "")
-                    .replace(/\s+/g, " ")
+                    .replace(/\s+/g, "_")
                     .trim()
-                    .slice(0, 80) || "proposal";
+                    .slice(0, 50) || "Client";
             const docMode = details?.documentMode ?? headerType;
             const documentTypeLabel =
                 docMode === "LOI"
-                    ? "Letter of Intent"
+                    ? "Letter_of_Intent"
                     : docMode === "PROPOSAL"
                       ? "Proposal"
-                      : "Budget";
-            const templateLabel = "Hybrid"; // Enterprise Standard (Template 5)
-            const fileName = `${safeName(clientName)} ${documentTypeLabel} ${templateLabel}.pdf`;
+                      : "Budget_Estimate";
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const fileName = `ANC_${safeUnderscored(clientName)}_${documentTypeLabel}_${dateStr}.pdf`;
             const a = document.createElement("a");
             a.href = url;
             a.download = fileName;
@@ -1677,12 +1677,13 @@ export const ProposalContextProvider = ({
             data.details?.proposalName ||
             "proposal"
         ).toString();
-        const safeName = (s: string) =>
+        const safeUnderscored = (s: string) =>
             s
                 .replace(/[/\\:*?"<>|]/g, "")
-                .replace(/\s+/g, " ")
+                .replace(/\s+/g, "_")
                 .trim()
-                .slice(0, 80) || "proposal";
+                .slice(0, 50) || "Client";
+        const bundleDateStr = new Date().toISOString().slice(0, 10);
 
         const total = MODES.length;
         setPdfBatchProgress({ current: 0, total, label: "Starting…" });
@@ -1719,7 +1720,8 @@ export const ProposalContextProvider = ({
                 const blob = await res.blob();
                 if (blob.size === 0) continue;
                 const url = window.URL.createObjectURL(blob);
-                const fileName = `${safeName(clientName)} ${modeLabel}.pdf`;
+                const bundleDocType = mode === "LOI" ? "Letter_of_Intent" : mode === "PROPOSAL" ? "Proposal" : "Budget_Estimate";
+                const fileName = `ANC_${safeUnderscored(clientName)}_${bundleDocType}_${bundleDateStr}.pdf`;
                 const a = document.createElement("a");
                 a.href = url;
                 a.download = fileName;

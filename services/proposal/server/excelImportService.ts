@@ -431,31 +431,110 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     // REQ-User-Feedback: Structure Margin Analysis data for exact PDF mirroring
     const marginAnalysis = groupMarginAnalysisRows(marginRows);
 
-    const extractClientName = (): string => {
+    // ── Strategy 2: Read from Excel cells (preferred) ──
+    const extractFromCells = (): string | null => {
+        const isCleanName = (s: string) =>
+            s.length >= 3 && s.length <= 80
+            && !/^\d+$/.test(s)                 // not pure numbers
+            && !/^[a-z]{2,8}$/.test(s)          // not a short generic word
+            && !/^(option|total|subtotal|cost|margin|sell|price)/i.test(s);
+
+        const extractFromLabel = (cell: string): string | null => {
+            const patterns = [
+                /^Project\s*Name:\s*(.+)$/i,
+                /^Client:\s*(.+)$/i,
+                /^Customer:\s*(.+)$/i,
+                /^Venue:\s*(.+)$/i,
+                /^Project:\s*(.+)$/i,
+            ];
+            for (const p of patterns) {
+                const m = cell.match(p);
+                if (m && m[1].trim()) return m[1].trim();
+            }
+            return null;
+        };
+
+        // Check Margin Analysis sheet first (often has the project name in A1/B1/A2)
+        if (marginData.length > 0) {
+            for (let r = 0; r < Math.min(marginData.length, 5); r++) {
+                const row = marginData[r] || [];
+                for (let c = 0; c < Math.min(row.length, 3); c++) {
+                    const cell = (row[c] ?? "").toString().trim();
+                    const label = extractFromLabel(cell);
+                    if (label && isCleanName(label)) return label;
+                }
+            }
+        }
+
+        // Check LED sheet first 10 rows for labeled cells
         const searchRows = ledData.slice(0, 10);
         for (const row of searchRows) {
             for (let c = 0; c < (row?.length ?? 0); c++) {
                 const cell = (row[c] ?? "").toString().trim();
-                const afterProject = cell.replace(/^Project\s+Name:\s*/i, "").trim();
-                if (afterProject && afterProject !== cell) return afterProject;
-                if (/^Client:?\s*(.+)$/i.test(cell)) return cell.replace(/^Client:?\s*/i, "").trim() || "New Project";
+                const label = extractFromLabel(cell);
+                if (label && isCleanName(label)) return label;
             }
         }
-        const fromFirst = ledData[0]?.[0]?.toString().replace(/^Project\s+Name:\s*/i, "").trim();
-        if (fromFirst && fromFirst.length >= 2 && !/^[a-z]{2,8}$/.test(fromFirst)) return fromFirst;
-        if (fileName && typeof fileName === "string") {
-            const base = fileName.replace(/\.xlsx?$/i, "").replace(/\s*[-–]\s*\d{4}-\d{2}-\d{2}.*$/, "").trim();
-            if (base.length >= 2) return base;
+
+        // Check all other sheets (P&L, etc.) first 5 rows, first 3 cols
+        for (const sheetName of workbook.SheetNames) {
+            if (sheetName === ledSheetName || sheetName === marginSheetName) continue;
+            const sheet = workbook.Sheets[sheetName];
+            if (!sheet) continue;
+            const data: any[][] = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+            for (let r = 0; r < Math.min(data.length, 5); r++) {
+                const row = data[r] || [];
+                for (let c = 0; c < Math.min(row.length, 3); c++) {
+                    const cell = (row[c] ?? "").toString().trim();
+                    const label = extractFromLabel(cell);
+                    if (label && isCleanName(label)) return label;
+                }
+            }
         }
-        return "New Project";
+
+        // Fallback: check ledData[0][0] raw value (some files just put the name there)
+        const firstCell = (ledData[0]?.[0] ?? "").toString().trim();
+        if (firstCell && isCleanName(firstCell) && !firstCell.includes('\t')) return firstCell;
+
+        return null;
     };
 
+    // ── Strategy 1: Parse the filename ──
+    const extractFromFilename = (): string | null => {
+        if (!fileName || typeof fileName !== "string") return null;
+        let base = fileName;
+        // Remove extension
+        base = base.replace(/\.xlsx?$/i, "");
+        // Remove "Copy_of_" / "Copy of "
+        base = base.replace(/^Copy[_ ]of[_ ]/i, "");
+        // Remove "Cost_Analysis_-_" / "Cost Analysis - "
+        base = base.replace(/^Cost[_ ]Analysis[_ ][-–—][_ ]/i, "");
+        // Remove "anc_x_" / "ANC_x_" vendor prefix
+        base = base.replace(/^anc[_ ]x[_ ]/i, "");
+        // Remove date patterns: YYYY-MM-DD, MM-DD-YY, _YYYY-MM-DD, -MM-DD-YY
+        base = base.replace(/[_ -]*\d{4}[-/.]\d{1,2}[-/.]\d{1,2}[_ -]*/g, "");
+        base = base.replace(/[_ -]*\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}[_ -]*/g, "");
+        // Remove copy indicators like (1), (2)
+        base = base.replace(/\s*\(\d+\)\s*/g, "");
+        // Replace underscores with spaces
+        base = base.replace(/_/g, " ");
+        // Trim dashes, whitespace, and separators from edges
+        base = base.replace(/^[\s\-–—:]+|[\s\-–—:]+$/g, "").trim();
+        if (base.length >= 2) return base;
+        return null;
+    };
+
+    const extractClientName = (): string => {
+        return extractFromCells() || extractFromFilename() || "New Project";
+    };
+
+    const clientNameResult = extractClientName();
     const formData = {
         receiver: {
-            name: extractClientName(),
+            name: clientNameResult,
         },
         details: {
-            proposalName: 'ANC LED Display Proposal',
+            proposalName: clientNameResult !== "New Project" ? clientNameResult : 'ANC LED Display Proposal',
             screens,
             internalAudit,
             subTotal: totals.sellPrice, // REQ-User-Feedback: Explicit subtotal for PDF logic

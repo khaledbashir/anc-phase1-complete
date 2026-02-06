@@ -189,7 +189,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Hybrid Spec Table - Modern styling with blue headers, zebra striping
     const SpecTable = ({ screen }: { screen: any }) => (
-        <div className="mb-6 rounded-lg overflow-hidden border break-inside-avoid" style={{ borderColor: colors.border, background: colors.white }}>
+        <div className="mb-6 rounded-lg overflow-hidden border break-inside-avoid" style={{ borderColor: colors.border, background: colors.white, pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
             {/* Blue Header */}
             <div className="px-4 py-2.5 border-b break-inside-avoid" style={{ borderColor: colors.primary, background: colors.primary }}>
                 <h3 className="font-bold text-xs uppercase tracking-wide text-white">
@@ -388,7 +388,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const subtotal = lineItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
 
         return (
-            <div className="mt-6 break-inside-avoid">
+            <div className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 {/* Modern table container */}
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     {/* Header */}
@@ -408,7 +408,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             style={{
                                 borderColor: colors.borderLight,
                                 background: idx % 2 === 1 ? colors.surface : colors.white,
-                                minHeight: '36px'
+                                minHeight: '36px',
+                                pageBreakInside: 'avoid',
+                                breakInside: 'avoid',
                             }}
                         >
                             <div className="col-span-8 pr-2">
@@ -454,7 +456,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const lines = raw.split(/\r?\n|,/g).map((l: string) => l.trim()).filter(Boolean);
         if (lines.length === 0) return null;
         return (
-            <div className="mt-8 break-inside-avoid">
+            <div className="mt-8 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 <SectionHeader title="Payment Terms" />
                 <div className="rounded-lg p-4 text-sm leading-relaxed break-inside-avoid" style={{ background: colors.surface, color: colors.textMuted }}>
                     {lines.map((line: string, idx: number) => <div key={idx} className="py-0.5 break-inside-avoid">{line}</div>)}
@@ -496,7 +498,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Signature Block - Universal (available for all document types)
     const SignatureBlock = () => (
-        <div className="mt-12 break-inside-avoid">
+        <div className="mt-12 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
             <div className="text-xs leading-relaxed text-justify mb-8 break-inside-avoid" style={{ color: colors.textMuted }}>
                 {((details as any)?.signatureBlockText || "").trim() || DEFAULT_SIGNATURE_BLOCK_TEXT}
             </div>
@@ -577,7 +579,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <p className="text-justify whitespace-pre-wrap">{customIntroText.trim()}</p>
                         ) : documentMode === "LOI" ? (
                             <p className="text-justify">
-                                This Sales Quotation will set forth the terms by which <strong style={{ color: colors.text }}>{purchaserName}</strong> ("Purchaser"){purchaserAddress ? ` located at ${purchaserAddress}` : ""} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> ("ANC") located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for the {details?.proposalName || "Project Name"}.
+                                This Sales Quotation will set forth the terms by which <strong style={{ color: colors.text }}>{purchaserName}</strong> ("Purchaser"){purchaserAddress ? ` located at ${purchaserAddress}` : ""} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> ("ANC") located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for the {details?.proposalName || (details as any)?.clientName || receiver?.name || "the project"}.
                             </p>
                         ) : documentMode === "PROPOSAL" ? (
                             <p>

@@ -59,14 +59,16 @@ const WizardNavigation = () => {
                     {_t("form.wizard.back")}
                 </BaseButton>
             )}
-            <BaseButton
-                tooltipLabel={nextTooltip}
-                disabled={isNextDisabled}
-                onClick={handleNext}
-            >
-                {_t("form.wizard.next")}
-                <ArrowRight />
-            </BaseButton>
+            {!isLastStep && (
+                <BaseButton
+                    tooltipLabel={nextTooltip}
+                    disabled={isNextDisabled}
+                    onClick={handleNext}
+                >
+                    {_t("form.wizard.next")}
+                    <ArrowRight />
+                </BaseButton>
+            )}
         </div>
     );
 };

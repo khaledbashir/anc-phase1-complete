@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { Wand2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useFormContext } from "react-hook-form";
@@ -14,12 +14,15 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import type { AgentSearchPhase } from "./AgentSearchAnimation";
 
 type AiWandProps = {
     fieldName: string;
     searchQuery?: string;
     targetFields: string[]; // Fields to fill (e.g., ["receiver.address", "receiver.city"])
     proposalId?: string; // Project workspace to use for context
+    onSearchStateChange?: (phase: AgentSearchPhase) => void;
+    showIdlePulse?: boolean;
 };
 
 type EnrichCandidate = {
@@ -29,8 +32,9 @@ type EnrichCandidate = {
     results: Record<string, string>;
 };
 
-export default function AiWand({ fieldName, searchQuery, targetFields, proposalId }: AiWandProps) {
+export default function AiWand({ fieldName, searchQuery, targetFields, proposalId, onSearchStateChange, showIdlePulse }: AiWandProps) {
     const [loading, setLoading] = useState(false);
+    const [wandBounce, setWandBounce] = useState(false);
     const [pickerOpen, setPickerOpen] = useState(false);
     const [candidates, setCandidates] = useState<EnrichCandidate[]>([]);
     const [selectedCandidate, setSelectedCandidate] = useState<string>("");
@@ -38,6 +42,16 @@ export default function AiWand({ fieldName, searchQuery, targetFields, proposalI
     const [correctedQuery, setCorrectedQuery] = useState<string>("");
     const { getValues, setValue } = useFormContext();
     const { success: showSuccess, error: showError } = useToasts();
+    const phaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const setPhase = useCallback((phase: AgentSearchPhase) => {
+        onSearchStateChange?.(phase);
+    }, [onSearchStateChange]);
+
+    const scheduleIdle = useCallback((delayMs: number) => {
+        if (phaseTimerRef.current) clearTimeout(phaseTimerRef.current);
+        phaseTimerRef.current = setTimeout(() => setPhase("idle"), delayMs);
+    }, [setPhase]);
 
     const applyResults = (results: Record<string, string>, originalQuery: string, corrected: string) => {
         // 1. Update the main field with corrected name if it changed significantly
@@ -49,12 +63,21 @@ export default function AiWand({ fieldName, searchQuery, targetFields, proposalI
             }
         }
 
-        // 2. Map results to target fields, ensuring we clear old values if not present in new result
-        targetFields.forEach(field => {
-            const value = results[field];
-            // Clear or update
-            setValue(field, value || "", { shouldDirty: true });
+        // 2. Map results to target fields with staggered timing for visual effect
+        setPhase("filling");
+        targetFields.forEach((field, i) => {
+            setTimeout(() => {
+                const value = results[field];
+                setValue(field, value || "", { shouldDirty: true });
+            }, i * 150);
         });
+
+        // Transition to complete after all fields filled
+        const fillDuration = targetFields.length * 150 + 300;
+        setTimeout(() => {
+            setPhase("complete");
+            scheduleIdle(2500);
+        }, fillDuration);
     };
 
     const handleEnrich = async () => {
@@ -67,6 +90,7 @@ export default function AiWand({ fieldName, searchQuery, targetFields, proposalI
         }
 
         setLoading(true);
+        setPhase("searching");
         setLastQuery(String(query));
         const controller = new AbortController();
         let timeoutId: ReturnType<typeof setTimeout> | null = setTimeout(() => controller.abort(), 25000);
@@ -84,6 +108,10 @@ export default function AiWand({ fieldName, searchQuery, targetFields, proposalI
 
             if (!res.ok) {
                 showError(data?.error || "AI enrichment failed.");
+                setPhase("error");
+                setWandBounce(true);
+                setTimeout(() => setWandBounce(false), 600);
+                scheduleIdle(2000);
                 return;
             }
 
@@ -98,6 +126,10 @@ export default function AiWand({ fieldName, searchQuery, targetFields, proposalI
 
             if (incomingCandidates.length === 0) {
                 showError("Could not find detailed information for this client.");
+                setPhase("error");
+                setWandBounce(true);
+                setTimeout(() => setWandBounce(false), 600);
+                scheduleIdle(2000);
                 return;
             }
 
@@ -108,11 +140,17 @@ export default function AiWand({ fieldName, searchQuery, targetFields, proposalI
                 return;
             }
 
+            // Multiple candidates — pause animation, let picker handle it
+            setPhase("idle");
             setCandidates(incomingCandidates);
             setSelectedCandidate(incomingCandidates[0]?.label ?? "");
             setPickerOpen(true);
         } catch (e) {
             console.error("Enrichment error:", e);
+            setPhase("error");
+            setWandBounce(true);
+            setTimeout(() => setWandBounce(false), 600);
+            scheduleIdle(2000);
             if ((e as Error)?.name === "AbortError") {
                 showError("Lookup timed out. Check your connection or try again.");
             } else {
@@ -136,10 +174,22 @@ export default function AiWand({ fieldName, searchQuery, targetFields, proposalI
                     e.stopPropagation();
                     handleEnrich();
                 }}
-                className="h-8 w-8 text-[#0A52EF] hover:text-[#0A52EF]/70 hover:bg-[#0A52EF]/10 active:scale-95 transition-all"
+                className={cn(
+                    "h-8 w-8 text-[#0A52EF] hover:text-[#0A52EF]/70 hover:bg-[#0A52EF]/10 active:scale-95 transition-all",
+                    wandBounce && "animate-[agent-wand-bounce_0.6s_ease-in-out]",
+                )}
                 title="Auto-fill details via AI Search"
             >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <Wand2 className="h-4 w-4" />}
+                {loading ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : (
+                    <Wand2
+                        className={cn(
+                            "h-4 w-4",
+                            showIdlePulse && !loading && "animate-[agent-wand-idle_2s_ease-in-out_infinite]",
+                        )}
+                    />
+                )}
             </Button>
 
             <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
@@ -221,8 +271,8 @@ export default function AiWand({ fieldName, searchQuery, targetFields, proposalI
                             onClick={() => {
                                 const chosen = candidates.find((c) => c.label === selectedCandidate) || candidates[0];
                                 if (!chosen) return;
-                                applyResults(chosen.results, lastQuery, correctedQuery || lastQuery);
                                 setPickerOpen(false);
+                                applyResults(chosen.results, lastQuery, correctedQuery || lastQuery);
                                 showSuccess(`AI filled details for ${chosen.label}!`);
                             }}
                             className="shadow-[0_0_20px_rgba(10,82,239,0.15)]"

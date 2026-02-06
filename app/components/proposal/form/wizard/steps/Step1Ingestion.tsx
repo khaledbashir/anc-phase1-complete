@@ -23,6 +23,7 @@ import { useState, useEffect } from "react";
 import ExcelGridViewer from "@/app/components/ExcelGridViewer";
 import ScreensGridEditor from "@/app/components/proposal/form/ScreensGridEditor";
 import { AiWand, FormInput } from "@/app/components";
+import AgentSearchAnimation, { type AgentSearchPhase } from "@/app/components/reusables/AgentSearchAnimation";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -42,8 +43,11 @@ const Step1Ingestion = () => {
 
     const { getValues, watch } = useFormContext();
     const proposalId = watch("details.proposalId");
+    const [address, city, zipCode] = watch(["receiver.address", "receiver.city", "receiver.zipCode"]);
     const [rfpUploading, setRfpUploading] = useState(false);
     const [showDetails, setShowDetails] = useState(!excelPreview);
+    const [searchPhase, setSearchPhase] = useState<AgentSearchPhase>("idle");
+    const addressFieldsEmpty = !address?.toString().trim() && !city?.toString().trim() && !zipCode?.toString().trim();
 
     // Auto-collapse details when Excel is loaded ONLY if required fields are filled
     useEffect(() => {
@@ -116,7 +120,7 @@ const Step1Ingestion = () => {
                     {/* Collapsible Project Details */}
                     {showDetails && (
                         <div className="animate-in slide-in-from-top-2 duration-300">
-                            <div className="p-5 rounded-xl border border-border bg-muted/30">
+                            <AgentSearchAnimation phase={searchPhase} className="p-5 bg-muted/30">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <FormInput
                                         vertical
@@ -141,6 +145,8 @@ const Step1Ingestion = () => {
                                                     "details.venue",
                                                 ]}
                                                 proposalId={proposalId}
+                                                onSearchStateChange={setSearchPhase}
+                                                showIdlePulse={addressFieldsEmpty}
                                             />
                                         }
                                     />
@@ -170,7 +176,7 @@ const Step1Ingestion = () => {
                                         />
                                     </div>
                                 </div>
-                            </div>
+                            </AgentSearchAnimation>
                         </div>
                     )}
 
