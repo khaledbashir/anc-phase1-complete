@@ -99,17 +99,16 @@ const Step1Ingestion = () => {
                     {excelPreview && (
                         <button
                             onClick={() => setBriefPanelOpen(true)}
-                            className="relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-medium cursor-pointer hover:bg-purple-500/20 transition-all"
+                            className={cn(
+                                "relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-white cursor-pointer transition-all shadow-md hover:shadow-lg hover:brightness-110",
+                                "bg-gradient-to-r from-blue-500 to-indigo-500",
+                                !hasBrief && "animate-pulse",
+                            )}
                         >
-                            <Sparkles
-                                className={cn(
-                                    "w-3.5 h-3.5",
-                                    !hasBrief && "animate-pulse",
-                                )}
-                            />
+                            <Sparkles className="w-4 h-4" />
                             <span>Brief Me</span>
                             {hasBrief && (
-                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-brand-blue border-2 border-background" />
+                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-background shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
                             )}
                         </button>
                     )}

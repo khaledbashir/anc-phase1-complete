@@ -236,7 +236,8 @@ export default function BriefMePanel({
             {/* Panel */}
             <div
                 className={cn(
-                    "fixed top-0 right-0 h-full z-50 bg-background border-l border-border shadow-2xl",
+                    "fixed top-0 right-0 h-full z-50 bg-white dark:bg-background border-l border-border",
+                    "shadow-[-8px_0_30px_rgba(0,0,0,0.12)]",
                     "w-full md:w-[420px]",
                     "animate-in slide-in-from-right duration-300",
                     "flex flex-col",
