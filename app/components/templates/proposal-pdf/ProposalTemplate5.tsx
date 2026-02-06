@@ -43,7 +43,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const totals = internalAudit?.totals;
 
     const documentMode = resolveDocumentMode(details);
-    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "PROPOSAL" : "LETTER OF INTENT";
+    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "SALES QUOTATION" : "LETTER OF INTENT";
     const isLOI = documentMode === "LOI";
 
     const purchaserName = receiver?.name || "Client";
@@ -583,7 +583,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </p>
                         ) : documentMode === "PROPOSAL" ? (
                             <p>
-                                ANC is pleased to present the following proposal for <strong style={{ color: colors.text }}>{purchaserName}</strong> per the specifications and pricing below.
+                                ANC is pleased to present the following {displayTypeLabel} proposal for <strong style={{ color: colors.text }}>{purchaserName}</strong> per the specifications and pricing below.
                             </p>
                         ) : (
                             <p>
