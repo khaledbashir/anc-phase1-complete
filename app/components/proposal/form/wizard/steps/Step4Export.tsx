@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { useFormContext } from "react-hook-form";
 import {
@@ -124,7 +125,7 @@ const Step4Export = () => {
 
     const effectiveVerification = verificationResponse?.verification ?? null;
     const effectiveManifest = effectiveVerification?.manifest ?? verificationManifest ?? null;
-    const effectiveExceptions = effectiveVerification?.exceptions ?? verificationExceptions ?? [];
+    const effectiveExceptions = useMemo(() => effectiveVerification?.exceptions ?? verificationExceptions ?? [], [effectiveVerification, verificationExceptions]);
     const effectiveReport = effectiveVerification?.report ?? null;
     const reconciliation = effectiveManifest?.reconciliation ?? null;
 
@@ -891,9 +892,11 @@ const Step4Export = () => {
                                                             </div>
                                                         </div>
                                                         {r.screenshotData && (
-                                                            <img
+                                                            <Image
                                                                 src={r.screenshotData}
                                                                 alt="Context"
+                                                                width={80}
+                                                                height={56}
                                                                 className="w-20 h-14 rounded-lg border border-border object-cover shrink-0"
                                                             />
                                                         )}

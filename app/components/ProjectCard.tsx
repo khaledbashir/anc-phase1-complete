@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
     Sparkles,
@@ -71,7 +72,13 @@ const ProjectCard = ({ project, onImport, onDelete }: ProjectCardProps) => {
             <div className="flex items-start justify-between mb-8">
                 <div className="w-10 h-10 bg-muted border border-border rounded flex items-center justify-center">
                     {project.clientLogo ? (
-                        <img src={project.clientLogo} alt={project.clientName} className="w-6 h-6 object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+                        <Image 
+                            src={project.clientLogo} 
+                            alt={project.clientName} 
+                            width={24}
+                            height={24}
+                            className="w-6 h-6 object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" 
+                        />
                     ) : (
                         <Layers className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                     )}

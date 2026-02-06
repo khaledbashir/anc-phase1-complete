@@ -158,7 +158,7 @@ export function SOWGeneratorPanel() {
 
     // Do NOT auto-expand - keep panel collapsed by default
     // User must manually click to expand and review SOW content
-  }, [venue, location, proposalName, additionalNotes, screensInfo, setValue]);
+  }, [venue, location, proposalName, additionalNotes, screensInfo, screens, setValue]);
 
   // Auto-generate on mount if we have AI workspace data
   useEffect(() => {

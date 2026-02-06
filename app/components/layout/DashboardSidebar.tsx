@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
     LayoutGrid,
@@ -32,15 +33,19 @@ export default function DashboardSidebar() {
                 <Link href="/projects" className="flex items-center justify-center">
                     <div className="w-10 h-10 flex items-center justify-center relative">
                         {/* Light Mode Logo */}
-                        <img
+                        <Image
                             src="/ANC_Logo_2023_blue.png"
                             alt="ANC"
+                            width={40}
+                            height={40}
                             className="w-full h-auto object-contain dark:hidden"
                         />
                         {/* Dark Mode Logo */}
-                        <img
+                        <Image
                             src="/ANC_Logo_2023_white.png"
                             alt="ANC"
+                            width={40}
+                            height={40}
                             className="w-full h-auto object-contain hidden dark:block"
                         />
                     </div>
