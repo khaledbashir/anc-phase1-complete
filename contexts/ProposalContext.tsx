@@ -3330,790 +3330,904 @@ export const ProposalContextProvider = ({
                         saveError,
                     );
                 }
-            } catch (err) {
-                console.error("Excel import error:", err);
-                const message = err instanceof Error ? err.message : String(err);
-                showError("Excel import failed", message);
-            } finally {
-                setExcelImportLoading(false);
-                setTimeout(() => {
-                    isCreatingNewRef.current = false;
-                }, 500);
             }
-        };
+        } catch (err) {
+            console.error("Excel import error:", err);
+            const message = err instanceof Error ? err.message : String(err);
+            showError("Excel import failed", message);
+        } finally {
+            setExcelImportLoading(false);
+            setTimeout(() => {
+                isCreatingNewRef.current = false;
+            }, 500);
+        }
+    };
 
-        return (
-            <ProposalContext.Provider
-                value={{
-                    proposalPdf,
-                    proposalPdfLoading,
-                    pdfGenerationProgress,
-                    pdfBatchProgress,
-                    excelImportLoading,
-                    excelPreviewLoading,
-                    excelPreview,
-                    excelValidationOk,
-                    excelDiagnostics,
-                    excelSourceData,
-                    verificationManifest,
-                    verificationExceptions,
-                    loadExcelPreview,
-                    savedProposals,
-                    pdfUrl,
-                    activeTab,
-                    setActiveTab,
-                    onFormSubmit,
-                    newProposal,
-                    resetProposal,
-                    generatePdf,
-                    removeFinalPdf,
-                    downloadPdf,
-                    downloadAllPdfVariants,
-                    downloadBundlePdfs,
-                    printPdf,
-                    printLivePreview,
-                    previewPdfInTab,
-                    saveProposalData,
-                    saveDraft,
-                    deleteProposalData,
-                    // Backwards-compatible alias
-                    deleteProposal: deleteProposalData,
-                    sendPdfToMail,
-                    exportProposalDataAs,
-                    // Backwards-compatible alias
-                    exportProposalAs: exportProposalDataAs,
-                    exportAudit,
-                    importProposalData,
-                    importANCExcel,
-                    // AI & Verification
-                    aiFields,
-                    aiCitations,
-                    verifiedFields,
-                    setFieldVerified,
-                    aiFieldTimestamps,
-                    unverifiedAiFields,
-                    isGatekeeperLocked,
-                    trackAiFieldModification,
-                    isFieldGhostActive,
-                    rulesDetected,
-                    setRulesDetected: (rules: any) => setRulesDetected(rules),
-                    // Core State
-                    risks,
-                    setRisks: (newRisks: RiskItem[]) => setRisks(newRisks),
-                    // Diagnostic functions
-                    diagnosticOpen,
-                    diagnosticPayload,
-                    openDiagnostic,
-                    closeDiagnostic,
-                    submitDiagnostic,
-                    // Alerts
-                    lowMarginAlerts,
-                    // RFP functions
-                    rfpDocumentUrl,
-                    rfpDocuments,
-                    refreshRfpDocuments,
-                    deleteRfpDocument,
-                    aiWorkspaceSlug,
-                    rfpQuestions,
-                    uploadRfpDocument: async (file: File) => {
-                        const formData = new FormData();
-                        formData.append("file", file);
-                        const currentDetails = getValues().details;
-                        if (currentDetails?.proposalId) {
-                            formData.append(
-                                "proposalId",
-                                currentDetails.proposalId as string,
-                            );
-                        }
-                        try {
-                            const res = await fetch("/api/rfp/upload", {
-                                method: "POST",
-                                body: formData,
-                            });
-                            const data = await res.json();
+    return (
+        <ProposalContext.Provider
+            value={{
+                proposalPdf,
+                proposalPdfLoading,
+                pdfGenerationProgress,
+                pdfBatchProgress,
+                excelImportLoading,
+                excelPreviewLoading,
+                excelPreview,
+                excelValidationOk,
+                excelDiagnostics,
+                excelSourceData,
+                verificationManifest,
+                verificationExceptions,
+                loadExcelPreview,
+                savedProposals,
+                pdfUrl,
+                activeTab,
+                setActiveTab,
+                onFormSubmit,
+                newProposal,
+                resetProposal,
+                generatePdf,
+                removeFinalPdf,
+                downloadPdf,
+                downloadAllPdfVariants,
+                downloadBundlePdfs,
+                printPdf,
+                printLivePreview,
+                previewPdfInTab,
+                saveProposalData,
+                saveDraft,
+                deleteProposalData,
+                // Backwards-compatible alias
+                deleteProposal: deleteProposalData,
+                sendPdfToMail,
+                exportProposalDataAs,
+                // Backwards-compatible alias
+                exportProposalAs: exportProposalDataAs,
+                exportAudit,
+                importProposalData,
+                importANCExcel,
+                // AI & Verification
+                aiFields,
+                aiCitations,
+                verifiedFields,
+                setFieldVerified,
+                aiFieldTimestamps,
+                unverifiedAiFields,
+                isGatekeeperLocked,
+                trackAiFieldModification,
+                isFieldGhostActive,
+                rulesDetected,
+                setRulesDetected: (rules: any) => setRulesDetected(rules),
+                // Core State
+                risks,
+                setRisks: (newRisks: RiskItem[]) => setRisks(newRisks),
+                // Diagnostic functions
+                diagnosticOpen,
+                diagnosticPayload,
+                openDiagnostic,
+                closeDiagnostic,
+                submitDiagnostic,
+                // Alerts
+                lowMarginAlerts,
+                // RFP functions
+                rfpDocumentUrl,
+                rfpDocuments,
+                refreshRfpDocuments,
+                deleteRfpDocument,
+                aiWorkspaceSlug,
+                rfpQuestions,
+                uploadRfpDocument: async (file: File) => {
+                    const formData = new FormData();
+                    formData.append("file", file);
+                    const currentDetails = getValues().details;
+                    if (currentDetails?.proposalId) {
+                        formData.append(
+                            "proposalId",
+                            currentDetails.proposalId as string,
+                        );
+                    }
+                    try {
+                        const res = await fetch("/api/rfp/upload", {
+                            method: "POST",
+                            body: formData,
+                        });
+                        const data = await res.json();
 
-                            if (data.ok) {
-                                setRfpDocumentUrl(data.url);
-                                if (data.workspaceSlug) {
+                        if (data.ok) {
+                            setRfpDocumentUrl(data.url);
+                            if (data.workspaceSlug) {
+                                setValue(
+                                    "details.aiWorkspaceSlug",
+                                    data.workspaceSlug,
+                                );
+                            }
+                            if (data.questions) setRfpQuestions(data.questions);
+                            if (data.filterStats)
+                                setFilterStats(data.filterStats);
+
+                            // Refresh the vault list
+                            refreshRfpDocuments();
+
+                            // Handle Excel import data (exact pricing from Natalia's Excel)
+                            if (
+                                data.excelData &&
+                                data.importType === "standard_excel"
+                            ) {
+                                const excel = data.excelData;
+                                const aiPopulated: string[] = [];
+                                const citations: Record<string, string> = {};
+
+                                // Set receiver info
+                                if (excel.receiver?.name) {
                                     setValue(
-                                        "details.aiWorkspaceSlug",
-                                        data.workspaceSlug,
+                                        "receiver.name",
+                                        excel.receiver.name,
                                     );
+                                    aiPopulated.push("receiver.name");
+                                    citations["receiver.name"] =
+                                        "[Source: Natalia Excel Import]";
                                 }
-                                if (data.questions) setRfpQuestions(data.questions);
-                                if (data.filterStats)
-                                    setFilterStats(data.filterStats);
 
-                                // Refresh the vault list
-                                refreshRfpDocuments();
+                                // Set proposal details
+                                if (excel.details?.proposalName) {
+                                    setValue(
+                                        "details.proposalName",
+                                        excel.details.proposalName,
+                                    );
+                                    aiPopulated.push("details.proposalName");
+                                    citations["details.proposalName"] =
+                                        "[Source: Natalia Excel Import]";
+                                }
+                                if (excel.details?.venue) {
+                                    setValue(
+                                        "details.venue",
+                                        excel.details.venue,
+                                    );
+                                    aiPopulated.push("details.venue");
+                                    citations["details.venue"] =
+                                        "[Source: Natalia Excel Import]";
+                                }
 
-                                // Handle Excel import data (exact pricing from Natalia's Excel)
+                                // Set calculation mode to MIRROR for Excel imports (exact pricing)
+                                setValue("details.calculationMode", "MIRROR");
+                                setCalculationModeState("MIRROR");
+
+                                // Process screens from Excel
                                 if (
-                                    data.excelData &&
-                                    data.importType === "standard_excel"
+                                    excel.screens &&
+                                    Array.isArray(excel.screens) &&
+                                    excel.screens.length > 0
                                 ) {
-                                    const excel = data.excelData;
-                                    const aiPopulated: string[] = [];
-                                    const citations: Record<string, string> = {};
+                                    const normalized = excel.screens.map(
+                                        (s: any, idx: number) => {
+                                            const prefix = `details.screens[${idx}]`;
 
-                                    // Set receiver info
-                                    if (excel.receiver?.name) {
+                                            // Track all populated fields
+                                            if (s.name) {
+                                                aiPopulated.push(
+                                                    `${prefix}.name`,
+                                                );
+                                                citations[`${prefix}.name`] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.widthFt != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.widthFt`,
+                                                );
+                                                citations[`${prefix}.widthFt`] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.heightFt != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.heightFt`,
+                                                );
+                                                citations[
+                                                    `${prefix}.heightFt`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.pitchMm != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.pitchMm`,
+                                                );
+                                                citations[`${prefix}.pitchMm`] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.pixelsH != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.pixelsH`,
+                                                );
+                                                citations[`${prefix}.pixelsH`] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.pixelsW != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.pixelsW`,
+                                                );
+                                                citations[`${prefix}.pixelsW`] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.brightness != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.brightness`,
+                                                );
+                                                citations[
+                                                    `${prefix}.brightness`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.quantity != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.quantity`,
+                                                );
+                                                citations[
+                                                    `${prefix}.quantity`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.externalName) {
+                                                aiPopulated.push(
+                                                    `${prefix}.externalName`,
+                                                );
+                                                citations[
+                                                    `${prefix}.externalName`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.location) {
+                                                aiPopulated.push(
+                                                    `${prefix}.location`,
+                                                );
+                                                citations[
+                                                    `${prefix}.location`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.application) {
+                                                aiPopulated.push(
+                                                    `${prefix}.application`,
+                                                );
+                                                citations[
+                                                    `${prefix}.application`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.serviceType) {
+                                                aiPopulated.push(
+                                                    `${prefix}.serviceType`,
+                                                );
+                                                citations[
+                                                    `${prefix}.serviceType`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.installationType) {
+                                                aiPopulated.push(
+                                                    `${prefix}.installationType`,
+                                                );
+                                                citations[
+                                                    `${prefix}.installationType`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.isReplacement != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.isReplacement`,
+                                                );
+                                                citations[
+                                                    `${prefix}.isReplacement`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (
+                                                s.useExistingStructure != null
+                                            ) {
+                                                aiPopulated.push(
+                                                    `${prefix}.useExistingStructure`,
+                                                );
+                                                citations[
+                                                    `${prefix}.useExistingStructure`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.includeSpareParts != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.includeSpareParts`,
+                                                );
+                                                citations[
+                                                    `${prefix}.includeSpareParts`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.isCurved != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.isCurved`,
+                                                );
+                                                citations[
+                                                    `${prefix}.isCurved`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+                                            if (s.isDoubleSided != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.isDoubleSided`,
+                                                );
+                                                citations[
+                                                    `${prefix}.isDoubleSided`
+                                                ] =
+                                                    "[Source: Natalia Excel Import]";
+                                            }
+
+                                            return {
+                                                name:
+                                                    s.name ||
+                                                    `Screen ${idx + 1}`,
+                                                externalName:
+                                                    s.externalName ||
+                                                    s.name ||
+                                                    `Screen ${idx + 1}`,
+                                                widthFt: Number(s.widthFt ?? 0),
+                                                heightFt: Number(
+                                                    s.heightFt ?? 0,
+                                                ),
+                                                quantity: Number(
+                                                    s.quantity ?? 1,
+                                                ),
+                                                pitchMm: Number(
+                                                    s.pitchMm ?? 10,
+                                                ),
+                                                pixelsH: Number(s.pixelsH ?? 0),
+                                                pixelsW: Number(s.pixelsW ?? 0),
+                                                brightness:
+                                                    s.brightness != null
+                                                        ? String(s.brightness)
+                                                        : "",
+                                                serviceType:
+                                                    s.serviceType ||
+                                                    "Front/Rear",
+                                                application:
+                                                    s.application || "",
+                                                installationType:
+                                                    s.installationType || "",
+                                                location: s.location || "",
+                                                isReplacement:
+                                                    !!s.isReplacement,
+                                                useExistingStructure:
+                                                    !!s.useExistingStructure,
+                                                includeSpareParts:
+                                                    s.includeSpareParts !==
+                                                    false,
+                                                isCurved: !!s.isCurved,
+                                                isDoubleSided:
+                                                    !!s.isDoubleSided,
+                                            };
+                                        },
+                                    );
+
+                                    setValue("details.screens", normalized);
+                                    setAiFields(aiPopulated);
+                                    setAiCitations((prev) => ({
+                                        ...prev,
+                                        ...citations,
+                                    }));
+
+                                    // Calculate audit with Excel data
+                                    try {
+                                        const { clientSummary, internalAudit } =
+                                            calculateProposalAudit(normalized, {
+                                                taxRate: getValues(
+                                                    "details.taxRateOverride",
+                                                ),
+                                                bondPct: getValues(
+                                                    "details.bondRateOverride",
+                                                ),
+                                                projectAddress:
+                                                    `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                                                venue:
+                                                    excel.details?.venue ??
+                                                    getValues("details.venue"),
+                                            });
                                         setValue(
-                                            "receiver.name",
-                                            excel.receiver.name,
+                                            "details.internalAudit",
+                                            internalAudit,
                                         );
-                                        aiPopulated.push("receiver.name");
-                                        citations["receiver.name"] =
-                                            "[Source: Natalia Excel Import]";
-                                    }
-
-                                    // Set proposal details
-                                    if (excel.details?.proposalName) {
                                         setValue(
-                                            "details.proposalName",
-                                            excel.details.proposalName,
+                                            "details.clientSummary",
+                                            clientSummary,
                                         );
-                                        aiPopulated.push("details.proposalName");
-                                        citations["details.proposalName"] =
-                                            "[Source: Natalia Excel Import]";
-                                    }
-                                    if (excel.details?.venue) {
-                                        setValue(
-                                            "details.venue",
-                                            excel.details.venue,
+                                    } catch (e) {
+                                        console.error(
+                                            "Audit calculation failed:",
+                                            e,
                                         );
-                                        aiPopulated.push("details.venue");
-                                        citations["details.venue"] =
-                                            "[Source: Natalia Excel Import]";
                                     }
-
-                                    // Set calculation mode to MIRROR for Excel imports (exact pricing)
-                                    setValue("details.calculationMode", "MIRROR");
-                                    setCalculationModeState("MIRROR");
-
-                                    // Process screens from Excel
-                                    if (
-                                        excel.screens &&
-                                        Array.isArray(excel.screens) &&
-                                        excel.screens.length > 0
-                                    ) {
-                                        const normalized = excel.screens.map(
-                                            (s: any, idx: number) => {
-                                                const prefix = `details.screens[${idx}]`;
-
-                                                // Track all populated fields
-                                                if (s.name) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.name`,
-                                                    );
-                                                    citations[`${prefix}.name`] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.widthFt != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.widthFt`,
-                                                    );
-                                                    citations[`${prefix}.widthFt`] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.heightFt != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.heightFt`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.heightFt`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.pitchMm != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.pitchMm`,
-                                                    );
-                                                    citations[`${prefix}.pitchMm`] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.pixelsH != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.pixelsH`,
-                                                    );
-                                                    citations[`${prefix}.pixelsH`] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.pixelsW != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.pixelsW`,
-                                                    );
-                                                    citations[`${prefix}.pixelsW`] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.brightness != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.brightness`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.brightness`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.quantity != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.quantity`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.quantity`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.externalName) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.externalName`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.externalName`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.location) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.location`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.location`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.application) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.application`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.application`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.serviceType) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.serviceType`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.serviceType`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.installationType) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.installationType`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.installationType`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.isReplacement != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.isReplacement`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.isReplacement`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (
-                                                    s.useExistingStructure != null
-                                                ) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.useExistingStructure`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.useExistingStructure`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.includeSpareParts != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.includeSpareParts`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.includeSpareParts`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.isCurved != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.isCurved`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.isCurved`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-                                                if (s.isDoubleSided != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.isDoubleSided`,
-                                                    );
-                                                    citations[
-                                                        `${prefix}.isDoubleSided`
-                                                    ] =
-                                                        "[Source: Natalia Excel Import]";
-                                                }
-
-                                                return {
-                                                    name:
-                                                        s.name ||
-                                                        `Screen ${idx + 1}`,
-                                                    externalName:
-                                                        s.externalName ||
-                                                        s.name ||
-                                                        `Screen ${idx + 1}`,
-                                                    widthFt: Number(s.widthFt ?? 0),
-                                                    heightFt: Number(
-                                                        s.heightFt ?? 0,
-                                                    ),
-                                                    quantity: Number(
-                                                        s.quantity ?? 1,
-                                                    ),
-                                                    pitchMm: Number(
-                                                        s.pitchMm ?? 10,
-                                                    ),
-                                                    pixelsH: Number(s.pixelsH ?? 0),
-                                                    pixelsW: Number(s.pixelsW ?? 0),
-                                                    brightness:
-                                                        s.brightness != null
-                                                            ? String(s.brightness)
-                                                            : "",
-                                                    serviceType:
-                                                        s.serviceType ||
-                                                        "Front/Rear",
-                                                    application:
-                                                        s.application || "",
-                                                    installationType:
-                                                        s.installationType || "",
-                                                    location: s.location || "",
-                                                    isReplacement:
-                                                        !!s.isReplacement,
-                                                    useExistingStructure:
-                                                        !!s.useExistingStructure,
-                                                    includeSpareParts:
-                                                        s.includeSpareParts !==
-                                                        false,
-                                                    isCurved: !!s.isCurved,
-                                                    isDoubleSided:
-                                                        !!s.isDoubleSided,
-                                                };
-                                            },
-                                        );
-
-                                        setValue("details.screens", normalized);
-                                        setAiFields(aiPopulated);
-                                        setAiCitations((prev) => ({
-                                            ...prev,
-                                            ...citations,
-                                        }));
-
-                                        // Calculate audit with Excel data
-                                        try {
-                                            const { clientSummary, internalAudit } =
-                                                calculateProposalAudit(normalized, {
-                                                    taxRate: getValues(
-                                                        "details.taxRateOverride",
-                                                    ),
-                                                    bondPct: getValues(
-                                                        "details.bondRateOverride",
-                                                    ),
-                                                    projectAddress:
-                                                        `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
-                                                    venue:
-                                                        excel.details?.venue ??
-                                                        getValues("details.venue"),
-                                                });
-                                            setValue(
-                                                "details.internalAudit",
-                                                internalAudit,
-                                            );
-                                            setValue(
-                                                "details.clientSummary",
-                                                clientSummary,
-                                            );
-                                        } catch (e) {
-                                            console.error(
-                                                "Audit calculation failed:",
-                                                e,
-                                            );
-                                        }
-                                    }
-
-                                    // Set Excel source data for reference
-                                    setExcelSourceData(excel);
-
-                                    // Show success toast
-                                    aiExtractionSuccess();
-                                    return data;
                                 }
 
-                                // Apply AI extracted data if available (supports { value, citation } shape)
-                                if (data.extractedData) {
-                                    const ext = data.extractedData;
-                                    const v = (x: any) =>
-                                        x != null &&
-                                            typeof x === "object" &&
-                                            "value" in x
-                                            ? x.value
-                                            : x;
-                                    const c = (x: any) =>
-                                        x != null &&
-                                            typeof x === "object" &&
-                                            "citation" in x &&
-                                            typeof (x as any).citation === "string"
-                                            ? (x as any).citation
-                                            : undefined;
-                                    const aiPopulated: string[] = [];
-                                    const citations: Record<string, string> = {};
-                                    const rName = v(ext.receiver?.name);
-                                    if (rName) {
-                                        setValue("receiver.name", rName);
-                                        aiPopulated.push("receiver.name");
-                                        const cit = c(ext.receiver?.name);
-                                        if (cit) citations["receiver.name"] = cit;
-                                    }
-                                    const pName = v(ext.details?.proposalName);
-                                    if (pName) {
-                                        setValue("details.proposalName", pName);
-                                        aiPopulated.push("details.proposalName");
-                                        const cit = c(ext.details?.proposalName);
-                                        if (cit)
-                                            citations["details.proposalName"] = cit;
-                                    }
-                                    const venue =
-                                        v(ext.details?.venue) ?? v(ext.venue);
-                                    if (venue) {
-                                        setValue("details.venue", venue);
-                                        aiPopulated.push("details.venue");
-                                        const cit =
-                                            c(ext.details?.venue) ?? c(ext.venue);
-                                        if (cit) citations["details.venue"] = cit;
-                                    }
-                                    const structT = v(
-                                        ext.rulesDetected?.structuralTonnage,
-                                    );
-                                    if (structT != null) {
-                                        setValue(
-                                            "details.metadata.structuralTonnage",
-                                            Number(structT),
-                                        );
-                                        aiPopulated.push(
-                                            "details.metadata.structuralTonnage",
-                                        );
-                                        const cit = c(
-                                            ext.rulesDetected?.structuralTonnage,
-                                        );
-                                        if (cit)
-                                            citations[
-                                                "details.metadata.structuralTonnage"
-                                            ] = cit;
-                                    }
-                                    const reinfT = v(
-                                        ext.rulesDetected?.reinforcingTonnage,
-                                    );
-                                    if (reinfT != null) {
-                                        setValue(
-                                            "details.metadata.reinforcingTonnage",
-                                            Number(reinfT),
-                                        );
-                                        aiPopulated.push(
-                                            "details.metadata.reinforcingTonnage",
-                                        );
-                                        const cit = c(
-                                            ext.rulesDetected?.reinforcingTonnage,
-                                        );
-                                        if (cit)
-                                            citations[
-                                                "details.metadata.reinforcingTonnage"
-                                            ] = cit;
-                                    }
-                                    if (ext.rulesDetected)
-                                        setRulesDetected(ext.rulesDetected);
+                                // Set Excel source data for reference
+                                setExcelSourceData(excel);
 
-                                    if (
-                                        ext.details?.screens &&
-                                        Array.isArray(ext.details.screens)
-                                    ) {
-                                        const normalized = ext.details.screens.map(
-                                            (s: any, idx: number) => {
-                                                const prefix = `details.screens[${idx}]`;
-                                                const name = v(s.name);
-                                                const widthFt = v(s.widthFt);
-                                                const heightFt = v(s.heightFt);
-                                                const pitchMm = v(s.pitchMm);
-                                                const quantity = v(s.quantity);
-                                                const pixelsH = v(
-                                                    s.pixelResolutionH ?? s.pixelsH,
-                                                );
-                                                const pixelsW = v(
-                                                    s.pixelResolutionW ?? s.pixelsW,
-                                                );
-                                                const brightness = v(s.brightness);
-                                                const serviceType = v(
-                                                    s.serviceType,
-                                                );
-                                                const application = v(
-                                                    s.application,
-                                                );
-                                                if (name) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.name`,
-                                                    );
-                                                    const cit = c(s.name);
-                                                    if (cit)
-                                                        citations[
-                                                            `${prefix}.name`
-                                                        ] = cit;
-                                                }
-                                                if (widthFt != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.widthFt`,
-                                                    );
-                                                    const cit = c(s.widthFt);
-                                                    if (cit)
-                                                        citations[
-                                                            `${prefix}.widthFt`
-                                                        ] = cit;
-                                                }
-                                                if (heightFt != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.heightFt`,
-                                                    );
-                                                    const cit = c(s.heightFt);
-                                                    if (cit)
-                                                        citations[
-                                                            `${prefix}.heightFt`
-                                                        ] = cit;
-                                                }
-                                                if (pitchMm != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.pitchMm`,
-                                                    );
-                                                    const cit = c(s.pitchMm);
-                                                    if (cit)
-                                                        citations[
-                                                            `${prefix}.pitchMm`
-                                                        ] = cit;
-                                                }
-                                                if (pixelsH != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.pixelsH`,
-                                                    );
-                                                    const cit = c(
-                                                        s.pixelResolutionH ??
-                                                        s.pixelsH,
-                                                    );
-                                                    if (cit)
-                                                        citations[
-                                                            `${prefix}.pixelsH`
-                                                        ] = cit;
-                                                }
-                                                if (pixelsW != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.pixelsW`,
-                                                    );
-                                                    const cit = c(
-                                                        s.pixelResolutionW ??
-                                                        s.pixelsW,
-                                                    );
-                                                    if (cit)
-                                                        citations[
-                                                            `${prefix}.pixelsW`
-                                                        ] = cit;
-                                                }
-                                                if (brightness != null) {
-                                                    aiPopulated.push(
-                                                        `${prefix}.brightness`,
-                                                    );
-                                                    const cit = c(s.brightness);
-                                                    if (cit)
-                                                        citations[
-                                                            `${prefix}.brightness`
-                                                        ] = cit;
-                                                }
-                                                if (s.isReplacement !== undefined)
-                                                    aiPopulated.push(
-                                                        `${prefix}.isReplacement`,
-                                                    );
-
-                                                return {
-                                                    name: name || "New Screen",
-                                                    externalName:
-                                                        v(s.externalName) ||
-                                                        name ||
-                                                        "New Screen",
-                                                    widthFt: Number(widthFt ?? 0),
-                                                    heightFt: Number(heightFt ?? 0),
-                                                    quantity: Number(quantity ?? 1),
-                                                    pitchMm: Number(pitchMm ?? 10),
-                                                    pixelsH: Number(pixelsH ?? 0),
-                                                    pixelsW: Number(pixelsW ?? 0),
-                                                    brightness:
-                                                        brightness != null
-                                                            ? String(brightness)
-                                                            : "",
-                                                    serviceType:
-                                                        serviceType || "Front/Rear",
-                                                    application: application || "",
-                                                    isReplacement: !!v(
-                                                        s.isReplacement,
-                                                    ),
-                                                    useExistingStructure: !!v(
-                                                        s.useExistingStructure,
-                                                    ),
-                                                    includeSpareParts:
-                                                        v(s.includeSpareParts) !==
-                                                        false,
-                                                };
-                                            },
-                                        );
-                                        setValue("details.screens", normalized);
-                                        if (rName) setValue("receiver.name", rName);
-                                        if (pName)
-                                            setValue("details.proposalName", pName);
-                                        setAiFields(aiPopulated);
-                                        setAiCitations((prev) => ({
-                                            ...prev,
-                                            ...citations,
-                                        }));
-
-                                        try {
-                                            const { clientSummary, internalAudit } =
-                                                calculateProposalAudit(normalized, {
-                                                    taxRate: getValues(
-                                                        "details.taxRateOverride",
-                                                    ),
-                                                    bondPct: getValues(
-                                                        "details.bondRateOverride",
-                                                    ),
-                                                    structuralTonnage:
-                                                        structT != null
-                                                            ? Number(structT)
-                                                            : undefined,
-                                                    reinforcingTonnage:
-                                                        reinfT != null
-                                                            ? Number(reinfT)
-                                                            : undefined,
-                                                    projectAddress:
-                                                        `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
-                                                    venue:
-                                                        venue ??
-                                                        getValues("details.venue"),
-                                                });
-                                            setValue(
-                                                "details.internalAudit",
-                                                internalAudit,
-                                            );
-                                            setValue(
-                                                "details.clientSummary",
-                                                clientSummary,
-                                            );
-                                        } catch (e) { }
-                                    } else {
-                                        setAiCitations((prev) => ({
-                                            ...prev,
-                                            ...citations,
-                                        }));
-                                    }
-                                }
-                                // Let the user know the magic happened!
+                                // Show success toast
                                 aiExtractionSuccess();
                                 return data;
                             }
-                        } catch (e) {
-                            console.error("RFP upload error", e);
-                        }
-                    },
-                    reExtractRfp: async () => {
-                        const proposalId = getValues().details?.proposalId;
-                        const slug = getValues().details?.aiWorkspaceSlug;
-                        if (!proposalId && !slug) return null;
-                        try {
-                            const res = await fetch("/api/rfp/extract", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    proposalId: proposalId || undefined,
-                                    workspaceSlug: slug || undefined,
-                                }),
-                            });
-                            const data = await res.json();
-                            if (!data.ok || !data.extractedData)
-                                return data.extractedData ?? null;
-                            const ext = data.extractedData;
-                            const v = (x: any) =>
-                                x != null && typeof x === "object" && "value" in x
-                                    ? x.value
-                                    : x;
-                            const c = (x: any) =>
-                                x != null &&
-                                    typeof x === "object" &&
-                                    "citation" in x &&
-                                    typeof (x as any).citation === "string"
-                                    ? (x as any).citation
-                                    : undefined;
-                            const aiPopulated: string[] = [];
-                            const citations: Record<string, string> = {};
 
-                            // REQ-126: Track AI-filled fields for Blue Glow persistence
-                            const rName = v(ext.receiver?.name);
-                            if (rName) {
-                                setValue("receiver.name", rName);
-                                aiPopulated.push("receiver.name");
-                                const cit = c(ext.receiver?.name);
-                                if (cit) citations["receiver.name"] = cit;
-                            }
-                            const pName = v(ext.details?.proposalName);
-                            if (pName) {
-                                setValue("details.proposalName", pName);
-                                aiPopulated.push("details.proposalName");
-                                const cit = c(ext.details?.proposalName);
-                                if (cit) citations["details.proposalName"] = cit;
-                            }
-                            const venue = v(ext.details?.venue) ?? v(ext.venue);
-                            if (venue) {
-                                setValue("details.venue", venue);
-                                aiPopulated.push("details.venue");
-                                const cit = c(ext.details?.venue) ?? c(ext.venue);
-                                if (cit) citations["details.venue"] = cit;
-                            }
-                            const structT = v(ext.rulesDetected?.structuralTonnage);
-                            if (structT != null) {
-                                setValue(
-                                    "details.metadata.structuralTonnage",
-                                    Number(structT),
+                            // Apply AI extracted data if available (supports { value, citation } shape)
+                            if (data.extractedData) {
+                                const ext = data.extractedData;
+                                const v = (x: any) =>
+                                    x != null &&
+                                        typeof x === "object" &&
+                                        "value" in x
+                                        ? x.value
+                                        : x;
+                                const c = (x: any) =>
+                                    x != null &&
+                                        typeof x === "object" &&
+                                        "citation" in x &&
+                                        typeof (x as any).citation === "string"
+                                        ? (x as any).citation
+                                        : undefined;
+                                const aiPopulated: string[] = [];
+                                const citations: Record<string, string> = {};
+                                const rName = v(ext.receiver?.name);
+                                if (rName) {
+                                    setValue("receiver.name", rName);
+                                    aiPopulated.push("receiver.name");
+                                    const cit = c(ext.receiver?.name);
+                                    if (cit) citations["receiver.name"] = cit;
+                                }
+                                const pName = v(ext.details?.proposalName);
+                                if (pName) {
+                                    setValue("details.proposalName", pName);
+                                    aiPopulated.push("details.proposalName");
+                                    const cit = c(ext.details?.proposalName);
+                                    if (cit)
+                                        citations["details.proposalName"] = cit;
+                                }
+                                const venue =
+                                    v(ext.details?.venue) ?? v(ext.venue);
+                                if (venue) {
+                                    setValue("details.venue", venue);
+                                    aiPopulated.push("details.venue");
+                                    const cit =
+                                        c(ext.details?.venue) ?? c(ext.venue);
+                                    if (cit) citations["details.venue"] = cit;
+                                }
+                                const structT = v(
+                                    ext.rulesDetected?.structuralTonnage,
                                 );
-                                aiPopulated.push(
-                                    "details.metadata.structuralTonnage",
-                                );
-                                const cit = c(ext.rulesDetected?.structuralTonnage);
-                                if (cit)
-                                    citations[
-                                        "details.metadata.structuralTonnage"
-                                    ] = cit;
-                            }
-                            const reinfT = v(ext.rulesDetected?.reinforcingTonnage);
-                            if (reinfT != null) {
-                                setValue(
-                                    "details.metadata.reinforcingTonnage",
-                                    Number(reinfT),
-                                );
-                                aiPopulated.push(
-                                    "details.metadata.reinforcingTonnage",
-                                );
-                                const cit = c(
+                                if (structT != null) {
+                                    setValue(
+                                        "details.metadata.structuralTonnage",
+                                        Number(structT),
+                                    );
+                                    aiPopulated.push(
+                                        "details.metadata.structuralTonnage",
+                                    );
+                                    const cit = c(
+                                        ext.rulesDetected?.structuralTonnage,
+                                    );
+                                    if (cit)
+                                        citations[
+                                            "details.metadata.structuralTonnage"
+                                        ] = cit;
+                                }
+                                const reinfT = v(
                                     ext.rulesDetected?.reinforcingTonnage,
                                 );
-                                if (cit)
-                                    citations[
-                                        "details.metadata.reinforcingTonnage"
-                                    ] = cit;
+                                if (reinfT != null) {
+                                    setValue(
+                                        "details.metadata.reinforcingTonnage",
+                                        Number(reinfT),
+                                    );
+                                    aiPopulated.push(
+                                        "details.metadata.reinforcingTonnage",
+                                    );
+                                    const cit = c(
+                                        ext.rulesDetected?.reinforcingTonnage,
+                                    );
+                                    if (cit)
+                                        citations[
+                                            "details.metadata.reinforcingTonnage"
+                                        ] = cit;
+                                }
+                                if (ext.rulesDetected)
+                                    setRulesDetected(ext.rulesDetected);
+
+                                if (
+                                    ext.details?.screens &&
+                                    Array.isArray(ext.details.screens)
+                                ) {
+                                    const normalized = ext.details.screens.map(
+                                        (s: any, idx: number) => {
+                                            const prefix = `details.screens[${idx}]`;
+                                            const name = v(s.name);
+                                            const widthFt = v(s.widthFt);
+                                            const heightFt = v(s.heightFt);
+                                            const pitchMm = v(s.pitchMm);
+                                            const quantity = v(s.quantity);
+                                            const pixelsH = v(
+                                                s.pixelResolutionH ?? s.pixelsH,
+                                            );
+                                            const pixelsW = v(
+                                                s.pixelResolutionW ?? s.pixelsW,
+                                            );
+                                            const brightness = v(s.brightness);
+                                            const serviceType = v(
+                                                s.serviceType,
+                                            );
+                                            const application = v(
+                                                s.application,
+                                            );
+                                            if (name) {
+                                                aiPopulated.push(
+                                                    `${prefix}.name`,
+                                                );
+                                                const cit = c(s.name);
+                                                if (cit)
+                                                    citations[
+                                                        `${prefix}.name`
+                                                    ] = cit;
+                                            }
+                                            if (widthFt != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.widthFt`,
+                                                );
+                                                const cit = c(s.widthFt);
+                                                if (cit)
+                                                    citations[
+                                                        `${prefix}.widthFt`
+                                                    ] = cit;
+                                            }
+                                            if (heightFt != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.heightFt`,
+                                                );
+                                                const cit = c(s.heightFt);
+                                                if (cit)
+                                                    citations[
+                                                        `${prefix}.heightFt`
+                                                    ] = cit;
+                                            }
+                                            if (pitchMm != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.pitchMm`,
+                                                );
+                                                const cit = c(s.pitchMm);
+                                                if (cit)
+                                                    citations[
+                                                        `${prefix}.pitchMm`
+                                                    ] = cit;
+                                            }
+                                            if (pixelsH != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.pixelsH`,
+                                                );
+                                                const cit = c(
+                                                    s.pixelResolutionH ??
+                                                    s.pixelsH,
+                                                );
+                                                if (cit)
+                                                    citations[
+                                                        `${prefix}.pixelsH`
+                                                    ] = cit;
+                                            }
+                                            if (pixelsW != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.pixelsW`,
+                                                );
+                                                const cit = c(
+                                                    s.pixelResolutionW ??
+                                                    s.pixelsW,
+                                                );
+                                                if (cit)
+                                                    citations[
+                                                        `${prefix}.pixelsW`
+                                                    ] = cit;
+                                            }
+                                            if (brightness != null) {
+                                                aiPopulated.push(
+                                                    `${prefix}.brightness`,
+                                                );
+                                                const cit = c(s.brightness);
+                                                if (cit)
+                                                    citations[
+                                                        `${prefix}.brightness`
+                                                    ] = cit;
+                                            }
+                                            if (s.isReplacement !== undefined)
+                                                aiPopulated.push(
+                                                    `${prefix}.isReplacement`,
+                                                );
+
+                                            return {
+                                                name: name || "New Screen",
+                                                externalName:
+                                                    v(s.externalName) ||
+                                                    name ||
+                                                    "New Screen",
+                                                widthFt: Number(widthFt ?? 0),
+                                                heightFt: Number(heightFt ?? 0),
+                                                quantity: Number(quantity ?? 1),
+                                                pitchMm: Number(pitchMm ?? 10),
+                                                pixelsH: Number(pixelsH ?? 0),
+                                                pixelsW: Number(pixelsW ?? 0),
+                                                brightness:
+                                                    brightness != null
+                                                        ? String(brightness)
+                                                        : "",
+                                                serviceType:
+                                                    serviceType || "Front/Rear",
+                                                application: application || "",
+                                                isReplacement: !!v(
+                                                    s.isReplacement,
+                                                ),
+                                                useExistingStructure: !!v(
+                                                    s.useExistingStructure,
+                                                ),
+                                                includeSpareParts:
+                                                    v(s.includeSpareParts) !==
+                                                    false,
+                                            };
+                                        },
+                                    );
+                                    setValue("details.screens", normalized);
+                                    if (rName) setValue("receiver.name", rName);
+                                    if (pName)
+                                        setValue("details.proposalName", pName);
+                                    setAiFields(aiPopulated);
+                                    setAiCitations((prev) => ({
+                                        ...prev,
+                                        ...citations,
+                                    }));
+
+                                    try {
+                                        const { clientSummary, internalAudit } =
+                                            calculateProposalAudit(normalized, {
+                                                taxRate: getValues(
+                                                    "details.taxRateOverride",
+                                                ),
+                                                bondPct: getValues(
+                                                    "details.bondRateOverride",
+                                                ),
+                                                structuralTonnage:
+                                                    structT != null
+                                                        ? Number(structT)
+                                                        : undefined,
+                                                reinforcingTonnage:
+                                                    reinfT != null
+                                                        ? Number(reinfT)
+                                                        : undefined,
+                                                projectAddress:
+                                                    `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                                                venue:
+                                                    venue ??
+                                                    getValues("details.venue"),
+                                            });
+                                        setValue(
+                                            "details.internalAudit",
+                                            internalAudit,
+                                        );
+                                        setValue(
+                                            "details.clientSummary",
+                                            clientSummary,
+                                        );
+                                    } catch (e) { }
+                                } else {
+                                    setAiCitations((prev) => ({
+                                        ...prev,
+                                        ...citations,
+                                    }));
+                                }
                             }
-                            if (ext.rulesDetected)
-                                setRulesDetected(ext.rulesDetected);
+                            // Let the user know the magic happened!
+                            aiExtractionSuccess();
+                            return data;
+                        }
+                    } catch (e) {
+                        console.error("RFP upload error", e);
+                    }
+                },
+                reExtractRfp: async () => {
+                    const proposalId = getValues().details?.proposalId;
+                    const slug = getValues().details?.aiWorkspaceSlug;
+                    if (!proposalId && !slug) return null;
+                    try {
+                        const res = await fetch("/api/rfp/extract", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                proposalId: proposalId || undefined,
+                                workspaceSlug: slug || undefined,
+                            }),
+                        });
+                        const data = await res.json();
+                        if (!data.ok || !data.extractedData)
+                            return data.extractedData ?? null;
+                        const ext = data.extractedData;
+                        const v = (x: any) =>
+                            x != null && typeof x === "object" && "value" in x
+                                ? x.value
+                                : x;
+                        const c = (x: any) =>
+                            x != null &&
+                                typeof x === "object" &&
+                                "citation" in x &&
+                                typeof (x as any).citation === "string"
+                                ? (x as any).citation
+                                : undefined;
+                        const aiPopulated: string[] = [];
+                        const citations: Record<string, string> = {};
+
+                        // REQ-126: Track AI-filled fields for Blue Glow persistence
+                        const rName = v(ext.receiver?.name);
+                        if (rName) {
+                            setValue("receiver.name", rName);
+                            aiPopulated.push("receiver.name");
+                            const cit = c(ext.receiver?.name);
+                            if (cit) citations["receiver.name"] = cit;
+                        }
+                        const pName = v(ext.details?.proposalName);
+                        if (pName) {
+                            setValue("details.proposalName", pName);
+                            aiPopulated.push("details.proposalName");
+                            const cit = c(ext.details?.proposalName);
+                            if (cit) citations["details.proposalName"] = cit;
+                        }
+                        const venue = v(ext.details?.venue) ?? v(ext.venue);
+                        if (venue) {
+                            setValue("details.venue", venue);
+                            aiPopulated.push("details.venue");
+                            const cit = c(ext.details?.venue) ?? c(ext.venue);
+                            if (cit) citations["details.venue"] = cit;
+                        }
+                        const structT = v(ext.rulesDetected?.structuralTonnage);
+                        if (structT != null) {
+                            setValue(
+                                "details.metadata.structuralTonnage",
+                                Number(structT),
+                            );
+                            aiPopulated.push(
+                                "details.metadata.structuralTonnage",
+                            );
+                            const cit = c(ext.rulesDetected?.structuralTonnage);
+                            if (cit)
+                                citations[
+                                    "details.metadata.structuralTonnage"
+                                ] = cit;
+                        }
+                        const reinfT = v(ext.rulesDetected?.reinforcingTonnage);
+                        if (reinfT != null) {
+                            setValue(
+                                "details.metadata.reinforcingTonnage",
+                                Number(reinfT),
+                            );
+                            aiPopulated.push(
+                                "details.metadata.reinforcingTonnage",
+                            );
+                            const cit = c(
+                                ext.rulesDetected?.reinforcingTonnage,
+                            );
+                            if (cit)
+                                citations[
+                                    "details.metadata.reinforcingTonnage"
+                                ] = cit;
+                        }
+                        if (ext.rulesDetected)
+                            setRulesDetected(ext.rulesDetected);
+
+                        // REQ-126: Persist AI-filled fields to database for Blue Glow tracking
+                        if (proposalId && aiPopulated.length > 0) {
+                            try {
+                                await fetch(`/api/projects/${proposalId}`, {
+                                    method: "PATCH",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        aiFilledFields: aiPopulated,
+                                    }),
+                                });
+                            } catch (error) {
+                                console.error(
+                                    "Failed to persist AI-filled fields:",
+                                    error,
+                                );
+                            }
+                        }
+                        if (
+                            ext.details?.screens &&
+                            Array.isArray(ext.details.screens)
+                        ) {
+                            const normalized = ext.details.screens.map(
+                                (s: any, idx: number) => {
+                                    const prefix = `details.screens[${idx}]`;
+                                    const name = v(s.name);
+                                    const widthFt = v(s.widthFt);
+                                    const heightFt = v(s.heightFt);
+                                    const pitchMm = v(s.pitchMm);
+                                    const quantity = v(s.quantity);
+                                    const pixelsH = v(
+                                        s.pixelResolutionH ?? s.pixelsH,
+                                    );
+                                    const pixelsW = v(
+                                        s.pixelResolutionW ?? s.pixelsW,
+                                    );
+                                    const brightness = v(s.brightness);
+                                    const serviceType = v(s.serviceType);
+                                    const application = v(s.application);
+                                    if (name) {
+                                        aiPopulated.push(`${prefix}.name`);
+                                        const cit = c(s.name);
+                                        if (cit)
+                                            citations[`${prefix}.name`] = cit;
+                                    }
+                                    if (widthFt != null) {
+                                        aiPopulated.push(`${prefix}.widthFt`);
+                                        const cit = c(s.widthFt);
+                                        if (cit)
+                                            citations[`${prefix}.widthFt`] =
+                                                cit;
+                                    }
+                                    if (heightFt != null) {
+                                        aiPopulated.push(`${prefix}.heightFt`);
+                                        const cit = c(s.heightFt);
+                                        if (cit)
+                                            citations[`${prefix}.heightFt`] =
+                                                cit;
+                                    }
+                                    if (pitchMm != null) {
+                                        aiPopulated.push(`${prefix}.pitchMm`);
+                                        const cit = c(s.pitchMm);
+                                        if (cit)
+                                            citations[`${prefix}.pitchMm`] =
+                                                cit;
+                                    }
+                                    if (brightness != null) {
+                                        aiPopulated.push(
+                                            `${prefix}.brightness`,
+                                        );
+                                        const cit = c(s.brightness);
+                                        if (cit)
+                                            citations[`${prefix}.brightness`] =
+                                                cit;
+                                    }
+                                    return {
+                                        name: name || "New Screen",
+                                        externalName:
+                                            v(s.externalName) ||
+                                            name ||
+                                            "New Screen",
+                                        widthFt: Number(widthFt ?? 0),
+                                        heightFt: Number(heightFt ?? 0),
+                                        quantity: Number(quantity ?? 1),
+                                        pitchMm: Number(pitchMm ?? 10),
+                                        pixelsH: Number(pixelsH ?? 0),
+                                        pixelsW: Number(pixelsW ?? 0),
+                                        brightness:
+                                            brightness != null
+                                                ? String(brightness)
+                                                : "",
+                                        serviceType:
+                                            serviceType || "Front/Rear",
+                                        application: application || "",
+                                        isReplacement: !!v(s.isReplacement),
+                                        useExistingStructure: !!v(
+                                            s.useExistingStructure,
+                                        ),
+                                        includeSpareParts:
+                                            v(s.includeSpareParts) !== false,
+                                    };
+                                },
+                            );
+                            setValue("details.screens", normalized);
+                            if (rName) setValue("receiver.name", rName);
+                            if (pName) setValue("details.proposalName", pName);
+                            setAiFields(aiPopulated);
+                            setAiCitations((prev) => ({
+                                ...prev,
+                                ...citations,
+                            }));
 
                             // REQ-126: Persist AI-filled fields to database for Blue Glow tracking
                             if (proposalId && aiPopulated.length > 0) {
@@ -4134,244 +4248,131 @@ export const ProposalContextProvider = ({
                                     );
                                 }
                             }
-                            if (
-                                ext.details?.screens &&
-                                Array.isArray(ext.details.screens)
-                            ) {
-                                const normalized = ext.details.screens.map(
-                                    (s: any, idx: number) => {
-                                        const prefix = `details.screens[${idx}]`;
-                                        const name = v(s.name);
-                                        const widthFt = v(s.widthFt);
-                                        const heightFt = v(s.heightFt);
-                                        const pitchMm = v(s.pitchMm);
-                                        const quantity = v(s.quantity);
-                                        const pixelsH = v(
-                                            s.pixelResolutionH ?? s.pixelsH,
-                                        );
-                                        const pixelsW = v(
-                                            s.pixelResolutionW ?? s.pixelsW,
-                                        );
-                                        const brightness = v(s.brightness);
-                                        const serviceType = v(s.serviceType);
-                                        const application = v(s.application);
-                                        if (name) {
-                                            aiPopulated.push(`${prefix}.name`);
-                                            const cit = c(s.name);
-                                            if (cit)
-                                                citations[`${prefix}.name`] = cit;
-                                        }
-                                        if (widthFt != null) {
-                                            aiPopulated.push(`${prefix}.widthFt`);
-                                            const cit = c(s.widthFt);
-                                            if (cit)
-                                                citations[`${prefix}.widthFt`] =
-                                                    cit;
-                                        }
-                                        if (heightFt != null) {
-                                            aiPopulated.push(`${prefix}.heightFt`);
-                                            const cit = c(s.heightFt);
-                                            if (cit)
-                                                citations[`${prefix}.heightFt`] =
-                                                    cit;
-                                        }
-                                        if (pitchMm != null) {
-                                            aiPopulated.push(`${prefix}.pitchMm`);
-                                            const cit = c(s.pitchMm);
-                                            if (cit)
-                                                citations[`${prefix}.pitchMm`] =
-                                                    cit;
-                                        }
-                                        if (brightness != null) {
-                                            aiPopulated.push(
-                                                `${prefix}.brightness`,
-                                            );
-                                            const cit = c(s.brightness);
-                                            if (cit)
-                                                citations[`${prefix}.brightness`] =
-                                                    cit;
-                                        }
-                                        return {
-                                            name: name || "New Screen",
-                                            externalName:
-                                                v(s.externalName) ||
-                                                name ||
-                                                "New Screen",
-                                            widthFt: Number(widthFt ?? 0),
-                                            heightFt: Number(heightFt ?? 0),
-                                            quantity: Number(quantity ?? 1),
-                                            pitchMm: Number(pitchMm ?? 10),
-                                            pixelsH: Number(pixelsH ?? 0),
-                                            pixelsW: Number(pixelsW ?? 0),
-                                            brightness:
-                                                brightness != null
-                                                    ? String(brightness)
-                                                    : "",
-                                            serviceType:
-                                                serviceType || "Front/Rear",
-                                            application: application || "",
-                                            isReplacement: !!v(s.isReplacement),
-                                            useExistingStructure: !!v(
-                                                s.useExistingStructure,
-                                            ),
-                                            includeSpareParts:
-                                                v(s.includeSpareParts) !== false,
-                                        };
-                                    },
+
+                            try {
+                                const { clientSummary, internalAudit } =
+                                    calculateProposalAudit(normalized, {
+                                        taxRate: getValues(
+                                            "details.taxRateOverride",
+                                        ),
+                                        bondPct: getValues(
+                                            "details.bondRateOverride",
+                                        ),
+                                        structuralTonnage:
+                                            structT != null
+                                                ? Number(structT)
+                                                : undefined,
+                                        reinforcingTonnage:
+                                            reinfT != null
+                                                ? Number(reinfT)
+                                                : undefined,
+                                        projectAddress:
+                                            `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""}`.trim(),
+                                        venue:
+                                            venue ?? getValues("details.venue"),
+                                    });
+                                setValue(
+                                    "details.internalAudit",
+                                    internalAudit,
                                 );
-                                setValue("details.screens", normalized);
-                                if (rName) setValue("receiver.name", rName);
-                                if (pName) setValue("details.proposalName", pName);
-                                setAiFields(aiPopulated);
-                                setAiCitations((prev) => ({
-                                    ...prev,
-                                    ...citations,
-                                }));
+                                setValue(
+                                    "details.clientSummary",
+                                    clientSummary,
+                                );
+                            } catch (e) {
+                                /* ignore */
+                            }
+                        } else {
+                            setAiCitations((prev) => ({
+                                ...prev,
+                                ...citations,
+                            }));
 
-                                // REQ-126: Persist AI-filled fields to database for Blue Glow tracking
-                                if (proposalId && aiPopulated.length > 0) {
-                                    try {
-                                        await fetch(`/api/projects/${proposalId}`, {
-                                            method: "PATCH",
-                                            headers: {
-                                                "Content-Type": "application/json",
-                                            },
-                                            body: JSON.stringify({
-                                                aiFilledFields: aiPopulated,
-                                            }),
-                                        });
-                                    } catch (error) {
-                                        console.error(
-                                            "Failed to persist AI-filled fields:",
-                                            error,
-                                        );
-                                    }
-                                }
-
+                            // REQ-126: Persist AI-filled fields even if no screens extracted
+                            if (proposalId && aiPopulated.length > 0) {
                                 try {
-                                    const { clientSummary, internalAudit } =
-                                        calculateProposalAudit(normalized, {
-                                            taxRate: getValues(
-                                                "details.taxRateOverride",
-                                            ),
-                                            bondPct: getValues(
-                                                "details.bondRateOverride",
-                                            ),
-                                            structuralTonnage:
-                                                structT != null
-                                                    ? Number(structT)
-                                                    : undefined,
-                                            reinforcingTonnage:
-                                                reinfT != null
-                                                    ? Number(reinfT)
-                                                    : undefined,
-                                            projectAddress:
-                                                `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""}`.trim(),
-                                            venue:
-                                                venue ?? getValues("details.venue"),
-                                        });
-                                    setValue(
-                                        "details.internalAudit",
-                                        internalAudit,
+                                    await fetch(`/api/projects/${proposalId}`, {
+                                        method: "PATCH",
+                                        headers: {
+                                            "Content-Type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                            aiFilledFields: aiPopulated,
+                                        }),
+                                    });
+                                } catch (error) {
+                                    console.error(
+                                        "Failed to persist AI-filled fields:",
+                                        error,
                                     );
-                                    setValue(
-                                        "details.clientSummary",
-                                        clientSummary,
-                                    );
-                                } catch (e) {
-                                    /* ignore */
-                                }
-                            } else {
-                                setAiCitations((prev) => ({
-                                    ...prev,
-                                    ...citations,
-                                }));
-
-                                // REQ-126: Persist AI-filled fields even if no screens extracted
-                                if (proposalId && aiPopulated.length > 0) {
-                                    try {
-                                        await fetch(`/api/projects/${proposalId}`, {
-                                            method: "PATCH",
-                                            headers: {
-                                                "Content-Type": "application/json",
-                                            },
-                                            body: JSON.stringify({
-                                                aiFilledFields: aiPopulated,
-                                            }),
-                                        });
-                                    } catch (error) {
-                                        console.error(
-                                            "Failed to persist AI-filled fields:",
-                                            error,
-                                        );
-                                    }
                                 }
                             }
-                            aiExtractionSuccess();
-                            return data.extractedData;
-                        } catch (e) {
-                            console.error("Re-extract error", e);
-                            return null;
                         }
-                    },
-                    answerRfpQuestion: async (
-                        questionId: string,
-                        answer: string,
-                    ) => {
-                        const proposalId = getValues().details?.proposalId;
-                        try {
-                            const res = await fetch("/api/rfp/answer", {
-                                method: "POST",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify({
-                                    proposalId,
-                                    questionId,
-                                    answer,
-                                }),
-                            });
-                            const data = await res.json();
-                            if (data.ok) {
-                                setRfpQuestions((prev) =>
-                                    prev.map((q) =>
-                                        q.id === questionId
-                                            ? { ...q, answer, answered: true }
-                                            : q,
-                                    ),
-                                );
-                            }
-                        } catch (e) {
-                            console.error("RFP answer error", e);
+                        aiExtractionSuccess();
+                        return data.extractedData;
+                    } catch (e) {
+                        console.error("Re-extract error", e);
+                        return null;
+                    }
+                },
+                answerRfpQuestion: async (
+                    questionId: string,
+                    answer: string,
+                ) => {
+                    const proposalId = getValues().details?.proposalId;
+                    try {
+                        const res = await fetch("/api/rfp/answer", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                proposalId,
+                                questionId,
+                                answer,
+                            }),
+                        });
+                        const data = await res.json();
+                        if (data.ok) {
+                            setRfpQuestions((prev) =>
+                                prev.map((q) =>
+                                    q.id === questionId
+                                        ? { ...q, answer, answered: true }
+                                        : q,
+                                ),
+                            );
                         }
-                    },
-                    // command execution
-                    applyCommand,
-                    executeAiCommand,
-                    aiMessages,
-                    aiLoading,
-                    duplicateScreen,
-                    proposal: watch(),
-                    headerType,
-                    setHeaderType,
-                    // Calculation Mode
-                    calculationMode,
-                    setCalculationMode,
-                    // Excel Editing
-                    updateExcelCell,
-                    filterStats,
-                    sidebarMode,
-                    setSidebarMode,
-                    // PROMPT 56: Guard function to prevent competing hydration
-                    setInitialDataApplied,
-                }}
-            >
-                {children}
+                    } catch (e) {
+                        console.error("RFP answer error", e);
+                    }
+                },
+                // command execution
+                applyCommand,
+                executeAiCommand,
+                aiMessages,
+                aiLoading,
+                duplicateScreen,
+                proposal: watch(),
+                headerType,
+                setHeaderType,
+                // Calculation Mode
+                calculationMode,
+                setCalculationMode,
+                // Excel Editing
+                updateExcelCell,
+                filterStats,
+                sidebarMode,
+                setSidebarMode,
+                // PROMPT 56: Guard function to prevent competing hydration
+                setInitialDataApplied,
+            }}
+        >
+            {children}
 
-                {/* Diagnostic overlay placed in provider so it can block the whole app */}
-                {typeof window !== "undefined"
-                    ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore - dynamic require to avoid SSR issues
-                    require("@/app/components/DiagnosticOverlay").default()
-                    : null}
-            </ProposalContext.Provider>
-        );
-    };
+            {/* Diagnostic overlay placed in provider so it can block the whole app */}
+            {typeof window !== "undefined"
+                ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore - dynamic require to avoid SSR issues
+                require("@/app/components/DiagnosticOverlay").default()
+                : null}
+        </ProposalContext.Provider>
+    );
+};
