@@ -65,14 +65,26 @@ export function groupScreensForPDF(screens: ScreenItem[]): {
 /**
  * Generate a human-readable description for a group of screens
  */
+/**
+ * Format pixel pitch with proper decimal preservation
+ * Handles edge case where "1.25" might be stored as "125" (decimal stripped)
+ */
+function formatPitchMm(value: number | undefined): string {
+    if (!value || value <= 0) return "0";
+    // If pitch > 50, it's likely a decimal-stripped value (e.g., 125 = 1.25)
+    // Normal LED pitches range from 0.7mm to 25mm
+    const corrected = value > 50 ? value / 100 : value;
+    return corrected < 2 ? corrected.toFixed(2) : corrected.toFixed(corrected % 1 === 0 ? 0 : 2);
+}
+
 function generateGroupDescription(items: ScreenItem[]): string {
     if (items.length === 1) {
         const item = items[0];
         const h = Number(item.specs?.height || 0).toFixed(2);
         const w = Number(item.specs?.width || 0).toFixed(2);
-        const p = item.specs?.pitch || 0;
-        const q = item.specs?.quantity || 1;
-        return `${item.name} - ${h}' H x ${w}' W - ${p}mm - QTY ${q}`;
+        const p = formatPitchMm(item.specs?.pitch);
+        // Note: QTY intentionally NOT included - shown in dedicated column
+        return `${item.name} - ${h}' H x ${w}' W - ${p}mm`;
     }
 
     const totalArea = items.reduce((sum, item) => {
@@ -112,11 +124,11 @@ export function convertToLineItems(screens: ScreenItem[]): {
     ungrouped.forEach(screen => {
         const h = Number(screen.specs?.height || 0).toFixed(2);
         const w = Number(screen.specs?.width || 0).toFixed(2);
-        const p = screen.specs?.pitch || 0;
-        const q = screen.specs?.quantity || 1;
+        const p = formatPitchMm(screen.specs?.pitch);
+        // Note: QTY intentionally NOT included - shown in dedicated column
         lineItems.push({
             name: screen.name,
-            description: `${h}' H x ${w}' W - ${p}mm - QTY ${q}`,
+            description: `${h}' H x ${w}' W - ${p}mm`,
             total: screen.sellPrice,
             isGroup: false,
         });

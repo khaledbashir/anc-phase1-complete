@@ -123,20 +123,48 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         return { header, specs };
     };
 
+    /**
+     * Format pixel pitch with proper decimal preservation
+     * Handles edge case where "1.25" might be stored as "125" (decimal stripped)
+     */
+    const formatPitchMm = (value: any): string => {
+        if (!value) return "";
+        const num = Number(value);
+        if (isNaN(num) || num <= 0) return "";
+        // If pitch > 50, it's likely a decimal-stripped value (e.g., 125 = 1.25, 250 = 2.5)
+        // Normal LED pitches range from 0.7mm to 25mm
+        const corrected = num > 50 ? num / 100 : num;
+        // Use precision based on value: sub-2mm gets 2 decimals, larger gets 1-2
+        return corrected < 2 ? corrected.toFixed(2) : corrected.toFixed(corrected % 1 === 0 ? 0 : 2);
+    };
+
     const buildDescription = (screen: any) => {
         const heightFt = screen?.heightFt ?? screen?.height;
         const widthFt = screen?.widthFt ?? screen?.width;
         const pitchMm = screen?.pitchMm ?? screen?.pixelPitch;
-        const qty = screen?.quantity || 1;
         const brightness = screen?.brightnessNits ?? screen?.brightness;
         const parts: string[] = [];
         if (heightFt && widthFt && Number(heightFt) > 0 && Number(widthFt) > 0) {
             parts.push(`${Number(heightFt).toFixed(1)}' × ${Number(widthFt).toFixed(1)}'`);
         }
-        if (pitchMm && Number(pitchMm) > 0) parts.push(`${pitchMm}mm pitch`);
+        const formattedPitch = formatPitchMm(pitchMm);
+        if (formattedPitch) parts.push(`${formattedPitch}mm pitch`);
         if (brightness && Number(brightness) > 0) parts.push(`${formatNumberWithCommas(brightness)} Brightness`);
-        if (qty > 1) parts.push(`QTY ${qty}`);
+        // Note: QTY intentionally NOT added here - displayed in dedicated Quantity column
         return parts.join(" · ");
+    };
+
+    /**
+     * Strip "(QTY N)" or "QTY N" patterns from description text
+     * Quantity should be shown in dedicated column, not embedded in description
+     */
+    const stripQtyFromDescription = (text: string): string => {
+        if (!text) return "";
+        return text
+            .replace(/\s*\(QTY\s*\d+\)/gi, "")  // (QTY 1), (QTY 2), etc.
+            .replace(/\s*QTY\s*\d+\s*$/gi, "") // trailing "QTY 1"
+            .replace(/\s+-\s*QTY\s*\d+/gi, "") // " - QTY 1"
+            .trim();
     };
 
     // ===== COMPONENTS =====
@@ -164,7 +192,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             {/* Two-column layout with zebra striping */}
             <div className="grid grid-cols-2 text-xs">
                 {[
-                    { label: "Pixel Pitch", value: `${screen.pitchMm ?? screen.pixelPitch ?? 0}mm` },
+                    { label: "Pixel Pitch", value: `${formatPitchMm(screen.pitchMm ?? screen.pixelPitch)}mm` },
                     { label: "Quantity", value: screen.quantity || 1 },
                     { label: "Height", value: `${Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'` },
                     { label: "Width", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
@@ -281,11 +309,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 desc = stripLeadingLocation(rawLocation, desc);
                 desc = stripLeadingLocation(effectiveLocation, desc);
                 let combined = [split.specs, desc].filter(Boolean).join(" ").trim();
-                combined = stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(combined));
-                
+                combined = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(combined)));
+
                 return {
                     key: it.id || `quote-${idx}`,
-                    name: sanitizeNitsForDisplay(header).toUpperCase(),
+                    name: stripQtyFromDescription(sanitizeNitsForDisplay(header)).toUpperCase(),
                     description: combined,
                     price: Number(it.price || 0) || 0,
                     isAlternate: it.isAlternate || false,
@@ -300,10 +328,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     const label = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
                     const split = splitDisplayNameAndSpecs(label);
                     const rawDesc = split.specs || buildDescription(screen);
-                    const cleanDesc = stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(rawDesc));
+                    const cleanDesc = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(rawDesc)));
                     return {
                         key: `screen-${screen?.id || screen?.name || idx}`,
-                        name: (split.header ? sanitizeNitsForDisplay(split.header) : getScreenHeader(screen)).toUpperCase(),
+                        name: stripQtyFromDescription((split.header ? sanitizeNitsForDisplay(split.header) : getScreenHeader(screen))).toUpperCase(),
                         description: cleanDesc,
                         price: Number(price) || 0,
                         isAlternate: screen?.isAlternate || false,
@@ -311,8 +339,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
                 ...softCostItems.map((item: any, idx: number) => ({
                     key: `soft-${idx}`,
-                    name: sanitizeNitsForDisplay((item?.name || "Item").toString()).toUpperCase(),
-                    description: stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay((item?.description || "").toString())),
+                    name: stripQtyFromDescription(sanitizeNitsForDisplay((item?.name || "Item").toString())).toUpperCase(),
+                    description: stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay((item?.description || "").toString()))),
                     price: Number(item?.sell || 0),
                     isAlternate: item?.isAlternate || false,
                 })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
@@ -333,29 +361,30 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <div className="col-span-4 text-right">Amount</div>
                     </div>
                     
-                    {/* Items - Classic hierarchy: UPPERCASE BOLD name, smaller specs */}
+                    {/* Items - Classic hierarchy: UPPERCASE BOLD name, smaller specs (tight rows) */}
                     {lineItems.map((item, idx) => (
-                        <div 
-                            key={item.key} 
-                            className="grid grid-cols-12 px-4 py-3 border-t break-inside-avoid"
-                            style={{ 
+                        <div
+                            key={item.key}
+                            className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
+                            style={{
                                 borderColor: colors.borderLight,
-                                background: idx % 2 === 1 ? colors.surface : colors.white
+                                background: idx % 2 === 1 ? colors.surface : colors.white,
+                                minHeight: '36px'
                             }}
                         >
-                            <div className="col-span-8">
-                                {/* Line 1: UPPERCASE BOLD */}
-                                <div className="font-bold text-xs tracking-wide uppercase" style={{ color: colors.text }}>
+                            <div className="col-span-8 pr-2">
+                                {/* Line 1: UPPERCASE BOLD - single line */}
+                                <div className="font-bold text-xs tracking-wide uppercase truncate" style={{ color: colors.text }}>
                                     {item.name}
                                 </div>
-                                {/* Line 2+: Smaller, lighter specs */}
+                                {/* Line 2: Specs - single line, compact */}
                                 {item.description && (
-                                    <div className="text-xs mt-0.5 leading-tight" style={{ color: colors.textMuted, fontSize: '10px' }}>
+                                    <div className="text-xs leading-none mt-0.5 truncate" style={{ color: colors.textMuted, fontSize: '9px' }}>
                                         {item.description}
                                     </div>
                                 )}
                             </div>
-                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.primaryDark }}>
+                            <div className="col-span-4 text-right font-bold text-sm whitespace-nowrap" style={{ color: colors.primaryDark }}>
                                 {formatCurrency(item.price)}
                             </div>
                         </div>
@@ -371,7 +400,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 Project Total
                             </div>
                             <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
-                                {formatCurrency(subtotal)}
+                                {formatCurrency(subtotal, subtotal === 0 ? "[PROJECT TOTAL]" : undefined)}
                             </div>
                         </div>
                     )}
