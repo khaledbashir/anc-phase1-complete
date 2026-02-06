@@ -116,15 +116,14 @@ Budget, Proposal, and LOI all use the **same** React template; mode is controlle
 
 ### 8. What causes a new project to load with a stale/old Excel file?
 
-- **Where Excel preview is stored:**  
-  - **In-memory:** React state in `contexts/ProposalContext.tsx` — `excelPreview`, `excelSourceData`, etc.  
-  - **localStorage:** Key `anc:excelPreview:${proposalId}` (function `getExcelPreviewStorageKey(proposalId)` in ProposalContext, lines 69–78). Normalized: `"new"` → `"draft"`; other ids used as-is.  
-  - **Restore:** Effect in ProposalContext (around lines 368–401) reads from localStorage by `excelPreviewStorageKey` (derived from watched `details.proposalId`) and hydrates `excelPreview` if the stored object passes `isExcelPreviewCandidate` and is newer than current.  
+- **Where Excel preview is stored (Prompt 55 — database only):**
+  - **In-memory:** React state in `contexts/ProposalContext.tsx` — `excelPreview`, `excelSourceData`, etc. Only used for NEW projects between upload and first save.
+  - **Database:** `pricingDocument`, `marginAnalysis`, `screens`, and `internalAudit` are persisted via the follow-up PATCH on project creation and auto-save thereafter. For existing projects, form data is hydrated from the database via `WizardWrapper`'s `reset(initialData)`.
+  - **No localStorage:** All `anc:excelPreview:*` localStorage keys were removed in Prompt 55. A one-time cleanup effect removes any old keys on app load.
 
-- **Why a new project could see old Excel:**  
-  - The **root** `ProposalContextProvider` in `contexts/Providers.tsx` is not given `initialData` or `projectId`. So the same provider instance is reused across navigations; its state (including `excelPreview`) is not reset when opening a new project.  
-  - If the user then opens a project whose `proposalId` matches a key that still has data in localStorage (e.g. previous session’s `anc:excelPreview:draft` or an old id), the restore effect can repopulate `excelPreview`.  
-  - **Fix applied:** A **scoped** `ProposalContextProvider` in `app/components/ProposalPage.tsx` wraps the editor with `initialData` and `projectId`. On load, a hydration effect (and projectId-change effect) in ProposalContext clears Excel state and removes localStorage keys when the project has no Excel (`!details.pricingDocument` and no `marginAnalysis`) or when `projectId` changes, so the new project starts with an empty upload zone.
+- **Why a new project could see old Excel (fixed):**
+  - A **scoped** `ProposalContextProvider` in `app/components/ProposalPage.tsx` wraps the editor with `initialData` and `projectId`. When `projectId` changes or is `"new"`, a cleanup effect clears all Excel state (`excelPreview`, `excelSourceData`, etc.) so the new project starts with an empty upload zone.
+  - For existing projects, structured data (screens, pricingDocument, marginAnalysis) is hydrated from the database — the visual ExcelPreview grid is not reconstructed since the structured data is what matters.
 
 ---
 

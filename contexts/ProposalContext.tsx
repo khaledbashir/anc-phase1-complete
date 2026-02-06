@@ -221,6 +221,8 @@ const defaultProposalContext = {
         col: number,
         value: string,
     ) => {},
+    // PROMPT 56: Guard function to prevent competing hydration
+    setInitialDataApplied: (applied: boolean) => {},
 };
 
 export const ProposalContext = createContext(defaultProposalContext);
@@ -241,6 +243,12 @@ export const ProposalContextProvider = ({
     projectId,
 }: ProposalContextProviderProps) => {
     const router = useRouter();
+    
+    // PROMPT 56: Guard to prevent competing hydration paths
+    const initialDataAppliedRef = useRef(false);
+    const setInitialDataApplied = useCallback((applied: boolean) => {
+        initialDataAppliedRef.current = applied;
+    }, []);
 
     // Toasts
     const {
@@ -719,37 +727,22 @@ export const ProposalContextProvider = ({
         return () => subscription.unsubscribe();
     }, [watch, rulesDetected, getValues]);
 
-    // Hydrate from initialData if provided (Server Component support)
-    // Prompt 53 Fix: initialData arrives in two possible shapes:
-    //   1. Form-shaped (from mapDbToFormSchema in page.tsx): { sender, receiver, details: { proposalId, screens, ... } }
-    //   2. Raw Prisma shape (legacy): { id, clientName, detailsData, senderData, ... }
-    // WizardWrapper already calls reset(initialData) for form-shaped data.
-    // This effect must NOT call reset() again for form-shaped data (it would clobber with wrong mapping).
+    // PROMPT 56: Side effects hydration ONLY - form reset happens in WizardWrapper
+    // This effect ONLY sets side-effect state (RFP docs, AI state, calculation mode)
+    // It MUST NOT call reset() - WizardWrapper is the single hydration authority
     useEffect(() => {
+        // PROMPT 56: Guard - if initialData already applied, skip ALL hydration
+        if (initialDataAppliedRef.current) {
+            console.log("[HYDRATE] Skipping ProposalContext hydration - initialData already applied by WizardWrapper");
+            return;
+        }
+
         if (!initialData || typeof reset !== "function") return;
 
         const d = initialData as any;
-        
-        // Robust detection: form-shaped has details.proposalId AND lacks raw DB fields (detailsData, senderData)
-        // Prisma-shaped has id at root AND has raw DB fields
-        const hasFormShape = !!(d.details?.proposalId);
-        const hasRawDbFields = !!(d.detailsData || d.senderData || d.receiverData);
-        const isFormShaped = hasFormShape && !hasRawDbFields;
-        
-        const effectiveId = isFormShaped
-            ? d.details.proposalId
-            : d.id;
+        const effectiveId = d.details?.proposalId || d.id;
 
-        console.log("[HYDRATE] initialData shape detection:", {
-            hasFormShape,
-            hasRawDbFields,
-            isFormShaped: isFormShaped ? "FORM" : "PRISMA",
-            effectiveId,
-            hasDetails: !!d.details,
-            hasDetailsProposalId: !!d.details?.proposalId,
-        });
-
-        // Fetch RFP documents (both shapes need this)
+        // Fetch RFP documents
         if (effectiveId && effectiveId !== "new") {
             fetch(`/api/rfp/upload?proposalId=${effectiveId}`)
                 .then((res) => res.json())
@@ -759,247 +752,40 @@ export const ProposalContextProvider = ({
                 .catch((e) => console.error("Failed to load RFP docs:", e));
         }
 
-        if (isFormShaped) {
-            // Form-shaped: WizardWrapper already called reset(initialData).
-            // Only hydrate side-effect state here — do NOT re-map or reset the form.
-            const det = (initialData as any).details || {};
+        // PROMPT 56: Only set side-effect state, NOT form data
+        // Form data is set by WizardWrapper's single hydration function
+        const det = d.details || {};
 
-            if (det.aiWorkspaceSlug) {
-                setValue("details.aiWorkspaceSlug", det.aiWorkspaceSlug);
-            }
-
-            setCalculationModeState(
-                det.calculationMode || FORM_DEFAULT_VALUES.details.calculationMode,
-            );
-
-            // Reset AI state for clean project load
-            setAiMessages([]);
-            setAiFields([]);
-            setAiCitations({});
-            setVerifiedFields({});
-            setProposalPdf(new Blob());
-
-            // Excel cleanup for projects without pricing data
-            const hasNoExcel = !det.pricingDocument && !(initialData as any).marginAnalysis;
-            if (hasNoExcel) {
-                setExcelPreview(null);
-                setExcelValidationOk(false);
-                setExcelSourceData(null);
-                setExcelDiagnostics(null);
-            }
-            return; // Skip legacy Prisma re-mapping path
+        if (det.aiWorkspaceSlug) {
+            setValue("details.aiWorkspaceSlug", det.aiWorkspaceSlug);
         }
-
-        // Legacy path: initialData is raw Prisma model shape (d.detailsData, d.senderData, etc.)
-        // Double-check we're not dealing with form-shaped data (safety guard)
-        if (hasFormShape && !hasRawDbFields) {
-            console.warn("[HYDRATE] Guard: Detected form-shaped data in legacy path, skipping reset()");
-            return;
-        }
-        
-        console.log("Hydrating ProposalContext from Server Data (legacy):", d.id);
-
-        let details: any = {};
-        let sender: any = {};
-        let receiver: any = {};
-
-        try {
-            details =
-                typeof d.detailsData === "string" &&
-                d.detailsData.trim() !== ""
-                    ? JSON.parse(d.detailsData)
-                    : d.detailsData || {};
-        } catch (e) {
-            console.error("Error parsing detailsData:", e);
-        }
-
-        try {
-            sender =
-                typeof d.senderData === "string" &&
-                d.senderData.trim() !== ""
-                    ? JSON.parse(d.senderData)
-                    : d.senderData || {};
-        } catch (e) {
-            console.error("Error parsing senderData:", e);
-        }
-
-        try {
-            receiver =
-                typeof d.receiverData === "string" &&
-                d.receiverData.trim() !== ""
-                    ? JSON.parse(d.receiverData)
-                    : d.receiverData || {};
-        } catch (e) {
-            console.error("Error parsing receiverData:", e);
-        }
-
-        const mappedData: ProposalType = {
-            sender: {
-                name: sender.name || FORM_DEFAULT_VALUES.sender.name,
-                address:
-                    sender.address || FORM_DEFAULT_VALUES.sender.address,
-                zipCode:
-                    sender.zipCode || FORM_DEFAULT_VALUES.sender.zipCode,
-                city: sender.city || FORM_DEFAULT_VALUES.sender.city,
-                country:
-                    sender.country || FORM_DEFAULT_VALUES.sender.country,
-                email: sender.email || FORM_DEFAULT_VALUES.sender.email,
-                phone: sender.phone || FORM_DEFAULT_VALUES.sender.phone,
-                customInputs: sender.customInputs || [],
-            },
-            receiver: {
-                name: receiver.name || FORM_DEFAULT_VALUES.receiver.name,
-                address:
-                    receiver.address ||
-                    FORM_DEFAULT_VALUES.receiver.address,
-                zipCode:
-                    receiver.zipCode ||
-                    FORM_DEFAULT_VALUES.receiver.zipCode,
-                city: receiver.city || FORM_DEFAULT_VALUES.receiver.city,
-                country:
-                    receiver.country ||
-                    FORM_DEFAULT_VALUES.receiver.country,
-                email: receiver.email || FORM_DEFAULT_VALUES.receiver.email,
-                phone: receiver.phone || FORM_DEFAULT_VALUES.receiver.phone,
-                customInputs: receiver.customInputs || [],
-            },
-            details: {
-                proposalId: d.id, // Use DB ID
-                proposalNumber: d.id, // Legacy compat
-                proposalName: details.proposalName || d.proposalName || "",
-                proposalDate:
-                    details.proposalDate || new Date().toISOString(),
-                dueDate: details.dueDate || new Date().toISOString(),
-                items: details.items || [],
-                currency: details.currency || "USD",
-                language: "English",
-                taxDetails:
-                    details.taxDetails ||
-                    FORM_DEFAULT_VALUES.details.taxDetails,
-                discountDetails:
-                    details.discountDetails ||
-                    FORM_DEFAULT_VALUES.details.discountDetails,
-                shippingDetails:
-                    details.shippingDetails ||
-                    FORM_DEFAULT_VALUES.details.shippingDetails,
-                paymentInformation:
-                    details.paymentInformation ||
-                    FORM_DEFAULT_VALUES.details.paymentInformation,
-                additionalNotes: details.additionalNotes || "",
-                paymentTerms: details.paymentTerms || "Net 30", // Default if missing
-                pdfTemplate: details.pdfTemplate || 5, // Default to Standard (Hybrid) template
-                venue: details.venue || "Generic",
-                subTotal: details.subTotal || 0,
-                totalAmount: details.totalAmount || 0,
-                totalAmountInWords: details.totalAmountInWords || "",
-                // Critical: Screens
-                screens: d.screens
-                    ? d.screens.map((s: any) => ({
-                          ...s,
-                          pitchMm: Number(s.pitchMm || 0),
-                          widthFt: Number(s.widthFt || 0),
-                          heightFt: Number(s.heightFt || 0),
-                          quantity: Number(s.quantity || 1),
-                      }))
-                    : details.screens || [],
-                clientName: d.clientName || "",
-                workspaceId: d.workspaceId || "",
-                aiWorkspaceSlug: d.aiWorkspaceSlug || null,
-                internalAudit:
-                    details.internalAudit ||
-                    FORM_DEFAULT_VALUES.details.internalAudit,
-                clientSummary:
-                    details.clientSummary ||
-                    FORM_DEFAULT_VALUES.details.clientSummary,
-                documentType: d.documentType || "First Round",
-                pricingType: d.pricingType || "Budget",
-                documentMode:
-                    details.documentMode ||
-                    (d.documentType === "LOI"
-                        ? "LOI"
-                        : d.pricingType === "Hard Quoted"
-                          ? "PROPOSAL"
-                          : "BUDGET"),
-                mirrorMode:
-                    d.mirrorMode ?? FORM_DEFAULT_VALUES.details.mirrorMode,
-                calculationMode:
-                    d.calculationMode ||
-                    FORM_DEFAULT_VALUES.details.calculationMode,
-                taxRateOverride:
-                    d.taxRateOverride ??
-                    details.taxRateOverride ??
-                    FORM_DEFAULT_VALUES.details.taxRateOverride,
-                bondRateOverride:
-                    d.bondRateOverride ??
-                    details.bondRateOverride ??
-                    FORM_DEFAULT_VALUES.details.bondRateOverride,
-                overheadRate: details.overheadRate ?? 0.1,
-                profitRate: details.profitRate ?? 0.05,
-                quoteItems:
-                    details.quoteItems ??
-                    FORM_DEFAULT_VALUES.details.quoteItems,
-                includePricingBreakdown:
-                    details.includePricingBreakdown ?? false,
-                showPricingTables:
-                    (details as any).showPricingTables ?? true,
-                showIntroText: (details as any).showIntroText ?? true,
-                showBaseBidTable:
-                    (details as any).showBaseBidTable ?? false,
-                showSpecifications:
-                    (details as any).showSpecifications ?? true,
-                showCompanyFooter:
-                    (details as any).showCompanyFooter ?? true,
-                showPaymentTerms: details.showPaymentTerms ?? true,
-                showSignatureBlock: details.showSignatureBlock ?? true,
-                showAssumptions: details.showAssumptions ?? false,
-                showExhibitA: details.showExhibitA ?? false,
-                showExhibitB: details.showExhibitB ?? false,
-                showNotes: (details as any).showNotes ?? true,
-                showScopeOfWork: (details as any).showScopeOfWork ?? false,
-                tableHeaderOverrides:
-                    (details as any).tableHeaderOverrides ?? {},
-                customProposalNotes:
-                    (details as any).customProposalNotes ?? "",
-            },
-        };
-
-        reset(mappedData);
-        setValue("details.aiWorkspaceSlug", d.aiWorkspaceSlug);
 
         setCalculationModeState(
-            d.calculationMode ||
-                FORM_DEFAULT_VALUES.details.calculationMode,
+            det.calculationMode || FORM_DEFAULT_VALUES.details.calculationMode,
         );
 
+        // Reset AI state for clean project load
         setAiMessages([]);
-        setAiFields(
-            d.aiFilledFields ||
-                details.metadata?.aiFilledFields ||
-                details.metadata?.filledByAI ||
-                [],
-        );
-        setAiCitations(
-            (d.aiCitations as Record<string, string>) ||
-                details.metadata?.aiCitations ||
-                {},
-        );
-        setVerifiedFields(
-            (d.verifiedFields as any) ||
-                details.metadata?.verifiedFields ||
-                {},
-        );
+        setAiFields([]);
+        setAiCitations({});
+        setVerifiedFields({});
         setProposalPdf(new Blob());
 
-        const hasNoExcel =
-            !(d.details && (d.details as any).pricingDocument) &&
-            !(d.details && (d.details as any).marginAnalysis);
+        // Excel cleanup for projects without pricing data
+        const hasNoExcel = !det.pricingDocument && !d.marginAnalysis;
         if (hasNoExcel) {
             setExcelPreview(null);
             setExcelValidationOk(false);
             setExcelSourceData(null);
             setExcelDiagnostics(null);
         }
-    }, [initialData, reset, setValue, projectId]);
+
+        // PROMPT 56: DO NOT call reset() here - WizardWrapper handles form hydration
+        console.log("[HYDRATE] ProposalContext side effects applied (RFP, AI state, calculation mode)");
+    }, [initialData, reset, setValue, setRfpDocuments, setCalculationModeState, setAiMessages, setAiFields, setAiCitations, setVerifiedFields, setProposalPdf, setExcelPreview, setExcelValidationOk, setExcelSourceData, setExcelDiagnostics]);
+
+    // PROMPT 56: Removed legacy Prisma mapping path - all data is form-shaped from mapDbToFormSchema
+    // WizardWrapper is the single hydration authority for form data
 
     // SAVE CALCULATION MODE TO DATABASE
     useEffect(() => {
@@ -4570,6 +4356,8 @@ export const ProposalContextProvider = ({
                 filterStats,
                 sidebarMode,
                 setSidebarMode,
+                // PROMPT 56: Guard function to prevent competing hydration
+                setInitialDataApplied,
             }}
         >
             {children}

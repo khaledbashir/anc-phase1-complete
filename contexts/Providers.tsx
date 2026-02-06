@@ -56,11 +56,29 @@ const Providers = ({ children }: ProvidersProps) => {
     defaultValues: FORM_DEFAULT_VALUES,
   });
 
-  // Hydrate once on mount — skip for /projects/new (must start clean)
+  // PROMPT 56: Skip localStorage draft hydration for existing projects
+  // Database is source of truth - only use localStorage for truly new/unsaved projects
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.pathname === "/projects/new") return;
+    if (typeof window === "undefined") return;
+    
+    // Skip for /projects/new (must start clean)
+    if (window.location.pathname === "/projects/new") return;
+    
+    // PROMPT 56: Skip for existing projects (they have projectId in URL)
+    // Only hydrate from localStorage for unsaved drafts (no projectId in URL)
+    const pathMatch = window.location.pathname.match(/\/projects\/([^\/]+)/);
+    const projectIdFromUrl = pathMatch?.[1];
+    
+    if (projectIdFromUrl && projectIdFromUrl !== "new") {
+      // Existing project - database is source of truth, skip localStorage
+      console.log("[HYDRATE] Skipping localStorage draft - existing project:", projectIdFromUrl);
+      return;
+    }
+    
+    // Only for unsaved drafts (no projectId in URL)
     const draft = readDraftFromLocalStorage();
     if (draft) {
+      console.log("[HYDRATE] Loading unsaved draft from localStorage");
       form.reset(draft, { keepDefaultValues: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

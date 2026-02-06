@@ -39,40 +39,59 @@ interface ProposalPageProps {
 
 /**
  * WizardWrapper - Provides wizard context to both stepper and form
+ * PROMPT 56: Single hydration authority - this is the ONLY place that sets form state on load
  */
 const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   const { handleSubmit, setValue, reset, control } = useFormContext<ProposalType>();
-  const { onFormSubmit, importANCExcel, excelImportLoading } = useProposalContext();
+  const { onFormSubmit, importANCExcel, excelImportLoading, setInitialDataApplied } = useProposalContext();
   const wizard = useWizard();
   const { activeStep } = wizard;
 
-  // Initialize form with server data
-  // Normalize projectId: treat the literal 'new' as no project
+  // PROMPT 56: Single hydration path - ONE function that sets EVERYTHING
   const normalizedProjectId = projectId && projectId !== "new" ? projectId : null;
-  const hasInitializedRef = useRef(false);
+  const hydrationCompleteRef = useRef(false);
   const lastProjectIdRef = useRef<string | undefined>(projectId);
 
-  // Reset the initialization guard when projectId actually changes (navigation)
+  // Reset hydration guard when projectId changes (navigation)
   useEffect(() => {
     if (lastProjectIdRef.current !== projectId) {
-      hasInitializedRef.current = false;
+      hydrationCompleteRef.current = false;
       lastProjectIdRef.current = projectId;
     }
   }, [projectId]);
 
+  // PROMPT 56: SINGLE HYDRATION FUNCTION - runs ONCE per project load
   useEffect(() => {
-    if (initialData && !excelImportLoading) {
-      // Only reset on initial mount or when navigating to a different project.
-      // Skip if we already initialized this project (prevents clobbering after Excel import + redirect).
-      if (!hasInitializedRef.current) {
-        reset(initialData);
-        hasInitializedRef.current = true;
-      }
-    }
+    // Skip if no initialData or Excel import in progress
+    if (!initialData || excelImportLoading) return;
+    
+    // Skip if already hydrated for this project
+    if (hydrationCompleteRef.current) return;
+
+    // PROMPT 56: ONE function that sets EVERYTHING from database
+    console.log("[HYDRATE] Loading project from database:", projectId || "new");
+    
+    // Apply form data
+    reset(initialData);
+    
+    // Ensure proposalId is set
     if (normalizedProjectId) {
       setValue("details.proposalId" as any, normalizedProjectId);
     }
-  }, [initialData, normalizedProjectId, reset, setValue, excelImportLoading]);
+
+    // Log what was hydrated
+    const data = initialData as any;
+    console.log("[HYDRATE] Complete. Screens:", data.details?.screens?.length || 0, 
+                "Tables:", data.details?.pricingDocument?.tables?.length || 0,
+                "HasMarginAnalysis:", !!data.marginAnalysis,
+                "HasPricingDoc:", !!data.details?.pricingDocument);
+
+    // Mark as complete - prevents any other hydration paths from running
+    hydrationCompleteRef.current = true;
+    if (setInitialDataApplied) {
+      setInitialDataApplied(true);
+    }
+  }, [initialData, normalizedProjectId, reset, setValue, excelImportLoading, projectId, setInitialDataApplied]);
 
   // Auto-Save
   const { status: saveStatus } = useAutoSave({
