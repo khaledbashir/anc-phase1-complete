@@ -197,3 +197,24 @@
     60% { transform: translateX(-1px) rotate(-2deg); }
     80% { transform: translateX(1px) rotate(2deg); }
 }
+
+/* ── Intelligence Brief Panel Keyframes ── */
+@keyframes insight-slide-in {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes insight-fade-in {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@keyframes insight-bottom-line {
+    0% { opacity: 0; transform: scale(0.97); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes typing-dot {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+    40% { opacity: 1; transform: scale(1); }
+}

@@ -144,7 +144,10 @@ model Proposal {
   profitRate             Decimal?            @default(0.05) // Change Order Profit %
   signerName             String?             // For consistent auto-population in Exhibits
   signerTitle            String?             // For consistent auto-population in Exhibits
-  
+
+  // Intelligence Brief (Prompt 37)
+  intelligenceBrief      Json?               // Cached "Brief Me" AI-generated project intelligence
+
   // NEW: Manual overrides and versions
   manualOverrides       ManualOverride[]
   proposalVersions      ProposalVersion[]

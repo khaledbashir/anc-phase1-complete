@@ -23,6 +23,7 @@ import { useState, useEffect } from "react";
 import ExcelGridViewer from "@/app/components/ExcelGridViewer";
 import ScreensGridEditor from "@/app/components/proposal/form/ScreensGridEditor";
 import ActivityLog from "@/app/components/proposal/ActivityLog";
+import BriefMePanel from "@/app/components/proposal/intelligence/BriefMePanel";
 import { AiWand, FormInput } from "@/app/components";
 import AgentSearchAnimation, { type AgentSearchPhase } from "@/app/components/reusables/AgentSearchAnimation";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,8 @@ const Step1Ingestion = () => {
     const [rfpUploading, setRfpUploading] = useState(false);
     const [showDetails, setShowDetails] = useState(!excelPreview);
     const [searchPhase, setSearchPhase] = useState<AgentSearchPhase>("idle");
+    const [briefPanelOpen, setBriefPanelOpen] = useState(false);
+    const [hasBrief, setHasBrief] = useState(false);
     const addressFieldsEmpty = !address?.toString().trim() && !city?.toString().trim() && !zipCode?.toString().trim();
 
     // Auto-collapse details when Excel is loaded ONLY if required fields are filled
@@ -92,6 +95,24 @@ const Step1Ingestion = () => {
                         <Settings2 className="w-3.5 h-3.5" />
                         {showDetails ? "Hide Details" : "Project Details"}
                     </button>
+
+                    {excelPreview && (
+                        <button
+                            onClick={() => setBriefPanelOpen(true)}
+                            className="relative flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20 text-xs font-medium cursor-pointer hover:bg-purple-500/20 transition-all"
+                        >
+                            <Sparkles
+                                className={cn(
+                                    "w-3.5 h-3.5",
+                                    !hasBrief && "animate-pulse",
+                                )}
+                            />
+                            <span>Brief Me</span>
+                            {hasBrief && (
+                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-brand-blue border-2 border-background" />
+                            )}
+                        </button>
+                    )}
 
                     {excelPreview && (
                         <label className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-blue/10 text-brand-blue border border-brand-blue/20 text-xs font-medium cursor-pointer hover:bg-brand-blue/20 transition-all">
@@ -446,6 +467,23 @@ const Step1Ingestion = () => {
                     )}
                 </div>
             </div>
+
+            {/* Brief Me Intelligence Panel */}
+            <BriefMePanel
+                open={briefPanelOpen}
+                onClose={() => setBriefPanelOpen(false)}
+                proposalId={proposalId}
+                clientName={watch("receiver.name") || ""}
+                address={[address, city, zipCode].filter(Boolean).join(", ")}
+                screenCount={(watch("details.screens") as any[])?.length ?? 0}
+                totalAmount={0}
+                screenSummary={
+                    ((watch("details.screens") as any[]) ?? []).map(
+                        (s: any) => `${s.name || "Screen"} — ${s.widthFt || s.width || "?"}×${s.heightFt || s.height || "?"}ft`,
+                    )
+                }
+                onBriefLoaded={setHasBrief}
+            />
         </div>
     );
 };
