@@ -6,12 +6,12 @@ import { formatCurrency } from "@/lib/helpers";
 // CLASSIC MIRROR SECTION
 // ============================================================================
 
-export const MirrorPricingSection = ({ document }: { document: PricingDocument }) => {
+export const MirrorPricingSection = ({ document, overrides }: { document: PricingDocument; overrides?: Record<string, string> }) => {
     return (
         <div className="px-4 mt-8 break-inside-avoid">
             {/* Note: Title is rendered by parent usually, but we can include it here if needed */}
             {document.tables.map((table, idx) => (
-                <ClassicMirrorTable key={table.id || idx} table={table} />
+                <ClassicMirrorTable key={table.id || idx} table={table} overrides={overrides} />
             ))}
 
             {/* Document Total - Only show if there are multiple tables to verify total */}
@@ -29,13 +29,14 @@ export const MirrorPricingSection = ({ document }: { document: PricingDocument }
     );
 };
 
-const ClassicMirrorTable = ({ table }: { table: PricingTable }) => {
+const ClassicMirrorTable = ({ table, overrides }: { table: PricingTable; overrides?: Record<string, string> }) => {
+    const headerName = overrides?.[table.name] || table.name;
     return (
         <div className="mb-10 break-inside-avoid">
             {/* Table Name */}
-            {table.name && (
+            {headerName && (
                 <div className="flex justify-between items-center border-b-2 border-black pb-1 mb-4">
-                    <h3 className="font-bold text-lg uppercase text-black font-sans">{table.name}</h3>
+                    <h3 className="font-bold text-lg uppercase text-black font-sans">{headerName}</h3>
                 </div>
             )}
 
@@ -120,11 +121,11 @@ const ClassicMirrorTable = ({ table }: { table: PricingTable }) => {
 // PREMIUM MIRROR SECTION
 // ============================================================================
 
-export const PremiumMirrorPricingSection = ({ document }: { document: PricingDocument }) => {
+export const PremiumMirrorPricingSection = ({ document, overrides }: { document: PricingDocument; overrides?: Record<string, string> }) => {
     return (
         <div className="mt-8 break-inside-avoid">
             {document.tables.map((table, idx) => (
-                <PremiumMirrorTable key={table.id || idx} table={table} />
+                <PremiumMirrorTable key={table.id || idx} table={table} overrides={overrides} />
             ))}
 
             {/* Document Total */}
@@ -138,13 +139,14 @@ export const PremiumMirrorPricingSection = ({ document }: { document: PricingDoc
     );
 };
 
-const PremiumMirrorTable = ({ table }: { table: PricingTable }) => {
+const PremiumMirrorTable = ({ table, overrides }: { table: PricingTable; overrides?: Record<string, string> }) => {
+    const headerName = overrides?.[table.name] || table.name || "Pricing";
     return (
         <div className="mb-12">
             {/* Header */}
             <div className="flex justify-between border-b-2 border-black pb-2 mb-4">
                 <h2 className="text-xl font-bold tracking-tight text-[#002C73] font-sans">
-                    {table.name || "Pricing"}
+                    {headerName}
                 </h2>
                 {table.name ? (
                     <h2 className="text-xl font-bold tracking-tight text-[#002C73] font-sans">Pricing</h2>

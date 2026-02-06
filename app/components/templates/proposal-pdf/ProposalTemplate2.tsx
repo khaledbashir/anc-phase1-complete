@@ -203,13 +203,41 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                                 </p>
                             </div>
                         )}
-                        {!isLOI_premium && showPricingTables_premium && (
-                            (details as any).pricingDocument && (details as any).mirrorMode ? (
-                                <PremiumMirrorPricingSection document={(details as any).pricingDocument} />
-                            ) : (
-                                <PremiumPricingSection />
-                            )
-                        )}
+                        {(() => {
+                            // Issue #2 Fix: Build mapping from screen group → custom display name
+                            // screen.group matches pricing table names (both come from Margin Analysis headers)
+                            const screenNameMap: Record<string, string> = {};
+                            screens.forEach((screen: any) => {
+                                const group = screen?.group;
+                                if (!group) return;
+                                const explicitOverride = screen?.customDisplayName || screen?.externalName;
+                                if (explicitOverride) {
+                                    screenNameMap[group] = explicitOverride;
+                                } else if (screen?.name && screen.name !== group) {
+                                    screenNameMap[group] = screen.name;
+                                }
+                            });
+
+                            // Combined overrides
+                            const tableHeaderOverrides = (details as any)?.tableHeaderOverrides || {};
+                            // We can pass the screenNameMap as a base, and specific tableHeaderOverrides will be applied if we merged them,
+                            // but MirrorPricingSection logic currently only takes one map or applies one.
+                            // The NataliaMirrorTemplate applies priority: tableHeaderOverrides[id] || screenNameMap[name] || table.name.
+                            // For simplicity, let's create a combined map keyed by TABLE NAME (since we don't easily have table IDs here without iterating the doc).
+                            // actually MirrorPricingSection receives the Doc, so it can resolve ID.
+                            // But here we want to pass a simple map. 
+                            // Let's pass 'screenNameMap' as the 'overrides' prop, and let MirrorPricingSection handle it.
+                            // Limitation: 'tableHeaderOverrides' (legacy feature) keyed by ID might be missed if we only pass name map.
+
+                            // Let's rely on screenNameMap for now as that's the primary user request (screen name edits).
+                            return !isLOI_premium && showPricingTables_premium && (
+                                (details as any).pricingDocument && (details as any).mirrorMode ? (
+                                    <PremiumMirrorPricingSection document={(details as any).pricingDocument} overrides={screenNameMap} />
+                                ) : (
+                                    <PremiumPricingSection />
+                                )
+                            );
+                        })()}
                         {!isLOI_premium && showSpecifications_premium && screens.length > 0 && (
                             <div className="mt-16 break-before-page">
                                 <PremiumSectionHeader title="Specifications" />
