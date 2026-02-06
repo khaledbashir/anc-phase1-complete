@@ -231,8 +231,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / safePitch(screen)) || 0}px` },
                     { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / safePitch(screen)) || 0}px` },
                     ...(() => {
-                        const brightnessValue = Number(screen.brightnessNits ?? screen.brightness) || 0;
-                        return brightnessValue > 0 ? [{ label: "Brightness", value: `${formatNumberWithCommas(brightnessValue)} nits` }] : [];
+                        const raw = screen.brightnessNits ?? screen.brightness;
+                        if (!raw) return [];
+                        const num = Number(raw);
+                        const isNum = !isNaN(num) && num > 0;
+                        // Use formatted number if valid, otherwise use raw string
+                        const value = isNum ? `${formatNumberWithCommas(num)} nits` : raw.toString();
+                        return [{ label: "Brightness", value }];
                     })(),
                 ]
                     .filter((item) => !/Pixel\s*Density|HDR\s*Status/i.test(item.label))

@@ -27,6 +27,16 @@ This document tracks the verification and fix process for the Screen Name Mappin
 - **Download Bundle:**
   - **Findings:** The original implementation attempted to trigger 4 separate downloads sequentially. Modern browsers block automatic downloads after the first one.
   - **Fix:** Implemented client-side bundling using `jszip`. Now all PDFs and the Excel audit are fetched, zipped, and downloaded as a single `.zip` file.
+-### 3. Live Preview Overrides & UI Fixes (Implemented & Pushed)
+- **Problem:** Users could not rename headers, edit notes, or type efficiently due to input lag. Toggles were also "missing" (collapsed by default).
+- **Fix:**
+  - **Input Performance:** Refactored `PricingTableEditor.tsx` to use local state (`DebouncedInput`), preventing re-renders on every keystroke.
+  - **Toggle Visibility:** Updated `Step4Export.tsx` to default the "Edit Document Text" panel to *Expanded*.
+  - **Logic:** Implemented override lookups allowing users to rename pricing tables and add custom notes that reflect in the PDF.
+
+### 4. Brief Me Functionality (Next Steps)
+- **Status:** Investigating server port / 404 error.
+- **Plan:** Verify `brief` generation endpoint once environment connectivity is stable.
 - **Brief Me:**
   - **Findings:** Investigating API connectivity. `curl` to `localhost:3000` returned 404 from Easypanel, suggesting the app is running on a different port or intercepted.
   - **Next Steps:** Identifying the correct port and testing the `/api/agent/intelligence-brief` endpoint.
