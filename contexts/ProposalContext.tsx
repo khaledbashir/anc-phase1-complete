@@ -66,16 +66,9 @@ export type ExcelPreview = {
     loadedAt: number;
 };
 
-const LOCAL_STORAGE_EXCEL_PREVIEW_PREFIX = "anc:excelPreview:";
-
-function getExcelPreviewStorageKey(proposalId: unknown) {
-    const normalizedRaw =
-        typeof proposalId === "string" && proposalId.trim() !== ""
-            ? proposalId.trim()
-            : "draft";
-    const normalized = normalizedRaw === "new" ? "draft" : normalizedRaw;
-    return `${LOCAL_STORAGE_EXCEL_PREVIEW_PREFIX}${normalized}`;
-}
+// PROMPT 55: Removed localStorage for Excel preview - database is source of truth
+// ExcelPreview is only kept in memory for new projects until first save
+// For existing projects, form data (screens, pricingDocument, marginAnalysis) is hydrated from database
 
 function computeExcelValidationOkFromSheets(sheets: ExcelPreviewSheet[]) {
     const ledSheet = sheets.find((s) => {
@@ -299,73 +292,12 @@ export const ProposalContextProvider = ({
     >([]);
     const [activeTab, setActiveTab] = useState<string>("client");
 
-    const watchedProposalId = watch("details.proposalId");
-    const excelPreviewStorageKey = useMemo(
-        () => getExcelPreviewStorageKey(watchedProposalId),
-        [watchedProposalId],
-    );
-    const hadExcelPreviewRef = useRef(false);
-    const excelPreviewPersistTimerRef = useRef<ReturnType<
-        typeof setTimeout
-    > | null>(null);
+    // PROMPT 55: Removed localStorage persistence - database is source of truth
+    // ExcelPreview is kept in memory only for new projects until first save
     const hasExcelPreview = !!excelPreview;
-    const excelPreviewLoadedAt = excelPreview?.loadedAt ?? 0;
 
-    useEffect(() => {
-        if (typeof window === "undefined") return;
-        if (excelPreviewPersistTimerRef.current) {
-            clearTimeout(excelPreviewPersistTimerRef.current);
-            excelPreviewPersistTimerRef.current = null;
-        }
-        
-        // PROMPT 54 FIX: For existing projects, use projectId prop directly instead of watchedProposalId
-        // This ensures ExcelPreview is saved to the correct key even if watchedProposalId hasn't hydrated yet
-        const isExistingProject = projectId && projectId !== "new" && typeof projectId === "string";
-        const effectiveStorageKey = isExistingProject 
-            ? getExcelPreviewStorageKey(projectId)
-            : excelPreviewStorageKey;
-        
-        // Never persist under the "draft" key — it causes cross-project pollution
-        const keyIsDraft =
-            effectiveStorageKey ===
-            `${LOCAL_STORAGE_EXCEL_PREVIEW_PREFIX}draft`;
-        try {
-            if (!excelPreview) {
-                if (!hadExcelPreviewRef.current) return;
-                window.localStorage.removeItem(effectiveStorageKey);
-                setExcelValidationOk(false);
-                return;
-            }
-            hadExcelPreviewRef.current = true;
-            if (keyIsDraft) {
-                console.log("[EXCEL PREVIEW] Skipping persist - draft key (projectId:", projectId, "watchedProposalId:", watchedProposalId, ")");
-                return;
-            }
-            excelPreviewPersistTimerRef.current = setTimeout(() => {
-                try {
-                    window.localStorage.setItem(
-                        effectiveStorageKey,
-                        JSON.stringify(excelPreview),
-                    );
-                    console.log("[EXCEL PREVIEW] Persisted preview to:", effectiveStorageKey, "projectId:", projectId);
-                } catch (e) {
-                    console.warn(
-                        "[EXCEL PREVIEW] Failed to persist preview:",
-                        e,
-                    );
-                }
-            }, 250);
-        } catch (e) {
-            console.warn("[EXCEL PREVIEW] Failed to persist preview:", e);
-        }
-        return () => {
-            if (excelPreviewPersistTimerRef.current) {
-                clearTimeout(excelPreviewPersistTimerRef.current);
-                excelPreviewPersistTimerRef.current = null;
-            }
-        };
-    }, [excelPreview, excelPreviewStorageKey, projectId, watchedProposalId]);
-
+    // PROMPT 55: Database-only hydration for existing projects
+    // ExcelPreview (visual grid) is not persisted - form data (screens, pricingDocument) is what matters
     useEffect(() => {
         if (typeof window === "undefined") return;
         
@@ -373,7 +305,7 @@ export const ProposalContextProvider = ({
         if (
             window.location.pathname === "/projects/new" ||
             isCreatingNewRef.current ||
-            projectId === "new" // Prompt 44: Also check projectId directly
+            projectId === "new"
         ) {
             console.log(
                 "[EXCEL PREVIEW] Skipping hydration - new project (pathname, ref, or projectId)",
@@ -381,158 +313,87 @@ export const ProposalContextProvider = ({
             return;
         }
 
-        // PROMPT 54 FIX: For existing projects, check database first (via initialData)
-        // The database is the source of truth for saved projects
+        // PROMPT 55: For existing projects, hydrate from database (initialData)
+        // Database is source of truth - pricingDocument, marginAnalysis, screens are all persisted
         const isExistingProject = projectId && projectId !== "new" && typeof projectId === "string";
         
         if (isExistingProject && initialData) {
-            const hasPricingData = !!(initialData as any).details?.pricingDocument || !!(initialData as any).marginAnalysis;
-            const hasScreens = !!((initialData as any).details?.screens?.length);
+            const pricingDocument = (initialData as any).details?.pricingDocument;
+            const marginAnalysis = (initialData as any).marginAnalysis;
+            const screens = (initialData as any).details?.screens || [];
+            
+            const hasPricingData = !!pricingDocument || !!marginAnalysis;
+            const hasScreens = screens.length > 0;
             
             if (hasPricingData || hasScreens) {
                 console.log(
-                    "[EXCEL PREVIEW] Hydrating from database for project:",
+                    "[EXCEL PREVIEW] Hydrated from database for project:",
                     projectId,
                     {
-                        hasPricingDocument: !!(initialData as any).details?.pricingDocument,
-                        hasMarginAnalysis: !!(initialData as any).marginAnalysis,
-                        screenCount: (initialData as any).details?.screens?.length || 0,
+                        hasPricingDocument: !!pricingDocument,
+                        pricingTablesCount: pricingDocument?.tables?.length || 0,
+                        hasMarginAnalysis: !!marginAnalysis,
+                        screenCount: screens.length,
                     }
                 );
                 
-                // CRITICAL FIX: Use projectId prop directly instead of watchedProposalId
-                // watchedProposalId may be undefined on initial load, causing key to be "draft"
-                // projectId is available immediately from URL params
-                const projectStorageKey = getExcelPreviewStorageKey(projectId);
+                // Note: ExcelPreview (visual grid) is not reconstructed from database data
+                // The form data (screens, pricingDocument, marginAnalysis) is already hydrated via WizardWrapper's reset(initialData)
+                // ExcelPreview is only useful for visual editing of raw Excel grid, which isn't needed for existing projects
+                // The structured data (pricingDocument.tables, screens) is what matters and is already in the form
                 
-                // Try to hydrate ExcelPreview from localStorage using projectId
-                // This ensures we find the preview even if watchedProposalId hasn't hydrated yet
-                try {
-                    const raw = window.localStorage.getItem(projectStorageKey);
-                    if (raw) {
-                        const parsed = JSON.parse(raw);
-                        if (isExcelPreviewCandidate(parsed)) {
-                            const shouldHydrate =
-                                !hasExcelPreview ||
-                                (typeof parsed.loadedAt === "number" &&
-                                    parsed.loadedAt > excelPreviewLoadedAt);
-                            if (shouldHydrate) {
-                                hadExcelPreviewRef.current = true;
-                                setExcelPreview(parsed);
-                                setExcelValidationOk(
-                                    computeExcelValidationOkFromSheets(parsed.sheets),
-                                );
-                                console.log("[EXCEL PREVIEW] Restored preview grid from localStorage using projectId:", projectId);
-                            }
-                        }
-                    } else {
-                        // Also try the watchedProposalId key as fallback (in case it's different)
-                        if (watchedProposalId && watchedProposalId !== projectId) {
-                            const watchedKey = getExcelPreviewStorageKey(watchedProposalId);
-                            const watchedRaw = window.localStorage.getItem(watchedKey);
-                            if (watchedRaw) {
-                                const watchedParsed = JSON.parse(watchedRaw);
-                                if (isExcelPreviewCandidate(watchedParsed)) {
-                                    hadExcelPreviewRef.current = true;
-                                    setExcelPreview(watchedParsed);
-                                    setExcelValidationOk(
-                                        computeExcelValidationOkFromSheets(watchedParsed.sheets),
-                                    );
-                                    console.log("[EXCEL PREVIEW] Restored preview grid from localStorage using watchedProposalId:", watchedProposalId);
-                                }
-                            }
-                        }
-                        
-                        if (!hasExcelPreview) {
-                            console.log("[EXCEL PREVIEW] No localStorage preview found, but form data is hydrated from database");
-                        }
-                    }
-                } catch (e) {
-                    console.warn("[EXCEL PREVIEW] Failed to hydrate preview from localStorage:", e);
-                }
-                
-                return; // Skip the draft key check for existing projects
+                return; // Skip localStorage lookup - database is source of truth
             }
         }
+    }, [projectId, initialData]);
 
-        // Legacy path: Check localStorage for draft/new projects
-        // Extra guard: if the storage key resolves to "draft", only hydrate when
-        // we are editing a real saved project (proposalId is neither empty, "new", nor "draft").
-        const keyIsDraft =
-            excelPreviewStorageKey ===
-            `${LOCAL_STORAGE_EXCEL_PREVIEW_PREFIX}draft`;
-        if (keyIsDraft) {
-            console.log(
-                "[EXCEL PREVIEW] Skipping hydration - draft key has no owning project",
-            );
-            return;
-        }
-        
-        try {
-            const raw = window.localStorage.getItem(excelPreviewStorageKey);
-            if (!raw) return;
-            const parsed = JSON.parse(raw);
-            if (!isExcelPreviewCandidate(parsed)) {
-                window.localStorage.removeItem(excelPreviewStorageKey);
-                return;
-            }
-            const shouldHydrate =
-                !hasExcelPreview ||
-                (typeof parsed.loadedAt === "number" &&
-                    parsed.loadedAt > excelPreviewLoadedAt);
-            if (!shouldHydrate) return;
-            hadExcelPreviewRef.current = true;
-            setExcelPreview(parsed);
-            setExcelValidationOk(
-                computeExcelValidationOkFromSheets(parsed.sheets),
-            );
-        } catch (e) {
-            console.warn("[EXCEL PREVIEW] Failed to hydrate preview:", e);
-        }
-    }, [excelPreviewStorageKey, hasExcelPreview, excelPreviewLoadedAt, projectId, initialData]);
-
-    // BUG FIX: When navigating to a different project (e.g. after "New Project"), clear Excel state
-    // and localStorage so the new project starts with empty upload zone instead of stale workbook.
+    // PROMPT 55: Clear Excel state when switching projects (database is source of truth, no localStorage)
     const prevProjectIdRef = useRef<string | undefined>(undefined);
     useEffect(() => {
         if (typeof window === "undefined" || projectId === undefined) return;
 
-        // CRITICAL: If projectId is "new", always clear Excel state (Prompt 44 fix)
+        // CRITICAL: If projectId is "new", always clear Excel state
         if (projectId === "new") {
             console.log("[EXCEL] Clearing state for new project");
-            hadExcelPreviewRef.current = false;
             setExcelPreview(null);
             setExcelValidationOk(false);
             setExcelSourceData(null);
             setExcelDiagnostics(null);
-            try {
-                window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
-                window.localStorage.removeItem(getExcelPreviewStorageKey("new"));
-            } catch (e) {
-                console.warn("[EXCEL] Failed to clear storage for new project:", e);
-            }
         }
 
         // Only clear when switching between different EXISTING projects
         // Do NOT clear when transitioning from "new" → real ID (that's the initial save, not a project switch)
         if (prevProjectIdRef.current !== undefined && prevProjectIdRef.current !== "new" && prevProjectIdRef.current !== projectId) {
             console.log(`[EXCEL] Project changed from ${prevProjectIdRef.current} to ${projectId}, clearing state`);
-            hadExcelPreviewRef.current = false;
             setExcelPreview(null);
             setExcelValidationOk(false);
             setExcelSourceData(null);
             setExcelDiagnostics(null);
-            try {
-                window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
-                window.localStorage.removeItem(getExcelPreviewStorageKey("new"));
-                window.localStorage.removeItem(getExcelPreviewStorageKey(prevProjectIdRef.current));
-                window.localStorage.removeItem(getExcelPreviewStorageKey(projectId));
-            } catch (e) {
-                console.warn("[EXCEL] Failed to clear storage on project change:", e);
-            }
         }
         prevProjectIdRef.current = projectId;
     }, [projectId]);
+
+    // PROMPT 55: One-time cleanup of old localStorage Excel preview keys on app load
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        try {
+            const keysToRemove: string[] = [];
+            for (let i = 0; i < window.localStorage.length; i++) {
+                const key = window.localStorage.key(i);
+                if (key && key.startsWith("anc:excelPreview:")) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => {
+                window.localStorage.removeItem(key);
+            });
+            if (keysToRemove.length > 0) {
+                console.log(`[EXCEL PREVIEW] Cleaned up ${keysToRemove.length} old localStorage keys`);
+            }
+        } catch (e) {
+            console.warn("[EXCEL PREVIEW] Failed to cleanup old localStorage keys:", e);
+        }
+    }, []); // Run once on mount
 
     // Alerts
     const [lowMarginAlerts, setLowMarginAlerts] = useState<
@@ -921,21 +782,10 @@ export const ProposalContextProvider = ({
             // Excel cleanup for projects without pricing data
             const hasNoExcel = !det.pricingDocument && !(initialData as any).marginAnalysis;
             if (hasNoExcel) {
-                hadExcelPreviewRef.current = false;
                 setExcelPreview(null);
                 setExcelValidationOk(false);
                 setExcelSourceData(null);
                 setExcelDiagnostics(null);
-                if (typeof window !== "undefined") {
-                    try {
-                        window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
-                        window.localStorage.removeItem(getExcelPreviewStorageKey("new"));
-                        if (projectId) window.localStorage.removeItem(getExcelPreviewStorageKey(projectId));
-                        if (effectiveId) window.localStorage.removeItem(getExcelPreviewStorageKey(effectiveId));
-                    } catch (e) {
-                        console.warn("[EXCEL] Failed to clear storage:", e);
-                    }
-                }
             }
             return; // Skip legacy Prisma re-mapping path
         }
@@ -1144,21 +994,10 @@ export const ProposalContextProvider = ({
             !(d.details && (d.details as any).pricingDocument) &&
             !(d.details && (d.details as any).marginAnalysis);
         if (hasNoExcel) {
-            hadExcelPreviewRef.current = false;
             setExcelPreview(null);
             setExcelValidationOk(false);
             setExcelSourceData(null);
             setExcelDiagnostics(null);
-            if (typeof window !== "undefined") {
-                try {
-                    window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
-                    window.localStorage.removeItem(getExcelPreviewStorageKey("new"));
-                    if (projectId) window.localStorage.removeItem(getExcelPreviewStorageKey(projectId));
-                    if (d.id) window.localStorage.removeItem(getExcelPreviewStorageKey(d.id));
-                } catch (e) {
-                    console.warn("[EXCEL] Failed to clear storage for clean project:", e);
-                }
-            }
         }
     }, [initialData, reset, setValue, projectId]);
 
@@ -1426,27 +1265,17 @@ export const ProposalContextProvider = ({
         (opts?: { silent?: boolean }) => {
             isCreatingNewRef.current = true;
 
-            // 1) Clear Excel keys for BOTH current proposalId AND draft (hydration uses one of these)
+            // PROMPT 55: Removed localStorage cleanup - database is source of truth
+            // Only clear the proposal draft key (form data), not Excel preview keys
             if (typeof window !== "undefined") {
                 try {
-                    const currentProposalId = getValues("details.proposalId");
                     window.localStorage.removeItem(
                         LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,
-                    );
-                    window.localStorage.removeItem(
-                        getExcelPreviewStorageKey("draft"),
-                    );
-                    window.localStorage.removeItem(
-                        getExcelPreviewStorageKey(currentProposalId),
-                    );
-                    window.localStorage.removeItem(
-                        getExcelPreviewStorageKey("new"),
                     );
                 } catch {}
             }
 
             // 2) Wipe Excel/context state so UI never shows old workbook
-            hadExcelPreviewRef.current = false;
             setExcelPreview(null);
             setExcelValidationOk(false);
             setExcelSourceData(null);
@@ -3368,22 +3197,8 @@ export const ProposalContextProvider = ({
      */
     const importANCExcel = async (file: File) => {
         // Nuclear reset: flush Excel/preview state before loading new file (stops leaks, zero-price bug, infinite loops)
+        // PROMPT 55: Removed localStorage cleanup - database is source of truth
         isCreatingNewRef.current = true;
-        if (typeof window !== "undefined") {
-            try {
-                const currentProposalId = getValues("details.proposalId");
-                window.localStorage.removeItem(
-                    getExcelPreviewStorageKey("draft"),
-                );
-                window.localStorage.removeItem(
-                    getExcelPreviewStorageKey(currentProposalId),
-                );
-                window.localStorage.removeItem(
-                    getExcelPreviewStorageKey("new"),
-                );
-            } catch {}
-        }
-        hadExcelPreviewRef.current = false;
         setExcelPreview(null);
         setExcelValidationOk(false);
         setExcelSourceData(null);
