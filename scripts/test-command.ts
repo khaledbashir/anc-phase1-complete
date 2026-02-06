@@ -58,7 +58,7 @@ async function main() {
   }
 
   // Then try workspace chat endpoint variants
-  let workspace = ANYTHING_LLM_WORKSPACE || 'anc-estimator';
+  let workspace = ANYTHING_LLM_WORKSPACE || 'researcher';
   const chatCandidates = [
     `/workspace/${workspace}/chat`,
     `/api/v1/workspace/${workspace}/chat`,

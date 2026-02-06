@@ -2312,7 +2312,7 @@ export const ProposalContextProvider = ({
                     workspace:
                         aiWorkspaceSlug ||
                         localStorage.getItem("aiWorkspaceSlug") ||
-                        "anc-estimator",
+                        "researcher",
                 }),
             });
 

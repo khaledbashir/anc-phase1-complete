@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     // 1. Explicit slug passed in body
     // 2. Proposal-level isolated slug from DB
     // 3. Fallback to generic env/default workspace
-    let effectiveWorkspaceSlug = workspace ?? ANYTHING_LLM_WORKSPACE ?? "anc-estimator";
+    let effectiveWorkspaceSlug = workspace ?? ANYTHING_LLM_WORKSPACE ?? "researcher";
 
     if (proposalId) {
       const p = await prisma.proposal.findUnique({

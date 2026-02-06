@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Determine workspace
-        let workspace = process.env.ANYTHING_LLM_WORKSPACE || "anc-estimator";
+        let workspace = process.env.ANYTHING_LLM_WORKSPACE || "researcher";
         if (proposalId && proposalId !== "new") {
             const proposal = await prisma.proposal.findUnique({
                 where: { id: proposalId },

@@ -23,7 +23,7 @@ async function triageAnnotationsAsync(
 			select: { aiWorkspaceSlug: true },
 		});
 
-		const workspaceSlug = proposal?.aiWorkspaceSlug || "anc-estimator";
+		const workspaceSlug = proposal?.aiWorkspaceSlug || "researcher";
 
 		const annotationsForTriage = records.map((r) => ({
 			id: r.id,

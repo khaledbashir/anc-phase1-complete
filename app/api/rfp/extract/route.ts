@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     const proposalId = body.proposalId as string | undefined;
     const workspaceSlugParam = body.workspaceSlug as string | undefined;
 
-    let workspaceSlug = workspaceSlugParam || process.env.ANYTHING_LLM_WORKSPACE || "anc-estimator";
+    let workspaceSlug = workspaceSlugParam || process.env.ANYTHING_LLM_WORKSPACE || "researcher";
 
     if (proposalId && !workspaceSlugParam) {
       const proposal = await prisma.proposal.findUnique({

@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "No file provided" }, { status: 400 });
     }
 
-    let workspaceSlug = process.env.ANYTHING_LLM_WORKSPACE || "anc-estimator";
+    let workspaceSlug = process.env.ANYTHING_LLM_WORKSPACE || "researcher";
 
     if (proposalId && proposalId !== "new") {
       try {

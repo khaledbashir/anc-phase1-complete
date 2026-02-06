@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Use per-project workspace if proposalId provided, else fallback
-        let workspace = process.env.ANYTHING_LLM_WORKSPACE || "anc-estimator";
+        let workspace = process.env.ANYTHING_LLM_WORKSPACE || "researcher";
         
         if (proposalId) {
             try {
