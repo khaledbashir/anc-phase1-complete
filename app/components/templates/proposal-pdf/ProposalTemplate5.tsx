@@ -205,7 +205,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     { label: "Width", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
                     { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / safePitch(screen)) || 0}px` },
                     { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / safePitch(screen)) || 0}px` },
-                    ...(screen.brightnessNits ?? screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(Number(screen.brightnessNits ?? screen.brightness) || 0)} Brightness` }] : []),
+                    ...(() => {
+                        const brightnessValue = Number(screen.brightnessNits ?? screen.brightness) || 0;
+                        return brightnessValue > 0 ? [{ label: "Brightness", value: `${formatNumberWithCommas(brightnessValue)} nits` }] : [];
+                    })(),
                 ]
                     .filter((item) => !/Pixel\s*Density|HDR\s*Status/i.test(item.label))
                     .map((item, idx) => (
@@ -228,8 +231,16 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     // Calculate project total (shared between LOI summary and pricing section)
     const calculateProjectTotal = () => {
         const softCostItems = internalAudit?.softCostItems || [];
+        const pricingDocument = (details as any)?.pricingDocument;
+        const pricingTables = (pricingDocument?.tables || []) as Array<{ id?: string; name?: string; grandTotal?: number }>;
         const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
 
+        // If pricingDocument.tables exists, sum all table grandTotals
+        if (pricingTables.length > 0) {
+            return pricingTables.reduce((sum, table) => sum + (Number(table?.grandTotal ?? 0) || 0), 0);
+        }
+
+        // Otherwise, fall back to quoteItems or screens + softCostItems
         const lineItems = quoteItems.length > 0
             ? quoteItems.map((it: any) => ({ price: Number(it.price || 0) || 0, isAlternate: it.isAlternate || false }))
             : [
@@ -401,13 +412,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             }}
                         >
                             <div className="col-span-8 pr-2">
-                                {/* Line 1: UPPERCASE BOLD - single line */}
-                                <div className="font-bold text-xs tracking-wide uppercase truncate" style={{ color: colors.text }}>
+                                {/* Line 1: UPPERCASE BOLD - allow wrapping */}
+                                <div className="font-bold text-xs tracking-wide uppercase" style={{ color: colors.text }}>
                                     {item.name}
                                 </div>
-                                {/* Line 2: Specs - single line, compact */}
+                                {/* Line 2: Specs - allow wrapping, compact */}
                                 {item.description && (
-                                    <div className="text-xs leading-none mt-0.5 truncate" style={{ color: colors.textMuted, fontSize: '9px' }}>
+                                    <div className="text-xs leading-none mt-0.5" style={{ color: colors.textMuted, fontSize: '9px' }}>
                                         {item.description}
                                     </div>
                                 )}
@@ -566,7 +577,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <p className="text-justify whitespace-pre-wrap">{customIntroText.trim()}</p>
                         ) : documentMode === "LOI" ? (
                             <p className="text-justify">
-                                This Sales Quotation will set forth the terms by which <strong style={{ color: colors.text }}>{purchaserName}</strong> ("Purchaser"){purchaserAddress ? ` located at ${purchaserAddress}` : ""} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> ("ANC") located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for the {details?.proposalName || "project"}.
+                                This Sales Quotation will set forth the terms by which <strong style={{ color: colors.text }}>{purchaserName}</strong> ("Purchaser"){purchaserAddress ? ` located at ${purchaserAddress}` : ""} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> ("ANC") located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for the {details?.proposalName || "Project Name"}.
                             </p>
                         ) : documentMode === "PROPOSAL" ? (
                             <p>

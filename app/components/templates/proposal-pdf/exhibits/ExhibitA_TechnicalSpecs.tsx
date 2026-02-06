@@ -54,12 +54,12 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                 <table className="w-full text-[9px] border-collapse break-inside-avoid" style={{ tableLayout: "fixed" }}>
                     <thead>
                         <tr className="text-[9px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300">
-                            <th className="text-left py-2 px-2 w-[22%]">Display Name</th>
-                            <th className="text-left py-2 px-2 w-[14%]">Dimensions</th>
+                            <th className="text-left py-2 px-2 w-[30%]">Display Name</th>
+                            <th className="text-left py-2 px-2 w-[15%]">Dimensions</th>
                             <th className="text-right py-2 px-2 w-[12%]">Pitch</th>
                             <th className="text-right py-2 px-2 w-[18%]">Resolution</th>
-                            <th className="text-right py-2 px-2 w-[14%]">Brightness</th>
-                            <th className="text-right py-2 px-2 w-[8%]">Qty</th>
+                            <th className="text-right py-2 px-2 w-[13%]">Brightness</th>
+                            <th className="text-right py-2 px-2 w-[12%]">Qty</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-900">
@@ -77,12 +77,13 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                                 const resolution = pixelsH && pixelsW ? `${pixelsH} x ${pixelsW}` : "—";
                                 const rawBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits;
                                 const brightnessNumber = Number(rawBrightness);
+                                // Validate that brightness is a valid number, not a hex color or other string
                                 const brightnessText =
                                     rawBrightness == null || rawBrightness === "" || rawBrightness === 0
                                         ? "—"
                                         : isFinite(brightnessNumber) && brightnessNumber > 0
                                             ? formatNumberWithCommas(brightnessNumber)
-                                            : sanitizeNitsForDisplay(rawBrightness.toString()).replace(/\s*Brightness$/i, "") || "—";
+                                            : "—";
 
                                 return (
                                     <tr
