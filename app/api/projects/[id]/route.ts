@@ -86,6 +86,14 @@ export async function PATCH(
 
         const body = await req.json();
 
+        // DEBUG: Log payload details
+        console.log(`[PATCH /api/projects/${id}] Received payload:`, {
+            hasPricingDocument: !!body.pricingDocument,
+            pricingDocumentTables: body.pricingDocument?.tables?.length,
+            hasMarginAnalysis: !!body.marginAnalysis,
+            bodySizeApprox: JSON.stringify(body).length
+        });
+
         // Extract receiverData (sent as nested object by auto-save)
         const receiverData = body.receiverData;
 
@@ -135,7 +143,7 @@ export async function PATCH(
 
             const currentAiFields = (fullProposal?.aiFilledFields as string[]) || aiFilledFields || [];
             const currentVerifiedFields = (fullProposal?.verifiedFields as any) || verifiedFields || {};
-            
+
             // Handle both array and object formats
             let verifiedFieldNames: string[] = [];
             if (Array.isArray(currentVerifiedFields)) {
