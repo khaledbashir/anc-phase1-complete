@@ -43,7 +43,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const totals = internalAudit?.totals;
 
     const documentMode = resolveDocumentMode(details);
-    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "SALES QUOTATION" : "LETTER OF INTENT";
+    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "PROPOSAL" : "LETTER OF INTENT";
     const isLOI = documentMode === "LOI";
 
     const purchaserName = receiver?.name || "Client";
@@ -418,20 +418,18 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         </div>
                     ))}
 
-                    {/* Total - Hidden for LOI (shown at top instead); white row per reference */}
-                    {!isLOI && (
-                        <div
-                            className="grid grid-cols-12 px-4 py-3 border-t-2 break-inside-avoid"
-                            style={{ borderColor: colors.border, background: colors.white }}
-                        >
-                            <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.text }}>
-                                Project Total
-                            </div>
-                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
-                                {formatCurrency(subtotal, Math.abs(subtotal) < 0.01 ? "—" : undefined)}
-                            </div>
+                    {/* PROJECT TOTAL = sum of all table/line grandTotals (show for both LOI and Budget/Proposal) */}
+                    <div
+                        className="grid grid-cols-12 px-4 py-3 border-t-2 break-inside-avoid"
+                        style={{ borderColor: colors.border, background: colors.white }}
+                    >
+                        <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.text }}>
+                            Project Total
                         </div>
-                    )}
+                        <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
+                            {formatCurrency(subtotal, Math.abs(subtotal) < 0.01 ? "—" : undefined)}
+                        </div>
+                    </div>
                 </div>
             </div>
         );
@@ -570,7 +568,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </p>
                         ) : documentMode === "PROPOSAL" ? (
                             <p>
-                                ANC is pleased to present the following {documentMode.toLowerCase()} for <strong style={{ color: colors.text }}>{purchaserName}</strong> per the specifications and pricing below.
+                                ANC is pleased to present the following proposal for <strong style={{ color: colors.text }}>{purchaserName}</strong> per the specifications and pricing below.
                             </p>
                         ) : (
                             <p>
@@ -633,8 +631,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
                         </div>
                     )}
-                    {/* 10. Exhibit B: Scope of Work (hide if empty) */}
-                    {showScopeOfWork && (
+                    {/* 10. Exhibit B: Scope of Work (hide entirely if empty) */}
+                    {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
                         <div className="px-6 break-inside-avoid">
                             <ScopeOfWorkSection />
                         </div>
