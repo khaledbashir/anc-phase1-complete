@@ -1809,651 +1809,549 @@ export const ProposalContextProvider = ({
         const formValues = getValues();
         const effectiveId = (formValues?.details?.proposalId as string) || "";
 
+        if (!effectiveId || effectiveId === "new") {
+            try {
+                const clientName =
+                    formValues?.receiver?.name ||
+                    formValues?.details?.clientName ||
+                    formValues?.details?.proposalName ||
+                    "Untitled Project";
+                // Prompt 52: Diagnostic logging for save pipeline
+                console.log("[SAVE_DRAFT] Creating new project:", {
+                    clientName,
+                    screenCount: formValues?.details?.screens?.length ?? 0,
+                    hasInternalAudit: !!(formValues?.details?.internalAudit),
+                    internalAuditType: typeof formValues?.details?.internalAudit,
+                    hasPricingDocument: !!(formValues as any)?.details?.pricingDocument,
+                    hasMarginAnalysis: !!(formValues as any)?.marginAnalysis,
+                    proposalId: effectiveId,
+                });
+                const resp = await fetch("/api/workspaces/create", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        name: clientName,
+                        userEmail:
+                            formValues?.receiver?.email || "noreply@anc.com",
+                        createInitialProposal: true,
+                        clientName,
+                        calculationMode:
+                            (formValues as any)?.details?.calculationMode ||
+                            "INTELLIGENCE",
+                        // Send empty excelData initially - we will PATCH it after import ensures sync
+                        excelData: null,
+                    }),
+                });
+                const json = await resp.json().catch(() => null);
+                if (!resp.ok) {
+                    const base = (json as any)?.error || "Create failed";
+                    const details = (json as any)?.details;
+                    return {
+                        created: false,
+                        error: details ? `${base}: ${details}` : base,
+                    };
+                }
+                if (json?.proposal?.id) {
+                    const newId = json.proposal.id;
+                    // Prompt 52 Fix: Set real proposalId in form BEFORE navigation
+                    // so auto-save recognizes it as a valid project
+                    setValue("details.proposalId" as any, newId);
+
+                    // PROMPT 57 FIX: Re-run Excel import if we have a pending file
+                    // This ensures the sequence: Create -> Import -> Save -> Navigate
+                    if (lastImportedFileRef.current) {
+                        console.log("[SAVE_DRAFT] Re-importing Excel for new project ID:", newId);
+                        await importANCExcel(lastImportedFileRef.current, true); // skipSave to avoid recursion
+                    }
+
+                    // Prompt 52 Fix: Follow-up PATCH with COMPLETE form data
+                    // workspace/create only stores excelData subset; this ensures
+                    // screens, internalAudit, documentMode, etc. are fully persisted
+                    try {
+                        const fullValues = getValues();
+                        const d = fullValues.details as any;
+                        const fullPayload = {
+                            clientName: fullValues?.receiver?.name || clientName,
+                            clientAddress: fullValues?.receiver?.address,
+                            clientCity: fullValues?.receiver?.city,
+                            clientZip: fullValues?.receiver?.zipCode,
+                            receiverData: fullValues.receiver,
+                            proposalName: d?.proposalName,
+                            venue: d?.venue,
+                            calculationMode: d?.calculationMode || calculationMode,
+                            internalAudit: d?.internalAudit,
+                            clientSummary: d?.clientSummary,
+                            screens: d?.screens,
+                            taxRateOverride: d?.taxRateOverride,
+                            bondRateOverride: d?.bondRateOverride,
+                            documentMode: d?.documentMode,
+                            documentConfig: {
+                                includePricingBreakdown: d?.includePricingBreakdown,
+                                showPricingTables: d?.showPricingTables,
+                                showIntroText: d?.showIntroText,
+                                showBaseBidTable: d?.showBaseBidTable,
+                                showSpecifications: d?.showSpecifications,
+                                showCompanyFooter: d?.showCompanyFooter,
+                                showPaymentTerms: d?.showPaymentTerms,
+                                showSignatureBlock: d?.showSignatureBlock,
+                                showExhibitA: d?.showExhibitA,
+                                showExhibitB: d?.showExhibitB,
+                                showNotes: d?.showNotes,
+                                showScopeOfWork: d?.showScopeOfWork,
+                            },
+                            quoteItems: d?.quoteItems,
+                            paymentTerms: d?.paymentTerms,
+                            additionalNotes: d?.additionalNotes,
+                            signatureBlockText: d?.signatureBlockText,
+                            loiHeaderText: d?.loiHeaderText,
+                            customProposalNotes: d?.customProposalNotes,
+                            pricingDocument: d?.pricingDocument,
+                            marginAnalysis: (fullValues as any)?.marginAnalysis,
+                            pricingMode: d?.pricingMode,
+                            purchaserLegalName: d?.purchaserLegalName,
+                            masterTableIndex: d?.masterTableIndex ?? null,
+                        };
+                        console.log("[SAVE_DRAFT] Follow-up PATCH to persist complete data:", {
+                            newId,
+                            screenCount: d?.screens?.length ?? 0,
+                            hasInternalAudit: !!d?.internalAudit,
+                            hasPricingDocument: !!d?.pricingDocument,
+                        });
+                        await fetch(`/api/projects/${newId}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(fullPayload),
+                        });
+                    } catch (patchErr) {
+                        console.error("[SAVE_DRAFT] Follow-up PATCH failed:", patchErr);
+                    }
+
+                    router.push(`/projects/${newId}`);
+                    return { created: true, projectId: newId };
+                }
+                return { created: false, error: "No proposal ID returned" };
+            } catch (e) {
+                const msg = e instanceof Error ? e.message : "Create failed";
+                return { created: false, error: msg };
+            }
+        }
+
         try {
-            const clientName =
-                formValues?.receiver?.name ||
-                formValues?.details?.clientName ||
-                formValues?.details?.proposalName ||
-                "Untitled Project";
-            // Prompt 52: Diagnostic logging for save pipeline
-            console.log("[SAVE_DRAFT] Creating new project:", {
-                clientName,
-                screenCount: formValues?.details?.screens?.length ?? 0,
-                hasInternalAudit: !!(formValues?.details?.internalAudit),
-                internalAuditType: typeof formValues?.details?.internalAudit,
-                hasPricingDocument: !!(formValues as any)?.details?.pricingDocument,
-                hasMarginAnalysis: !!(formValues as any)?.marginAnalysis,
-                proposalId: effectiveId,
+            const payload = {
+                clientName:
+                    formValues?.receiver?.name ||
+                    formValues?.details?.clientName ||
+                    "Unnamed Client",
+                clientAddress: formValues?.receiver?.address,
+                clientCity: formValues?.receiver?.city,
+                clientZip: formValues?.receiver?.zipCode,
+                proposalName: formValues?.details?.proposalName,
+                venue: (formValues as any)?.details?.venue,
+                status: formValues?.details?.status,
+                calculationMode: calculationMode,
+                internalAudit: formValues?.details?.internalAudit,
+                clientSummary: formValues?.details?.clientSummary,
+                screens: formValues?.details?.screens,
+                taxRateOverride: formValues?.details?.taxRateOverride,
+                bondRateOverride: formValues?.details?.bondRateOverride,
+                documentMode: (formValues as any)?.details?.documentMode,
+                documentConfig: {
+                    includePricingBreakdown: (formValues as any)?.details
+                        ?.includePricingBreakdown,
+                    showPricingTables: (formValues as any)?.details
+                        ?.showPricingTables,
+                    showIntroText: (formValues as any)?.details?.showIntroText,
+                    showBaseBidTable: (formValues as any)?.details
+                        ?.showBaseBidTable,
+                    showSpecifications: (formValues as any)?.details
+                        ?.showSpecifications,
+                    showCompanyFooter: (formValues as any)?.details
+                        ?.showCompanyFooter,
+                    showPaymentTerms: (formValues as any)?.details
+                        ?.showPaymentTerms,
+                    showSignatureBlock: (formValues as any)?.details
+                        ?.showSignatureBlock,
+                    showExhibitA: (formValues as any)?.details?.showExhibitA,
+                    showExhibitB: (formValues as any)?.details?.showExhibitB,
+                    showNotes: (formValues as any)?.details?.showNotes,
+                    showScopeOfWork: (formValues as any)?.details
+                        ?.showScopeOfWork,
+                },
+                quoteItems: (formValues as any)?.details?.quoteItems,
+                paymentTerms: (formValues as any)?.details?.paymentTerms,
+                additionalNotes: (formValues as any)?.details?.additionalNotes,
+                signatureBlockText: (formValues as any)?.details?.signatureBlockText,
+                loiHeaderText: (formValues as any)?.details?.loiHeaderText,
+                customProposalNotes: (formValues as any)?.details?.customProposalNotes,
+                purchaserLegalName: (formValues as any)?.details?.purchaserLegalName,
+                // CRITICAL: Persist Excel pricing data to prevent data loss on navigation
+                pricingDocument: (formValues as any)?.details?.pricingDocument,
+                marginAnalysis: (formValues as any)?.marginAnalysis,
+                pricingMode: (formValues as any)?.details?.pricingMode,
+                masterTableIndex: (formValues as any)?.details?.masterTableIndex ?? null,
+            };
+            const res = await fetch(`/api/projects/${effectiveId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
             });
-            const resp = await fetch("/api/workspaces/create", {
+            if (!res.ok) {
+                const text = await res.text();
+                try {
+                    const parsed = JSON.parse(text);
+                    const base = parsed?.error || "Save failed";
+                    const details = parsed?.details;
+                    return {
+                        created: false,
+                        error: details ? `${base}: ${details}` : base,
+                    };
+                } catch {
+                    return { created: false, error: text || "Save failed" };
+                }
+            }
+            modifiedProposalSuccess();
+            return { created: false };
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : "Save failed";
+            return { created: false, error: msg };
+        }
+    }, [getValues, router, calculationMode, aiFields, modifiedProposalSuccess]);
+
+    /**
+     * Delete a proposal from local storage based on the given index.
+     *
+     * @param {number} index - The index of the proposal to be deleted.
+     */
+    const deleteProposalData = (index: number) => {
+        if (index >= 0 && index < savedProposals.length) {
+            const updatedProposals = [...savedProposals];
+            updatedProposals.splice(index, 1);
+            setSavedProposals(updatedProposals);
+
+            const updatedProposalsJSON = JSON.stringify(updatedProposals);
+
+            localStorage.setItem("savedProposals", updatedProposalsJSON);
+        }
+    };
+
+    /**
+     * Send the proposal PDF to the specified email address.
+     *
+     * @param {string} email - The email address to which the Proposal PDF will be sent.
+     * @returns {Promise<void>} A promise that resolves once the email is successfully sent.
+     */
+    const sendPdfToMail = (email: string) => {
+        const fd = new FormData();
+        const formValues = getValues();
+        const id = formValues?.details?.proposalId ?? "";
+        fd.append("email", email);
+        fd.append("proposalPdf", proposalPdf, "proposal.pdf");
+        // Keep proposalNumber for backwards-compatibility and include proposalId
+        fd.append("proposalNumber", id);
+        fd.append("proposalId", id);
+
+        return fetch(SEND_PDF_API, {
+            method: "POST",
+            body: fd,
+        })
+            .then((res) => {
+                if (res.ok) {
+                    // Successful toast msg
+                    sendPdfSuccess();
+                } else {
+                    // Error toast msg
+                    sendPdfError({ email, sendPdfToMail });
+                }
+            })
+            .catch((error) => {
+                console.log(error);
+
+                // Error toast msg
+                sendPdfError({ email, sendPdfToMail });
+            });
+    };
+
+    /**
+     * Apply a JSON command returned by the controller LLM
+     * Supported command types: ADD_SCREEN, UPDATE_CLIENT, SET_MARGIN, SYNC_CATALOG
+     */
+    // Diagnostic overlay state
+    const [diagnosticOpen, setDiagnosticOpen] = useState(false);
+    const [diagnosticPayload, setDiagnosticPayload] = useState<any>(null);
+
+    const openDiagnostic = (payload: any) => {
+        setDiagnosticPayload(payload);
+        setDiagnosticOpen(true);
+    };
+
+    const closeDiagnostic = () => {
+        setDiagnosticPayload(null);
+        setDiagnosticOpen(false);
+    };
+
+    const submitDiagnostic = (answers: any) => {
+        // Merge answers with original payload and dispatch as ADD_SCREEN
+        const merged = { ...(diagnosticPayload?.payload || {}), ...answers };
+        applyCommand({ type: "ADD_SCREEN", payload: merged });
+        closeDiagnostic();
+    };
+
+    /**
+     * Syncs summarized line items to each screen based on current internalAudit
+     */
+    const syncLineItemsFromAudit = (screens: any[], internalAudit: any) => {
+        if (!internalAudit?.perScreen) return screens;
+
+        return screens.map((screen, idx) => {
+            // If line items are already present (e.g. from Excel Mirroring), preserve them
+            if (screen.lineItems && screen.lineItems.length > 0) {
+                return screen;
+            }
+
+            const audit = internalAudit.perScreen[idx];
+            if (!audit) return screen;
+
+            const b = audit.breakdown;
+            // Grouping logic for "Polished" client-facing PDF
+            // Use Decimal.js for deterministic distribution of margin
+            const totalCost = new Decimal(b.totalCost || 1); // Avoid division by zero
+            const ancMargin = new Decimal(b.ancMargin || 0);
+
+            const hardwareCost = new Decimal(b.hardware || 0);
+            const structureCost = new Decimal(b.structure || 0);
+            const laborCost = new Decimal(b.labor || 0);
+            const installCost = new Decimal(b.install || 0);
+            const laborInstallCost = laborCost.plus(installCost);
+
+            // Distribute margin proportionally to cost
+            const hardwareSell = roundToCents(
+                hardwareCost.plus(ancMargin.times(hardwareCost.div(totalCost))),
+            );
+            const structureSell = roundToCents(
+                structureCost.plus(
+                    ancMargin.times(structureCost.div(totalCost)),
+                ),
+            );
+            const laborSell = roundToCents(
+                laborInstallCost.plus(
+                    ancMargin.times(laborInstallCost.div(totalCost)),
+                ),
+            );
+
+            const finalClientTotal = new Decimal(b.finalClientTotal || 0);
+            // Calculate "Other" as the remainder to ensure the sum exactly matches the total
+            const otherSell = roundToCents(
+                finalClientTotal
+                    .minus(hardwareSell)
+                    .minus(structureSell)
+                    .minus(laborSell),
+            );
+
+            return {
+                ...screen,
+                lineItems: [
+                    {
+                        id: `hw-${idx}`,
+                        category: "LED Display System",
+                        price: hardwareSell.toNumber(),
+                    },
+                    {
+                        id: `st-${idx}`,
+                        category: "Structural Materials",
+                        price: structureSell.toNumber(),
+                    },
+                    {
+                        id: `inst-${idx}`,
+                        category: "Installation & Labor",
+                        price: laborSell.toNumber(),
+                    },
+                    {
+                        id: `other-${idx}`,
+                        category: "Electrical, Data & Conditions",
+                        price: otherSell.toNumber(),
+                    },
+                ],
+            };
+        });
+    };
+
+    const executeAiCommand = async (message: string) => {
+        if (!message.trim()) return;
+
+        const userMsg = {
+            id: `u-${Date.now()}`,
+            role: "user",
+            content: message,
+        };
+        setAiMessages((h) => [...h, userMsg]);
+        setAiLoading(true);
+
+        try {
+            const formValues = getValues();
+            const currentProposalId = formValues?.details?.proposalId || "new";
+
+            const res = await fetch("/api/command", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: clientName,
-                    userEmail:
-                        formValues?.receiver?.email || "noreply@anc.com",
-                    createInitialProposal: true,
-                    clientName,
-                    calculationMode:
-                        (formValues as any)?.details?.calculationMode ||
-                        "INTELLIGENCE",
-                    // Send empty excelData initially - we will PATCH it after import ensures sync
-                    excelData: null,
+                    message: message,
+                    history: aiMessages.map((m) => ({
+                        role: m.role,
+                        content: m.content,
+                    })),
+                    proposalId: currentProposalId,
+                    workspace:
+                        aiWorkspaceSlug ||
+                        localStorage.getItem("aiWorkspaceSlug") ||
+                        "researcher",
                 }),
             });
-            const json = await resp.json().catch(() => null);
-            if (!resp.ok) {
-                const base = (json as any)?.error || "Create failed";
-                const details = (json as any)?.details;
-                return {
-                    created: false,
-                    error: details ? `${base}: ${details}` : base,
-                };
+
+            const data = await res.json();
+            let responseText = data?.data?.textResponse || data?.text || "";
+
+            if (data?.data?.action) {
+                applyCommand(data.data.action);
             }
-            if (json?.proposal?.id) {
-                const newId = json.proposal.id;
-                // Prompt 52 Fix: Set real proposalId in form BEFORE navigation
-                // so auto-save recognizes it as a valid project
-                setValue("details.proposalId" as any, newId);
 
-                // PROMPT 57 FIX: Re-run Excel import if we have a pending file
-                // This ensures the sequence: Create -> Import -> Save -> Navigate
-                if (lastImportedFileRef.current) {
-                    console.log("[SAVE_DRAFT] Re-importing Excel for new project ID:", newId);
-                    await importANCExcel(lastImportedFileRef.current, true); // skipSave to avoid recursion
-                }
-
-                // Prompt 52 Fix: Follow-up PATCH with COMPLETE form data
-                // workspace/create only stores excelData subset; this ensures
-                // screens, internalAudit, documentMode, etc. are fully persisted
-                try {
-                    const fullValues = getValues();
-                    const d = fullValues.details as any;
-                    const fullPayload = {
-                        clientName: fullValues?.receiver?.name || clientName,
-                        clientAddress: fullValues?.receiver?.address,
-                        clientCity: fullValues?.receiver?.city,
-                        clientZip: fullValues?.receiver?.zipCode,
-                        receiverData: fullValues.receiver,
-                        proposalName: d?.proposalName,
-                        venue: d?.venue,
-                        calculationMode: d?.calculationMode || calculationMode,
-                        internalAudit: d?.internalAudit,
-                        clientSummary: d?.clientSummary,
-                        screens: d?.screens,
-                        taxRateOverride: d?.taxRateOverride,
-                        bondRateOverride: d?.bondRateOverride,
-                        documentMode: d?.documentMode,
-                        documentConfig: {
-                            includePricingBreakdown: d?.includePricingBreakdown,
-                            showPricingTables: d?.showPricingTables,
-                            showIntroText: d?.showIntroText,
-                            showBaseBidTable: d?.showBaseBidTable,
-                            showSpecifications: d?.showSpecifications,
-                            showCompanyFooter: d?.showCompanyFooter,
-                            showPaymentTerms: d?.showPaymentTerms,
-                            showSignatureBlock: d?.showSignatureBlock,
-                            showExhibitA: d?.showExhibitA,
-                            showExhibitB: d?.showExhibitB,
-                            showNotes: d?.showNotes,
-                            showScopeOfWork: d?.showScopeOfWork,
-                        },
-                        quoteItems: d?.quoteItems,
-                        paymentTerms: d?.paymentTerms,
-                        additionalNotes: d?.additionalNotes,
-                        signatureBlockText: d?.signatureBlockText,
-                        loiHeaderText: d?.loiHeaderText,
-                        customProposalNotes: d?.customProposalNotes,
-                        pricingDocument: d?.pricingDocument,
-                        marginAnalysis: (fullValues as any)?.marginAnalysis,
-                        pricingMode: d?.pricingMode,
-                        purchaserLegalName: d?.purchaserLegalName,
-                        masterTableIndex: d?.masterTableIndex ?? null,
-                    };
-                    console.log("[SAVE_DRAFT] Follow-up PATCH to persist complete data:", {
-                        newId,
-                        screenCount: d?.screens?.length ?? 0,
-                        hasInternalAudit: !!d?.internalAudit,
-                        hasPricingDocument: !!d?.pricingDocument,
-                    });
-                    await fetch(`/api/projects/${newId}`, {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(fullPayload),
-                    });
-                } catch (patchErr) {
-                    console.error("[SAVE_DRAFT] Follow-up PATCH failed:", patchErr);
-                }
-
-                router.push(`/projects/${newId}`);
-                return { created: true, projectId: newId };
+            if (responseText) {
+                setAiMessages((h) => [
+                    ...h,
+                    {
+                        id: `a-${Date.now()}`,
+                        role: "assistant",
+                        content: responseText,
+                    },
+                ]);
             }
-            return { created: false, error: "No proposal ID returned" };
-        } catch (e) {
-            const msg = e instanceof Error ? e.message : "Create failed";
-            return { created: false, error: msg };
+        } catch (err) {
+            console.error("AI Command error:", err);
+        } finally {
+            setAiLoading(false);
         }
-    }
-
-        try {
-        const payload = {
-            clientName:
-                formValues?.receiver?.name ||
-                formValues?.details?.clientName ||
-                "Unnamed Client",
-            clientAddress: formValues?.receiver?.address,
-            clientCity: formValues?.receiver?.city,
-            clientZip: formValues?.receiver?.zipCode,
-            proposalName: formValues?.details?.proposalName,
-            venue: (formValues as any)?.details?.venue,
-            status: formValues?.details?.status,
-            calculationMode: calculationMode,
-            internalAudit: formValues?.details?.internalAudit,
-            clientSummary: formValues?.details?.clientSummary,
-            screens: formValues?.details?.screens,
-            taxRateOverride: formValues?.details?.taxRateOverride,
-            bondRateOverride: formValues?.details?.bondRateOverride,
-            documentMode: (formValues as any)?.details?.documentMode,
-            documentConfig: {
-                includePricingBreakdown: (formValues as any)?.details
-                    ?.includePricingBreakdown,
-                showPricingTables: (formValues as any)?.details
-                    ?.showPricingTables,
-                showIntroText: (formValues as any)?.details?.showIntroText,
-                showBaseBidTable: (formValues as any)?.details
-                    ?.showBaseBidTable,
-                showSpecifications: (formValues as any)?.details
-                    ?.showSpecifications,
-                showCompanyFooter: (formValues as any)?.details
-                    ?.showCompanyFooter,
-                showPaymentTerms: (formValues as any)?.details
-                    ?.showPaymentTerms,
-                showSignatureBlock: (formValues as any)?.details
-                    ?.showSignatureBlock,
-                showExhibitA: (formValues as any)?.details?.showExhibitA,
-                showExhibitB: (formValues as any)?.details?.showExhibitB,
-                showNotes: (formValues as any)?.details?.showNotes,
-                showScopeOfWork: (formValues as any)?.details
-                    ?.showScopeOfWork,
-            },
-            quoteItems: (formValues as any)?.details?.quoteItems,
-            paymentTerms: (formValues as any)?.details?.paymentTerms,
-            additionalNotes: (formValues as any)?.details?.additionalNotes,
-            signatureBlockText: (formValues as any)?.details?.signatureBlockText,
-            loiHeaderText: (formValues as any)?.details?.loiHeaderText,
-            customProposalNotes: (formValues as any)?.details?.customProposalNotes,
-            purchaserLegalName: (formValues as any)?.details?.purchaserLegalName,
-            // CRITICAL: Persist Excel pricing data to prevent data loss on navigation
-            pricingDocument: (formValues as any)?.details?.pricingDocument,
-            marginAnalysis: (formValues as any)?.marginAnalysis,
-            pricingMode: (formValues as any)?.details?.pricingMode,
-            masterTableIndex: (formValues as any)?.details?.masterTableIndex ?? null,
-        };
-        const res = await fetch(`/api/projects/${effectiveId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-            const text = await res.text();
-            try {
-                const parsed = JSON.parse(text);
-                const base = parsed?.error || "Save failed";
-                const details = parsed?.details;
-                return {
-                    created: false,
-                    error: details ? `${base}: ${details}` : base,
-                };
-            } catch {
-                return { created: false, error: text || "Save failed" };
-            }
-        }
-        modifiedProposalSuccess();
-        return { created: false };
-    } catch (e) {
-        const msg = e instanceof Error ? e.message : "Save failed";
-        return { created: false, error: msg };
-    }
-}, [getValues, router, calculationMode, aiFields, modifiedProposalSuccess]);
-
-/**
- * Delete a proposal from local storage based on the given index.
- *
- * @param {number} index - The index of the proposal to be deleted.
- */
-const deleteProposalData = (index: number) => {
-    if (index >= 0 && index < savedProposals.length) {
-        const updatedProposals = [...savedProposals];
-        updatedProposals.splice(index, 1);
-        setSavedProposals(updatedProposals);
-
-        const updatedProposalsJSON = JSON.stringify(updatedProposals);
-
-        localStorage.setItem("savedProposals", updatedProposalsJSON);
-    }
-};
-
-/**
- * Send the proposal PDF to the specified email address.
- *
- * @param {string} email - The email address to which the Proposal PDF will be sent.
- * @returns {Promise<void>} A promise that resolves once the email is successfully sent.
- */
-const sendPdfToMail = (email: string) => {
-    const fd = new FormData();
-    const formValues = getValues();
-    const id = formValues?.details?.proposalId ?? "";
-    fd.append("email", email);
-    fd.append("proposalPdf", proposalPdf, "proposal.pdf");
-    // Keep proposalNumber for backwards-compatibility and include proposalId
-    fd.append("proposalNumber", id);
-    fd.append("proposalId", id);
-
-    return fetch(SEND_PDF_API, {
-        method: "POST",
-        body: fd,
-    })
-        .then((res) => {
-            if (res.ok) {
-                // Successful toast msg
-                sendPdfSuccess();
-            } else {
-                // Error toast msg
-                sendPdfError({ email, sendPdfToMail });
-            }
-        })
-        .catch((error) => {
-            console.log(error);
-
-            // Error toast msg
-            sendPdfError({ email, sendPdfToMail });
-        });
-};
-
-/**
- * Apply a JSON command returned by the controller LLM
- * Supported command types: ADD_SCREEN, UPDATE_CLIENT, SET_MARGIN, SYNC_CATALOG
- */
-// Diagnostic overlay state
-const [diagnosticOpen, setDiagnosticOpen] = useState(false);
-const [diagnosticPayload, setDiagnosticPayload] = useState<any>(null);
-
-const openDiagnostic = (payload: any) => {
-    setDiagnosticPayload(payload);
-    setDiagnosticOpen(true);
-};
-
-const closeDiagnostic = () => {
-    setDiagnosticPayload(null);
-    setDiagnosticOpen(false);
-};
-
-const submitDiagnostic = (answers: any) => {
-    // Merge answers with original payload and dispatch as ADD_SCREEN
-    const merged = { ...(diagnosticPayload?.payload || {}), ...answers };
-    applyCommand({ type: "ADD_SCREEN", payload: merged });
-    closeDiagnostic();
-};
-
-/**
- * Syncs summarized line items to each screen based on current internalAudit
- */
-const syncLineItemsFromAudit = (screens: any[], internalAudit: any) => {
-    if (!internalAudit?.perScreen) return screens;
-
-    return screens.map((screen, idx) => {
-        // If line items are already present (e.g. from Excel Mirroring), preserve them
-        if (screen.lineItems && screen.lineItems.length > 0) {
-            return screen;
-        }
-
-        const audit = internalAudit.perScreen[idx];
-        if (!audit) return screen;
-
-        const b = audit.breakdown;
-        // Grouping logic for "Polished" client-facing PDF
-        // Use Decimal.js for deterministic distribution of margin
-        const totalCost = new Decimal(b.totalCost || 1); // Avoid division by zero
-        const ancMargin = new Decimal(b.ancMargin || 0);
-
-        const hardwareCost = new Decimal(b.hardware || 0);
-        const structureCost = new Decimal(b.structure || 0);
-        const laborCost = new Decimal(b.labor || 0);
-        const installCost = new Decimal(b.install || 0);
-        const laborInstallCost = laborCost.plus(installCost);
-
-        // Distribute margin proportionally to cost
-        const hardwareSell = roundToCents(
-            hardwareCost.plus(ancMargin.times(hardwareCost.div(totalCost))),
-        );
-        const structureSell = roundToCents(
-            structureCost.plus(
-                ancMargin.times(structureCost.div(totalCost)),
-            ),
-        );
-        const laborSell = roundToCents(
-            laborInstallCost.plus(
-                ancMargin.times(laborInstallCost.div(totalCost)),
-            ),
-        );
-
-        const finalClientTotal = new Decimal(b.finalClientTotal || 0);
-        // Calculate "Other" as the remainder to ensure the sum exactly matches the total
-        const otherSell = roundToCents(
-            finalClientTotal
-                .minus(hardwareSell)
-                .minus(structureSell)
-                .minus(laborSell),
-        );
-
-        return {
-            ...screen,
-            lineItems: [
-                {
-                    id: `hw-${idx}`,
-                    category: "LED Display System",
-                    price: hardwareSell.toNumber(),
-                },
-                {
-                    id: `st-${idx}`,
-                    category: "Structural Materials",
-                    price: structureSell.toNumber(),
-                },
-                {
-                    id: `inst-${idx}`,
-                    category: "Installation & Labor",
-                    price: laborSell.toNumber(),
-                },
-                {
-                    id: `other-${idx}`,
-                    category: "Electrical, Data & Conditions",
-                    price: otherSell.toNumber(),
-                },
-            ],
-        };
-    });
-};
-
-const executeAiCommand = async (message: string) => {
-    if (!message.trim()) return;
-
-    const userMsg = {
-        id: `u-${Date.now()}`,
-        role: "user",
-        content: message,
     };
-    setAiMessages((h) => [...h, userMsg]);
-    setAiLoading(true);
 
-    try {
-        const formValues = getValues();
-        const currentProposalId = formValues?.details?.proposalId || "new";
+    const applyCommand = (command: any) => {
+        try {
+            const formValues = getValues();
 
-        const res = await fetch("/api/command", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                message: message,
-                history: aiMessages.map((m) => ({
-                    role: m.role,
-                    content: m.content,
-                })),
-                proposalId: currentProposalId,
-                workspace:
-                    aiWorkspaceSlug ||
-                    localStorage.getItem("aiWorkspaceSlug") ||
-                    "researcher",
-            }),
-        });
+            if (!command || !command.type) return;
 
-        const data = await res.json();
-        let responseText = data?.data?.textResponse || data?.text || "";
+            switch (command.type) {
+                case "ADD_SCREEN": {
+                    const payload = command.payload || {};
+                    const screens = formValues.details.screens ?? [];
 
-        if (data?.data?.action) {
-            applyCommand(data.data.action);
-        }
+                    const newScreen = {
+                        name: payload.name ?? "New Screen",
+                        productType:
+                            payload.productType ?? payload.type ?? "Unknown",
+                        widthFt: Number(payload.widthFt ?? payload.width ?? 0),
+                        heightFt: Number(
+                            payload.heightFt ?? payload.height ?? 0,
+                        ),
+                        quantity: payload.quantity ?? payload.qty ?? 1,
+                        pitchMm: Number(
+                            payload.pitch ??
+                            payload.pitchMm ??
+                            payload.pitchMm ??
+                            10,
+                        ),
+                        costPerSqFt: Number(
+                            payload.costPerSqFt ?? payload.cost_per_sqft ?? 120,
+                        ),
+                        desiredMargin: payload.desiredMargin ?? undefined,
+                        isReplacement: payload.isReplacement ?? false,
+                        useExistingStructure:
+                            payload.useExistingStructure ?? false,
+                        includeSpareParts: payload.includeSpareParts ?? true,
+                    };
 
-        if (responseText) {
-            setAiMessages((h) => [
-                ...h,
-                {
-                    id: `a-${Date.now()}`,
-                    role: "assistant",
-                    content: responseText,
-                },
-            ]);
-        }
-    } catch (err) {
-        console.error("AI Command error:", err);
-    } finally {
-        setAiLoading(false);
-    }
-};
+                    // Track which fields were AI-populated for the blue glow
+                    const aiPopulated = Object.keys(payload).map(
+                        (k) => `details.screens.${screens.length}.${k}`,
+                    );
+                    setAiFields((prev) =>
+                        Array.from(new Set([...prev, ...aiPopulated])),
+                    );
 
-const applyCommand = (command: any) => {
-    try {
-        const formValues = getValues();
+                    // Push new screen
+                    const updatedScreens = [...screens, newScreen];
 
-        if (!command || !command.type) return;
-
-        switch (command.type) {
-            case "ADD_SCREEN": {
-                const payload = command.payload || {};
-                const screens = formValues.details.screens ?? [];
-
-                const newScreen = {
-                    name: payload.name ?? "New Screen",
-                    productType:
-                        payload.productType ?? payload.type ?? "Unknown",
-                    widthFt: Number(payload.widthFt ?? payload.width ?? 0),
-                    heightFt: Number(
-                        payload.heightFt ?? payload.height ?? 0,
-                    ),
-                    quantity: payload.quantity ?? payload.qty ?? 1,
-                    pitchMm: Number(
-                        payload.pitch ??
-                        payload.pitchMm ??
-                        payload.pitchMm ??
-                        10,
-                    ),
-                    costPerSqFt: Number(
-                        payload.costPerSqFt ?? payload.cost_per_sqft ?? 120,
-                    ),
-                    desiredMargin: payload.desiredMargin ?? undefined,
-                    isReplacement: payload.isReplacement ?? false,
-                    useExistingStructure:
-                        payload.useExistingStructure ?? false,
-                    includeSpareParts: payload.includeSpareParts ?? true,
-                };
-
-                // Track which fields were AI-populated for the blue glow
-                const aiPopulated = Object.keys(payload).map(
-                    (k) => `details.screens.${screens.length}.${k}`,
-                );
-                setAiFields((prev) =>
-                    Array.from(new Set([...prev, ...aiPopulated])),
-                );
-
-                // Push new screen
-                const updatedScreens = [...screens, newScreen];
-
-                // Calculate audit for the new screen set
-                const audit = calculateProposalAudit(updatedScreens, {
-                    taxRate: getValues("details.taxRateOverride"),
-                    bondPct: getValues("details.bondRateOverride"),
-                    structuralTonnage: getValues(
-                        "details.metadata.structuralTonnage",
-                    ),
-                    reinforcingTonnage: getValues(
-                        "details.metadata.reinforcingTonnage",
-                    ),
-                    projectAddress:
-                        `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
-                    venue: getValues("details.venue"),
-                });
-                const internalAudit = audit.internalAudit;
-
-                // Sync line items for PDF template
-                const screensWithLineItems = syncLineItemsFromAudit(
-                    updatedScreens,
-                    internalAudit,
-                );
-                setValue("details.screens", screensWithLineItems);
-
-                // CRITICAL: Flatten all screen-level lineItems into details.items for the PDF Template
-                const allItems = screensWithLineItems
-                    .flatMap((s) => s.lineItems || [])
-                    .map((li: any) => {
-                        let desc = "Standard specification.";
-                        if (li.category.includes("LED"))
-                            desc =
-                                "Supply of LED Display System including spare parts, power/data cabling, and processing hardware.";
-                        if (li.category.includes("Structure"))
-                            desc =
-                                "Structural engineering, fabrication, and mounting hardware.";
-                        if (li.category.includes("Installation"))
-                            desc =
-                                "Union labor installation per IBEW jurisdiction. Includes prevailing wage, certified payroll, and final commissioning.";
-                        if (li.category.includes("Electrical"))
-                            desc =
-                                "Primary power tie-in and data conduit runs.";
-
-                        return {
-                            name: li.category,
-                            description: desc,
-                            quantity: 1,
-                            unitPrice: li.price,
-                            total: li.price,
-                        };
+                    // Calculate audit for the new screen set
+                    const audit = calculateProposalAudit(updatedScreens, {
+                        taxRate: getValues("details.taxRateOverride"),
+                        bondPct: getValues("details.bondRateOverride"),
+                        structuralTonnage: getValues(
+                            "details.metadata.structuralTonnage",
+                        ),
+                        reinforcingTonnage: getValues(
+                            "details.metadata.reinforcingTonnage",
+                        ),
+                        projectAddress:
+                            `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                        venue: getValues("details.venue"),
                     });
-                setValue("details.items", allItems);
-
-                // Normalize screens to ensure all have required fields for ScreenInput type
-                const normalizedScreens = updatedScreens.map((s: any) => ({
-                    name: s.name || "Unnamed",
-                    productType: s.productType || "Unknown",
-                    widthFt: Number(s.widthFt || s.width || 0),
-                    heightFt: Number(s.heightFt || s.height || 0),
-                    quantity: Number(s.quantity || s.qty || 1),
-                    pitchMm: Number(s.pitchMm || s.pitch || 10),
-                    costPerSqFt: Number(
-                        s.costPerSqFt || s.cost_per_sqft || 120,
-                    ),
-                    desiredMargin: s.desiredMargin,
-                    isReplacement: !!s.isReplacement,
-                    useExistingStructure: !!s.useExistingStructure,
-                    includeSpareParts: s.includeSpareParts !== false,
-                }));
-
-                // Recalculate audit and persist into form for live audit view
-                try {
-                    const { clientSummary, internalAudit } =
-                        calculateProposalAudit(normalizedScreens, {
-                            taxRate: getValues("details.taxRateOverride"),
-                            bondPct: getValues("details.bondRateOverride"),
-                            structuralTonnage: getValues(
-                                "details.metadata.structuralTonnage",
-                            ),
-                            reinforcingTonnage: getValues(
-                                "details.metadata.reinforcingTonnage",
-                            ),
-                            projectAddress:
-                                `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
-                            venue: getValues("details.venue"),
-                        });
-                    setValue("details.internalAudit", internalAudit);
-                    setValue("details.clientSummary", clientSummary);
+                    const internalAudit = audit.internalAudit;
 
                     // Sync line items for PDF template
                     const screensWithLineItems = syncLineItemsFromAudit(
-                        normalizedScreens,
+                        updatedScreens,
                         internalAudit,
                     );
                     setValue("details.screens", screensWithLineItems);
 
-                    // Flag low margins if any per-screen margin below threshold
-                    try {
-                        const threshold = parseFloat(
-                            process.env.NATALIA_MARGIN_THRESHOLD || "0.2",
-                        );
-                        const alerts: Array<{
-                            name: string;
-                            marginPct: number;
-                        }> = [];
-                        for (const s of internalAudit.perScreen) {
-                            const ancMargin = s.breakdown.ancMargin;
-                            const finalClientTotal =
-                                s.breakdown.finalClientTotal || 1;
-                            const marginPct = finalClientTotal
-                                ? ancMargin / finalClientTotal
-                                : 0;
-                            if (marginPct < threshold) {
-                                console.warn(
-                                    `Low margin detected for screen ${s.name}: ${Number((marginPct * 100).toFixed(2))}% (< ${threshold * 100}%)`,
-                                );
-                                alerts.push({ name: s.name, marginPct });
-                            }
-                        }
+                    // CRITICAL: Flatten all screen-level lineItems into details.items for the PDF Template
+                    const allItems = screensWithLineItems
+                        .flatMap((s) => s.lineItems || [])
+                        .map((li: any) => {
+                            let desc = "Standard specification.";
+                            if (li.category.includes("LED"))
+                                desc =
+                                    "Supply of LED Display System including spare parts, power/data cabling, and processing hardware.";
+                            if (li.category.includes("Structure"))
+                                desc =
+                                    "Structural engineering, fabrication, and mounting hardware.";
+                            if (li.category.includes("Installation"))
+                                desc =
+                                    "Union labor installation per IBEW jurisdiction. Includes prevailing wage, certified payroll, and final commissioning.";
+                            if (li.category.includes("Electrical"))
+                                desc =
+                                    "Primary power tie-in and data conduit runs.";
 
-                        if (alerts.length > 0) {
-                            setLowMarginAlerts(alerts);
-                        }
-                    } catch (e) { }
+                            return {
+                                name: li.category,
+                                description: desc,
+                                quantity: 1,
+                                unitPrice: li.price,
+                                total: li.price,
+                            };
+                        });
+                    setValue("details.items", allItems);
 
-                    // Switch to audit tab so estimator changes are visible
-                    setActiveTab("audit");
-                } catch (e) {
-                    console.warn(
-                        "Failed to calculate audit after ADD_SCREEN",
-                        e,
-                    );
-                }
-
-                break;
-            }
-            case "UPDATE_CLIENT": {
-                const payload = command.payload || {};
-                if (payload.name) {
-                    setValue("receiver.name", payload.name);
-                    setAiFields((prev) =>
-                        Array.from(new Set([...prev, "receiver.name"])),
-                    );
-                }
-                if (payload.address) {
-                    setValue("receiver.address", payload.address);
-                    setAiFields((prev) =>
-                        Array.from(new Set([...prev, "receiver.address"])),
-                    );
-                }
-                break;
-            }
-            case "SET_MARGIN":
-            case "UPDATE_MARGIN": {
-                const payload = command.payload || {};
-                const value = Number(
-                    payload.value ??
-                    payload.margin ??
-                    payload.desiredMargin,
-                );
-                if (isFinite(value)) {
-                    // Apply to all screens
-                    const screens = formValues.details.screens ?? [];
-                    const updated = screens.map((s: any) => ({
-                        ...s,
-                        desiredMargin: value,
+                    // Normalize screens to ensure all have required fields for ScreenInput type
+                    const normalizedScreens = updatedScreens.map((s: any) => ({
+                        name: s.name || "Unnamed",
+                        productType: s.productType || "Unknown",
+                        widthFt: Number(s.widthFt || s.width || 0),
+                        heightFt: Number(s.heightFt || s.height || 0),
+                        quantity: Number(s.quantity || s.qty || 1),
+                        pitchMm: Number(s.pitchMm || s.pitch || 10),
+                        costPerSqFt: Number(
+                            s.costPerSqFt || s.cost_per_sqft || 120,
+                        ),
+                        desiredMargin: s.desiredMargin,
+                        isReplacement: !!s.isReplacement,
+                        useExistingStructure: !!s.useExistingStructure,
+                        includeSpareParts: s.includeSpareParts !== false,
                     }));
-                    setValue("details.screens", updated);
 
-                    // Recalculate audit
+                    // Recalculate audit and persist into form for live audit view
                     try {
                         const { clientSummary, internalAudit } =
-                            calculateProposalAudit(updated, {
-                                taxRate: getValues(
-                                    "details.taxRateOverride",
-                                ),
-                                bondPct: getValues(
-                                    "details.bondRateOverride",
-                                ),
+                            calculateProposalAudit(normalizedScreens, {
+                                taxRate: getValues("details.taxRateOverride"),
+                                bondPct: getValues("details.bondRateOverride"),
                                 structuralTonnage: getValues(
                                     "details.metadata.structuralTonnage",
                                 ),
@@ -2469,1763 +2367,1753 @@ const applyCommand = (command: any) => {
 
                         // Sync line items for PDF template
                         const screensWithLineItems = syncLineItemsFromAudit(
-                            updated,
+                            normalizedScreens,
                             internalAudit,
                         );
                         setValue("details.screens", screensWithLineItems);
 
-                        // Switch to audit tab because internal pricing changed
+                        // Flag low margins if any per-screen margin below threshold
+                        try {
+                            const threshold = parseFloat(
+                                process.env.NATALIA_MARGIN_THRESHOLD || "0.2",
+                            );
+                            const alerts: Array<{
+                                name: string;
+                                marginPct: number;
+                            }> = [];
+                            for (const s of internalAudit.perScreen) {
+                                const ancMargin = s.breakdown.ancMargin;
+                                const finalClientTotal =
+                                    s.breakdown.finalClientTotal || 1;
+                                const marginPct = finalClientTotal
+                                    ? ancMargin / finalClientTotal
+                                    : 0;
+                                if (marginPct < threshold) {
+                                    console.warn(
+                                        `Low margin detected for screen ${s.name}: ${Number((marginPct * 100).toFixed(2))}% (< ${threshold * 100}%)`,
+                                    );
+                                    alerts.push({ name: s.name, marginPct });
+                                }
+                            }
+
+                            if (alerts.length > 0) {
+                                setLowMarginAlerts(alerts);
+                            }
+                        } catch (e) { }
+
+                        // Switch to audit tab so estimator changes are visible
                         setActiveTab("audit");
                     } catch (e) {
                         console.warn(
-                            "Failed to calculate audit after SET_MARGIN",
+                            "Failed to calculate audit after ADD_SCREEN",
                             e,
                         );
                     }
+
+                    break;
                 }
-                break;
-            }
-            case "SYNC_CATALOG": {
-                // Ask server to sync the local catalog file with AnythingLLM
-                (async () => {
-                    try {
-                        const res = await fetch("/api/rag/sync", {
-                            method: "POST",
-                        });
-                        const json = await res.json();
-                        console.log("SYNC_CATALOG server response", json);
-                    } catch (e) {
-                        console.error("SYNC_CATALOG failed", e);
-                    }
-                })();
-
-                break;
-            }
-            case "INCOMPLETE_SPECS": {
-                // Open Diagnostic overlay
-                openDiagnostic(command);
-                break;
-            }
-            default:
-                console.warn("Unknown command type:", command.type);
-        }
-    } catch (err) {
-        console.error("applyCommand error:", err);
-    }
-};
-
-/**
- * Export an proposal in the specified format using the provided form values.
- *
- * This function initiates the export process with the chosen export format and the form data.
- *
- * @param {ExportTypes} exportAs - The format in which to export the proposal.
- */
-const exportProposalDataAs = (exportAs: ExportTypes) => {
-    const formValues = getValues();
-    const id =
-        formValues?.details?.proposalId ??
-        formValues?.details?.proposalNumber ??
-        "";
-    formValues.details.proposalId = id;
-    formValues.details.proposalNumber = id;
-
-    // Service to export proposal with given parameters
-    exportProposal(exportAs, formValues);
-};
-
-/**
- * Export internal audit XLSX for the current proposal (if proposalId exists)
- */
-const exportAudit = async () => {
-    const formValues = getValues();
-    const screens = formValues?.details?.screens || [];
-    const id =
-        formValues?.details?.proposalId ??
-        formValues?.details?.proposalNumber ??
-        "";
-    const isMirror =
-        !!formValues?.details?.mirrorMode ||
-        formValues?.details?.calculationMode === "MIRROR";
-
-    // Validate we have data to export
-    if (!screens || screens.length === 0) {
-        showError(
-            "Export Failed",
-            "Add at least one screen before exporting the audit.",
-        );
-        return;
-    }
-
-    try {
-        const res = await fetch("/api/proposals/export/audit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                proposalId: id || "new",
-                projectAddress:
-                    `${formValues?.receiver?.address ?? ""} ${formValues?.receiver?.city ?? ""} ${formValues?.receiver?.zipCode ?? ""} ${formValues?.details?.location ?? ""}`.trim(),
-                venue: formValues?.details?.venue ?? "",
-                internalAudit: formValues?.details?.internalAudit ?? null,
-                screens,
-                calculationMode: isMirror
-                    ? "MIRROR"
-                    : (formValues?.details?.calculationMode ??
-                        "INTELLIGENCE"),
-                mirrorMode: isMirror,
-                clientName: formValues?.receiver?.name ?? "",
-                projectName: formValues?.details?.proposalName ?? "",
-            }),
-        });
-
-        if (!res.ok) {
-            const errText = await res.text();
-            console.error("Audit export failed", errText);
-            showError(
-                "Export Failed",
-                "Server error while generating audit file.",
-            );
-            return;
-        }
-
-        const contentType = res.headers.get("content-type") || "";
-        if (contentType.includes("application/json")) {
-            const err = await res.json().catch(() => ({}));
-            console.error("Audit export returned JSON error", err);
-            showError(
-                "Export Failed",
-                err?.error || "Unable to generate audit file.",
-            );
-            return;
-        }
-
-        const blob = await res.blob();
-        if (blob.size === 0) {
-            console.error("Audit export returned empty file");
-            showError(
-                "Export Failed",
-                "Generated file is empty. Make sure screens have valid dimensions.",
-            );
-            return;
-        }
-
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${(
-            formValues?.details?.proposalName ||
-            id ||
-            "proposal"
-        )
-            .toString()
-            .replace(/\s+/g, "-")
-            .replace(/[^a-zA-Z0-9-_]/g, "")}-audit.xlsx`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-    } catch (e) {
-        console.error("exportAudit error:", e);
-        showError(
-            "Export Failed",
-            e instanceof Error ? e.message : "Unable to export audit file.",
-        );
-    }
-};
-
-const loadExcelPreview = useCallback(async (file: File) => {
-    setExcelPreviewLoading(true);
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        const workbook = xlsx.read(arrayBuffer, { type: "array" });
-        const maxRows = 200;
-        const maxCols = 60;
-
-        const sheets: ExcelPreviewSheet[] = workbook.SheetNames.map(
-            (name) => {
-                const sheet = workbook.Sheets[name];
-                const ref = (sheet as any)["!ref"] as string | undefined;
-                const range = ref
-                    ? xlsx.utils.decode_range(ref)
-                    : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
-                const rowsCount = Math.min(range.e.r + 1, maxRows);
-                const colsCount = Math.min(range.e.c + 1, maxCols);
-
-                const rawRows = xlsx.utils.sheet_to_json(sheet, {
-                    header: 1,
-                    raw: false,
-                    defval: "",
-                }) as any[][];
-
-                const grid: string[][] = Array.from(
-                    { length: rowsCount },
-                    (_, r) => {
-                        const src = rawRows[r] || [];
-                        return Array.from({ length: colsCount }, (_, c) =>
-                            String(src[c] ?? ""),
+                case "UPDATE_CLIENT": {
+                    const payload = command.payload || {};
+                    if (payload.name) {
+                        setValue("receiver.name", payload.name);
+                        setAiFields((prev) =>
+                            Array.from(new Set([...prev, "receiver.name"])),
                         );
-                    },
+                    }
+                    if (payload.address) {
+                        setValue("receiver.address", payload.address);
+                        setAiFields((prev) =>
+                            Array.from(new Set([...prev, "receiver.address"])),
+                        );
+                    }
+                    break;
+                }
+                case "SET_MARGIN":
+                case "UPDATE_MARGIN": {
+                    const payload = command.payload || {};
+                    const value = Number(
+                        payload.value ??
+                        payload.margin ??
+                        payload.desiredMargin,
+                    );
+                    if (isFinite(value)) {
+                        // Apply to all screens
+                        const screens = formValues.details.screens ?? [];
+                        const updated = screens.map((s: any) => ({
+                            ...s,
+                            desiredMargin: value,
+                        }));
+                        setValue("details.screens", updated);
+
+                        // Recalculate audit
+                        try {
+                            const { clientSummary, internalAudit } =
+                                calculateProposalAudit(updated, {
+                                    taxRate: getValues(
+                                        "details.taxRateOverride",
+                                    ),
+                                    bondPct: getValues(
+                                        "details.bondRateOverride",
+                                    ),
+                                    structuralTonnage: getValues(
+                                        "details.metadata.structuralTonnage",
+                                    ),
+                                    reinforcingTonnage: getValues(
+                                        "details.metadata.reinforcingTonnage",
+                                    ),
+                                    projectAddress:
+                                        `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                                    venue: getValues("details.venue"),
+                                });
+                            setValue("details.internalAudit", internalAudit);
+                            setValue("details.clientSummary", clientSummary);
+
+                            // Sync line items for PDF template
+                            const screensWithLineItems = syncLineItemsFromAudit(
+                                updated,
+                                internalAudit,
+                            );
+                            setValue("details.screens", screensWithLineItems);
+
+                            // Switch to audit tab because internal pricing changed
+                            setActiveTab("audit");
+                        } catch (e) {
+                            console.warn(
+                                "Failed to calculate audit after SET_MARGIN",
+                                e,
+                            );
+                        }
+                    }
+                    break;
+                }
+                case "SYNC_CATALOG": {
+                    // Ask server to sync the local catalog file with AnythingLLM
+                    (async () => {
+                        try {
+                            const res = await fetch("/api/rag/sync", {
+                                method: "POST",
+                            });
+                            const json = await res.json();
+                            console.log("SYNC_CATALOG server response", json);
+                        } catch (e) {
+                            console.error("SYNC_CATALOG failed", e);
+                        }
+                    })();
+
+                    break;
+                }
+                case "INCOMPLETE_SPECS": {
+                    // Open Diagnostic overlay
+                    openDiagnostic(command);
+                    break;
+                }
+                default:
+                    console.warn("Unknown command type:", command.type);
+            }
+        } catch (err) {
+            console.error("applyCommand error:", err);
+        }
+    };
+
+    /**
+     * Export an proposal in the specified format using the provided form values.
+     *
+     * This function initiates the export process with the chosen export format and the form data.
+     *
+     * @param {ExportTypes} exportAs - The format in which to export the proposal.
+     */
+    const exportProposalDataAs = (exportAs: ExportTypes) => {
+        const formValues = getValues();
+        const id =
+            formValues?.details?.proposalId ??
+            formValues?.details?.proposalNumber ??
+            "";
+        formValues.details.proposalId = id;
+        formValues.details.proposalNumber = id;
+
+        // Service to export proposal with given parameters
+        exportProposal(exportAs, formValues);
+    };
+
+    /**
+     * Export internal audit XLSX for the current proposal (if proposalId exists)
+     */
+    const exportAudit = async () => {
+        const formValues = getValues();
+        const screens = formValues?.details?.screens || [];
+        const id =
+            formValues?.details?.proposalId ??
+            formValues?.details?.proposalNumber ??
+            "";
+        const isMirror =
+            !!formValues?.details?.mirrorMode ||
+            formValues?.details?.calculationMode === "MIRROR";
+
+        // Validate we have data to export
+        if (!screens || screens.length === 0) {
+            showError(
+                "Export Failed",
+                "Add at least one screen before exporting the audit.",
+            );
+            return;
+        }
+
+        try {
+            const res = await fetch("/api/proposals/export/audit", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    proposalId: id || "new",
+                    projectAddress:
+                        `${formValues?.receiver?.address ?? ""} ${formValues?.receiver?.city ?? ""} ${formValues?.receiver?.zipCode ?? ""} ${formValues?.details?.location ?? ""}`.trim(),
+                    venue: formValues?.details?.venue ?? "",
+                    internalAudit: formValues?.details?.internalAudit ?? null,
+                    screens,
+                    calculationMode: isMirror
+                        ? "MIRROR"
+                        : (formValues?.details?.calculationMode ??
+                            "INTELLIGENCE"),
+                    mirrorMode: isMirror,
+                    clientName: formValues?.receiver?.name ?? "",
+                    projectName: formValues?.details?.proposalName ?? "",
+                }),
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                console.error("Audit export failed", errText);
+                showError(
+                    "Export Failed",
+                    "Server error while generating audit file.",
                 );
+                return;
+            }
 
-                const merges = (
-                    ((sheet as any)["!merges"] as any[]) || []
-                ).map((m) => ({
-                    s: { r: m.s.r, c: m.s.c },
-                    e: { r: m.e.r, c: m.e.c },
-                }));
-
-                const hiddenRowsMeta =
-                    ((sheet as any)["!rows"] as
-                        | Array<{ hidden?: boolean }>
-                        | undefined) || [];
-                const hiddenRows = Array.from(
-                    { length: rowsCount },
-                    (_, r) => !!hiddenRowsMeta[r]?.hidden,
+            const contentType = res.headers.get("content-type") || "";
+            if (contentType.includes("application/json")) {
+                const err = await res.json().catch(() => ({}));
+                console.error("Audit export returned JSON error", err);
+                showError(
+                    "Export Failed",
+                    err?.error || "Unable to generate audit file.",
                 );
+                return;
+            }
 
-                const colsMeta =
-                    ((sheet as any)["!cols"] as
-                        | Array<{ wch?: number; hidden?: boolean }>
-                        | undefined) || [];
-                const colWidths = Array.from(
-                    { length: colsCount },
-                    (_, c) => {
-                        if (colsMeta[c]?.hidden) return 0;
-                        const wch = colsMeta[c]?.wch;
-                        return typeof wch === "number" ? wch : null;
-                    },
+            const blob = await res.blob();
+            if (blob.size === 0) {
+                console.error("Audit export returned empty file");
+                showError(
+                    "Export Failed",
+                    "Generated file is empty. Make sure screens have valid dimensions.",
                 );
+                return;
+            }
 
-                const normalizedSheetName = name.toLowerCase();
-                const isLedSheet =
-                    (normalizedSheetName.includes("led") &&
-                        normalizedSheetName.includes("sheet")) ||
-                    normalizedSheetName.includes("led cost sheet");
-                const requiredCols = { a: 0, f: 5, g: 6 };
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${(
+                formValues?.details?.proposalName ||
+                id ||
+                "proposal"
+            )
+                .toString()
+                .replace(/\s+/g, "-")
+                .replace(/[^a-zA-Z0-9-_]/g, "")}-audit.xlsx`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            console.error("exportAudit error:", e);
+            showError(
+                "Export Failed",
+                e instanceof Error ? e.message : "Unable to export audit file.",
+            );
+        }
+    };
 
-                let headerRowIndex = 0;
+    const loadExcelPreview = useCallback(async (file: File) => {
+        setExcelPreviewLoading(true);
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const workbook = xlsx.read(arrayBuffer, { type: "array" });
+            const maxRows = 200;
+            const maxCols = 60;
+
+            const sheets: ExcelPreviewSheet[] = workbook.SheetNames.map(
+                (name) => {
+                    const sheet = workbook.Sheets[name];
+                    const ref = (sheet as any)["!ref"] as string | undefined;
+                    const range = ref
+                        ? xlsx.utils.decode_range(ref)
+                        : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+                    const rowsCount = Math.min(range.e.r + 1, maxRows);
+                    const colsCount = Math.min(range.e.c + 1, maxCols);
+
+                    const rawRows = xlsx.utils.sheet_to_json(sheet, {
+                        header: 1,
+                        raw: false,
+                        defval: "",
+                    }) as any[][];
+
+                    const grid: string[][] = Array.from(
+                        { length: rowsCount },
+                        (_, r) => {
+                            const src = rawRows[r] || [];
+                            return Array.from({ length: colsCount }, (_, c) =>
+                                String(src[c] ?? ""),
+                            );
+                        },
+                    );
+
+                    const merges = (
+                        ((sheet as any)["!merges"] as any[]) || []
+                    ).map((m) => ({
+                        s: { r: m.s.r, c: m.s.c },
+                        e: { r: m.e.r, c: m.e.c },
+                    }));
+
+                    const hiddenRowsMeta =
+                        ((sheet as any)["!rows"] as
+                            | Array<{ hidden?: boolean }>
+                            | undefined) || [];
+                    const hiddenRows = Array.from(
+                        { length: rowsCount },
+                        (_, r) => !!hiddenRowsMeta[r]?.hidden,
+                    );
+
+                    const colsMeta =
+                        ((sheet as any)["!cols"] as
+                            | Array<{ wch?: number; hidden?: boolean }>
+                            | undefined) || [];
+                    const colWidths = Array.from(
+                        { length: colsCount },
+                        (_, c) => {
+                            if (colsMeta[c]?.hidden) return 0;
+                            const wch = colsMeta[c]?.wch;
+                            return typeof wch === "number" ? wch : null;
+                        },
+                    );
+
+                    const normalizedSheetName = name.toLowerCase();
+                    const isLedSheet =
+                        (normalizedSheetName.includes("led") &&
+                            normalizedSheetName.includes("sheet")) ||
+                        normalizedSheetName.includes("led cost sheet");
+                    const requiredCols = { a: 0, f: 5, g: 6 };
+
+                    let headerRowIndex = 0;
+                    for (let r = 0; r < Math.min(grid.length, 15); r++) {
+                        const rowText = grid[r].join(" ").toLowerCase();
+                        if (
+                            rowText.includes("display name") ||
+                            rowText.includes("display")
+                        ) {
+                            headerRowIndex = r;
+                            break;
+                        }
+                    }
+
+                    let validationIssue = false;
+                    let hasNumericDimensions = false;
+                    if (isLedSheet) {
+                        for (let r = headerRowIndex + 1; r < grid.length; r++) {
+                            const row = grid[r];
+                            const nameCell = row[requiredCols.a] || "";
+                            const nameCellNorm = String(nameCell ?? "").trim();
+                            const isAlt =
+                                /^(alt(\b|[^a-z])|alternate(\b|[^a-z]))/i.test(
+                                    nameCellNorm,
+                                );
+                            if (hiddenRows[r] || isAlt) continue;
+                            const isRowActive = String(nameCell).trim() !== "";
+                            if (!isRowActive) continue;
+                            const h = String(row[requiredCols.f] || "").trim();
+                            const w = String(row[requiredCols.g] || "").trim();
+
+                            const isBad = (v: string) =>
+                                v === "" || v.toUpperCase().includes("TBD");
+                            if (isBad(nameCell) || isBad(h) || isBad(w)) {
+                                validationIssue = true;
+                                continue;
+                            }
+
+                            const toNum = (v: string) =>
+                                Number(String(v).replace(/[^\d.-]/g, ""));
+                            const hn = toNum(h);
+                            const wn = toNum(w);
+                            if (
+                                !isFinite(hn) ||
+                                !isFinite(wn) ||
+                                hn <= 0 ||
+                                wn <= 0
+                            ) {
+                                validationIssue = true;
+                                continue;
+                            }
+                            hasNumericDimensions = true;
+                        }
+                    }
+
+                    return {
+                        name,
+                        grid,
+                        merges,
+                        hiddenRows,
+                        colWidths,
+                        validationIssue,
+                        hasNumericDimensions,
+                    };
+                },
+            );
+
+            const ledSheet = sheets.find((s) => {
+                const n = s.name.toLowerCase();
+                return (
+                    (n.includes("led") && n.includes("sheet")) ||
+                    n.includes("led cost sheet")
+                );
+            });
+            setExcelValidationOk(
+                !!ledSheet?.hasNumericDimensions && !ledSheet?.validationIssue,
+            );
+
+            setExcelPreview({
+                fileName: file.name,
+                sheets,
+                loadedAt: Date.now(),
+            });
+        } catch {
+            setExcelPreview(null);
+            setExcelValidationOk(false);
+        } finally {
+            setExcelPreviewLoading(false);
+        }
+    }, []);
+
+    /**
+     * Update a single cell in the Excel preview and sync to form data.
+     * This enables WYSIWYG editing - changes in Excel reflect in PDF.
+     */
+    const updateExcelCell = useCallback(
+        (sheetName: string, row: number, col: number, value: string) => {
+            if (!excelPreview) return;
+
+            const ledSheet =
+                excelPreview.sheets.find((s) => {
+                    const n = s.name.toLowerCase();
+                    return (
+                        n.includes("led cost sheet") ||
+                        (n.includes("led") && n.includes("sheet"))
+                    );
+                }) || null;
+
+            const isLedEdit = !!ledSheet && ledSheet.name === sheetName;
+            let ledHeaderRowIndex = -1;
+            let ledHeaderRow: string[] | null = null;
+
+            if (isLedEdit) {
+                const grid = ledSheet.grid;
                 for (let r = 0; r < Math.min(grid.length, 15); r++) {
                     const rowText = grid[r].join(" ").toLowerCase();
                     if (
                         rowText.includes("display name") ||
                         rowText.includes("display")
                     ) {
-                        headerRowIndex = r;
+                        ledHeaderRowIndex = r;
+                        ledHeaderRow = grid[r] || [];
                         break;
                     }
                 }
-
-                let validationIssue = false;
-                let hasNumericDimensions = false;
-                if (isLedSheet) {
-                    for (let r = headerRowIndex + 1; r < grid.length; r++) {
-                        const row = grid[r];
-                        const nameCell = row[requiredCols.a] || "";
-                        const nameCellNorm = String(nameCell ?? "").trim();
-                        const isAlt =
-                            /^(alt(\b|[^a-z])|alternate(\b|[^a-z]))/i.test(
-                                nameCellNorm,
-                            );
-                        if (hiddenRows[r] || isAlt) continue;
-                        const isRowActive = String(nameCell).trim() !== "";
-                        if (!isRowActive) continue;
-                        const h = String(row[requiredCols.f] || "").trim();
-                        const w = String(row[requiredCols.g] || "").trim();
-
-                        const isBad = (v: string) =>
-                            v === "" || v.toUpperCase().includes("TBD");
-                        if (isBad(nameCell) || isBad(h) || isBad(w)) {
-                            validationIssue = true;
-                            continue;
-                        }
-
-                        const toNum = (v: string) =>
-                            Number(String(v).replace(/[^\d.-]/g, ""));
-                        const hn = toNum(h);
-                        const wn = toNum(w);
-                        if (
-                            !isFinite(hn) ||
-                            !isFinite(wn) ||
-                            hn <= 0 ||
-                            wn <= 0
-                        ) {
-                            validationIssue = true;
-                            continue;
-                        }
-                        hasNumericDimensions = true;
-                    }
-                }
-
-                return {
-                    name,
-                    grid,
-                    merges,
-                    hiddenRows,
-                    colWidths,
-                    validationIssue,
-                    hasNumericDimensions,
-                };
-            },
-        );
-
-        const ledSheet = sheets.find((s) => {
-            const n = s.name.toLowerCase();
-            return (
-                (n.includes("led") && n.includes("sheet")) ||
-                n.includes("led cost sheet")
-            );
-        });
-        setExcelValidationOk(
-            !!ledSheet?.hasNumericDimensions && !ledSheet?.validationIssue,
-        );
-
-        setExcelPreview({
-            fileName: file.name,
-            sheets,
-            loadedAt: Date.now(),
-        });
-    } catch {
-        setExcelPreview(null);
-        setExcelValidationOk(false);
-    } finally {
-        setExcelPreviewLoading(false);
-    }
-}, []);
-
-/**
- * Update a single cell in the Excel preview and sync to form data.
- * This enables WYSIWYG editing - changes in Excel reflect in PDF.
- */
-const updateExcelCell = useCallback(
-    (sheetName: string, row: number, col: number, value: string) => {
-        if (!excelPreview) return;
-
-        const ledSheet =
-            excelPreview.sheets.find((s) => {
-                const n = s.name.toLowerCase();
-                return (
-                    n.includes("led cost sheet") ||
-                    (n.includes("led") && n.includes("sheet"))
-                );
-            }) || null;
-
-        const isLedEdit = !!ledSheet && ledSheet.name === sheetName;
-        let ledHeaderRowIndex = -1;
-        let ledHeaderRow: string[] | null = null;
-
-        if (isLedEdit) {
-            const grid = ledSheet.grid;
-            for (let r = 0; r < Math.min(grid.length, 15); r++) {
-                const rowText = grid[r].join(" ").toLowerCase();
-                if (
-                    rowText.includes("display name") ||
-                    rowText.includes("display")
-                ) {
-                    ledHeaderRowIndex = r;
-                    ledHeaderRow = grid[r] || [];
-                    break;
+                if (ledHeaderRowIndex === row && ledHeaderRow) {
+                    ledHeaderRow = ledHeaderRow.map((c, ci) =>
+                        ci === col ? value : c,
+                    );
                 }
             }
-            if (ledHeaderRowIndex === row && ledHeaderRow) {
-                ledHeaderRow = ledHeaderRow.map((c, ci) =>
-                    ci === col ? value : c,
-                );
-            }
-        }
 
-        // Update the Excel preview grid
-        setExcelPreview((prev) => {
-            if (!prev) return prev;
+            // Update the Excel preview grid
+            setExcelPreview((prev) => {
+                if (!prev) return prev;
 
-            const newSheets = prev.sheets.map((sheet) => {
-                if (sheet.name !== sheetName) return sheet;
+                const newSheets = prev.sheets.map((sheet) => {
+                    if (sheet.name !== sheetName) return sheet;
 
-                // Clone the grid and update the cell
-                const newGrid = sheet.grid.map((r, ri) => {
-                    if (ri !== row) return r;
-                    return r.map((c, ci) => (ci === col ? value : c));
+                    // Clone the grid and update the cell
+                    const newGrid = sheet.grid.map((r, ri) => {
+                        if (ri !== row) return r;
+                        return r.map((c, ci) => (ci === col ? value : c));
+                    });
+
+                    return { ...sheet, grid: newGrid };
                 });
 
-                return { ...sheet, grid: newGrid };
+                return { ...prev, sheets: newSheets };
             });
 
-            return { ...prev, sheets: newSheets };
-        });
+            if (!isLedEdit) return;
+            if (ledHeaderRowIndex < 0 || row <= ledHeaderRowIndex) return;
 
-        if (!isLedEdit) return;
-        if (ledHeaderRowIndex < 0 || row <= ledHeaderRowIndex) return;
+            // Map column indices to field names
+            const header = ledHeaderRow || [];
+            const colName = (header[col] || "").toLowerCase().trim();
 
-        // Map column indices to field names
-        const header = ledHeaderRow || [];
-        const colName = (header[col] || "").toLowerCase().trim();
-
-        const screens = getValues("details.screens") || [];
-        const rowOneBased = row + 1;
-        const hasAnySourceRef = screens.some(
-            (s: any) => s?.sourceRef?.sheet && s?.sourceRef?.row,
-        );
-
-        let screenIndex = -1;
-        if (hasAnySourceRef) {
-            screenIndex = screens.findIndex(
-                (s: any) =>
-                    s?.sourceRef?.sheet === sheetName &&
-                    s?.sourceRef?.row === rowOneBased,
+            const screens = getValues("details.screens") || [];
+            const rowOneBased = row + 1;
+            const hasAnySourceRef = screens.some(
+                (s: any) => s?.sourceRef?.sheet && s?.sourceRef?.row,
             );
-            if (screenIndex < 0) {
-                showError(
-                    "Excel Sync Error",
-                    "Edited row does not map to an imported screen. Re-import the Excel to resync.",
+
+            let screenIndex = -1;
+            if (hasAnySourceRef) {
+                screenIndex = screens.findIndex(
+                    (s: any) =>
+                        s?.sourceRef?.sheet === sheetName &&
+                        s?.sourceRef?.row === rowOneBased,
                 );
-                return;
+                if (screenIndex < 0) {
+                    showError(
+                        "Excel Sync Error",
+                        "Edited row does not map to an imported screen. Re-import the Excel to resync.",
+                    );
+                    return;
+                }
+            } else {
+                screenIndex = row - ledHeaderRowIndex - 1;
+                if (screenIndex < 0 || screenIndex >= screens.length) return;
             }
-        } else {
-            screenIndex = row - ledHeaderRowIndex - 1;
-            if (screenIndex < 0 || screenIndex >= screens.length) return;
-        }
 
-        // Map Excel column to form field
-        // IMPORTANT: "Display Name" is client-facing; keep `name` stable for audit matching.
-        const fieldMap: Record<string, string> = {
-            "display name": "externalName",
-            display: "externalName",
-            height: "heightFt",
-            h: "heightFt",
-            width: "widthFt",
-            w: "widthFt",
-            qty: "quantity",
-            quantity: "quantity",
-            "mm pitch": "pitchMm",
-            pitch: "pitchMm",
-            "pixel pitch": "pitchMm",
-            brightness: "brightness",
-            nits: "brightness",
-        };
+            // Map Excel column to form field
+            // IMPORTANT: "Display Name" is client-facing; keep `name` stable for audit matching.
+            const fieldMap: Record<string, string> = {
+                "display name": "externalName",
+                display: "externalName",
+                height: "heightFt",
+                h: "heightFt",
+                width: "widthFt",
+                w: "widthFt",
+                qty: "quantity",
+                quantity: "quantity",
+                "mm pitch": "pitchMm",
+                pitch: "pitchMm",
+                "pixel pitch": "pitchMm",
+                brightness: "brightness",
+                nits: "brightness",
+            };
 
-        const fieldName = fieldMap[colName];
-        if (fieldName) {
-            const fieldPath =
-                `details.screens.${screenIndex}.${fieldName}` as any;
-            // Convert to number for numeric fields
-            if (
-                ["heightFt", "widthFt", "quantity", "pitchMm"].includes(
-                    fieldName,
-                )
-            ) {
-                const numValue = parseFloat(value.replace(/[^\d.-]/g, ""));
-                if (!isNaN(numValue)) {
-                    setValue(fieldPath, numValue, {
+            const fieldName = fieldMap[colName];
+            if (fieldName) {
+                const fieldPath =
+                    `details.screens.${screenIndex}.${fieldName}` as any;
+                // Convert to number for numeric fields
+                if (
+                    ["heightFt", "widthFt", "quantity", "pitchMm"].includes(
+                        fieldName,
+                    )
+                ) {
+                    const numValue = parseFloat(value.replace(/[^\d.-]/g, ""));
+                    if (!isNaN(numValue)) {
+                        setValue(fieldPath, numValue, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                        });
+                    }
+                } else {
+                    setValue(fieldPath, value, {
                         shouldDirty: true,
                         shouldValidate: true,
                     });
                 }
-            } else {
-                setValue(fieldPath, value, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                });
             }
-        }
-    },
-    [excelPreview, getValues, setValue, showError],
-);
+        },
+        [excelPreview, getValues, setValue, showError],
+    );
 
-/**
- * Import an proposal from a JSON file.
- *
- * @param {File} file - The JSON file to import.
- */
-const importProposalData = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        try {
-            const importedData = JSON.parse(event.target?.result as string);
-
-            // Parse the dates
-            if (importedData.details) {
-                if (importedData.details.proposalDate) {
-                    importedData.details.proposalDate = new Date(
-                        importedData.details.proposalDate,
-                    );
-                }
-                if (importedData.details.dueDate) {
-                    importedData.details.dueDate = new Date(
-                        importedData.details.dueDate,
-                    );
-                }
-
-                // Normalize IDs/dates: prefer proposalId/proposalDate and fill proposal fallbacks
-                importedData.details.proposalId =
-                    importedData.details.proposalId ??
-                    importedData.details.proposalNumber ??
-                    "";
-                importedData.details.proposalNumber =
-                    importedData.details.proposalNumber ??
-                    importedData.details.proposalId;
-                importedData.details.proposalDate =
-                    importedData.details.proposalDate ??
-                    importedData.details.proposalDate ??
-                    null;
-            }
-
-            // Reset form with imported data
-            reset(importedData);
-        } catch (error) {
-            console.error("Error parsing JSON file:", error);
-            importProposalError();
-        }
-    };
-    reader.readAsText(file);
-};
-
-/**
- * Import an ANC Master Excel file and update the proposal state.
- * Nuclear reset on re-upload: flush all Excel-related state so no old data survives.
- */
-const importANCExcel = async (file: File, skipSave = false) => {
-    // PROMPT 57: Track file for creation sequence
-    lastImportedFileRef.current = file;
-
-    // Nuclear reset: flush Excel/preview state before loading new file (stops leaks, zero-price bug, infinite loops)
-    // PROMPT 55: Removed localStorage cleanup - database is source of truth
-    isCreatingNewRef.current = true;
-    setExcelPreview(null);
-    setExcelValidationOk(false);
-    setExcelSourceData(null);
-    setVerificationManifest(null);
-    setVerificationExceptions([]);
-    setExcelDiagnostics(null);
-
-    // NUCLEAR RESET: Flush ALL form fields so no ghost data survives a re-upload
-    setValue("details.screens", [], { shouldDirty: false });
-    setValue("details.items", [], { shouldDirty: false });
-    setValue("details.internalAudit" as any, {}, { shouldDirty: false });
-    setValue("details.clientSummary" as any, {}, { shouldDirty: false });
-    setValue("details.pricingDocument" as any, undefined, {
-        shouldDirty: false,
-    });
-    setValue("details.pricingMode" as any, "STANDARD", {
-        shouldDirty: false,
-    });
-    setValue("marginAnalysis" as any, undefined, { shouldDirty: false });
-
-    loadExcelPreview(file);
-    const formData = new FormData();
-    formData.append("file", file);
-
-    setExcelImportLoading(true);
-    try {
-        const res = await fetch("/api/proposals/import-excel", {
-            method: "POST",
-            body: formData,
-        });
-
-        if (!res.ok) {
-            const text = await res.text();
-            let msg = text;
+    /**
+     * Import an proposal from a JSON file.
+     *
+     * @param {File} file - The JSON file to import.
+     */
+    const importProposalData = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
             try {
-                const j = JSON.parse(text);
-                if (j?.error) msg = j.error;
-            } catch {
-                /* use text as-is */
+                const importedData = JSON.parse(event.target?.result as string);
+
+                // Parse the dates
+                if (importedData.details) {
+                    if (importedData.details.proposalDate) {
+                        importedData.details.proposalDate = new Date(
+                            importedData.details.proposalDate,
+                        );
+                    }
+                    if (importedData.details.dueDate) {
+                        importedData.details.dueDate = new Date(
+                            importedData.details.dueDate,
+                        );
+                    }
+
+                    // Normalize IDs/dates: prefer proposalId/proposalDate and fill proposal fallbacks
+                    importedData.details.proposalId =
+                        importedData.details.proposalId ??
+                        importedData.details.proposalNumber ??
+                        "";
+                    importedData.details.proposalNumber =
+                        importedData.details.proposalNumber ??
+                        importedData.details.proposalId;
+                    importedData.details.proposalDate =
+                        importedData.details.proposalDate ??
+                        importedData.details.proposalDate ??
+                        null;
+                }
+
+                // Reset form with imported data
+                reset(importedData);
+            } catch (error) {
+                console.error("Error parsing JSON file:", error);
+                importProposalError();
             }
-            throw new Error(msg);
-        }
+        };
+        reader.readAsText(file);
+    };
 
-        const data = await res.json();
+    /**
+     * Import an ANC Master Excel file and update the proposal state.
+     * Nuclear reset on re-upload: flush all Excel-related state so no old data survives.
+     */
+    const importANCExcel = async (file: File, skipSave = false) => {
+        // PROMPT 57: Track file for creation sequence
+        lastImportedFileRef.current = file;
 
-        setExcelSourceData(data.excelData ?? null);
-        setVerificationManifest(data.verificationManifest ?? null);
-        setVerificationExceptions(
-            Array.isArray(data.exceptions) ? data.exceptions : [],
-        );
+        // Nuclear reset: flush Excel/preview state before loading new file (stops leaks, zero-price bug, infinite loops)
+        // PROMPT 55: Removed localStorage cleanup - database is source of truth
+        isCreatingNewRef.current = true;
+        setExcelPreview(null);
+        setExcelValidationOk(false);
+        setExcelSourceData(null);
+        setVerificationManifest(null);
+        setVerificationExceptions([]);
+        setExcelDiagnostics(null);
 
-        if (data.formData) {
-            const { formData, internalAudit } = data;
+        // NUCLEAR RESET: Flush ALL form fields so no ghost data survives a re-upload
+        setValue("details.screens", [], { shouldDirty: false });
+        setValue("details.items", [], { shouldDirty: false });
+        setValue("details.internalAudit" as any, {}, { shouldDirty: false });
+        setValue("details.clientSummary" as any, {}, { shouldDirty: false });
+        setValue("details.pricingDocument" as any, undefined, {
+            shouldDirty: false,
+        });
+        setValue("details.pricingMode" as any, "STANDARD", {
+            shouldDirty: false,
+        });
+        setValue("marginAnalysis" as any, undefined, { shouldDirty: false });
 
-            // 1. Batch update main form fields
-            const currentReceiverName = (getValues("receiver.name") ?? "")
-                .toString()
-                .trim();
-            const importedReceiverName = (formData.receiver?.name ?? "")
-                .toString()
-                .trim();
-            const currentProposalName = (
-                getValues("details.proposalName") ?? ""
-            )
-                .toString()
-                .trim();
-            const importedProposalName = (
-                formData.details?.proposalName ?? ""
-            )
-                .toString()
-                .trim();
+        loadExcelPreview(file);
+        const formData = new FormData();
+        formData.append("file", file);
 
-            const isReceiverPlaceholder =
-                currentReceiverName.length === 0 ||
-                currentReceiverName === FORM_DEFAULT_VALUES.receiver.name ||
-                currentReceiverName.toLowerCase() === "new project" ||
-                currentReceiverName.toLowerCase() === "placeholder";
+        setExcelImportLoading(true);
+        try {
+            const res = await fetch("/api/proposals/import-excel", {
+                method: "POST",
+                body: formData,
+            });
 
-            const isImportedReceiverPlaceholder =
-                importedReceiverName.length === 0 ||
-                importedReceiverName ===
-                FORM_DEFAULT_VALUES.receiver.name ||
-                importedReceiverName.toLowerCase() === "new project" ||
-                importedReceiverName.toLowerCase() === "placeholder";
-
-            const isProposalPlaceholder =
-                currentProposalName.length === 0 ||
-                currentProposalName.toLowerCase() === "new project" ||
-                currentProposalName.toLowerCase() === "placeholder";
-
-            const isImportedProposalPlaceholder =
-                importedProposalName.length === 0 ||
-                importedProposalName.toLowerCase() ===
-                "anc led display proposal" ||
-                importedProposalName.toLowerCase() === "new project" ||
-                importedProposalName.toLowerCase() === "placeholder";
-
-            // Only overwrite if current is placeholder AND imported is NOT placeholder
-            if (isReceiverPlaceholder && !isImportedReceiverPlaceholder) {
-                setValue("receiver.name", importedReceiverName, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                });
+            if (!res.ok) {
+                const text = await res.text();
+                let msg = text;
+                try {
+                    const j = JSON.parse(text);
+                    if (j?.error) msg = j.error;
+                } catch {
+                    /* use text as-is */
+                }
+                throw new Error(msg);
             }
 
-            if (isProposalPlaceholder && !isImportedProposalPlaceholder) {
-                setValue("details.proposalName", importedProposalName, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                });
-            }
+            const data = await res.json();
 
-            // Also preserve address/city/zip if they exist locally
-            const fieldsToPreserve = [
-                "receiver.address",
-                "receiver.city",
-                "receiver.zipCode",
-                "details.venue",
-                "details.location",
-            ] as const;
+            setExcelSourceData(data.excelData ?? null);
+            setVerificationManifest(data.verificationManifest ?? null);
+            setVerificationExceptions(
+                Array.isArray(data.exceptions) ? data.exceptions : [],
+            );
 
-            fieldsToPreserve.forEach((field) => {
-                const current = (getValues(field) ?? "").toString().trim();
-                const imported = (
-                    formData.receiver?.[
-                    field.split(
-                        ".",
-                    )[1] as keyof typeof formData.receiver
-                    ] ??
-                    formData.details?.[
-                    field.split(".")[1] as keyof typeof formData.details
-                    ] ??
-                    ""
+            if (data.formData) {
+                const { formData, internalAudit } = data;
+
+                // 1. Batch update main form fields
+                const currentReceiverName = (getValues("receiver.name") ?? "")
+                    .toString()
+                    .trim();
+                const importedReceiverName = (formData.receiver?.name ?? "")
+                    .toString()
+                    .trim();
+                const currentProposalName = (
+                    getValues("details.proposalName") ?? ""
+                )
+                    .toString()
+                    .trim();
+                const importedProposalName = (
+                    formData.details?.proposalName ?? ""
                 )
                     .toString()
                     .trim();
 
-                const isCurrentEmpty =
-                    current.length === 0 ||
-                    current.toLowerCase() === "placeholder";
-                const isImportedNotEmpty =
-                    imported.length > 0 &&
-                    imported.toLowerCase() !== "placeholder";
+                const isReceiverPlaceholder =
+                    currentReceiverName.length === 0 ||
+                    currentReceiverName === FORM_DEFAULT_VALUES.receiver.name ||
+                    currentReceiverName.toLowerCase() === "new project" ||
+                    currentReceiverName.toLowerCase() === "placeholder";
 
-                if (isCurrentEmpty && isImportedNotEmpty) {
-                    setValue(field, imported, {
+                const isImportedReceiverPlaceholder =
+                    importedReceiverName.length === 0 ||
+                    importedReceiverName ===
+                    FORM_DEFAULT_VALUES.receiver.name ||
+                    importedReceiverName.toLowerCase() === "new project" ||
+                    importedReceiverName.toLowerCase() === "placeholder";
+
+                const isProposalPlaceholder =
+                    currentProposalName.length === 0 ||
+                    currentProposalName.toLowerCase() === "new project" ||
+                    currentProposalName.toLowerCase() === "placeholder";
+
+                const isImportedProposalPlaceholder =
+                    importedProposalName.length === 0 ||
+                    importedProposalName.toLowerCase() ===
+                    "anc led display proposal" ||
+                    importedProposalName.toLowerCase() === "new project" ||
+                    importedProposalName.toLowerCase() === "placeholder";
+
+                // Only overwrite if current is placeholder AND imported is NOT placeholder
+                if (isReceiverPlaceholder && !isImportedReceiverPlaceholder) {
+                    setValue("receiver.name", importedReceiverName, {
                         shouldValidate: true,
                         shouldDirty: true,
                     });
                 }
-            });
 
-            if (formData.details?.mirrorMode !== undefined) {
-                setValue(
-                    "details.mirrorMode",
-                    formData.details.mirrorMode,
-                    { shouldValidate: true, shouldDirty: true },
-                );
-                setValue(
-                    "details.calculationMode",
-                    formData.details.mirrorMode ? "MIRROR" : "INTELLIGENCE",
-                    { shouldValidate: true, shouldDirty: true },
-                );
-            }
+                if (isProposalPlaceholder && !isImportedProposalPlaceholder) {
+                    setValue("details.proposalName", importedProposalName, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                    });
+                }
 
-            // 2. Handle Screens & Line Items
-            if (formData.details?.screens && internalAudit) {
-                const screens = formData.details.screens.filter(
-                    (s: any) => {
-                        const name = (s?.name ?? "")
-                            .toString()
-                            .trim()
-                            .toUpperCase();
-                        const w = Number(s?.widthFt ?? s?.width ?? 0);
-                        const h = Number(s?.heightFt ?? s?.height ?? 0);
-                        if (name.includes("OPTION") && (w <= 0 || h <= 0))
-                            return false;
-                        return true;
-                    },
-                );
+                // Also preserve address/city/zip if they exist locally
+                const fieldsToPreserve = [
+                    "receiver.address",
+                    "receiver.city",
+                    "receiver.zipCode",
+                    "details.venue",
+                    "details.location",
+                ] as const;
 
-                // Sync line items for PDF template (Injecting pricing from Audit into Screen Objects)
-                const screensWithLineItems = syncLineItemsFromAudit(
-                    screens,
-                    internalAudit,
-                );
-                setValue("details.screens", screensWithLineItems, {
-                    shouldValidate: true,
-                    shouldDirty: true,
+                fieldsToPreserve.forEach((field) => {
+                    const current = (getValues(field) ?? "").toString().trim();
+                    const imported = (
+                        formData.receiver?.[
+                        field.split(
+                            ".",
+                        )[1] as keyof typeof formData.receiver
+                        ] ??
+                        formData.details?.[
+                        field.split(".")[1] as keyof typeof formData.details
+                        ] ??
+                        ""
+                    )
+                        .toString()
+                        .trim();
+
+                    const isCurrentEmpty =
+                        current.length === 0 ||
+                        current.toLowerCase() === "placeholder";
+                    const isImportedNotEmpty =
+                        imported.length > 0 &&
+                        imported.toLowerCase() !== "placeholder";
+
+                    if (isCurrentEmpty && isImportedNotEmpty) {
+                        setValue(field, imported, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                        });
+                    }
                 });
-                setValue("details.internalAudit", internalAudit, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                });
-                setValue("details.clientSummary", internalAudit.totals, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                });
 
-                // CRITICAL: Set marginAnalysis for complete Project Total (includes non-LED items)
-                // This is used by ProposalTemplate1 to show Structural, Electrical, PM, etc.
-                if (
-                    formData.details?.marginAnalysis &&
-                    formData.details.marginAnalysis.length > 0
-                ) {
+                if (formData.details?.mirrorMode !== undefined) {
                     setValue(
-                        "marginAnalysis",
-                        formData.details.marginAnalysis,
+                        "details.mirrorMode",
+                        formData.details.mirrorMode,
+                        { shouldValidate: true, shouldDirty: true },
+                    );
+                    setValue(
+                        "details.calculationMode",
+                        formData.details.mirrorMode ? "MIRROR" : "INTELLIGENCE",
                         { shouldValidate: true, shouldDirty: true },
                     );
                 }
 
-                // 3. CRITICAL: Update the PDF Item Table (The "Items" array used by templates)
-                const allItems = screensWithLineItems.flatMap((s) =>
-                    (s.lineItems || []).map((li: any) => ({
-                        name: li.category,
-                        description:
-                            s.description || "Standard LED specification.",
-                        quantity: 1,
-                        unitPrice: li.price,
-                        total: li.price,
-                    })),
-                );
-                setValue("details.items", allItems, {
+                // 2. Handle Screens & Line Items
+                if (formData.details?.screens && internalAudit) {
+                    const screens = formData.details.screens.filter(
+                        (s: any) => {
+                            const name = (s?.name ?? "")
+                                .toString()
+                                .trim()
+                                .toUpperCase();
+                            const w = Number(s?.widthFt ?? s?.width ?? 0);
+                            const h = Number(s?.heightFt ?? s?.height ?? 0);
+                            if (name.includes("OPTION") && (w <= 0 || h <= 0))
+                                return false;
+                            return true;
+                        },
+                    );
+
+                    // Sync line items for PDF template (Injecting pricing from Audit into Screen Objects)
+                    const screensWithLineItems = syncLineItemsFromAudit(
+                        screens,
+                        internalAudit,
+                    );
+                    setValue("details.screens", screensWithLineItems, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                    });
+                    setValue("details.internalAudit", internalAudit, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                    });
+                    setValue("details.clientSummary", internalAudit.totals, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                    });
+
+                    // CRITICAL: Set marginAnalysis for complete Project Total (includes non-LED items)
+                    // This is used by ProposalTemplate1 to show Structural, Electrical, PM, etc.
+                    if (
+                        formData.details?.marginAnalysis &&
+                        formData.details.marginAnalysis.length > 0
+                    ) {
+                        setValue(
+                            "marginAnalysis",
+                            formData.details.marginAnalysis,
+                            { shouldValidate: true, shouldDirty: true },
+                        );
+                    }
+
+                    // 3. CRITICAL: Update the PDF Item Table (The "Items" array used by templates)
+                    const allItems = screensWithLineItems.flatMap((s) =>
+                        (s.lineItems || []).map((li: any) => ({
+                            name: li.category,
+                            description:
+                                s.description || "Standard LED specification.",
+                            quantity: 1,
+                            unitPrice: li.price,
+                            total: li.price,
+                        })),
+                    );
+                    setValue("details.items", allItems, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                    });
+                }
+            }
+
+            // 4. NEW: Store PricingDocument for Natalia Mirror Mode
+            const pricingDocument =
+                (data as any).pricingDocument ||
+                (data.formData?.details as any)?.pricingDocument;
+            if (pricingDocument) {
+                setValue("details.pricingDocument" as any, pricingDocument, {
                     shouldValidate: true,
                     shouldDirty: true,
                 });
-            }
-        }
-
-        // 4. NEW: Store PricingDocument for Natalia Mirror Mode
-        const pricingDocument =
-            (data as any).pricingDocument ||
-            (data.formData?.details as any)?.pricingDocument;
-        if (pricingDocument) {
-            setValue("details.pricingDocument" as any, pricingDocument, {
-                shouldValidate: true,
-                shouldDirty: true,
-            });
-            // Auto-enable mirror mode when pricingDocument is available
-            setValue("details.pricingMode" as any, "MIRROR", {
-                shouldValidate: true,
-                shouldDirty: true,
-            });
-            // Mirror Mode: hide SOW (not relevant), keep specs visible for screen edits
-            setValue("details.showExhibitA", false, { shouldDirty: true });
-            console.log("[CONTEXT] PricingDocument stored for Mirror Mode");
-        }
-
-        // VISUAL VALIDATION: Compute diagnostics for the "Check Engine Light"
-        const diagnosticWarnings: string[] = [];
-        const diagnosticErrors: string[] = [];
-
-        const importedScreens = getValues("details.screens") || [];
-        const importedAudit = getValues("details.internalAudit") as any;
-        const auditTotal = Number(
-            importedAudit?.totals?.finalClientTotal ||
-            importedAudit?.totals?.sellPrice ||
-            0,
-        );
-
-        if (importedScreens.length === 0) {
-            diagnosticErrors.push(
-                "No display screens were extracted from the Excel file. Check that the LED Sheet tab exists and has valid rows.",
-            );
-        }
-        if (auditTotal === 0 && importedScreens.length > 0) {
-            diagnosticWarnings.push(
-                'Project total is $0.00. The Margin Analysis tab may be missing, or the total row could not be located. Check your Excel for a "Sub Total (Bid Form)" or "Grand Total" row.',
-            );
-        }
-        if (
-            !data.formData?.details?.marginAnalysis ||
-            data.formData.details.marginAnalysis.length === 0
-        ) {
-            diagnosticWarnings.push(
-                "No Margin Analysis sheet was found. Non-LED costs (structural, electrical, PM) will not appear in the proposal.",
-            );
-        }
-        const pricingDoc =
-            (data as any).pricingDocument ||
-            (data.formData?.details as any)?.pricingDocument;
-        if (!pricingDoc) {
-            diagnosticWarnings.push(
-                "Mirror Mode pricing data could not be extracted. The proposal will use Intelligence Mode calculations instead.",
-            );
-        }
-
-        setExcelDiagnostics({
-            warnings: diagnosticWarnings,
-            errors: diagnosticErrors,
-            totalOk: auditTotal > 0 && importedScreens.length > 0,
-        });
-
-        aiExtractionSuccess();
-        setActiveTab("audit");
-
-        // CRITICAL: Immediately save Excel data to database to prevent data loss
-        // Don't rely on auto-save debounce (2000ms delay) - user might navigate away
-        if (!skipSave) {
-            try {
-                // Prompt 52: Pre-save diagnostic
-                const preCheck = getValues();
-                console.log("[EXCEL IMPORT] Pre-saveDraft state:", {
-                    proposalId: preCheck?.details?.proposalId,
-                    screenCount: preCheck?.details?.screens?.length ?? 0,
-                    firstScreenName: preCheck?.details?.screens?.[0]?.name,
-                    hasInternalAudit: !!preCheck?.details?.internalAudit,
-                    auditKeys: preCheck?.details?.internalAudit ? Object.keys(preCheck.details.internalAudit as any) : [],
-                    hasPricingDoc: !!(preCheck as any)?.details?.pricingDocument,
-                    receiverName: preCheck?.receiver?.name,
+                // Auto-enable mirror mode when pricingDocument is available
+                setValue("details.pricingMode" as any, "MIRROR", {
+                    shouldValidate: true,
+                    shouldDirty: true,
                 });
-                const saveResult = await saveDraft();
-                if (!saveResult.created && saveResult.error) {
-                    console.error(
-                        "[EXCEL IMPORT] Failed to auto-save after import:",
-                        saveResult.error,
-                    );
-                } else {
-                    console.log(
-                        "[EXCEL IMPORT] Excel data saved to database successfully",
-                    );
-                    // Log Excel import activity
-                    const pid = getValues("details.proposalId");
-                    if (pid && pid !== "new") {
-                        fetch(`/api/projects/${pid}/activities`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                action: "excel_imported",
-                                description: `Imported ${file.name}`,
-                                metadata: { fileName: file.name },
-                            }),
-                        }).catch(() => { });
-                    }
-                }
-            } catch (saveError) {
-                console.error(
-                    "[EXCEL IMPORT] Error auto-saving after import:",
-                    saveError,
+                // Mirror Mode: hide SOW (not relevant), keep specs visible for screen edits
+                setValue("details.showExhibitA", false, { shouldDirty: true });
+                console.log("[CONTEXT] PricingDocument stored for Mirror Mode");
+            }
+
+            // VISUAL VALIDATION: Compute diagnostics for the "Check Engine Light"
+            const diagnosticWarnings: string[] = [];
+            const diagnosticErrors: string[] = [];
+
+            const importedScreens = getValues("details.screens") || [];
+            const importedAudit = getValues("details.internalAudit") as any;
+            const auditTotal = Number(
+                importedAudit?.totals?.finalClientTotal ||
+                importedAudit?.totals?.sellPrice ||
+                0,
+            );
+
+            if (importedScreens.length === 0) {
+                diagnosticErrors.push(
+                    "No display screens were extracted from the Excel file. Check that the LED Sheet tab exists and has valid rows.",
                 );
             }
-        } catch (err) {
-            console.error("Excel import error:", err);
-            const message = err instanceof Error ? err.message : String(err);
-            showError("Excel import failed", message);
-        } finally {
-            setExcelImportLoading(false);
-            setTimeout(() => {
-                isCreatingNewRef.current = false;
-            }, 500);
-        }
-    };
+            if (auditTotal === 0 && importedScreens.length > 0) {
+                diagnosticWarnings.push(
+                    'Project total is $0.00. The Margin Analysis tab may be missing, or the total row could not be located. Check your Excel for a "Sub Total (Bid Form)" or "Grand Total" row.',
+                );
+            }
+            if (
+                !data.formData?.details?.marginAnalysis ||
+                data.formData.details.marginAnalysis.length === 0
+            ) {
+                diagnosticWarnings.push(
+                    "No Margin Analysis sheet was found. Non-LED costs (structural, electrical, PM) will not appear in the proposal.",
+                );
+            }
+            const pricingDoc =
+                (data as any).pricingDocument ||
+                (data.formData?.details as any)?.pricingDocument;
+            if (!pricingDoc) {
+                diagnosticWarnings.push(
+                    "Mirror Mode pricing data could not be extracted. The proposal will use Intelligence Mode calculations instead.",
+                );
+            }
 
-    return (
-        <ProposalContext.Provider
-            value={{
-                proposalPdf,
-                proposalPdfLoading,
-                pdfGenerationProgress,
-                pdfBatchProgress,
-                excelImportLoading,
-                excelPreviewLoading,
-                excelPreview,
-                excelValidationOk,
-                excelDiagnostics,
-                excelSourceData,
-                verificationManifest,
-                verificationExceptions,
-                loadExcelPreview,
-                savedProposals,
-                pdfUrl,
-                activeTab,
-                setActiveTab,
-                onFormSubmit,
-                newProposal,
-                resetProposal,
-                generatePdf,
-                removeFinalPdf,
-                downloadPdf,
-                downloadAllPdfVariants,
-                downloadBundlePdfs,
-                printPdf,
-                printLivePreview,
-                previewPdfInTab,
-                saveProposalData,
-                saveDraft,
-                deleteProposalData,
-                // Backwards-compatible alias
-                deleteProposal: deleteProposalData,
-                sendPdfToMail,
-                exportProposalDataAs,
-                // Backwards-compatible alias
-                exportProposalAs: exportProposalDataAs,
-                exportAudit,
-                importProposalData,
-                importANCExcel,
-                // AI & Verification
-                aiFields,
-                aiCitations,
-                verifiedFields,
-                setFieldVerified,
-                aiFieldTimestamps,
-                unverifiedAiFields,
-                isGatekeeperLocked,
-                trackAiFieldModification,
-                isFieldGhostActive,
-                rulesDetected,
-                setRulesDetected: (rules: any) => setRulesDetected(rules),
-                // Core State
-                risks,
-                setRisks: (newRisks: RiskItem[]) => setRisks(newRisks),
-                // Diagnostic functions
-                diagnosticOpen,
-                diagnosticPayload,
-                openDiagnostic,
-                closeDiagnostic,
-                submitDiagnostic,
-                // Alerts
-                lowMarginAlerts,
-                // RFP functions
-                rfpDocumentUrl,
-                rfpDocuments,
-                refreshRfpDocuments,
-                deleteRfpDocument,
-                aiWorkspaceSlug,
-                rfpQuestions,
-                uploadRfpDocument: async (file: File) => {
-                    const formData = new FormData();
-                    formData.append("file", file);
-                    const currentDetails = getValues().details;
-                    if (currentDetails?.proposalId) {
-                        formData.append(
-                            "proposalId",
-                            currentDetails.proposalId as string,
+            setExcelDiagnostics({
+                warnings: diagnosticWarnings,
+                errors: diagnosticErrors,
+                totalOk: auditTotal > 0 && importedScreens.length > 0,
+            });
+
+            aiExtractionSuccess();
+            setActiveTab("audit");
+
+            // CRITICAL: Immediately save Excel data to database to prevent data loss
+            // Don't rely on auto-save debounce (2000ms delay) - user might navigate away
+            if (!skipSave) {
+                try {
+                    // Prompt 52: Pre-save diagnostic
+                    const preCheck = getValues();
+                    console.log("[EXCEL IMPORT] Pre-saveDraft state:", {
+                        proposalId: preCheck?.details?.proposalId,
+                        screenCount: preCheck?.details?.screens?.length ?? 0,
+                        firstScreenName: preCheck?.details?.screens?.[0]?.name,
+                        hasInternalAudit: !!preCheck?.details?.internalAudit,
+                        auditKeys: preCheck?.details?.internalAudit ? Object.keys(preCheck.details.internalAudit as any) : [],
+                        hasPricingDoc: !!(preCheck as any)?.details?.pricingDocument,
+                        receiverName: preCheck?.receiver?.name,
+                    });
+                    const saveResult = await saveDraft();
+                    if (!saveResult.created && saveResult.error) {
+                        console.error(
+                            "[EXCEL IMPORT] Failed to auto-save after import:",
+                            saveResult.error,
                         );
+                    } else {
+                        console.log(
+                            "[EXCEL IMPORT] Excel data saved to database successfully",
+                        );
+                        // Log Excel import activity
+                        const pid = getValues("details.proposalId");
+                        if (pid && pid !== "new") {
+                            fetch(`/api/projects/${pid}/activities`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    action: "excel_imported",
+                                    description: `Imported ${file.name}`,
+                                    metadata: { fileName: file.name },
+                                }),
+                            }).catch(() => { });
+                        }
                     }
-                    try {
-                        const res = await fetch("/api/rfp/upload", {
-                            method: "POST",
-                            body: formData,
-                        });
-                        const data = await res.json();
+                } catch (saveError) {
+                    console.error(
+                        "[EXCEL IMPORT] Error auto-saving after import:",
+                        saveError,
+                    );
+                }
+            } catch (err) {
+                console.error("Excel import error:", err);
+                const message = err instanceof Error ? err.message : String(err);
+                showError("Excel import failed", message);
+            } finally {
+                setExcelImportLoading(false);
+                setTimeout(() => {
+                    isCreatingNewRef.current = false;
+                }, 500);
+            }
+        };
 
-                        if (data.ok) {
-                            setRfpDocumentUrl(data.url);
-                            if (data.workspaceSlug) {
-                                setValue(
-                                    "details.aiWorkspaceSlug",
-                                    data.workspaceSlug,
-                                );
-                            }
-                            if (data.questions) setRfpQuestions(data.questions);
-                            if (data.filterStats)
-                                setFilterStats(data.filterStats);
+        return (
+            <ProposalContext.Provider
+                value={{
+                    proposalPdf,
+                    proposalPdfLoading,
+                    pdfGenerationProgress,
+                    pdfBatchProgress,
+                    excelImportLoading,
+                    excelPreviewLoading,
+                    excelPreview,
+                    excelValidationOk,
+                    excelDiagnostics,
+                    excelSourceData,
+                    verificationManifest,
+                    verificationExceptions,
+                    loadExcelPreview,
+                    savedProposals,
+                    pdfUrl,
+                    activeTab,
+                    setActiveTab,
+                    onFormSubmit,
+                    newProposal,
+                    resetProposal,
+                    generatePdf,
+                    removeFinalPdf,
+                    downloadPdf,
+                    downloadAllPdfVariants,
+                    downloadBundlePdfs,
+                    printPdf,
+                    printLivePreview,
+                    previewPdfInTab,
+                    saveProposalData,
+                    saveDraft,
+                    deleteProposalData,
+                    // Backwards-compatible alias
+                    deleteProposal: deleteProposalData,
+                    sendPdfToMail,
+                    exportProposalDataAs,
+                    // Backwards-compatible alias
+                    exportProposalAs: exportProposalDataAs,
+                    exportAudit,
+                    importProposalData,
+                    importANCExcel,
+                    // AI & Verification
+                    aiFields,
+                    aiCitations,
+                    verifiedFields,
+                    setFieldVerified,
+                    aiFieldTimestamps,
+                    unverifiedAiFields,
+                    isGatekeeperLocked,
+                    trackAiFieldModification,
+                    isFieldGhostActive,
+                    rulesDetected,
+                    setRulesDetected: (rules: any) => setRulesDetected(rules),
+                    // Core State
+                    risks,
+                    setRisks: (newRisks: RiskItem[]) => setRisks(newRisks),
+                    // Diagnostic functions
+                    diagnosticOpen,
+                    diagnosticPayload,
+                    openDiagnostic,
+                    closeDiagnostic,
+                    submitDiagnostic,
+                    // Alerts
+                    lowMarginAlerts,
+                    // RFP functions
+                    rfpDocumentUrl,
+                    rfpDocuments,
+                    refreshRfpDocuments,
+                    deleteRfpDocument,
+                    aiWorkspaceSlug,
+                    rfpQuestions,
+                    uploadRfpDocument: async (file: File) => {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const currentDetails = getValues().details;
+                        if (currentDetails?.proposalId) {
+                            formData.append(
+                                "proposalId",
+                                currentDetails.proposalId as string,
+                            );
+                        }
+                        try {
+                            const res = await fetch("/api/rfp/upload", {
+                                method: "POST",
+                                body: formData,
+                            });
+                            const data = await res.json();
 
-                            // Refresh the vault list
-                            refreshRfpDocuments();
-
-                            // Handle Excel import data (exact pricing from Natalia's Excel)
-                            if (
-                                data.excelData &&
-                                data.importType === "standard_excel"
-                            ) {
-                                const excel = data.excelData;
-                                const aiPopulated: string[] = [];
-                                const citations: Record<string, string> = {};
-
-                                // Set receiver info
-                                if (excel.receiver?.name) {
+                            if (data.ok) {
+                                setRfpDocumentUrl(data.url);
+                                if (data.workspaceSlug) {
                                     setValue(
-                                        "receiver.name",
-                                        excel.receiver.name,
+                                        "details.aiWorkspaceSlug",
+                                        data.workspaceSlug,
                                     );
-                                    aiPopulated.push("receiver.name");
-                                    citations["receiver.name"] =
-                                        "[Source: Natalia Excel Import]";
                                 }
+                                if (data.questions) setRfpQuestions(data.questions);
+                                if (data.filterStats)
+                                    setFilterStats(data.filterStats);
 
-                                // Set proposal details
-                                if (excel.details?.proposalName) {
-                                    setValue(
-                                        "details.proposalName",
-                                        excel.details.proposalName,
-                                    );
-                                    aiPopulated.push("details.proposalName");
-                                    citations["details.proposalName"] =
-                                        "[Source: Natalia Excel Import]";
-                                }
-                                if (excel.details?.venue) {
-                                    setValue(
-                                        "details.venue",
-                                        excel.details.venue,
-                                    );
-                                    aiPopulated.push("details.venue");
-                                    citations["details.venue"] =
-                                        "[Source: Natalia Excel Import]";
-                                }
+                                // Refresh the vault list
+                                refreshRfpDocuments();
 
-                                // Set calculation mode to MIRROR for Excel imports (exact pricing)
-                                setValue("details.calculationMode", "MIRROR");
-                                setCalculationModeState("MIRROR");
-
-                                // Process screens from Excel
+                                // Handle Excel import data (exact pricing from Natalia's Excel)
                                 if (
-                                    excel.screens &&
-                                    Array.isArray(excel.screens) &&
-                                    excel.screens.length > 0
+                                    data.excelData &&
+                                    data.importType === "standard_excel"
                                 ) {
-                                    const normalized = excel.screens.map(
-                                        (s: any, idx: number) => {
-                                            const prefix = `details.screens[${idx}]`;
+                                    const excel = data.excelData;
+                                    const aiPopulated: string[] = [];
+                                    const citations: Record<string, string> = {};
 
-                                            // Track all populated fields
-                                            if (s.name) {
-                                                aiPopulated.push(
-                                                    `${prefix}.name`,
-                                                );
-                                                citations[`${prefix}.name`] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.widthFt != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.widthFt`,
-                                                );
-                                                citations[`${prefix}.widthFt`] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.heightFt != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.heightFt`,
-                                                );
-                                                citations[
-                                                    `${prefix}.heightFt`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.pitchMm != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.pitchMm`,
-                                                );
-                                                citations[`${prefix}.pitchMm`] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.pixelsH != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.pixelsH`,
-                                                );
-                                                citations[`${prefix}.pixelsH`] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.pixelsW != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.pixelsW`,
-                                                );
-                                                citations[`${prefix}.pixelsW`] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.brightness != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.brightness`,
-                                                );
-                                                citations[
-                                                    `${prefix}.brightness`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.quantity != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.quantity`,
-                                                );
-                                                citations[
-                                                    `${prefix}.quantity`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.externalName) {
-                                                aiPopulated.push(
-                                                    `${prefix}.externalName`,
-                                                );
-                                                citations[
-                                                    `${prefix}.externalName`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.location) {
-                                                aiPopulated.push(
-                                                    `${prefix}.location`,
-                                                );
-                                                citations[
-                                                    `${prefix}.location`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.application) {
-                                                aiPopulated.push(
-                                                    `${prefix}.application`,
-                                                );
-                                                citations[
-                                                    `${prefix}.application`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.serviceType) {
-                                                aiPopulated.push(
-                                                    `${prefix}.serviceType`,
-                                                );
-                                                citations[
-                                                    `${prefix}.serviceType`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.installationType) {
-                                                aiPopulated.push(
-                                                    `${prefix}.installationType`,
-                                                );
-                                                citations[
-                                                    `${prefix}.installationType`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.isReplacement != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.isReplacement`,
-                                                );
-                                                citations[
-                                                    `${prefix}.isReplacement`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (
-                                                s.useExistingStructure != null
-                                            ) {
-                                                aiPopulated.push(
-                                                    `${prefix}.useExistingStructure`,
-                                                );
-                                                citations[
-                                                    `${prefix}.useExistingStructure`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.includeSpareParts != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.includeSpareParts`,
-                                                );
-                                                citations[
-                                                    `${prefix}.includeSpareParts`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.isCurved != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.isCurved`,
-                                                );
-                                                citations[
-                                                    `${prefix}.isCurved`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
-                                            if (s.isDoubleSided != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.isDoubleSided`,
-                                                );
-                                                citations[
-                                                    `${prefix}.isDoubleSided`
-                                                ] =
-                                                    "[Source: Natalia Excel Import]";
-                                            }
+                                    // Set receiver info
+                                    if (excel.receiver?.name) {
+                                        setValue(
+                                            "receiver.name",
+                                            excel.receiver.name,
+                                        );
+                                        aiPopulated.push("receiver.name");
+                                        citations["receiver.name"] =
+                                            "[Source: Natalia Excel Import]";
+                                    }
 
-                                            return {
-                                                name:
-                                                    s.name ||
-                                                    `Screen ${idx + 1}`,
-                                                externalName:
-                                                    s.externalName ||
-                                                    s.name ||
-                                                    `Screen ${idx + 1}`,
-                                                widthFt: Number(s.widthFt ?? 0),
-                                                heightFt: Number(
-                                                    s.heightFt ?? 0,
-                                                ),
-                                                quantity: Number(
-                                                    s.quantity ?? 1,
-                                                ),
-                                                pitchMm: Number(
-                                                    s.pitchMm ?? 10,
-                                                ),
-                                                pixelsH: Number(s.pixelsH ?? 0),
-                                                pixelsW: Number(s.pixelsW ?? 0),
-                                                brightness:
-                                                    s.brightness != null
-                                                        ? String(s.brightness)
-                                                        : "",
-                                                serviceType:
-                                                    s.serviceType ||
-                                                    "Front/Rear",
-                                                application:
-                                                    s.application || "",
-                                                installationType:
-                                                    s.installationType || "",
-                                                location: s.location || "",
-                                                isReplacement:
-                                                    !!s.isReplacement,
-                                                useExistingStructure:
-                                                    !!s.useExistingStructure,
-                                                includeSpareParts:
-                                                    s.includeSpareParts !==
-                                                    false,
-                                                isCurved: !!s.isCurved,
-                                                isDoubleSided:
-                                                    !!s.isDoubleSided,
-                                            };
-                                        },
+                                    // Set proposal details
+                                    if (excel.details?.proposalName) {
+                                        setValue(
+                                            "details.proposalName",
+                                            excel.details.proposalName,
+                                        );
+                                        aiPopulated.push("details.proposalName");
+                                        citations["details.proposalName"] =
+                                            "[Source: Natalia Excel Import]";
+                                    }
+                                    if (excel.details?.venue) {
+                                        setValue(
+                                            "details.venue",
+                                            excel.details.venue,
+                                        );
+                                        aiPopulated.push("details.venue");
+                                        citations["details.venue"] =
+                                            "[Source: Natalia Excel Import]";
+                                    }
+
+                                    // Set calculation mode to MIRROR for Excel imports (exact pricing)
+                                    setValue("details.calculationMode", "MIRROR");
+                                    setCalculationModeState("MIRROR");
+
+                                    // Process screens from Excel
+                                    if (
+                                        excel.screens &&
+                                        Array.isArray(excel.screens) &&
+                                        excel.screens.length > 0
+                                    ) {
+                                        const normalized = excel.screens.map(
+                                            (s: any, idx: number) => {
+                                                const prefix = `details.screens[${idx}]`;
+
+                                                // Track all populated fields
+                                                if (s.name) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.name`,
+                                                    );
+                                                    citations[`${prefix}.name`] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.widthFt != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.widthFt`,
+                                                    );
+                                                    citations[`${prefix}.widthFt`] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.heightFt != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.heightFt`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.heightFt`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.pitchMm != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.pitchMm`,
+                                                    );
+                                                    citations[`${prefix}.pitchMm`] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.pixelsH != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.pixelsH`,
+                                                    );
+                                                    citations[`${prefix}.pixelsH`] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.pixelsW != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.pixelsW`,
+                                                    );
+                                                    citations[`${prefix}.pixelsW`] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.brightness != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.brightness`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.brightness`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.quantity != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.quantity`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.quantity`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.externalName) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.externalName`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.externalName`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.location) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.location`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.location`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.application) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.application`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.application`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.serviceType) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.serviceType`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.serviceType`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.installationType) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.installationType`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.installationType`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.isReplacement != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.isReplacement`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.isReplacement`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (
+                                                    s.useExistingStructure != null
+                                                ) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.useExistingStructure`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.useExistingStructure`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.includeSpareParts != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.includeSpareParts`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.includeSpareParts`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.isCurved != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.isCurved`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.isCurved`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+                                                if (s.isDoubleSided != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.isDoubleSided`,
+                                                    );
+                                                    citations[
+                                                        `${prefix}.isDoubleSided`
+                                                    ] =
+                                                        "[Source: Natalia Excel Import]";
+                                                }
+
+                                                return {
+                                                    name:
+                                                        s.name ||
+                                                        `Screen ${idx + 1}`,
+                                                    externalName:
+                                                        s.externalName ||
+                                                        s.name ||
+                                                        `Screen ${idx + 1}`,
+                                                    widthFt: Number(s.widthFt ?? 0),
+                                                    heightFt: Number(
+                                                        s.heightFt ?? 0,
+                                                    ),
+                                                    quantity: Number(
+                                                        s.quantity ?? 1,
+                                                    ),
+                                                    pitchMm: Number(
+                                                        s.pitchMm ?? 10,
+                                                    ),
+                                                    pixelsH: Number(s.pixelsH ?? 0),
+                                                    pixelsW: Number(s.pixelsW ?? 0),
+                                                    brightness:
+                                                        s.brightness != null
+                                                            ? String(s.brightness)
+                                                            : "",
+                                                    serviceType:
+                                                        s.serviceType ||
+                                                        "Front/Rear",
+                                                    application:
+                                                        s.application || "",
+                                                    installationType:
+                                                        s.installationType || "",
+                                                    location: s.location || "",
+                                                    isReplacement:
+                                                        !!s.isReplacement,
+                                                    useExistingStructure:
+                                                        !!s.useExistingStructure,
+                                                    includeSpareParts:
+                                                        s.includeSpareParts !==
+                                                        false,
+                                                    isCurved: !!s.isCurved,
+                                                    isDoubleSided:
+                                                        !!s.isDoubleSided,
+                                                };
+                                            },
+                                        );
+
+                                        setValue("details.screens", normalized);
+                                        setAiFields(aiPopulated);
+                                        setAiCitations((prev) => ({
+                                            ...prev,
+                                            ...citations,
+                                        }));
+
+                                        // Calculate audit with Excel data
+                                        try {
+                                            const { clientSummary, internalAudit } =
+                                                calculateProposalAudit(normalized, {
+                                                    taxRate: getValues(
+                                                        "details.taxRateOverride",
+                                                    ),
+                                                    bondPct: getValues(
+                                                        "details.bondRateOverride",
+                                                    ),
+                                                    projectAddress:
+                                                        `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                                                    venue:
+                                                        excel.details?.venue ??
+                                                        getValues("details.venue"),
+                                                });
+                                            setValue(
+                                                "details.internalAudit",
+                                                internalAudit,
+                                            );
+                                            setValue(
+                                                "details.clientSummary",
+                                                clientSummary,
+                                            );
+                                        } catch (e) {
+                                            console.error(
+                                                "Audit calculation failed:",
+                                                e,
+                                            );
+                                        }
+                                    }
+
+                                    // Set Excel source data for reference
+                                    setExcelSourceData(excel);
+
+                                    // Show success toast
+                                    aiExtractionSuccess();
+                                    return data;
+                                }
+
+                                // Apply AI extracted data if available (supports { value, citation } shape)
+                                if (data.extractedData) {
+                                    const ext = data.extractedData;
+                                    const v = (x: any) =>
+                                        x != null &&
+                                            typeof x === "object" &&
+                                            "value" in x
+                                            ? x.value
+                                            : x;
+                                    const c = (x: any) =>
+                                        x != null &&
+                                            typeof x === "object" &&
+                                            "citation" in x &&
+                                            typeof (x as any).citation === "string"
+                                            ? (x as any).citation
+                                            : undefined;
+                                    const aiPopulated: string[] = [];
+                                    const citations: Record<string, string> = {};
+                                    const rName = v(ext.receiver?.name);
+                                    if (rName) {
+                                        setValue("receiver.name", rName);
+                                        aiPopulated.push("receiver.name");
+                                        const cit = c(ext.receiver?.name);
+                                        if (cit) citations["receiver.name"] = cit;
+                                    }
+                                    const pName = v(ext.details?.proposalName);
+                                    if (pName) {
+                                        setValue("details.proposalName", pName);
+                                        aiPopulated.push("details.proposalName");
+                                        const cit = c(ext.details?.proposalName);
+                                        if (cit)
+                                            citations["details.proposalName"] = cit;
+                                    }
+                                    const venue =
+                                        v(ext.details?.venue) ?? v(ext.venue);
+                                    if (venue) {
+                                        setValue("details.venue", venue);
+                                        aiPopulated.push("details.venue");
+                                        const cit =
+                                            c(ext.details?.venue) ?? c(ext.venue);
+                                        if (cit) citations["details.venue"] = cit;
+                                    }
+                                    const structT = v(
+                                        ext.rulesDetected?.structuralTonnage,
                                     );
-
-                                    setValue("details.screens", normalized);
-                                    setAiFields(aiPopulated);
-                                    setAiCitations((prev) => ({
-                                        ...prev,
-                                        ...citations,
-                                    }));
-
-                                    // Calculate audit with Excel data
-                                    try {
-                                        const { clientSummary, internalAudit } =
-                                            calculateProposalAudit(normalized, {
-                                                taxRate: getValues(
-                                                    "details.taxRateOverride",
-                                                ),
-                                                bondPct: getValues(
-                                                    "details.bondRateOverride",
-                                                ),
-                                                projectAddress:
-                                                    `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
-                                                venue:
-                                                    excel.details?.venue ??
-                                                    getValues("details.venue"),
-                                            });
+                                    if (structT != null) {
                                         setValue(
-                                            "details.internalAudit",
-                                            internalAudit,
+                                            "details.metadata.structuralTonnage",
+                                            Number(structT),
                                         );
+                                        aiPopulated.push(
+                                            "details.metadata.structuralTonnage",
+                                        );
+                                        const cit = c(
+                                            ext.rulesDetected?.structuralTonnage,
+                                        );
+                                        if (cit)
+                                            citations[
+                                                "details.metadata.structuralTonnage"
+                                            ] = cit;
+                                    }
+                                    const reinfT = v(
+                                        ext.rulesDetected?.reinforcingTonnage,
+                                    );
+                                    if (reinfT != null) {
                                         setValue(
-                                            "details.clientSummary",
-                                            clientSummary,
+                                            "details.metadata.reinforcingTonnage",
+                                            Number(reinfT),
                                         );
-                                    } catch (e) {
-                                        console.error(
-                                            "Audit calculation failed:",
-                                            e,
+                                        aiPopulated.push(
+                                            "details.metadata.reinforcingTonnage",
                                         );
+                                        const cit = c(
+                                            ext.rulesDetected?.reinforcingTonnage,
+                                        );
+                                        if (cit)
+                                            citations[
+                                                "details.metadata.reinforcingTonnage"
+                                            ] = cit;
+                                    }
+                                    if (ext.rulesDetected)
+                                        setRulesDetected(ext.rulesDetected);
+
+                                    if (
+                                        ext.details?.screens &&
+                                        Array.isArray(ext.details.screens)
+                                    ) {
+                                        const normalized = ext.details.screens.map(
+                                            (s: any, idx: number) => {
+                                                const prefix = `details.screens[${idx}]`;
+                                                const name = v(s.name);
+                                                const widthFt = v(s.widthFt);
+                                                const heightFt = v(s.heightFt);
+                                                const pitchMm = v(s.pitchMm);
+                                                const quantity = v(s.quantity);
+                                                const pixelsH = v(
+                                                    s.pixelResolutionH ?? s.pixelsH,
+                                                );
+                                                const pixelsW = v(
+                                                    s.pixelResolutionW ?? s.pixelsW,
+                                                );
+                                                const brightness = v(s.brightness);
+                                                const serviceType = v(
+                                                    s.serviceType,
+                                                );
+                                                const application = v(
+                                                    s.application,
+                                                );
+                                                if (name) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.name`,
+                                                    );
+                                                    const cit = c(s.name);
+                                                    if (cit)
+                                                        citations[
+                                                            `${prefix}.name`
+                                                        ] = cit;
+                                                }
+                                                if (widthFt != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.widthFt`,
+                                                    );
+                                                    const cit = c(s.widthFt);
+                                                    if (cit)
+                                                        citations[
+                                                            `${prefix}.widthFt`
+                                                        ] = cit;
+                                                }
+                                                if (heightFt != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.heightFt`,
+                                                    );
+                                                    const cit = c(s.heightFt);
+                                                    if (cit)
+                                                        citations[
+                                                            `${prefix}.heightFt`
+                                                        ] = cit;
+                                                }
+                                                if (pitchMm != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.pitchMm`,
+                                                    );
+                                                    const cit = c(s.pitchMm);
+                                                    if (cit)
+                                                        citations[
+                                                            `${prefix}.pitchMm`
+                                                        ] = cit;
+                                                }
+                                                if (pixelsH != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.pixelsH`,
+                                                    );
+                                                    const cit = c(
+                                                        s.pixelResolutionH ??
+                                                        s.pixelsH,
+                                                    );
+                                                    if (cit)
+                                                        citations[
+                                                            `${prefix}.pixelsH`
+                                                        ] = cit;
+                                                }
+                                                if (pixelsW != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.pixelsW`,
+                                                    );
+                                                    const cit = c(
+                                                        s.pixelResolutionW ??
+                                                        s.pixelsW,
+                                                    );
+                                                    if (cit)
+                                                        citations[
+                                                            `${prefix}.pixelsW`
+                                                        ] = cit;
+                                                }
+                                                if (brightness != null) {
+                                                    aiPopulated.push(
+                                                        `${prefix}.brightness`,
+                                                    );
+                                                    const cit = c(s.brightness);
+                                                    if (cit)
+                                                        citations[
+                                                            `${prefix}.brightness`
+                                                        ] = cit;
+                                                }
+                                                if (s.isReplacement !== undefined)
+                                                    aiPopulated.push(
+                                                        `${prefix}.isReplacement`,
+                                                    );
+
+                                                return {
+                                                    name: name || "New Screen",
+                                                    externalName:
+                                                        v(s.externalName) ||
+                                                        name ||
+                                                        "New Screen",
+                                                    widthFt: Number(widthFt ?? 0),
+                                                    heightFt: Number(heightFt ?? 0),
+                                                    quantity: Number(quantity ?? 1),
+                                                    pitchMm: Number(pitchMm ?? 10),
+                                                    pixelsH: Number(pixelsH ?? 0),
+                                                    pixelsW: Number(pixelsW ?? 0),
+                                                    brightness:
+                                                        brightness != null
+                                                            ? String(brightness)
+                                                            : "",
+                                                    serviceType:
+                                                        serviceType || "Front/Rear",
+                                                    application: application || "",
+                                                    isReplacement: !!v(
+                                                        s.isReplacement,
+                                                    ),
+                                                    useExistingStructure: !!v(
+                                                        s.useExistingStructure,
+                                                    ),
+                                                    includeSpareParts:
+                                                        v(s.includeSpareParts) !==
+                                                        false,
+                                                };
+                                            },
+                                        );
+                                        setValue("details.screens", normalized);
+                                        if (rName) setValue("receiver.name", rName);
+                                        if (pName)
+                                            setValue("details.proposalName", pName);
+                                        setAiFields(aiPopulated);
+                                        setAiCitations((prev) => ({
+                                            ...prev,
+                                            ...citations,
+                                        }));
+
+                                        try {
+                                            const { clientSummary, internalAudit } =
+                                                calculateProposalAudit(normalized, {
+                                                    taxRate: getValues(
+                                                        "details.taxRateOverride",
+                                                    ),
+                                                    bondPct: getValues(
+                                                        "details.bondRateOverride",
+                                                    ),
+                                                    structuralTonnage:
+                                                        structT != null
+                                                            ? Number(structT)
+                                                            : undefined,
+                                                    reinforcingTonnage:
+                                                        reinfT != null
+                                                            ? Number(reinfT)
+                                                            : undefined,
+                                                    projectAddress:
+                                                        `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                                                    venue:
+                                                        venue ??
+                                                        getValues("details.venue"),
+                                                });
+                                            setValue(
+                                                "details.internalAudit",
+                                                internalAudit,
+                                            );
+                                            setValue(
+                                                "details.clientSummary",
+                                                clientSummary,
+                                            );
+                                        } catch (e) { }
+                                    } else {
+                                        setAiCitations((prev) => ({
+                                            ...prev,
+                                            ...citations,
+                                        }));
                                     }
                                 }
-
-                                // Set Excel source data for reference
-                                setExcelSourceData(excel);
-
-                                // Show success toast
+                                // Let the user know the magic happened!
                                 aiExtractionSuccess();
                                 return data;
                             }
+                        } catch (e) {
+                            console.error("RFP upload error", e);
+                        }
+                    },
+                    reExtractRfp: async () => {
+                        const proposalId = getValues().details?.proposalId;
+                        const slug = getValues().details?.aiWorkspaceSlug;
+                        if (!proposalId && !slug) return null;
+                        try {
+                            const res = await fetch("/api/rfp/extract", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    proposalId: proposalId || undefined,
+                                    workspaceSlug: slug || undefined,
+                                }),
+                            });
+                            const data = await res.json();
+                            if (!data.ok || !data.extractedData)
+                                return data.extractedData ?? null;
+                            const ext = data.extractedData;
+                            const v = (x: any) =>
+                                x != null && typeof x === "object" && "value" in x
+                                    ? x.value
+                                    : x;
+                            const c = (x: any) =>
+                                x != null &&
+                                    typeof x === "object" &&
+                                    "citation" in x &&
+                                    typeof (x as any).citation === "string"
+                                    ? (x as any).citation
+                                    : undefined;
+                            const aiPopulated: string[] = [];
+                            const citations: Record<string, string> = {};
 
-                            // Apply AI extracted data if available (supports { value, citation } shape)
-                            if (data.extractedData) {
-                                const ext = data.extractedData;
-                                const v = (x: any) =>
-                                    x != null &&
-                                        typeof x === "object" &&
-                                        "value" in x
-                                        ? x.value
-                                        : x;
-                                const c = (x: any) =>
-                                    x != null &&
-                                        typeof x === "object" &&
-                                        "citation" in x &&
-                                        typeof (x as any).citation === "string"
-                                        ? (x as any).citation
-                                        : undefined;
-                                const aiPopulated: string[] = [];
-                                const citations: Record<string, string> = {};
-                                const rName = v(ext.receiver?.name);
-                                if (rName) {
-                                    setValue("receiver.name", rName);
-                                    aiPopulated.push("receiver.name");
-                                    const cit = c(ext.receiver?.name);
-                                    if (cit) citations["receiver.name"] = cit;
-                                }
-                                const pName = v(ext.details?.proposalName);
-                                if (pName) {
-                                    setValue("details.proposalName", pName);
-                                    aiPopulated.push("details.proposalName");
-                                    const cit = c(ext.details?.proposalName);
-                                    if (cit)
-                                        citations["details.proposalName"] = cit;
-                                }
-                                const venue =
-                                    v(ext.details?.venue) ?? v(ext.venue);
-                                if (venue) {
-                                    setValue("details.venue", venue);
-                                    aiPopulated.push("details.venue");
-                                    const cit =
-                                        c(ext.details?.venue) ?? c(ext.venue);
-                                    if (cit) citations["details.venue"] = cit;
-                                }
-                                const structT = v(
-                                    ext.rulesDetected?.structuralTonnage,
+                            // REQ-126: Track AI-filled fields for Blue Glow persistence
+                            const rName = v(ext.receiver?.name);
+                            if (rName) {
+                                setValue("receiver.name", rName);
+                                aiPopulated.push("receiver.name");
+                                const cit = c(ext.receiver?.name);
+                                if (cit) citations["receiver.name"] = cit;
+                            }
+                            const pName = v(ext.details?.proposalName);
+                            if (pName) {
+                                setValue("details.proposalName", pName);
+                                aiPopulated.push("details.proposalName");
+                                const cit = c(ext.details?.proposalName);
+                                if (cit) citations["details.proposalName"] = cit;
+                            }
+                            const venue = v(ext.details?.venue) ?? v(ext.venue);
+                            if (venue) {
+                                setValue("details.venue", venue);
+                                aiPopulated.push("details.venue");
+                                const cit = c(ext.details?.venue) ?? c(ext.venue);
+                                if (cit) citations["details.venue"] = cit;
+                            }
+                            const structT = v(ext.rulesDetected?.structuralTonnage);
+                            if (structT != null) {
+                                setValue(
+                                    "details.metadata.structuralTonnage",
+                                    Number(structT),
                                 );
-                                if (structT != null) {
-                                    setValue(
-                                        "details.metadata.structuralTonnage",
-                                        Number(structT),
-                                    );
-                                    aiPopulated.push(
-                                        "details.metadata.structuralTonnage",
-                                    );
-                                    const cit = c(
-                                        ext.rulesDetected?.structuralTonnage,
-                                    );
-                                    if (cit)
-                                        citations[
-                                            "details.metadata.structuralTonnage"
-                                        ] = cit;
-                                }
-                                const reinfT = v(
+                                aiPopulated.push(
+                                    "details.metadata.structuralTonnage",
+                                );
+                                const cit = c(ext.rulesDetected?.structuralTonnage);
+                                if (cit)
+                                    citations[
+                                        "details.metadata.structuralTonnage"
+                                    ] = cit;
+                            }
+                            const reinfT = v(ext.rulesDetected?.reinforcingTonnage);
+                            if (reinfT != null) {
+                                setValue(
+                                    "details.metadata.reinforcingTonnage",
+                                    Number(reinfT),
+                                );
+                                aiPopulated.push(
+                                    "details.metadata.reinforcingTonnage",
+                                );
+                                const cit = c(
                                     ext.rulesDetected?.reinforcingTonnage,
                                 );
-                                if (reinfT != null) {
-                                    setValue(
-                                        "details.metadata.reinforcingTonnage",
-                                        Number(reinfT),
-                                    );
-                                    aiPopulated.push(
-                                        "details.metadata.reinforcingTonnage",
-                                    );
-                                    const cit = c(
-                                        ext.rulesDetected?.reinforcingTonnage,
-                                    );
-                                    if (cit)
-                                        citations[
-                                            "details.metadata.reinforcingTonnage"
-                                        ] = cit;
-                                }
-                                if (ext.rulesDetected)
-                                    setRulesDetected(ext.rulesDetected);
-
-                                if (
-                                    ext.details?.screens &&
-                                    Array.isArray(ext.details.screens)
-                                ) {
-                                    const normalized = ext.details.screens.map(
-                                        (s: any, idx: number) => {
-                                            const prefix = `details.screens[${idx}]`;
-                                            const name = v(s.name);
-                                            const widthFt = v(s.widthFt);
-                                            const heightFt = v(s.heightFt);
-                                            const pitchMm = v(s.pitchMm);
-                                            const quantity = v(s.quantity);
-                                            const pixelsH = v(
-                                                s.pixelResolutionH ?? s.pixelsH,
-                                            );
-                                            const pixelsW = v(
-                                                s.pixelResolutionW ?? s.pixelsW,
-                                            );
-                                            const brightness = v(s.brightness);
-                                            const serviceType = v(
-                                                s.serviceType,
-                                            );
-                                            const application = v(
-                                                s.application,
-                                            );
-                                            if (name) {
-                                                aiPopulated.push(
-                                                    `${prefix}.name`,
-                                                );
-                                                const cit = c(s.name);
-                                                if (cit)
-                                                    citations[
-                                                        `${prefix}.name`
-                                                    ] = cit;
-                                            }
-                                            if (widthFt != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.widthFt`,
-                                                );
-                                                const cit = c(s.widthFt);
-                                                if (cit)
-                                                    citations[
-                                                        `${prefix}.widthFt`
-                                                    ] = cit;
-                                            }
-                                            if (heightFt != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.heightFt`,
-                                                );
-                                                const cit = c(s.heightFt);
-                                                if (cit)
-                                                    citations[
-                                                        `${prefix}.heightFt`
-                                                    ] = cit;
-                                            }
-                                            if (pitchMm != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.pitchMm`,
-                                                );
-                                                const cit = c(s.pitchMm);
-                                                if (cit)
-                                                    citations[
-                                                        `${prefix}.pitchMm`
-                                                    ] = cit;
-                                            }
-                                            if (pixelsH != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.pixelsH`,
-                                                );
-                                                const cit = c(
-                                                    s.pixelResolutionH ??
-                                                    s.pixelsH,
-                                                );
-                                                if (cit)
-                                                    citations[
-                                                        `${prefix}.pixelsH`
-                                                    ] = cit;
-                                            }
-                                            if (pixelsW != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.pixelsW`,
-                                                );
-                                                const cit = c(
-                                                    s.pixelResolutionW ??
-                                                    s.pixelsW,
-                                                );
-                                                if (cit)
-                                                    citations[
-                                                        `${prefix}.pixelsW`
-                                                    ] = cit;
-                                            }
-                                            if (brightness != null) {
-                                                aiPopulated.push(
-                                                    `${prefix}.brightness`,
-                                                );
-                                                const cit = c(s.brightness);
-                                                if (cit)
-                                                    citations[
-                                                        `${prefix}.brightness`
-                                                    ] = cit;
-                                            }
-                                            if (s.isReplacement !== undefined)
-                                                aiPopulated.push(
-                                                    `${prefix}.isReplacement`,
-                                                );
-
-                                            return {
-                                                name: name || "New Screen",
-                                                externalName:
-                                                    v(s.externalName) ||
-                                                    name ||
-                                                    "New Screen",
-                                                widthFt: Number(widthFt ?? 0),
-                                                heightFt: Number(heightFt ?? 0),
-                                                quantity: Number(quantity ?? 1),
-                                                pitchMm: Number(pitchMm ?? 10),
-                                                pixelsH: Number(pixelsH ?? 0),
-                                                pixelsW: Number(pixelsW ?? 0),
-                                                brightness:
-                                                    brightness != null
-                                                        ? String(brightness)
-                                                        : "",
-                                                serviceType:
-                                                    serviceType || "Front/Rear",
-                                                application: application || "",
-                                                isReplacement: !!v(
-                                                    s.isReplacement,
-                                                ),
-                                                useExistingStructure: !!v(
-                                                    s.useExistingStructure,
-                                                ),
-                                                includeSpareParts:
-                                                    v(s.includeSpareParts) !==
-                                                    false,
-                                            };
-                                        },
-                                    );
-                                    setValue("details.screens", normalized);
-                                    if (rName) setValue("receiver.name", rName);
-                                    if (pName)
-                                        setValue("details.proposalName", pName);
-                                    setAiFields(aiPopulated);
-                                    setAiCitations((prev) => ({
-                                        ...prev,
-                                        ...citations,
-                                    }));
-
-                                    try {
-                                        const { clientSummary, internalAudit } =
-                                            calculateProposalAudit(normalized, {
-                                                taxRate: getValues(
-                                                    "details.taxRateOverride",
-                                                ),
-                                                bondPct: getValues(
-                                                    "details.bondRateOverride",
-                                                ),
-                                                structuralTonnage:
-                                                    structT != null
-                                                        ? Number(structT)
-                                                        : undefined,
-                                                reinforcingTonnage:
-                                                    reinfT != null
-                                                        ? Number(reinfT)
-                                                        : undefined,
-                                                projectAddress:
-                                                    `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
-                                                venue:
-                                                    venue ??
-                                                    getValues("details.venue"),
-                                            });
-                                        setValue(
-                                            "details.internalAudit",
-                                            internalAudit,
-                                        );
-                                        setValue(
-                                            "details.clientSummary",
-                                            clientSummary,
-                                        );
-                                    } catch (e) { }
-                                } else {
-                                    setAiCitations((prev) => ({
-                                        ...prev,
-                                        ...citations,
-                                    }));
-                                }
+                                if (cit)
+                                    citations[
+                                        "details.metadata.reinforcingTonnage"
+                                    ] = cit;
                             }
-                            // Let the user know the magic happened!
-                            aiExtractionSuccess();
-                            return data;
-                        }
-                    } catch (e) {
-                        console.error("RFP upload error", e);
-                    }
-                },
-                reExtractRfp: async () => {
-                    const proposalId = getValues().details?.proposalId;
-                    const slug = getValues().details?.aiWorkspaceSlug;
-                    if (!proposalId && !slug) return null;
-                    try {
-                        const res = await fetch("/api/rfp/extract", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                proposalId: proposalId || undefined,
-                                workspaceSlug: slug || undefined,
-                            }),
-                        });
-                        const data = await res.json();
-                        if (!data.ok || !data.extractedData)
-                            return data.extractedData ?? null;
-                        const ext = data.extractedData;
-                        const v = (x: any) =>
-                            x != null && typeof x === "object" && "value" in x
-                                ? x.value
-                                : x;
-                        const c = (x: any) =>
-                            x != null &&
-                                typeof x === "object" &&
-                                "citation" in x &&
-                                typeof (x as any).citation === "string"
-                                ? (x as any).citation
-                                : undefined;
-                        const aiPopulated: string[] = [];
-                        const citations: Record<string, string> = {};
-
-                        // REQ-126: Track AI-filled fields for Blue Glow persistence
-                        const rName = v(ext.receiver?.name);
-                        if (rName) {
-                            setValue("receiver.name", rName);
-                            aiPopulated.push("receiver.name");
-                            const cit = c(ext.receiver?.name);
-                            if (cit) citations["receiver.name"] = cit;
-                        }
-                        const pName = v(ext.details?.proposalName);
-                        if (pName) {
-                            setValue("details.proposalName", pName);
-                            aiPopulated.push("details.proposalName");
-                            const cit = c(ext.details?.proposalName);
-                            if (cit) citations["details.proposalName"] = cit;
-                        }
-                        const venue = v(ext.details?.venue) ?? v(ext.venue);
-                        if (venue) {
-                            setValue("details.venue", venue);
-                            aiPopulated.push("details.venue");
-                            const cit = c(ext.details?.venue) ?? c(ext.venue);
-                            if (cit) citations["details.venue"] = cit;
-                        }
-                        const structT = v(ext.rulesDetected?.structuralTonnage);
-                        if (structT != null) {
-                            setValue(
-                                "details.metadata.structuralTonnage",
-                                Number(structT),
-                            );
-                            aiPopulated.push(
-                                "details.metadata.structuralTonnage",
-                            );
-                            const cit = c(ext.rulesDetected?.structuralTonnage);
-                            if (cit)
-                                citations[
-                                    "details.metadata.structuralTonnage"
-                                ] = cit;
-                        }
-                        const reinfT = v(ext.rulesDetected?.reinforcingTonnage);
-                        if (reinfT != null) {
-                            setValue(
-                                "details.metadata.reinforcingTonnage",
-                                Number(reinfT),
-                            );
-                            aiPopulated.push(
-                                "details.metadata.reinforcingTonnage",
-                            );
-                            const cit = c(
-                                ext.rulesDetected?.reinforcingTonnage,
-                            );
-                            if (cit)
-                                citations[
-                                    "details.metadata.reinforcingTonnage"
-                                ] = cit;
-                        }
-                        if (ext.rulesDetected)
-                            setRulesDetected(ext.rulesDetected);
-
-                        // REQ-126: Persist AI-filled fields to database for Blue Glow tracking
-                        if (proposalId && aiPopulated.length > 0) {
-                            try {
-                                await fetch(`/api/projects/${proposalId}`, {
-                                    method: "PATCH",
-                                    headers: {
-                                        "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                        aiFilledFields: aiPopulated,
-                                    }),
-                                });
-                            } catch (error) {
-                                console.error(
-                                    "Failed to persist AI-filled fields:",
-                                    error,
-                                );
-                            }
-                        }
-                        if (
-                            ext.details?.screens &&
-                            Array.isArray(ext.details.screens)
-                        ) {
-                            const normalized = ext.details.screens.map(
-                                (s: any, idx: number) => {
-                                    const prefix = `details.screens[${idx}]`;
-                                    const name = v(s.name);
-                                    const widthFt = v(s.widthFt);
-                                    const heightFt = v(s.heightFt);
-                                    const pitchMm = v(s.pitchMm);
-                                    const quantity = v(s.quantity);
-                                    const pixelsH = v(
-                                        s.pixelResolutionH ?? s.pixelsH,
-                                    );
-                                    const pixelsW = v(
-                                        s.pixelResolutionW ?? s.pixelsW,
-                                    );
-                                    const brightness = v(s.brightness);
-                                    const serviceType = v(s.serviceType);
-                                    const application = v(s.application);
-                                    if (name) {
-                                        aiPopulated.push(`${prefix}.name`);
-                                        const cit = c(s.name);
-                                        if (cit)
-                                            citations[`${prefix}.name`] = cit;
-                                    }
-                                    if (widthFt != null) {
-                                        aiPopulated.push(`${prefix}.widthFt`);
-                                        const cit = c(s.widthFt);
-                                        if (cit)
-                                            citations[`${prefix}.widthFt`] =
-                                                cit;
-                                    }
-                                    if (heightFt != null) {
-                                        aiPopulated.push(`${prefix}.heightFt`);
-                                        const cit = c(s.heightFt);
-                                        if (cit)
-                                            citations[`${prefix}.heightFt`] =
-                                                cit;
-                                    }
-                                    if (pitchMm != null) {
-                                        aiPopulated.push(`${prefix}.pitchMm`);
-                                        const cit = c(s.pitchMm);
-                                        if (cit)
-                                            citations[`${prefix}.pitchMm`] =
-                                                cit;
-                                    }
-                                    if (brightness != null) {
-                                        aiPopulated.push(
-                                            `${prefix}.brightness`,
-                                        );
-                                        const cit = c(s.brightness);
-                                        if (cit)
-                                            citations[`${prefix}.brightness`] =
-                                                cit;
-                                    }
-                                    return {
-                                        name: name || "New Screen",
-                                        externalName:
-                                            v(s.externalName) ||
-                                            name ||
-                                            "New Screen",
-                                        widthFt: Number(widthFt ?? 0),
-                                        heightFt: Number(heightFt ?? 0),
-                                        quantity: Number(quantity ?? 1),
-                                        pitchMm: Number(pitchMm ?? 10),
-                                        pixelsH: Number(pixelsH ?? 0),
-                                        pixelsW: Number(pixelsW ?? 0),
-                                        brightness:
-                                            brightness != null
-                                                ? String(brightness)
-                                                : "",
-                                        serviceType:
-                                            serviceType || "Front/Rear",
-                                        application: application || "",
-                                        isReplacement: !!v(s.isReplacement),
-                                        useExistingStructure: !!v(
-                                            s.useExistingStructure,
-                                        ),
-                                        includeSpareParts:
-                                            v(s.includeSpareParts) !== false,
-                                    };
-                                },
-                            );
-                            setValue("details.screens", normalized);
-                            if (rName) setValue("receiver.name", rName);
-                            if (pName) setValue("details.proposalName", pName);
-                            setAiFields(aiPopulated);
-                            setAiCitations((prev) => ({
-                                ...prev,
-                                ...citations,
-                            }));
+                            if (ext.rulesDetected)
+                                setRulesDetected(ext.rulesDetected);
 
                             // REQ-126: Persist AI-filled fields to database for Blue Glow tracking
                             if (proposalId && aiPopulated.length > 0) {
@@ -4246,131 +4134,244 @@ const importANCExcel = async (file: File, skipSave = false) => {
                                     );
                                 }
                             }
-
-                            try {
-                                const { clientSummary, internalAudit } =
-                                    calculateProposalAudit(normalized, {
-                                        taxRate: getValues(
-                                            "details.taxRateOverride",
-                                        ),
-                                        bondPct: getValues(
-                                            "details.bondRateOverride",
-                                        ),
-                                        structuralTonnage:
-                                            structT != null
-                                                ? Number(structT)
-                                                : undefined,
-                                        reinforcingTonnage:
-                                            reinfT != null
-                                                ? Number(reinfT)
-                                                : undefined,
-                                        projectAddress:
-                                            `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""}`.trim(),
-                                        venue:
-                                            venue ?? getValues("details.venue"),
-                                    });
-                                setValue(
-                                    "details.internalAudit",
-                                    internalAudit,
+                            if (
+                                ext.details?.screens &&
+                                Array.isArray(ext.details.screens)
+                            ) {
+                                const normalized = ext.details.screens.map(
+                                    (s: any, idx: number) => {
+                                        const prefix = `details.screens[${idx}]`;
+                                        const name = v(s.name);
+                                        const widthFt = v(s.widthFt);
+                                        const heightFt = v(s.heightFt);
+                                        const pitchMm = v(s.pitchMm);
+                                        const quantity = v(s.quantity);
+                                        const pixelsH = v(
+                                            s.pixelResolutionH ?? s.pixelsH,
+                                        );
+                                        const pixelsW = v(
+                                            s.pixelResolutionW ?? s.pixelsW,
+                                        );
+                                        const brightness = v(s.brightness);
+                                        const serviceType = v(s.serviceType);
+                                        const application = v(s.application);
+                                        if (name) {
+                                            aiPopulated.push(`${prefix}.name`);
+                                            const cit = c(s.name);
+                                            if (cit)
+                                                citations[`${prefix}.name`] = cit;
+                                        }
+                                        if (widthFt != null) {
+                                            aiPopulated.push(`${prefix}.widthFt`);
+                                            const cit = c(s.widthFt);
+                                            if (cit)
+                                                citations[`${prefix}.widthFt`] =
+                                                    cit;
+                                        }
+                                        if (heightFt != null) {
+                                            aiPopulated.push(`${prefix}.heightFt`);
+                                            const cit = c(s.heightFt);
+                                            if (cit)
+                                                citations[`${prefix}.heightFt`] =
+                                                    cit;
+                                        }
+                                        if (pitchMm != null) {
+                                            aiPopulated.push(`${prefix}.pitchMm`);
+                                            const cit = c(s.pitchMm);
+                                            if (cit)
+                                                citations[`${prefix}.pitchMm`] =
+                                                    cit;
+                                        }
+                                        if (brightness != null) {
+                                            aiPopulated.push(
+                                                `${prefix}.brightness`,
+                                            );
+                                            const cit = c(s.brightness);
+                                            if (cit)
+                                                citations[`${prefix}.brightness`] =
+                                                    cit;
+                                        }
+                                        return {
+                                            name: name || "New Screen",
+                                            externalName:
+                                                v(s.externalName) ||
+                                                name ||
+                                                "New Screen",
+                                            widthFt: Number(widthFt ?? 0),
+                                            heightFt: Number(heightFt ?? 0),
+                                            quantity: Number(quantity ?? 1),
+                                            pitchMm: Number(pitchMm ?? 10),
+                                            pixelsH: Number(pixelsH ?? 0),
+                                            pixelsW: Number(pixelsW ?? 0),
+                                            brightness:
+                                                brightness != null
+                                                    ? String(brightness)
+                                                    : "",
+                                            serviceType:
+                                                serviceType || "Front/Rear",
+                                            application: application || "",
+                                            isReplacement: !!v(s.isReplacement),
+                                            useExistingStructure: !!v(
+                                                s.useExistingStructure,
+                                            ),
+                                            includeSpareParts:
+                                                v(s.includeSpareParts) !== false,
+                                        };
+                                    },
                                 );
-                                setValue(
-                                    "details.clientSummary",
-                                    clientSummary,
-                                );
-                            } catch (e) {
-                                /* ignore */
-                            }
-                        } else {
-                            setAiCitations((prev) => ({
-                                ...prev,
-                                ...citations,
-                            }));
+                                setValue("details.screens", normalized);
+                                if (rName) setValue("receiver.name", rName);
+                                if (pName) setValue("details.proposalName", pName);
+                                setAiFields(aiPopulated);
+                                setAiCitations((prev) => ({
+                                    ...prev,
+                                    ...citations,
+                                }));
 
-                            // REQ-126: Persist AI-filled fields even if no screens extracted
-                            if (proposalId && aiPopulated.length > 0) {
+                                // REQ-126: Persist AI-filled fields to database for Blue Glow tracking
+                                if (proposalId && aiPopulated.length > 0) {
+                                    try {
+                                        await fetch(`/api/projects/${proposalId}`, {
+                                            method: "PATCH",
+                                            headers: {
+                                                "Content-Type": "application/json",
+                                            },
+                                            body: JSON.stringify({
+                                                aiFilledFields: aiPopulated,
+                                            }),
+                                        });
+                                    } catch (error) {
+                                        console.error(
+                                            "Failed to persist AI-filled fields:",
+                                            error,
+                                        );
+                                    }
+                                }
+
                                 try {
-                                    await fetch(`/api/projects/${proposalId}`, {
-                                        method: "PATCH",
-                                        headers: {
-                                            "Content-Type": "application/json",
-                                        },
-                                        body: JSON.stringify({
-                                            aiFilledFields: aiPopulated,
-                                        }),
-                                    });
-                                } catch (error) {
-                                    console.error(
-                                        "Failed to persist AI-filled fields:",
-                                        error,
+                                    const { clientSummary, internalAudit } =
+                                        calculateProposalAudit(normalized, {
+                                            taxRate: getValues(
+                                                "details.taxRateOverride",
+                                            ),
+                                            bondPct: getValues(
+                                                "details.bondRateOverride",
+                                            ),
+                                            structuralTonnage:
+                                                structT != null
+                                                    ? Number(structT)
+                                                    : undefined,
+                                            reinforcingTonnage:
+                                                reinfT != null
+                                                    ? Number(reinfT)
+                                                    : undefined,
+                                            projectAddress:
+                                                `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""}`.trim(),
+                                            venue:
+                                                venue ?? getValues("details.venue"),
+                                        });
+                                    setValue(
+                                        "details.internalAudit",
+                                        internalAudit,
                                     );
+                                    setValue(
+                                        "details.clientSummary",
+                                        clientSummary,
+                                    );
+                                } catch (e) {
+                                    /* ignore */
+                                }
+                            } else {
+                                setAiCitations((prev) => ({
+                                    ...prev,
+                                    ...citations,
+                                }));
+
+                                // REQ-126: Persist AI-filled fields even if no screens extracted
+                                if (proposalId && aiPopulated.length > 0) {
+                                    try {
+                                        await fetch(`/api/projects/${proposalId}`, {
+                                            method: "PATCH",
+                                            headers: {
+                                                "Content-Type": "application/json",
+                                            },
+                                            body: JSON.stringify({
+                                                aiFilledFields: aiPopulated,
+                                            }),
+                                        });
+                                    } catch (error) {
+                                        console.error(
+                                            "Failed to persist AI-filled fields:",
+                                            error,
+                                        );
+                                    }
                                 }
                             }
+                            aiExtractionSuccess();
+                            return data.extractedData;
+                        } catch (e) {
+                            console.error("Re-extract error", e);
+                            return null;
                         }
-                        aiExtractionSuccess();
-                        return data.extractedData;
-                    } catch (e) {
-                        console.error("Re-extract error", e);
-                        return null;
-                    }
-                },
-                answerRfpQuestion: async (
-                    questionId: string,
-                    answer: string,
-                ) => {
-                    const proposalId = getValues().details?.proposalId;
-                    try {
-                        const res = await fetch("/api/rfp/answer", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                proposalId,
-                                questionId,
-                                answer,
-                            }),
-                        });
-                        const data = await res.json();
-                        if (data.ok) {
-                            setRfpQuestions((prev) =>
-                                prev.map((q) =>
-                                    q.id === questionId
-                                        ? { ...q, answer, answered: true }
-                                        : q,
-                                ),
-                            );
+                    },
+                    answerRfpQuestion: async (
+                        questionId: string,
+                        answer: string,
+                    ) => {
+                        const proposalId = getValues().details?.proposalId;
+                        try {
+                            const res = await fetch("/api/rfp/answer", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                    proposalId,
+                                    questionId,
+                                    answer,
+                                }),
+                            });
+                            const data = await res.json();
+                            if (data.ok) {
+                                setRfpQuestions((prev) =>
+                                    prev.map((q) =>
+                                        q.id === questionId
+                                            ? { ...q, answer, answered: true }
+                                            : q,
+                                    ),
+                                );
+                            }
+                        } catch (e) {
+                            console.error("RFP answer error", e);
                         }
-                    } catch (e) {
-                        console.error("RFP answer error", e);
-                    }
-                },
-                // command execution
-                applyCommand,
-                executeAiCommand,
-                aiMessages,
-                aiLoading,
-                duplicateScreen,
-                proposal: watch(),
-                headerType,
-                setHeaderType,
-                // Calculation Mode
-                calculationMode,
-                setCalculationMode,
-                // Excel Editing
-                updateExcelCell,
-                filterStats,
-                sidebarMode,
-                setSidebarMode,
-                // PROMPT 56: Guard function to prevent competing hydration
-                setInitialDataApplied,
-            }}
-        >
-            {children}
+                    },
+                    // command execution
+                    applyCommand,
+                    executeAiCommand,
+                    aiMessages,
+                    aiLoading,
+                    duplicateScreen,
+                    proposal: watch(),
+                    headerType,
+                    setHeaderType,
+                    // Calculation Mode
+                    calculationMode,
+                    setCalculationMode,
+                    // Excel Editing
+                    updateExcelCell,
+                    filterStats,
+                    sidebarMode,
+                    setSidebarMode,
+                    // PROMPT 56: Guard function to prevent competing hydration
+                    setInitialDataApplied,
+                }}
+            >
+                {children}
 
-            {/* Diagnostic overlay placed in provider so it can block the whole app */}
-            {typeof window !== "undefined"
-                ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore - dynamic require to avoid SSR issues
-                require("@/app/components/DiagnosticOverlay").default()
-                : null}
-        </ProposalContext.Provider>
-    );
-};
+                {/* Diagnostic overlay placed in provider so it can block the whole app */}
+                {typeof window !== "undefined"
+                    ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore - dynamic require to avoid SSR issues
+                    require("@/app/components/DiagnosticOverlay").default()
+                    : null}
+            </ProposalContext.Provider>
+        );
+    };
