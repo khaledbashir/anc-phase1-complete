@@ -99,9 +99,12 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   const screenNameMap: Record<string, string> = {};
   screens.forEach((screen: any) => {
     const group = screen?.group;
-    const customName = screen?.customDisplayName || screen?.externalName;
-    if (group && customName && customName !== screen?.name) {
-      screenNameMap[group] = customName;
+    if (!group) return;
+    const explicitOverride = screen?.customDisplayName || screen?.externalName;
+    if (explicitOverride) {
+      screenNameMap[group] = explicitOverride;
+    } else if (screen?.name && screen.name !== group) {
+      screenNameMap[group] = screen.name;
     }
   });
 

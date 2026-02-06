@@ -64,6 +64,7 @@ function mapDbToFormSchema(dbProject: any) {
                 id: s.id,
                 name: s.name || "Display",
                 externalName: s.externalName || "",
+                group: s.group || "",
                 pitchMm: Number(s.pixelPitch) || 0,
                 widthFt: Number(s.width) || 0,
                 heightFt: Number(s.height) || 0,

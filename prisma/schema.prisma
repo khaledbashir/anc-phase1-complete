@@ -247,6 +247,7 @@ model ScreenConfig {
   proposalId              String
   name                    String
   externalName            String?
+  group                   String?               // Excel Margin Analysis section header (key for screenNameMap)
   pixelPitch              Float
   width                   Float
   height                  Float

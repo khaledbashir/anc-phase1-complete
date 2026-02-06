@@ -84,12 +84,17 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Build mapping from screen group → custom display name (mirrors NataliaMirrorTemplate)
     // screen.group matches pricing table names (both come from Margin Analysis headers)
+    // Priority: externalName (PDF/Client Name) > edited name (Screen Name differs from group)
     const screenNameMap: Record<string, string> = {};
     screens.forEach((screen: any) => {
         const group = screen?.group;
-        const customName = screen?.customDisplayName || screen?.externalName;
-        if (group && customName && customName !== screen?.name) {
-            screenNameMap[group] = customName;
+        if (!group) return;
+        const explicitOverride = screen?.customDisplayName || screen?.externalName;
+        if (explicitOverride) {
+            screenNameMap[group] = explicitOverride;
+        } else if (screen?.name && screen.name !== group) {
+            // User edited Screen Name from the original Excel section name
+            screenNameMap[group] = screen.name;
         }
     });
 

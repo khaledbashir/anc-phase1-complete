@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
             create: body.excelData.screens.map((screen: any) => ({
               name: screen.name || "Unnamed Screen",
               externalName: screen.externalName || null,
+              group: screen.group || null,
               pixelPitch: Number(screen.pixelPitch || screen.pitchMm || 10),
               width: Number(screen.width || screen.widthFt || 0),
               height: Number(screen.height || screen.heightFt || 0),
