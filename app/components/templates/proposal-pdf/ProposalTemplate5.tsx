@@ -57,6 +57,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const ancAddress = sender?.address || "2 Manhattanville Road, Suite 402, Purchase, NY 10577";
     const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "TECHNICAL SPECIFICATIONS";
 
+    // Prompt 43: Currency detection from pricingDocument
+    const pricingDocument = (details as any)?.pricingDocument;
+    const currency: "CAD" | "USD" = pricingDocument?.currency || "USD";
+
     // Detect product type from screens to adjust header text
     const detectProductType = (): "LED" | "LCD" | "Display" => {
         if (!screens || screens.length === 0) return "Display";
@@ -439,7 +443,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         style={{ borderColor: colors.border, background: colors.white }}
                     >
                         <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.text }}>
-                            Project Total
+                            Project Total{currency === "CAD" ? " (CAD)" : ""}
                         </div>
                         <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
                             {formatCurrency(subtotal, Math.abs(subtotal) < 0.01 ? "—" : undefined)}
@@ -602,7 +606,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             {/* Pricing / Detailed Breakdown */}
             {showPricingTables && (
                 <div className="px-6 break-inside-avoid">
-                    <SectionHeader title={isLOI ? "Detailed Breakdown" : "Project Pricing"} />
+                    <SectionHeader
+                        title={isLOI ? "Detailed Breakdown" : "Project Pricing"}
+                        subtitle={currency === "CAD" ? "All amounts in Canadian Dollars (CAD)" : undefined}
+                    />
                     <div className="break-inside-avoid">
                         <PricingSection />
                     </div>
