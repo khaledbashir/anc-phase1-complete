@@ -832,15 +832,22 @@ const Step4Export = () => {
                                         <TooltipTrigger asChild>
                                             <button
                                                 onClick={handleGlobalExport}
-                                                disabled={mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked)}
+                                                disabled={(mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked)) && !exporting}
                                                 className={cn(
                                                     "w-full max-w-sm px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-                                                    (mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked))
-                                                        ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                                        : "bg-brand-blue text-white hover:bg-brand-blue/90 shadow-[0_0_20px_rgba(10,82,239,0.3)] hover:shadow-[0_0_30px_rgba(10,82,239,0.5)]"
+                                                    exporting
+                                                        ? "bg-brand-blue text-white cursor-wait shadow-[0_0_20px_rgba(10,82,239,0.3)]"
+                                                        : (mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked))
+                                                            ? "bg-muted text-muted-foreground cursor-not-allowed"
+                                                            : "bg-brand-blue text-white hover:bg-brand-blue/90 shadow-[0_0_20px_rgba(10,82,239,0.3)] hover:shadow-[0_0_30px_rgba(10,82,239,0.5)]"
                                                 )}
                                             >
-                                                {exporting ? "Generating..." : (
+                                                {exporting ? (
+                                                    <>
+                                                        <RefreshCw className="w-4 h-4 animate-spin" />
+                                                        <span className="font-semibold">Generating...</span>
+                                                    </>
+                                                ) : (
                                                     <>
                                                         <Download className="w-4 h-4" />
                                                         Download Bundle
@@ -853,7 +860,7 @@ const Step4Export = () => {
                                                 )}
                                             </button>
                                         </TooltipTrigger>
-                                        {getDownloadBundleErrorMessage() && (
+                                        {getDownloadBundleErrorMessage() && !exporting && (
                                             <TooltipContent side="top" className="max-w-xs">
                                                 <p className="text-xs">{getDownloadBundleErrorMessage()}</p>
                                             </TooltipContent>
