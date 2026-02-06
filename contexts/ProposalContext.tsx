@@ -317,25 +317,37 @@ export const ProposalContextProvider = ({
             clearTimeout(excelPreviewPersistTimerRef.current);
             excelPreviewPersistTimerRef.current = null;
         }
+        
+        // PROMPT 54 FIX: For existing projects, use projectId prop directly instead of watchedProposalId
+        // This ensures ExcelPreview is saved to the correct key even if watchedProposalId hasn't hydrated yet
+        const isExistingProject = projectId && projectId !== "new" && typeof projectId === "string";
+        const effectiveStorageKey = isExistingProject 
+            ? getExcelPreviewStorageKey(projectId)
+            : excelPreviewStorageKey;
+        
         // Never persist under the "draft" key — it causes cross-project pollution
         const keyIsDraft =
-            excelPreviewStorageKey ===
+            effectiveStorageKey ===
             `${LOCAL_STORAGE_EXCEL_PREVIEW_PREFIX}draft`;
         try {
             if (!excelPreview) {
                 if (!hadExcelPreviewRef.current) return;
-                window.localStorage.removeItem(excelPreviewStorageKey);
+                window.localStorage.removeItem(effectiveStorageKey);
                 setExcelValidationOk(false);
                 return;
             }
             hadExcelPreviewRef.current = true;
-            if (keyIsDraft) return;
+            if (keyIsDraft) {
+                console.log("[EXCEL PREVIEW] Skipping persist - draft key (projectId:", projectId, "watchedProposalId:", watchedProposalId, ")");
+                return;
+            }
             excelPreviewPersistTimerRef.current = setTimeout(() => {
                 try {
                     window.localStorage.setItem(
-                        excelPreviewStorageKey,
+                        effectiveStorageKey,
                         JSON.stringify(excelPreview),
                     );
+                    console.log("[EXCEL PREVIEW] Persisted preview to:", effectiveStorageKey, "projectId:", projectId);
                 } catch (e) {
                     console.warn(
                         "[EXCEL PREVIEW] Failed to persist preview:",
@@ -352,7 +364,7 @@ export const ProposalContextProvider = ({
                 excelPreviewPersistTimerRef.current = null;
             }
         };
-    }, [excelPreview, excelPreviewStorageKey]);
+    }, [excelPreview, excelPreviewStorageKey, projectId, watchedProposalId]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -388,15 +400,15 @@ export const ProposalContextProvider = ({
                     }
                 );
                 
-                // Note: We can't reconstruct ExcelPreview grid from pricingDocument (we don't have the original Excel file),
-                // but the form data (screens, pricingDocument, marginAnalysis) is already hydrated via WizardWrapper's reset(initialData).
-                // The ExcelPreview is just a visual representation - the actual data is in the form.
-                // For existing projects, ExcelPreview may be null, but screens and pricing data are available in the form.
+                // CRITICAL FIX: Use projectId prop directly instead of watchedProposalId
+                // watchedProposalId may be undefined on initial load, causing key to be "draft"
+                // projectId is available immediately from URL params
+                const projectStorageKey = getExcelPreviewStorageKey(projectId);
                 
-                // Try to hydrate ExcelPreview from localStorage as a fallback (user may have uploaded Excel before)
-                // But don't fail if it doesn't exist - the form data is what matters
+                // Try to hydrate ExcelPreview from localStorage using projectId
+                // This ensures we find the preview even if watchedProposalId hasn't hydrated yet
                 try {
-                    const raw = window.localStorage.getItem(excelPreviewStorageKey);
+                    const raw = window.localStorage.getItem(projectStorageKey);
                     if (raw) {
                         const parsed = JSON.parse(raw);
                         if (isExcelPreviewCandidate(parsed)) {
@@ -410,11 +422,30 @@ export const ProposalContextProvider = ({
                                 setExcelValidationOk(
                                     computeExcelValidationOkFromSheets(parsed.sheets),
                                 );
-                                console.log("[EXCEL PREVIEW] Restored preview grid from localStorage");
+                                console.log("[EXCEL PREVIEW] Restored preview grid from localStorage using projectId:", projectId);
                             }
                         }
                     } else {
-                        console.log("[EXCEL PREVIEW] No localStorage preview found, but form data is hydrated from database");
+                        // Also try the watchedProposalId key as fallback (in case it's different)
+                        if (watchedProposalId && watchedProposalId !== projectId) {
+                            const watchedKey = getExcelPreviewStorageKey(watchedProposalId);
+                            const watchedRaw = window.localStorage.getItem(watchedKey);
+                            if (watchedRaw) {
+                                const watchedParsed = JSON.parse(watchedRaw);
+                                if (isExcelPreviewCandidate(watchedParsed)) {
+                                    hadExcelPreviewRef.current = true;
+                                    setExcelPreview(watchedParsed);
+                                    setExcelValidationOk(
+                                        computeExcelValidationOkFromSheets(watchedParsed.sheets),
+                                    );
+                                    console.log("[EXCEL PREVIEW] Restored preview grid from localStorage using watchedProposalId:", watchedProposalId);
+                                }
+                            }
+                        }
+                        
+                        if (!hasExcelPreview) {
+                            console.log("[EXCEL PREVIEW] No localStorage preview found, but form data is hydrated from database");
+                        }
                     }
                 } catch (e) {
                     console.warn("[EXCEL PREVIEW] Failed to hydrate preview from localStorage:", e);
