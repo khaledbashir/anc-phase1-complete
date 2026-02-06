@@ -356,6 +356,7 @@ export const ProposalContextProvider = ({
 
     useEffect(() => {
         if (typeof window === "undefined") return;
+        
         // CRITICAL: Don't hydrate Excel if on /projects/new or creating a new project
         if (
             window.location.pathname === "/projects/new" ||
@@ -367,6 +368,63 @@ export const ProposalContextProvider = ({
             );
             return;
         }
+
+        // PROMPT 54 FIX: For existing projects, check database first (via initialData)
+        // The database is the source of truth for saved projects
+        const isExistingProject = projectId && projectId !== "new" && typeof projectId === "string";
+        
+        if (isExistingProject && initialData) {
+            const hasPricingData = !!(initialData as any).details?.pricingDocument || !!(initialData as any).marginAnalysis;
+            const hasScreens = !!((initialData as any).details?.screens?.length);
+            
+            if (hasPricingData || hasScreens) {
+                console.log(
+                    "[EXCEL PREVIEW] Hydrating from database for project:",
+                    projectId,
+                    {
+                        hasPricingDocument: !!(initialData as any).details?.pricingDocument,
+                        hasMarginAnalysis: !!(initialData as any).marginAnalysis,
+                        screenCount: (initialData as any).details?.screens?.length || 0,
+                    }
+                );
+                
+                // Note: We can't reconstruct ExcelPreview grid from pricingDocument (we don't have the original Excel file),
+                // but the form data (screens, pricingDocument, marginAnalysis) is already hydrated via WizardWrapper's reset(initialData).
+                // The ExcelPreview is just a visual representation - the actual data is in the form.
+                // For existing projects, ExcelPreview may be null, but screens and pricing data are available in the form.
+                
+                // Try to hydrate ExcelPreview from localStorage as a fallback (user may have uploaded Excel before)
+                // But don't fail if it doesn't exist - the form data is what matters
+                try {
+                    const raw = window.localStorage.getItem(excelPreviewStorageKey);
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        if (isExcelPreviewCandidate(parsed)) {
+                            const shouldHydrate =
+                                !hasExcelPreview ||
+                                (typeof parsed.loadedAt === "number" &&
+                                    parsed.loadedAt > excelPreviewLoadedAt);
+                            if (shouldHydrate) {
+                                hadExcelPreviewRef.current = true;
+                                setExcelPreview(parsed);
+                                setExcelValidationOk(
+                                    computeExcelValidationOkFromSheets(parsed.sheets),
+                                );
+                                console.log("[EXCEL PREVIEW] Restored preview grid from localStorage");
+                            }
+                        }
+                    } else {
+                        console.log("[EXCEL PREVIEW] No localStorage preview found, but form data is hydrated from database");
+                    }
+                } catch (e) {
+                    console.warn("[EXCEL PREVIEW] Failed to hydrate preview from localStorage:", e);
+                }
+                
+                return; // Skip the draft key check for existing projects
+            }
+        }
+
+        // Legacy path: Check localStorage for draft/new projects
         // Extra guard: if the storage key resolves to "draft", only hydrate when
         // we are editing a real saved project (proposalId is neither empty, "new", nor "draft").
         const keyIsDraft =
@@ -378,6 +436,7 @@ export const ProposalContextProvider = ({
             );
             return;
         }
+        
         try {
             const raw = window.localStorage.getItem(excelPreviewStorageKey);
             if (!raw) return;
@@ -399,7 +458,7 @@ export const ProposalContextProvider = ({
         } catch (e) {
             console.warn("[EXCEL PREVIEW] Failed to hydrate preview:", e);
         }
-    }, [excelPreviewStorageKey, hasExcelPreview, excelPreviewLoadedAt]);
+    }, [excelPreviewStorageKey, hasExcelPreview, excelPreviewLoadedAt, projectId, initialData]);
 
     // BUG FIX: When navigating to a different project (e.g. after "New Project"), clear Excel state
     // and localStorage so the new project starts with empty upload zone instead of stale workbook.
@@ -777,13 +836,26 @@ export const ProposalContextProvider = ({
     useEffect(() => {
         if (!initialData || typeof reset !== "function") return;
 
-        // Detect shape: form-shaped has details.proposalId; Prisma-shaped has id at root
-        const isFormShaped = !!(initialData as any).details?.proposalId;
+        const d = initialData as any;
+        
+        // Robust detection: form-shaped has details.proposalId AND lacks raw DB fields (detailsData, senderData)
+        // Prisma-shaped has id at root AND has raw DB fields
+        const hasFormShape = !!(d.details?.proposalId);
+        const hasRawDbFields = !!(d.detailsData || d.senderData || d.receiverData);
+        const isFormShaped = hasFormShape && !hasRawDbFields;
+        
         const effectiveId = isFormShaped
-            ? (initialData as any).details.proposalId
-            : (initialData as any).id;
+            ? d.details.proposalId
+            : d.id;
 
-        console.log("[HYDRATE] initialData shape:", isFormShaped ? "form" : "prisma", "id:", effectiveId);
+        console.log("[HYDRATE] initialData shape detection:", {
+            hasFormShape,
+            hasRawDbFields,
+            isFormShaped: isFormShaped ? "FORM" : "PRISMA",
+            effectiveId,
+            hasDetails: !!d.details,
+            hasDetailsProposalId: !!d.details?.proposalId,
+        });
 
         // Fetch RFP documents (both shapes need this)
         if (effectiveId && effectiveId !== "new") {
@@ -838,7 +910,12 @@ export const ProposalContextProvider = ({
         }
 
         // Legacy path: initialData is raw Prisma model shape (d.detailsData, d.senderData, etc.)
-        const d = initialData as any;
+        // Double-check we're not dealing with form-shaped data (safety guard)
+        if (hasFormShape && !hasRawDbFields) {
+            console.warn("[HYDRATE] Guard: Detected form-shaped data in legacy path, skipping reset()");
+            return;
+        }
+        
         console.log("Hydrating ProposalContext from Server Data (legacy):", d.id);
 
         let details: any = {};
