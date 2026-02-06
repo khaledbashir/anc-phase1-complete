@@ -423,8 +423,9 @@ export const ProposalContextProvider = ({
             }
         }
 
-        // Also clear when switching between different existing projects
-        if (prevProjectIdRef.current !== undefined && prevProjectIdRef.current !== projectId) {
+        // Only clear when switching between different EXISTING projects
+        // Do NOT clear when transitioning from "new" → real ID (that's the initial save, not a project switch)
+        if (prevProjectIdRef.current !== undefined && prevProjectIdRef.current !== "new" && prevProjectIdRef.current !== projectId) {
             console.log(`[EXCEL] Project changed from ${prevProjectIdRef.current} to ${projectId}, clearing state`);
             hadExcelPreviewRef.current = false;
             setExcelPreview(null);
@@ -1053,29 +1054,47 @@ export const ProposalContextProvider = ({
             // Only auto-save if we have a valid database ID (not "new")
             if (pid && pid !== "new" && projectId) {
                 try {
-                    // Construct payload matching Prisma schema requirements
-                    // We send partial JSON updates or full JSONs
+                    // Construct payload matching PATCH handler — must mirror saveDraft() fields
+                    const d = currentValues.details as any;
                     const payload = {
-                        clientName:
-                            currentValues.receiver.name || "Unnamed Client",
-                        senderData: currentValues.sender,
+                        clientName: currentValues.receiver?.name || "Unnamed Client",
+                        clientAddress: currentValues.receiver?.address,
+                        clientCity: currentValues.receiver?.city,
+                        clientZip: currentValues.receiver?.zipCode,
                         receiverData: currentValues.receiver,
-                        detailsData: {
-                            ...currentValues.details,
-                            // Don't duplicate screens in detailsData if we use relations,
-                            // but for now keeping it redundant for safety is fine or just minimal
+                        proposalName: d?.proposalName,
+                        venue: d?.venue,
+                        calculationMode: calculationMode,
+                        internalAudit: d?.internalAudit,
+                        clientSummary: d?.clientSummary,
+                        screens: currentValues.details.screens,
+                        taxRateOverride: d?.taxRateOverride,
+                        bondRateOverride: d?.bondRateOverride,
+                        documentMode: d?.documentMode,
+                        documentConfig: {
+                            includePricingBreakdown: d?.includePricingBreakdown,
+                            showPricingTables: d?.showPricingTables,
+                            showIntroText: d?.showIntroText,
+                            showBaseBidTable: d?.showBaseBidTable,
+                            showSpecifications: d?.showSpecifications,
+                            showCompanyFooter: d?.showCompanyFooter,
+                            showPaymentTerms: d?.showPaymentTerms,
+                            showSignatureBlock: d?.showSignatureBlock,
+                            showExhibitA: d?.showExhibitA,
+                            showExhibitB: d?.showExhibitB,
+                            showNotes: d?.showNotes,
+                            showScopeOfWork: d?.showScopeOfWork,
                         },
-                        screens: currentValues.details.screens, // This might need special handling endpoint side
-                        aiWorkspaceSlug: currentValues.details.aiWorkspaceSlug,
-                        calculationMode: calculationMode, // Sync calculation mode to database
-                        taxRateOverride: currentValues.details.taxRateOverride,
-                        bondRateOverride:
-                            currentValues.details.bondRateOverride,
-                        metadata: {
-                            ...currentValues.details.metadata,
-                            aiFilledFields: aiFields,
-                            verifiedFields: verifiedFields,
-                        },
+                        quoteItems: d?.quoteItems,
+                        paymentTerms: d?.paymentTerms,
+                        additionalNotes: d?.additionalNotes,
+                        signatureBlockText: d?.signatureBlockText,
+                        loiHeaderText: d?.loiHeaderText,
+                        customProposalNotes: d?.customProposalNotes,
+                        pricingDocument: d?.pricingDocument,
+                        marginAnalysis: (currentValues as any)?.marginAnalysis,
+                        pricingMode: d?.pricingMode,
+                        purchaserLegalName: d?.purchaserLegalName,
                     };
 
                     // Using specific endpoint for auto-save
@@ -2114,6 +2133,10 @@ export const ProposalContextProvider = ({
                 quoteItems: (formValues as any)?.details?.quoteItems,
                 paymentTerms: (formValues as any)?.details?.paymentTerms,
                 additionalNotes: (formValues as any)?.details?.additionalNotes,
+                signatureBlockText: (formValues as any)?.details?.signatureBlockText,
+                loiHeaderText: (formValues as any)?.details?.loiHeaderText,
+                customProposalNotes: (formValues as any)?.details?.customProposalNotes,
+                purchaserLegalName: (formValues as any)?.details?.purchaserLegalName,
                 // CRITICAL: Persist Excel pricing data to prevent data loss on navigation
                 pricingDocument: (formValues as any)?.details?.pricingDocument,
                 marginAnalysis: (formValues as any)?.marginAnalysis,

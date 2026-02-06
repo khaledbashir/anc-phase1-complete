@@ -101,6 +101,8 @@ function mapDbToFormSchema(dbProject: any) {
             tableHeaderOverrides: dbProject.tableHeaderOverrides || {},
             customProposalNotes: dbProject.customProposalNotes || "",
             loiHeaderText: dbProject.loiHeaderText || "",
+            signatureBlockText: dbProject.signatureBlockText || "",
+            purchaserLegalName: dbProject.purchaserLegalName || "",
             // Excel Mirror Mode: Restore pricing data from DB
             pricingDocument: dbProject.pricingDocument || undefined,
             pricingMode: dbProject.pricingMode || "STANDARD",

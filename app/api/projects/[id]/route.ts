@@ -116,6 +116,7 @@ export async function PATCH(
             pricingDocument,  // Excel Mirror Mode pricing data
             marginAnalysis,   // Non-LED margin analysis tables
             pricingMode,      // MIRROR | STANDARD
+            purchaserLegalName, // Prompt 42: Purchaser legal name for LOI
         } = body;
 
         // Map address from receiverData (nested) or flat fields
@@ -205,6 +206,7 @@ export async function PATCH(
         if (pricingDocument !== undefined) updateData.pricingDocument = pricingDocument;
         if (marginAnalysis !== undefined) updateData.marginAnalysis = marginAnalysis;
         if (pricingMode !== undefined) updateData.pricingMode = pricingMode;
+        if (purchaserLegalName !== undefined) updateData.purchaserLegalName = purchaserLegalName;
 
         const project = await prisma.$transaction(async (tx) => {
             // Handle snapshot creation if requested
