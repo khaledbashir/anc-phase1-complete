@@ -158,6 +158,63 @@ const Step4Export = () => {
         ? !allScreensValid || hasOptionPlaceholder || !internalAudit || isGatekeeperLocked
         : !allScreensValid || isGatekeeperLocked;
 
+    // Helper functions to generate helpful error messages
+    const getDownloadBundleErrorMessage = () => {
+        if (mirrorMode) {
+            if (!isMirrorReadyToExport && mirrorBlockingIssues.length > 0) {
+                return `Blocked: ${mirrorBlockingIssues.map(i => i.label).join(", ")}`;
+            }
+        } else {
+            if (isGatekeeperLocked && unverifiedAiFields.length > 0) {
+                return `Verify ${unverifiedAiFields.length} more field${unverifiedAiFields.length !== 1 ? 's' : ''} to export`;
+            }
+            if (!allScreensValid) {
+                const missingFields = screens.filter((s: any) => !s.widthFt || !s.heightFt || !s.name);
+                if (missingFields.length > 0) {
+                    return `${missingFields.length} screen${missingFields.length !== 1 ? 's' : ''} missing dimensions or name`;
+                }
+                return "Add screens with dimensions to export";
+            }
+        }
+        return undefined;
+    };
+
+    const getExcelOnlyErrorMessage = () => {
+        if (isGatekeeperLocked && unverifiedAiFields.length > 0) {
+            return `Verify ${unverifiedAiFields.length} more field${unverifiedAiFields.length !== 1 ? 's' : ''} to export`;
+        }
+        if (mirrorMode && !isMirrorReadyToExport && mirrorBlockingIssues.length > 0) {
+            return `Blocked: ${mirrorBlockingIssues.map(i => i.label).join(", ")}`;
+        }
+        return undefined;
+    };
+
+    const getPdfOnlyErrorMessage = () => {
+        if (isGatekeeperLocked && unverifiedAiFields.length > 0) {
+            return `Verify ${unverifiedAiFields.length} more field${unverifiedAiFields.length !== 1 ? 's' : ''} to export`;
+        }
+        if (mirrorMode) {
+            if (!allScreensValid) {
+                return "Screens missing dimensions or name";
+            }
+            if (hasOptionPlaceholder) {
+                return "OPTION placeholder row detected";
+            }
+            if (!internalAudit) {
+                return "Internal audit not computed";
+            }
+        } else {
+            if (!allScreensValid) {
+                const missingFields = screens.filter((s: any) => !s.widthFt || !s.heightFt || !s.name);
+                if (missingFields.length > 0) {
+                    return `${missingFields.length} screen${missingFields.length !== 1 ? 's' : ''} missing dimensions or name`;
+                }
+                return "Add screens with dimensions to export";
+            }
+        }
+        return undefined;
+    };
+
     const handleGlobalExport = async () => {
         const isBlocked = mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked);
         if (isBlocked) return;
@@ -771,33 +828,37 @@ const Step4Export = () => {
                                         <h4 className="text-base font-bold text-foreground">Export Documents</h4>
                                         <p className="text-xs text-muted-foreground mt-1">Budget PDF, Proposal PDF, LOI PDF, and Internal Audit Excel</p>
                                     </div>
-                                    <button
-                                        onClick={handleGlobalExport}
-                                        disabled={mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked)}
-                                        className={cn(
-                                            "w-full max-w-sm px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
-                                            (mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked))
-                                                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                                : "bg-brand-blue text-white hover:bg-brand-blue/90 shadow-[0_0_20px_rgba(10,82,239,0.3)] hover:shadow-[0_0_30px_rgba(10,82,239,0.5)]"
-                                        )}
-                                        title={
-                                            isGatekeeperLocked && unverifiedAiFields.length > 0
-                                                ? `Verify ${unverifiedAiFields.length} more field${unverifiedAiFields.length !== 1 ? 's' : ''} to export`
-                                                : undefined
-                                        }
-                                    >
-                                        {exporting ? "Generating..." : (
-                                            <>
-                                                <Download className="w-4 h-4" />
-                                                Download Bundle
-                                                {isGatekeeperLocked && unverifiedAiFields.length > 0 && (
-                                                    <span className="ml-1 text-[10px] opacity-75">
-                                                        ({unverifiedAiFields.length} to verify)
-                                                    </span>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                onClick={handleGlobalExport}
+                                                disabled={mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked)}
+                                                className={cn(
+                                                    "w-full max-w-sm px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2",
+                                                    (mirrorMode ? !isMirrorReadyToExport : (!allScreensValid || isGatekeeperLocked))
+                                                        ? "bg-muted text-muted-foreground cursor-not-allowed"
+                                                        : "bg-brand-blue text-white hover:bg-brand-blue/90 shadow-[0_0_20px_rgba(10,82,239,0.3)] hover:shadow-[0_0_30px_rgba(10,82,239,0.5)]"
                                                 )}
-                                            </>
+                                            >
+                                                {exporting ? "Generating..." : (
+                                                    <>
+                                                        <Download className="w-4 h-4" />
+                                                        Download Bundle
+                                                        {isGatekeeperLocked && unverifiedAiFields.length > 0 && (
+                                                            <span className="ml-1 text-[10px] opacity-75">
+                                                                ({unverifiedAiFields.length} to verify)
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </button>
+                                        </TooltipTrigger>
+                                        {getDownloadBundleErrorMessage() && (
+                                            <TooltipContent side="top" className="max-w-xs">
+                                                <p className="text-xs">{getDownloadBundleErrorMessage()}</p>
+                                            </TooltipContent>
                                         )}
-                                    </button>
+                                    </Tooltip>
                                 </div>
 
                                 {/* Individual Options */}
@@ -812,13 +873,22 @@ const Step4Export = () => {
                                                 <div className="text-[10px] text-muted-foreground">Audit Workbook</div>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={exportAudit}
-                                            disabled={(mirrorMode && !isMirrorReadyToExport) || isGatekeeperLocked}
-                                            className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <Download className="w-4 h-4" />
-                                        </button>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    onClick={exportAudit}
+                                                    disabled={(mirrorMode && !isMirrorReadyToExport) || isGatekeeperLocked}
+                                                    className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            {getExcelOnlyErrorMessage() && (
+                                                <TooltipContent side="left" className="max-w-xs">
+                                                    <p className="text-xs">{getExcelOnlyErrorMessage()}</p>
+                                                </TooltipContent>
+                                            )}
+                                        </Tooltip>
                                     </div>
 
                                     <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors">
@@ -831,13 +901,22 @@ const Step4Export = () => {
                                                 <div className="text-[10px] text-muted-foreground">Client Proposal</div>
                                             </div>
                                         </div>
-                                        <button
-                                            onClick={downloadPdf}
-                                            disabled={mirrorMode ? isPdfPreviewBlocked : (!allScreensValid || isGatekeeperLocked)}
-                                            className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <Download className="w-4 h-4" />
-                                        </button>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    onClick={downloadPdf}
+                                                    disabled={mirrorMode ? isPdfPreviewBlocked : (!allScreensValid || isGatekeeperLocked)}
+                                                    className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            {getPdfOnlyErrorMessage() && (
+                                                <TooltipContent side="right" className="max-w-xs">
+                                                    <p className="text-xs">{getPdfOnlyErrorMessage()}</p>
+                                                </TooltipContent>
+                                            )}
+                                        </Tooltip>
                                     </div>
                                 </div>
                             </CardContent>
