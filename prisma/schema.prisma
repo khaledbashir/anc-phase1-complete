@@ -94,6 +94,7 @@ model Proposal {
   additionalNotes      String?
   signatureBlockText   String?             // Bug #4: Persisted signature block text for LOI
   loiHeaderText        String?             // LOI opening legal paragraph (Prompt 10)
+  purchaserLegalName   String?             // Prompt 42: Purchaser legal entity name for LOI (defaults to clientName)
   customProposalNotes  String?             // Bug #5: Persisted custom proposal notes
   status               ProposalStatus      @default(DRAFT)
   calculationMode      CalculationMode     @default(INTELLIGENCE)

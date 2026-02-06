@@ -47,6 +47,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const isLOI = documentMode === "LOI";
 
     const purchaserName = receiver?.name || "Client";
+    // Prompt 42: Purchaser legal name for LOI (defaults to client name if not set)
+    const purchaserLegalName = ((details as any)?.purchaserLegalName || "").trim() || purchaserName;
     const purchaserAddress = (() => {
         const parts = [receiver?.address, receiver?.city, receiver?.zipCode].filter(Boolean);
         return parts.length > 0 ? parts.join(", ") : "";
@@ -579,7 +581,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <p className="text-justify whitespace-pre-wrap">{customIntroText.trim()}</p>
                         ) : documentMode === "LOI" ? (
                             <p className="text-justify">
-                                This Sales Quotation will set forth the terms by which <strong style={{ color: colors.text }}>{purchaserName}</strong> ("Purchaser"){purchaserAddress ? ` located at ${purchaserAddress}` : ""} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> ("ANC") located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for the {details?.proposalName || (details as any)?.clientName || receiver?.name || "the project"}.
+                                This Sales Quotation will set forth the terms by which <strong style={{ color: colors.text }}>{purchaserLegalName}</strong> ("Purchaser"){purchaserAddress ? ` located at ${purchaserAddress}` : ""} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> ("ANC") located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for the <strong style={{ color: colors.text }}>{details?.proposalName || (details as any)?.clientName || receiver?.name || "project"}</strong>.
                             </p>
                         ) : documentMode === "PROPOSAL" ? (
                             <p>

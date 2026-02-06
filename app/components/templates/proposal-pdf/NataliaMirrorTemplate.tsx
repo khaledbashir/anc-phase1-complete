@@ -57,6 +57,8 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   // Client info
   const clientName = receiver?.name || "Client Name";
   const projectName = details?.proposalName || "Project";
+  // Prompt 42: Purchaser legal name for LOI (defaults to client name if not set)
+  const purchaserLegalName = ((details as any)?.purchaserLegalName || "").trim() || clientName;
 
   // Address info for LOI legal paragraph
   const clientAddress = receiver?.address || (details as any)?.clientAddress || "";
@@ -124,6 +126,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
         <IntroSection
           documentMode={documentMode}
           clientName={clientName}
+          purchaserLegalName={purchaserLegalName}
           currency={currency}
           purchaserAddress={purchaserAddress}
           projectName={projectName}
@@ -238,6 +241,7 @@ function Header({
 function IntroSection({
   documentMode,
   clientName,
+  purchaserLegalName,
   currency,
   purchaserAddress,
   projectName,
@@ -246,6 +250,7 @@ function IntroSection({
 }: {
   documentMode: DocumentMode;
   clientName: string;
+  purchaserLegalName?: string;
   currency: "CAD" | "USD";
   purchaserAddress?: string;
   projectName?: string;
@@ -278,7 +283,7 @@ function IntroSection({
         ? `ANC is pleased to present the following ${displayTypeLabel} budget for ${clientName} per the specifications and pricing below.${currencyNote}`
         : documentMode === "PROPOSAL"
         ? `ANC is pleased to present the following ${displayTypeLabel} proposal for ${clientName} per the specifications and pricing below.${currencyNote}`
-        : `This Letter of Intent will set forth the terms by which ${clientName} ("Purchaser")${purchaserLocationClause} and ANC Sports Enterprises, LLC ("ANC") located at ${ancAddress} (collectively, the "Parties") agree that ANC will provide the following ${displayTypeLabel} and services (the "Display System") described below${projectClause}.${currencyNote}`;
+        : `This Letter of Intent will set forth the terms by which ${purchaserLegalName || clientName} ("Purchaser")${purchaserLocationClause} and ANC Sports Enterprises, LLC ("ANC") located at ${ancAddress} (collectively, the "Parties") agree that ANC will provide the following ${displayTypeLabel} and services (the "Display System") described below for the ${projectName || "project"}.${currencyNote}`;
   }
 
   return (

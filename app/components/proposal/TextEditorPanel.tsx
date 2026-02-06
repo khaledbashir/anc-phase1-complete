@@ -27,8 +27,10 @@ export function TextEditorPanel() {
     const introText = watch("details.introductionText") || "";
     const paymentTerms = watch("details.paymentTerms") || "";
     const additionalNotes = watch("details.additionalNotes") || "";
+    const purchaserLegalName = watch("details.purchaserLegalName") || "";
+    const documentMode = watch("details.documentMode") || "BUDGET";
 
-    const hasContent = introText.length > 0 || paymentTerms.length > 0 || additionalNotes.length > 0;
+    const hasContent = introText.length > 0 || paymentTerms.length > 0 || additionalNotes.length > 0 || purchaserLegalName.length > 0;
 
     return (
         <Card className="bg-card/40 border border-border/60">
@@ -116,6 +118,28 @@ export function TextEditorPanel() {
                             Optional field. Only renders in PDF if you type text. Use for project-specific constraints.
                         </p>
                     </div>
+
+                    {/* Purchaser Legal Name (LOI only) - Prompt 42 */}
+                    {documentMode === "LOI" && (
+                        <div className="space-y-2 border-t border-border/40 pt-6">
+                            <Label htmlFor="purchaserLegalName" className="text-xs font-semibold text-foreground flex items-center gap-2">
+                                <FileText className="w-3.5 h-3.5 text-indigo-500" />
+                                Purchaser Legal Name
+                                <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-indigo-500/30 text-indigo-600">
+                                    LOI Only
+                                </Badge>
+                            </Label>
+                            <Textarea
+                                id="purchaserLegalName"
+                                {...register("details.purchaserLegalName")}
+                                placeholder="e.g., Maple Leaf Sports & Entertainment Ltd. (defaults to client name if empty)"
+                                className="min-h-[60px] text-xs resize-y"
+                            />
+                            <p className="text-[10px] text-muted-foreground">
+                                Legal entity name for the Purchaser in LOI legal paragraph. Defaults to client name if left blank. The project name will still appear at the end of the paragraph.
+                            </p>
+                        </div>
+                    )}
                 </CardContent>
             )}
         </Card>
