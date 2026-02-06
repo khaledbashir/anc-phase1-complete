@@ -607,7 +607,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 </div>
             )}
 
-            {/* LOI order (per client spec Feb 2): Pricing → Notes → Payment Terms → Signature → Page break → Exhibit A → Exhibit B */}
+            {/* LOI order (Prompt 45 fix): Pricing → Notes → Payment Terms → PAGE BREAK → Specs → PAGE BREAK → Exhibit A → PAGE BREAK → Signature (LAST) */}
             {isLOI ? (
                 <>
                     {/* 4. Notes (hide if empty - NotesSection returns null when empty) */}
@@ -622,15 +622,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <PaymentTermsSection />
                         </div>
                     )}
-                    {/* 6. Signature legal text + 7. Signature lines (binding; before exhibits) */}
-                    {showSignatureBlock && (
-                        <div className="px-6 break-inside-avoid">
-                            <SignatureBlock />
-                        </div>
-                    )}
-                    {/* 8. Page break before exhibits */}
+
+                    {/* 6. Page break before Technical Specifications */}
                     <PageBreak />
-                    {/* 9. Exhibit A: Technical Specifications (spec cards + summary table) */}
+
+                    {/* 7. Technical Specifications (individual display spec cards) */}
                     {showSpecifications && screens.length > 0 && (
                         <div className="px-6 break-inside-avoid">
                             <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
@@ -641,17 +637,35 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         </div>
                     )}
+
+                    {/* 8. Page break before Exhibit A */}
+                    {showExhibitA && <PageBreak />}
+
+                    {/* 9. Exhibit A: Technical Specifications summary table */}
                     {showExhibitA && (
                         <div className="px-6 break-inside-avoid">
                             <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
                         </div>
                     )}
+
                     {/* 10. Exhibit B: Scope of Work (hide entirely if empty) */}
                     {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
                         <div className="px-6 break-inside-avoid">
                             <ScopeOfWorkSection />
                         </div>
                     )}
+
+                    {/* 11. Page break before Signature (MUST be on its own final page) */}
+                    {showSignatureBlock && <PageBreak />}
+
+                    {/* 12. Signature Block — ABSOLUTE LAST ELEMENT (binding acceptance) */}
+                    {showSignatureBlock && (
+                        <div className="px-6 break-inside-avoid">
+                            <SignatureBlock />
+                        </div>
+                    )}
+
+                    {/* 13. Company Footer — appears on signature page */}
                     {showCompanyFooter && (
                         <div className="px-6">
                             <HybridFooter />
