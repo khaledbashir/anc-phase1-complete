@@ -37,7 +37,7 @@ const MasterTableSelector = () => {
     const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
     const masterTableIndex = useWatch({ name: "details.masterTableIndex" as any, control });
 
-    const tables = (pricingDocument as any)?.tables || [];
+    const tables = useMemo(() => (pricingDocument as any)?.tables || [], [pricingDocument]);
 
     // Auto-detect: if first table name contains "TOTAL", pre-select it (only on initial null)
     useEffect(() => {

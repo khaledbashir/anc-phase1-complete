@@ -39,7 +39,8 @@ export function SOWGeneratorPanel() {
   const proposalName = useWatch({ control, name: "details.proposalName" });
   const venue = useWatch({ control, name: "details.venue" });
   const location = useWatch({ control, name: "details.location" });
-  const screens = useWatch({ control, name: "details.screens" }) || [];
+  const watchedScreens = useWatch({ control, name: "details.screens" });
+  const screens = React.useMemo(() => watchedScreens || [], [watchedScreens]);
   const additionalNotes = useWatch({ control, name: "details.additionalNotes" });
   const aiWorkspaceSlug = useWatch({ control, name: "details.aiWorkspaceSlug" });
   const showExhibitA = useWatch({ control, name: "details.showExhibitA" });
