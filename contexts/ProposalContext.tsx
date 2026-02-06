@@ -2090,8 +2090,75 @@ export const ProposalContextProvider = ({
                     };
                 }
                 if (json?.proposal?.id) {
-                    router.push(`/projects/${json.proposal.id}`);
-                    return { created: true, projectId: json.proposal.id };
+                    const newId = json.proposal.id;
+                    // Prompt 52 Fix: Set real proposalId in form BEFORE navigation
+                    // so auto-save recognizes it as a valid project
+                    setValue("details.proposalId" as any, newId);
+
+                    // Prompt 52 Fix: Follow-up PATCH with COMPLETE form data
+                    // workspace/create only stores excelData subset; this ensures
+                    // screens, internalAudit, documentMode, etc. are fully persisted
+                    try {
+                        const fullValues = getValues();
+                        const d = fullValues.details as any;
+                        const fullPayload = {
+                            clientName: fullValues?.receiver?.name || clientName,
+                            clientAddress: fullValues?.receiver?.address,
+                            clientCity: fullValues?.receiver?.city,
+                            clientZip: fullValues?.receiver?.zipCode,
+                            receiverData: fullValues.receiver,
+                            proposalName: d?.proposalName,
+                            venue: d?.venue,
+                            calculationMode: d?.calculationMode || calculationMode,
+                            internalAudit: d?.internalAudit,
+                            clientSummary: d?.clientSummary,
+                            screens: d?.screens,
+                            taxRateOverride: d?.taxRateOverride,
+                            bondRateOverride: d?.bondRateOverride,
+                            documentMode: d?.documentMode,
+                            documentConfig: {
+                                includePricingBreakdown: d?.includePricingBreakdown,
+                                showPricingTables: d?.showPricingTables,
+                                showIntroText: d?.showIntroText,
+                                showBaseBidTable: d?.showBaseBidTable,
+                                showSpecifications: d?.showSpecifications,
+                                showCompanyFooter: d?.showCompanyFooter,
+                                showPaymentTerms: d?.showPaymentTerms,
+                                showSignatureBlock: d?.showSignatureBlock,
+                                showExhibitA: d?.showExhibitA,
+                                showExhibitB: d?.showExhibitB,
+                                showNotes: d?.showNotes,
+                                showScopeOfWork: d?.showScopeOfWork,
+                            },
+                            quoteItems: d?.quoteItems,
+                            paymentTerms: d?.paymentTerms,
+                            additionalNotes: d?.additionalNotes,
+                            signatureBlockText: d?.signatureBlockText,
+                            loiHeaderText: d?.loiHeaderText,
+                            customProposalNotes: d?.customProposalNotes,
+                            pricingDocument: d?.pricingDocument,
+                            marginAnalysis: (fullValues as any)?.marginAnalysis,
+                            pricingMode: d?.pricingMode,
+                            purchaserLegalName: d?.purchaserLegalName,
+                            masterTableIndex: d?.masterTableIndex ?? null,
+                        };
+                        console.log("[SAVE_DRAFT] Follow-up PATCH to persist complete data:", {
+                            newId,
+                            screenCount: d?.screens?.length ?? 0,
+                            hasInternalAudit: !!d?.internalAudit,
+                            hasPricingDocument: !!d?.pricingDocument,
+                        });
+                        await fetch(`/api/projects/${newId}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(fullPayload),
+                        });
+                    } catch (patchErr) {
+                        console.error("[SAVE_DRAFT] Follow-up PATCH failed:", patchErr);
+                    }
+
+                    router.push(`/projects/${newId}`);
+                    return { created: true, projectId: newId };
                 }
                 return { created: false, error: "No proposal ID returned" };
             } catch (e) {
