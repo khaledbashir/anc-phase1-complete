@@ -82,6 +82,17 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const productType = detectProductType();
     const displayTypeLabel = productType === "Display" ? "Display" : `${productType} Display`;
 
+    // Build mapping from screen group → custom display name (mirrors NataliaMirrorTemplate)
+    // screen.group matches pricing table names (both come from Margin Analysis headers)
+    const screenNameMap: Record<string, string> = {};
+    screens.forEach((screen: any) => {
+        const group = screen?.group;
+        const customName = screen?.customDisplayName || screen?.externalName;
+        if (group && customName && customName !== screen?.name) {
+            screenNameMap[group] = customName;
+        }
+    });
+
     // Hybrid color palette - Modern base with Bold accents
     const colors = {
         primary: "#0A52EF",
@@ -306,7 +317,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         let lineItems: LineItem[];
         if (pricingTables.length > 0) {
             lineItems = pricingTables.map((table: any, idx: number) => {
-                const label = (tableHeaderOverrides[idx] ?? table?.name ?? "Item").toString().trim();
+                // Priority: explicit override > screen name edit (via group map) > Excel table name
+                const tableName = (table?.name ?? "").toString().trim();
+                const label = (tableHeaderOverrides[idx] ?? screenNameMap[tableName] ?? (tableName || "Item")).toString().trim();
                 const grandTotal = Number(table?.grandTotal ?? 0);
                 return {
                     key: table?.id || `table-${idx}`,
