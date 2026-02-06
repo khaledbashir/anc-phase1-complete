@@ -65,9 +65,9 @@ const Step4Export = () => {
     const [playIndex, setPlayIndex] = useState<number>(-1);
     const [isPlaying, setIsPlaying] = useState(false);
     const [changeRequestsLoading, setChangeRequestsLoading] = useState(false);
-    const [changeRequests, setChangeRequests] = useState<any[]>([]);
-    const [isVerificationExpanded, setIsVerificationExpanded] = useState(false);
-    const [isTextEditOpen, setIsTextEditOpen] = useState(false);
+    const [changeRequests, setChangeRequests] = useState<any[]>([]);    // State for toggling sections
+    const [isVerificationExpanded, setIsVerificationExpanded] = React.useState(true);
+    const [isTextEditOpen, setIsTextEditOpen] = React.useState(true);
 
     // Get proposal data
     const screens = watch("details.screens") || [];
@@ -843,369 +843,369 @@ const Step4Export = () => {
                         </Card>
 
                         {FEATURES.CLIENT_REQUESTS && (
-                        <Card className="bg-card/40 border border-border/60 overflow-hidden">
-                            <CardHeader className="border-b border-border/60 pb-3">
-                                <div className="flex items-center justify-between gap-3">
-                                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                                        <MessageSquare className="w-4 h-4 text-brand-blue" />
-                                        Client Requests
-                                    </CardTitle>
-                                    <Badge className="bg-muted/50 text-foreground border border-border">
-                                        {changeRequests.filter((r: any) => r.status === "OPEN").length} open
-                                    </Badge>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="p-4">
-                                {changeRequestsLoading ? (
-                                    <div className="text-xs text-muted-foreground">Loading…</div>
-                                ) : changeRequests.length === 0 ? (
-                                    <div className="text-xs text-muted-foreground">
-                                        No client change requests yet. Share link clients can submit requests from the portal.
+                            <Card className="bg-card/40 border border-border/60 overflow-hidden">
+                                <CardHeader className="border-b border-border/60 pb-3">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                                            <MessageSquare className="w-4 h-4 text-brand-blue" />
+                                            Client Requests
+                                        </CardTitle>
+                                        <Badge className="bg-muted/50 text-foreground border border-border">
+                                            {changeRequests.filter((r: any) => r.status === "OPEN").length} open
+                                        </Badge>
                                     </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {changeRequests.slice(0, 10).map((r: any) => (
-                                            <div key={r.id} className="rounded-2xl border border-border bg-card/30 p-4">
-                                                <div className="flex items-start justify-between gap-4">
-                                                    <div className="min-w-0 flex-1">
-                                                        <div className="flex items-center gap-2">
-                                                            {r.pinNumber != null && (
-                                                                <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold shrink-0">
-                                                                    {r.pinNumber}
-                                                                </span>
+                                </CardHeader>
+                                <CardContent className="p-4">
+                                    {changeRequestsLoading ? (
+                                        <div className="text-xs text-muted-foreground">Loading…</div>
+                                    ) : changeRequests.length === 0 ? (
+                                        <div className="text-xs text-muted-foreground">
+                                            No client change requests yet. Share link clients can submit requests from the portal.
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {changeRequests.slice(0, 10).map((r: any) => (
+                                                <div key={r.id} className="rounded-2xl border border-border bg-card/30 p-4">
+                                                    <div className="flex items-start justify-between gap-4">
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center gap-2">
+                                                                {r.pinNumber != null && (
+                                                                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-[10px] font-bold shrink-0">
+                                                                        {r.pinNumber}
+                                                                    </span>
+                                                                )}
+                                                                <div className="text-xs font-bold text-foreground truncate">
+                                                                    {r.requesterName}
+                                                                    {r.requesterEmail ? (
+                                                                        <span className="text-muted-foreground font-semibold"> • {r.requesterEmail}</span>
+                                                                    ) : null}
+                                                                </div>
+                                                            </div>
+                                                            {r.aiCategory && (
+                                                                <Badge className="mt-1.5 bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px]">
+                                                                    {r.aiCategory}
+                                                                </Badge>
                                                             )}
-                                                            <div className="text-xs font-bold text-foreground truncate">
-                                                                {r.requesterName}
-                                                                {r.requesterEmail ? (
-                                                                    <span className="text-muted-foreground font-semibold"> • {r.requesterEmail}</span>
-                                                                ) : null}
+                                                            <div className="mt-1 text-[11px] text-muted-foreground">
+                                                                {r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}
                                                             </div>
                                                         </div>
-                                                        {r.aiCategory && (
-                                                            <Badge className="mt-1.5 bg-purple-500/10 text-purple-300 border border-purple-500/20 text-[10px]">
-                                                                {r.aiCategory}
-                                                            </Badge>
+                                                        {r.screenshotData && (
+                                                            <img
+                                                                src={r.screenshotData}
+                                                                alt="Context"
+                                                                className="w-20 h-14 rounded-lg border border-border object-cover shrink-0"
+                                                            />
                                                         )}
-                                                        <div className="mt-1 text-[11px] text-muted-foreground">
-                                                            {r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}
+                                                        <div className="shrink-0 flex items-center gap-2">
+                                                            {r.status === "RESOLVED" ? (
+                                                                <Badge className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                                                                    Resolved
+                                                                </Badge>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => updateChangeRequestStatus(r.id, "RESOLVED")}
+                                                                    className="px-3 py-2 rounded-xl text-[11px] font-bold border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15 transition-colors inline-flex items-center gap-2"
+                                                                >
+                                                                    <Check className="w-4 h-4" />
+                                                                    Mark Resolved
+                                                                </button>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                    {r.screenshotData && (
-                                                        <img
-                                                            src={r.screenshotData}
-                                                            alt="Context"
-                                                            className="w-20 h-14 rounded-lg border border-border object-cover shrink-0"
-                                                        />
+                                                    <div className="mt-3 text-xs text-foreground whitespace-pre-wrap">
+                                                        {r.transcript || r.message}
+                                                    </div>
+                                                    {r.audioData && (
+                                                        <div className="mt-2">
+                                                            <audio controls preload="none" className="h-8 w-full [&::-webkit-media-controls-panel]:bg-card">
+                                                                <source src={r.audioData} type="audio/webm" />
+                                                            </audio>
+                                                        </div>
                                                     )}
-                                                    <div className="shrink-0 flex items-center gap-2">
-                                                        {r.status === "RESOLVED" ? (
-                                                            <Badge className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                                                                Resolved
-                                                            </Badge>
-                                                        ) : (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => updateChangeRequestStatus(r.id, "RESOLVED")}
-                                                                className="px-3 py-2 rounded-xl text-[11px] font-bold border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/15 transition-colors inline-flex items-center gap-2"
-                                                            >
-                                                                <Check className="w-4 h-4" />
-                                                                Mark Resolved
-                                                            </button>
-                                                        )}
-                                                    </div>
                                                 </div>
-                                                <div className="mt-3 text-xs text-foreground whitespace-pre-wrap">
-                                                    {r.transcript || r.message}
-                                                </div>
-                                                {r.audioData && (
-                                                    <div className="mt-2">
-                                                        <audio controls preload="none" className="h-8 w-full [&::-webkit-media-controls-panel]:bg-card">
-                                                            <source src={r.audioData} type="audio/webm" />
-                                                        </audio>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                                            ))}
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
                         )}
 
                     </div>
                 </div>
 
                 {FEATURES.VERIFICATION_STUDIO && (
-                <Card className="bg-card/40 border border-border/60 overflow-hidden">
-                    <CardHeader className="border-b border-border/60 cursor-pointer" onClick={() => setIsVerificationExpanded(!isVerificationExpanded)}>
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                                    <Columns className="w-4 h-4 text-brand-blue" />
-                                    Compare
-                                    <ChevronRight className={cn(
-                                        "w-4 h-4 text-muted-foreground transition-transform",
-                                        isVerificationExpanded && "rotate-90"
-                                    )} />
-                                </CardTitle>
-                                <CardDescription className="text-xs text-muted-foreground">
-                                    Review Excel vs PDF and watch verification scan screen-by-screen.
-                                </CardDescription>
-                            </div>
-                            {isVerificationExpanded && <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                                <button
-                                    type="button"
-                                    onClick={previewPdfInTab}
-                                    disabled={mirrorMode && isPdfPreviewBlocked}
-                                    title={mirrorMode && isPdfPreviewBlocked ? "Complete verification first" : "Open PDF preview in new tab"}
-                                    className={cn(
-                                        "px-3 py-2 rounded-xl border text-xs font-bold transition-all inline-flex items-center gap-2",
-                                        (proposalPdfLoading || (mirrorMode && isPdfPreviewBlocked))
-                                            ? "border-border bg-card/40 text-muted-foreground cursor-not-allowed"
-                                            : "border-border bg-card/40 text-foreground hover:border-brand-blue/40 hover:text-foreground"
-                                    )}
-                                >
-                                    <Eye className="w-4 h-4" />
-                                    {proposalPdfLoading ? "Generating…" : pdfUrl ? "Open Preview" : mirrorMode && isPdfPreviewBlocked ? "🔒 Blocked" : "Preview PDF"}
-                                </button>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            type="button"
-                                            onClick={runVerification}
-                                            disabled={verificationLoading}
-                                            className={cn(
-                                                "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
-                                                verificationLoading
-                                                    ? "border-border bg-card/40 text-muted-foreground cursor-not-allowed"
-                                                    : !canRunVerification
-                                                        ? "border-amber-500/40 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
-                                                        : "border-brand-blue/40 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
-                                            )}
-                                        >
-                                            {verificationLoading ? "Verifying…" : (
-                                                <span className="inline-flex items-center gap-2">
-                                                    {!canRunVerification ? <AlertTriangle className="w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
-                                                    {canRunVerification ? "Run Verification" : "Check Status"}
-                                                </span>
-                                            )}
-                                        </button>
-                                    </TooltipTrigger>
-                                    {!canRunVerification && (
-                                        <TooltipContent side="bottom" className="bg-muted border-zinc-700 text-foreground text-xs max-w-xs">
-                                            Click to see what data is missing for verification.
-                                        </TooltipContent>
-                                    )}
-                                </Tooltip>
-                                {/* Play Scan - Intelligence Mode only */}
-                                {!mirrorMode && (
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (isPlaying) {
-                                                    setIsPlaying(false);
-                                                    return;
-                                                }
-                                                setPlayIndex(-1);
-                                                setIsPlaying(true);
-                                            }}
-                                            disabled={playbackItems.length === 0}
-                                            className={cn(
-                                                "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
-                                                playbackItems.length === 0
-                                                    ? "border-border bg-card/40 text-muted-foreground cursor-not-allowed"
-                                                    : isPlaying
-                                                        ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15"
-                                                        : "border-border bg-card/40 text-foreground hover:border-amber-500/40 hover:text-foreground"
-                                            )}
-                                        >
-                                            {isPlaying ? <span className="inline-flex items-center gap-2"><Pause className="w-4 h-4" />Pause</span> : <span className="inline-flex items-center gap-2"><Play className="w-4 h-4" />Play Scan</span>}
-                                        </button>
-                                    </TooltipTrigger>
-                                    {playbackItems.length === 0 && (
-                                        <TooltipContent side="bottom" className="bg-muted border-zinc-700 text-foreground text-xs">
-                                            Run verification first to enable scan playback
-                                        </TooltipContent>
-                                    )}
-                                </Tooltip>
-                                )}
-                            </div>}
-                        </div>
-                    </CardHeader>
-                    {isVerificationExpanded && (
-                    <CardContent className="p-4">
-                        <Tabs defaultValue="studio">
-                            <TabsList className="bg-muted/40">
-                                <TabsTrigger value="studio">Data Inspection</TabsTrigger>
-                                <TabsTrigger value="results">Results</TabsTrigger>
-                            </TabsList>
-
-                            <TabsContent value="studio" className="mt-4">
-                                <div className="space-y-4">
-                                    <div className="rounded-2xl border border-border bg-card/30 overflow-hidden">
-                                        <div className="shrink-0 px-4 py-3 border-b border-border/70 flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Source</span>
-                                                    <span className="text-xs font-semibold text-foreground">Excel Estimator</span>
-                                                </div>
-                                                <div className="h-4 w-px bg-muted" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Output</span>
-                                                    <span className="text-xs font-semibold text-brand-blue">Proposal PDF</span>
-                                                </div>
-                                            </div>
+                    <Card className="bg-card/40 border border-border/60 overflow-hidden">
+                        <CardHeader className="border-b border-border/60 cursor-pointer" onClick={() => setIsVerificationExpanded(!isVerificationExpanded)}>
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0">
+                                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                                        <Columns className="w-4 h-4 text-brand-blue" />
+                                        Compare
+                                        <ChevronRight className={cn(
+                                            "w-4 h-4 text-muted-foreground transition-transform",
+                                            isVerificationExpanded && "rotate-90"
+                                        )} />
+                                    </CardTitle>
+                                    <CardDescription className="text-xs text-muted-foreground">
+                                        Review Excel vs PDF and watch verification scan screen-by-screen.
+                                    </CardDescription>
+                                </div>
+                                {isVerificationExpanded && <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                        type="button"
+                                        onClick={previewPdfInTab}
+                                        disabled={mirrorMode && isPdfPreviewBlocked}
+                                        title={mirrorMode && isPdfPreviewBlocked ? "Complete verification first" : "Open PDF preview in new tab"}
+                                        className={cn(
+                                            "px-3 py-2 rounded-xl border text-xs font-bold transition-all inline-flex items-center gap-2",
+                                            (proposalPdfLoading || (mirrorMode && isPdfPreviewBlocked))
+                                                ? "border-border bg-card/40 text-muted-foreground cursor-not-allowed"
+                                                : "border-border bg-card/40 text-foreground hover:border-brand-blue/40 hover:text-foreground"
+                                        )}
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                        {proposalPdfLoading ? "Generating…" : pdfUrl ? "Open Preview" : mirrorMode && isPdfPreviewBlocked ? "🔒 Blocked" : "Preview PDF"}
+                                    </button>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
                                             <button
                                                 type="button"
-                                                onClick={previewPdfInTab}
-                                                disabled={mirrorMode && isPdfPreviewBlocked}
+                                                onClick={runVerification}
+                                                disabled={verificationLoading}
                                                 className={cn(
-                                                    "text-[11px] font-bold text-brand-blue",
-                                                    mirrorMode && isPdfPreviewBlocked ? "opacity-60 cursor-not-allowed" : "hover:text-brand-blue/90"
+                                                    "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
+                                                    verificationLoading
+                                                        ? "border-border bg-card/40 text-muted-foreground cursor-not-allowed"
+                                                        : !canRunVerification
+                                                            ? "border-amber-500/40 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
+                                                            : "border-brand-blue/40 bg-brand-blue/10 text-brand-blue hover:bg-brand-blue/15"
                                                 )}
                                             >
-                                                Open PDF
+                                                {verificationLoading ? "Verifying…" : (
+                                                    <span className="inline-flex items-center gap-2">
+                                                        {!canRunVerification ? <AlertTriangle className="w-4 h-4" /> : <RefreshCw className="w-4 h-4" />}
+                                                        {canRunVerification ? "Run Verification" : "Check Status"}
+                                                    </span>
+                                                )}
                                             </button>
-                                        </div>
-                                        <div className="h-[520px] max-h-[65vh] overflow-hidden">
-                                            <ExcelGridViewer
-                                                highlightedRows={highlightedRows}
-                                                focusedRow={focusedRow}
-                                                onFocusedRowChange={setFocusedRow}
-                                                editable
-                                                scanningRow={isPlaying ? (highlightedRows[0] ?? null) : null}
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
+                                        </TooltipTrigger>
+                                        {!canRunVerification && (
+                                            <TooltipContent side="bottom" className="bg-muted border-zinc-700 text-foreground text-xs max-w-xs">
+                                                Click to see what data is missing for verification.
+                                            </TooltipContent>
+                                        )}
+                                    </Tooltip>
+                                    {/* Play Scan - Intelligence Mode only */}
+                                    {!mirrorMode && (
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        if (isPlaying) {
+                                                            setIsPlaying(false);
+                                                            return;
+                                                        }
+                                                        setPlayIndex(-1);
+                                                        setIsPlaying(true);
+                                                    }}
+                                                    disabled={playbackItems.length === 0}
+                                                    className={cn(
+                                                        "px-3 py-2 rounded-xl border text-xs font-bold transition-all",
+                                                        playbackItems.length === 0
+                                                            ? "border-border bg-card/40 text-muted-foreground cursor-not-allowed"
+                                                            : isPlaying
+                                                                ? "border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/15"
+                                                                : "border-border bg-card/40 text-foreground hover:border-amber-500/40 hover:text-foreground"
+                                                    )}
+                                                >
+                                                    {isPlaying ? <span className="inline-flex items-center gap-2"><Pause className="w-4 h-4" />Pause</span> : <span className="inline-flex items-center gap-2"><Play className="w-4 h-4" />Play Scan</span>}
+                                                </button>
+                                            </TooltipTrigger>
+                                            {playbackItems.length === 0 && (
+                                                <TooltipContent side="bottom" className="bg-muted border-zinc-700 text-foreground text-xs">
+                                                    Run verification first to enable scan playback
+                                                </TooltipContent>
+                                            )}
+                                        </Tooltip>
+                                    )}
+                                </div>}
+                            </div>
+                        </CardHeader>
+                        {isVerificationExpanded && (
+                            <CardContent className="p-4">
+                                <Tabs defaultValue="studio">
+                                    <TabsList className="bg-muted/40">
+                                        <TabsTrigger value="studio">Data Inspection</TabsTrigger>
+                                        <TabsTrigger value="results">Results</TabsTrigger>
+                                    </TabsList>
 
-                                {playIndex >= 0 && playIndex < playbackItems.length && (
-                                    <div className="mt-4 rounded-2xl border border-border bg-card/40 px-4 py-3 flex items-center justify-between gap-4">
-                                        <div className="min-w-0">
-                                            <div className="text-xs font-bold text-foreground truncate">
-                                                Scanning: {playbackItems[playIndex]?.name}
-                                            </div>
-                                            <div className="text-[11px] text-muted-foreground">
-                                                Excel row {Number(playbackItems[playIndex]?.rowIndex || 0)} • Variance {formatCurrency(Number(playbackItems[playIndex]?.variance || 0))}
+                                    <TabsContent value="studio" className="mt-4">
+                                        <div className="space-y-4">
+                                            <div className="rounded-2xl border border-border bg-card/30 overflow-hidden">
+                                                <div className="shrink-0 px-4 py-3 border-b border-border/70 flex items-center justify-between">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Source</span>
+                                                            <span className="text-xs font-semibold text-foreground">Excel Estimator</span>
+                                                        </div>
+                                                        <div className="h-4 w-px bg-muted" />
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Output</span>
+                                                            <span className="text-xs font-semibold text-brand-blue">Proposal PDF</span>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={previewPdfInTab}
+                                                        disabled={mirrorMode && isPdfPreviewBlocked}
+                                                        className={cn(
+                                                            "text-[11px] font-bold text-brand-blue",
+                                                            mirrorMode && isPdfPreviewBlocked ? "opacity-60 cursor-not-allowed" : "hover:text-brand-blue/90"
+                                                        )}
+                                                    >
+                                                        Open PDF
+                                                    </button>
+                                                </div>
+                                                <div className="h-[520px] max-h-[65vh] overflow-hidden">
+                                                    <ExcelGridViewer
+                                                        highlightedRows={highlightedRows}
+                                                        focusedRow={focusedRow}
+                                                        onFocusedRowChange={setFocusedRow}
+                                                        editable
+                                                        scanningRow={isPlaying ? (highlightedRows[0] ?? null) : null}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                                            {playIndex + 1}/{playbackItems.length}
-                                        </div>
-                                    </div>
-                                )}
-                            </TabsContent>
 
-                            <TabsContent value="results" className="mt-4">
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                                    <div className="lg:col-span-1 space-y-3">
-                                        <div className="rounded-2xl border border-border bg-card/40 px-4 py-3">
-                                            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Reconciliation</div>
-                                            {reconciliation ? (
-                                                <div className="mt-2 space-y-2 text-xs">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-muted-foreground">Excel Total</span>
-                                                        <span className="text-foreground font-bold">{formatCurrency(reconciliation.sourceFinalTotal)}</span>
+                                        {playIndex >= 0 && playIndex < playbackItems.length && (
+                                            <div className="mt-4 rounded-2xl border border-border bg-card/40 px-4 py-3 flex items-center justify-between gap-4">
+                                                <div className="min-w-0">
+                                                    <div className="text-xs font-bold text-foreground truncate">
+                                                        Scanning: {playbackItems[playIndex]?.name}
                                                     </div>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-muted-foreground">Natalia Total</span>
-                                                        <span className="text-foreground font-bold">{formatCurrency(reconciliation.calculatedFinalTotal)}</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-muted-foreground">Variance</span>
-                                                        <span className={cn("font-bold", reconciliation.isMatch ? "text-emerald-400" : "text-amber-300")}>
-                                                            {formatCurrency(reconciliation.variance)}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-muted-foreground">Match</span>
-                                                        <span className={cn("font-bold", reconciliation.isMatch ? "text-emerald-400" : "text-amber-300")}>
-                                                            {reconciliation.matchType}
-                                                        </span>
+                                                    <div className="text-[11px] text-muted-foreground">
+                                                        Excel row {Number(playbackItems[playIndex]?.rowIndex || 0)} • Variance {formatCurrency(Number(playbackItems[playIndex]?.variance || 0))}
                                                     </div>
                                                 </div>
-                                            ) : (
-                                                <div className="mt-2 text-xs text-muted-foreground">Run verification to populate totals.</div>
-                                            )}
-                                        </div>
-
-                                        <div className="rounded-2xl border border-border bg-card/40 px-4 py-3">
-                                            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Exceptions</div>
-                                            <div className="mt-2 text-xs text-muted-foreground font-semibold">
-                                                {effectiveExceptions.length} found
-                                            </div>
-                                        </div>
-
-                                        {verificationError && (
-                                            <div className="rounded-2xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-xs text-red-200">
-                                                {verificationError}
+                                                <div className="shrink-0 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                                    {playIndex + 1}/{playbackItems.length}
+                                                </div>
                                             </div>
                                         )}
-                                    </div>
+                                    </TabsContent>
 
-                                    <div className="lg:col-span-2 rounded-2xl border border-border bg-card/40 overflow-hidden">
-                                        <div className="px-4 py-3 border-b border-border/70 flex items-center justify-between">
-                                            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Findings</div>
-                                            {effectiveReport?.status && (
-                                                <div className={cn(
-                                                    "text-[10px] font-bold uppercase tracking-widest",
-                                                    effectiveReport.status === "VERIFIED"
-                                                        ? "text-emerald-400"
-                                                        : effectiveReport.status === "WARNING"
-                                                            ? "text-amber-300"
-                                                            : "text-red-400"
-                                                )}>
-                                                    {effectiveReport.status}
+                                    <TabsContent value="results" className="mt-4">
+                                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                                            <div className="lg:col-span-1 space-y-3">
+                                                <div className="rounded-2xl border border-border bg-card/40 px-4 py-3">
+                                                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Reconciliation</div>
+                                                    {reconciliation ? (
+                                                        <div className="mt-2 space-y-2 text-xs">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-muted-foreground">Excel Total</span>
+                                                                <span className="text-foreground font-bold">{formatCurrency(reconciliation.sourceFinalTotal)}</span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-muted-foreground">Natalia Total</span>
+                                                                <span className="text-foreground font-bold">{formatCurrency(reconciliation.calculatedFinalTotal)}</span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-muted-foreground">Variance</span>
+                                                                <span className={cn("font-bold", reconciliation.isMatch ? "text-emerald-400" : "text-amber-300")}>
+                                                                    {formatCurrency(reconciliation.variance)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-muted-foreground">Match</span>
+                                                                <span className={cn("font-bold", reconciliation.isMatch ? "text-emerald-400" : "text-amber-300")}>
+                                                                    {reconciliation.matchType}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="mt-2 text-xs text-muted-foreground">Run verification to populate totals.</div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
 
-                                        <div className="max-h-[360px] overflow-auto custom-scrollbar">
-                                            {playbackItems.length === 0 ? (
-                                                <div className="px-4 py-6 text-sm text-muted-foreground">No per-screen data available yet.</div>
-                                            ) : (
-                                                <div className="divide-y divide-zinc-800/60">
-                                                    {playbackItems.slice(0, 50).map((it: any, idx: number) => {
-                                                        const variance = Number(it.variance || 0);
-                                                        const row = Number(it.rowIndex || 0);
-                                                        return (
-                                                            <button
-                                                                key={`${it.name}-${idx}`}
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setIsPlaying(false);
-                                                                    setPlayIndex(idx);
-                                                                    if (row) setFocusedRow(row - 1);
-                                                                }}
-                                                                className="w-full text-left px-4 py-3 hover:bg-card/40 transition-colors"
-                                                            >
-                                                                <div className="flex items-center justify-between gap-4">
-                                                                    <div className="min-w-0">
-                                                                        <div className="text-sm font-semibold text-foreground truncate">{it.name}</div>
-                                                                        <div className="text-[11px] text-muted-foreground">Excel row {row || "—"}</div>
-                                                                    </div>
-                                                                    <div className={cn(
-                                                                        "text-xs font-bold",
-                                                                        Math.abs(variance) <= 0.01 ? "text-emerald-400" : "text-amber-300"
-                                                                    )}>
-                                                                        {formatCurrency(variance)}
-                                                                    </div>
-                                                                </div>
-                                                            </button>
-                                                        );
-                                                    })}
+                                                <div className="rounded-2xl border border-border bg-card/40 px-4 py-3">
+                                                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Exceptions</div>
+                                                    <div className="mt-2 text-xs text-muted-foreground font-semibold">
+                                                        {effectiveExceptions.length} found
+                                                    </div>
                                                 </div>
-                                            )}
+
+                                                {verificationError && (
+                                                    <div className="rounded-2xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-xs text-red-200">
+                                                        {verificationError}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="lg:col-span-2 rounded-2xl border border-border bg-card/40 overflow-hidden">
+                                                <div className="px-4 py-3 border-b border-border/70 flex items-center justify-between">
+                                                    <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Findings</div>
+                                                    {effectiveReport?.status && (
+                                                        <div className={cn(
+                                                            "text-[10px] font-bold uppercase tracking-widest",
+                                                            effectiveReport.status === "VERIFIED"
+                                                                ? "text-emerald-400"
+                                                                : effectiveReport.status === "WARNING"
+                                                                    ? "text-amber-300"
+                                                                    : "text-red-400"
+                                                        )}>
+                                                            {effectiveReport.status}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="max-h-[360px] overflow-auto custom-scrollbar">
+                                                    {playbackItems.length === 0 ? (
+                                                        <div className="px-4 py-6 text-sm text-muted-foreground">No per-screen data available yet.</div>
+                                                    ) : (
+                                                        <div className="divide-y divide-zinc-800/60">
+                                                            {playbackItems.slice(0, 50).map((it: any, idx: number) => {
+                                                                const variance = Number(it.variance || 0);
+                                                                const row = Number(it.rowIndex || 0);
+                                                                return (
+                                                                    <button
+                                                                        key={`${it.name}-${idx}`}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setIsPlaying(false);
+                                                                            setPlayIndex(idx);
+                                                                            if (row) setFocusedRow(row - 1);
+                                                                        }}
+                                                                        className="w-full text-left px-4 py-3 hover:bg-card/40 transition-colors"
+                                                                    >
+                                                                        <div className="flex items-center justify-between gap-4">
+                                                                            <div className="min-w-0">
+                                                                                <div className="text-sm font-semibold text-foreground truncate">{it.name}</div>
+                                                                                <div className="text-[11px] text-muted-foreground">Excel row {row || "—"}</div>
+                                                                            </div>
+                                                                            <div className={cn(
+                                                                                "text-xs font-bold",
+                                                                                Math.abs(variance) <= 0.01 ? "text-emerald-400" : "text-amber-300"
+                                                                            )}>
+                                                                                {formatCurrency(variance)}
+                                                                            </div>
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
-                            </TabsContent>
-                        </Tabs>
-                    </CardContent>
-                    )}
-                </Card>
+                                    </TabsContent>
+                                </Tabs>
+                            </CardContent>
+                        )}
+                    </Card>
                 )}
 
             </div>

@@ -1,12 +1,95 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ProposalType } from "@/types";
 import { PricingDocument } from "@/types/pricing";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, Edit3, FileText, ChevronDown, ChevronUp } from "lucide-react";
+
+/**
+ * Performant Input component that uses local state for typing 
+ * and only updates the parent form on blur.
+ */
+const DebouncedInput = ({
+    value,
+    onChange,
+    placeholder,
+    className
+}: {
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+    className?: string;
+}) => {
+    const [localValue, setLocalValue] = useState(value || "");
+
+    useEffect(() => {
+        setLocalValue(value || "");
+    }, [value]);
+
+    const handleBlur = () => {
+        if (localValue !== value) {
+            onChange(localValue);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            e.currentTarget.blur();
+        }
+    };
+
+    return (
+        <input
+            type="text"
+            placeholder={placeholder}
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            className={className}
+        />
+    );
+};
+
+/**
+ * Performant Textarea component for notes
+ */
+const DebouncedTextarea = ({
+    value,
+    onChange,
+    placeholder,
+    className
+}: {
+    value: string;
+    onChange: (val: string) => void;
+    placeholder: string;
+    className?: string;
+}) => {
+    const [localValue, setLocalValue] = useState(value || "");
+
+    useEffect(() => {
+        setLocalValue(value || "");
+    }, [value]);
+
+    const handleBlur = () => {
+        if (localValue !== value) {
+            onChange(localValue);
+        }
+    };
+
+    return (
+        <Textarea
+            placeholder={placeholder}
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={handleBlur}
+            className={className}
+        />
+    );
+};
 
 /**
  * FR-4.1 & FR-4.2: Pricing Table Editor
@@ -95,7 +178,6 @@ export default function PricingTableEditor() {
                         <div className="grid gap-3">
                             {pricingDocument.tables.map((table) => {
                                 const overriddenName = tableHeaderOverrides[table.id] || "";
-                                const displayName = overriddenName || table.name;
 
                                 return (
                                     <div key={table.id} className="space-y-1.5">
@@ -106,11 +188,10 @@ export default function PricingTableEditor() {
                                             {table.name}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <input
-                                                type="text"
+                                            <DebouncedInput
                                                 placeholder={table.name}
                                                 value={overriddenName}
-                                                onChange={(e) => handleHeaderChange(table.id, e.target.value)}
+                                                onChange={(val) => handleHeaderChange(table.id, val)}
                                                 className="flex-1 min-w-0 px-3 py-2 text-sm bg-background border border-border rounded-md focus:border-[#0A52EF] focus:ring-1 focus:ring-[#0A52EF]/20 transition-colors"
                                             />
                                             {overriddenName && (
@@ -145,10 +226,10 @@ export default function PricingTableEditor() {
                                 ? "These notes will appear in the 'Additional Notes' section of the LOI."
                                 : "These notes will appear after the pricing breakdown in the PDF."}
                         </p>
-                        <Textarea
+                        <DebouncedTextarea
                             placeholder="Enter any additional notes, terms, or clarifications (e.g., CAD/USD exchange rate notes, special conditions)..."
                             value={customProposalNotes}
-                            onChange={(e) => handleNotesChange(e.target.value)}
+                            onChange={handleNotesChange}
                             className="min-h-[100px] text-sm bg-background border-border resize-y"
                         />
                     </div>
