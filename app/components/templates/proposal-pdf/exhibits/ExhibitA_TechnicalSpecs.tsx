@@ -49,10 +49,17 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
     const screens = details?.screens || [];
     const sowText = (details as any)?.scopeOfWorkText;
     const hasSOWContent = showSOW && sowText && sowText.trim().length > 0;
-    
-    const headerText = hasSOWContent 
+
+    const headerText = hasSOWContent
         ? "EXHIBIT A: STATEMENT OF WORK & TECHNICAL SPECIFICATIONS"
         : "EXHIBIT A: TECHNICAL SPECIFICATIONS";
+
+    // Prompt 46: Hide BRIGHTNESS column if all values are null/empty/dash
+    const hasAnyBrightness = screens.some((screen: any) => {
+        const rawBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits;
+        const brightnessNumber = Number(rawBrightness);
+        return rawBrightness != null && rawBrightness !== "" && rawBrightness !== 0 && isFinite(brightnessNumber) && brightnessNumber > 0;
+    });
 
     return (
         <div className="pt-8 break-inside-avoid">
@@ -67,11 +74,11 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                 <table className="w-full text-[9px] border-collapse" style={{ tableLayout: "fixed", pageBreakInside: 'auto' }}>
                     <thead>
                         <tr className="text-[9px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                            <th className="text-left py-2 px-2 w-[30%]">Display Name</th>
-                            <th className="text-left py-2 px-2 w-[15%]">Dimensions</th>
-                            <th className="text-right py-2 px-2 w-[12%]">Pitch</th>
-                            <th className="text-right py-2 px-2 w-[18%]">Resolution</th>
-                            <th className="text-right py-2 px-2 w-[13%]">Brightness</th>
+                            <th className="text-left py-2 px-2" style={{ width: hasAnyBrightness ? "30%" : "35%" }}>Display Name</th>
+                            <th className="text-left py-2 px-2" style={{ width: hasAnyBrightness ? "15%" : "18%" }}>Dimensions</th>
+                            <th className="text-right py-2 px-2" style={{ width: hasAnyBrightness ? "12%" : "15%" }}>Pitch</th>
+                            <th className="text-right py-2 px-2" style={{ width: hasAnyBrightness ? "18%" : "20%" }}>Resolution</th>
+                            {hasAnyBrightness && <th className="text-right py-2 px-2 w-[13%]">Brightness</th>}
                             <th className="text-right py-2 px-2 w-[12%]">Qty</th>
                         </tr>
                     </thead>
@@ -114,9 +121,11 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                                         <td className="py-1.5 px-2 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
                                             {resolution}
                                         </td>
-                                        <td className="py-1.5 px-2 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
-                                            {brightnessText}
-                                        </td>
+                                        {hasAnyBrightness && (
+                                            <td className="py-1.5 px-2 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
+                                                {brightnessText}
+                                            </td>
+                                        )}
                                         <td className="py-1.5 px-2 text-right tabular-nums text-[9px] align-top">
                                             {isFinite(qty) ? qty : "—"}
                                         </td>
@@ -125,7 +134,7 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                             })
                         ) : (
                             <tr>
-                                <td colSpan={6} className="px-3 py-6 text-center text-gray-400 italic">
+                                <td colSpan={hasAnyBrightness ? 6 : 5} className="px-3 py-6 text-center text-gray-400 italic">
                                     No screens configured.
                                 </td>
                             </tr>

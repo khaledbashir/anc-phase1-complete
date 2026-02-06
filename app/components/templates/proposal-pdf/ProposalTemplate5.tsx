@@ -570,8 +570,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 <LogoSelectorServer theme="light" width={140} height={70} className="p-0" />
                 <div className="text-right break-inside-avoid" style={{ background: 'transparent' }}>
                     <div className="text-xs uppercase tracking-widest font-bold" style={{ color: colors.primary, background: 'transparent' }}>{docLabel}</div>
-                    <h1 className="text-xl font-bold mt-1" style={{ color: colors.text, background: 'transparent' }}>{receiver?.name || "Client Name"}</h1>
-                    {details?.proposalName && <div className="text-xs mt-1" style={{ color: colors.textMuted, background: 'transparent' }}>{details.proposalName}</div>}
+                    <h1 className="text-xl font-bold mt-1" style={{ color: colors.text, background: 'transparent' }}>{details?.proposalName || receiver?.name || "Client Name"}</h1>
                 </div>
             </div>
 
