@@ -86,13 +86,7 @@ export async function PATCH(
 
         const body = await req.json();
 
-        // DEBUG: Log payload details
-        console.log(`[PATCH /api/projects/${id}] Received payload:`, {
-            hasPricingDocument: !!body.pricingDocument,
-            pricingDocumentTables: body.pricingDocument?.tables?.length,
-            hasMarginAnalysis: !!body.marginAnalysis,
-            bodySizeApprox: JSON.stringify(body).length
-        });
+
 
         // Extract receiverData (sent as nested object by auto-save)
         const receiverData = body.receiverData;
