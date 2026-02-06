@@ -138,6 +138,7 @@ model Proposal {
   pricingDocument        Json?               // Full PricingDocument from Excel Mirror Mode
   marginAnalysis         Json?               // Margin analysis tables (non-LED items: structural, electrical, PM)
   pricingMode            String?             // "MIRROR" | "STANDARD"
+  masterTableIndex       Int?                // Index into pricingDocument.tables for "Project Grand Total" section
   
   // REQ-WVU: Contractual Handover specific fields
   insuranceRateOverride  Decimal?            // Separate from Performance Bond

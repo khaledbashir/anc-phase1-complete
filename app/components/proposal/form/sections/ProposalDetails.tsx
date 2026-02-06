@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 // Components
 import {
@@ -13,12 +13,85 @@ import {
     TemplateSelector,
 } from "@/app/components";
 import FormSelect from "../../../reusables/form-fields/FormSelect";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 // Contexts
 import { useTranslationContext } from "@/contexts/TranslationContext";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { ProposalType } from "@/types";
 import { applyDocumentModeDefaults, resolveDocumentMode, type DocumentMode } from "@/lib/documentMode";
+
+/**
+ * Master Table Selector — Prompt 51
+ * Lets user designate which pricingDocument.tables entry is the "Project Grand Total"
+ * so it renders at the top of the document.
+ */
+const MasterTableSelector = () => {
+    const { setValue, control } = useFormContext<ProposalType>();
+    const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
+    const masterTableIndex = useWatch({ name: "details.masterTableIndex" as any, control });
+
+    const tables = (pricingDocument as any)?.tables || [];
+
+    // Auto-detect: if first table name contains "TOTAL", pre-select it (only on initial null)
+    useEffect(() => {
+        if (tables.length > 0 && masterTableIndex === undefined) {
+            const firstName = ((tables[0] as any)?.name || "").toString();
+            if (/total/i.test(firstName)) {
+                setValue("details.masterTableIndex" as any, 0, { shouldDirty: false });
+            }
+        }
+    }, [tables, masterTableIndex, setValue]);
+
+    // Don't render if no pricing tables
+    if (tables.length === 0) return null;
+
+    const options = useMemo(() => {
+        const opts = [{ label: "None (no master table)", value: "-1" }];
+        tables.forEach((t: any, idx: number) => {
+            const name = (t?.name || `Table ${idx + 1}`).toString().trim();
+            opts.push({ label: name, value: String(idx) });
+        });
+        return opts;
+    }, [tables]);
+
+    const currentValue = masterTableIndex != null ? String(masterTableIndex) : "-1";
+
+    return (
+        <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-zinc-400">Project Grand Total Table:</label>
+            <Select
+                value={currentValue}
+                onValueChange={(val) => {
+                    const idx = parseInt(val, 10);
+                    setValue("details.masterTableIndex" as any, idx === -1 ? null : idx, { shouldDirty: true });
+                }}
+            >
+                <SelectTrigger className="w-full bg-zinc-950/50 border-zinc-800 text-sm">
+                    <SelectValue placeholder="Select master table" />
+                </SelectTrigger>
+                <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                    {options.map((opt) => (
+                        <SelectItem
+                            key={opt.value}
+                            value={opt.value}
+                            className="text-zinc-100 focus:bg-zinc-800 focus:text-white"
+                        >
+                            {opt.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+            <span className="text-[10px] text-zinc-500">This table will appear at the top of the document as the Project Summary</span>
+        </div>
+    );
+};
 
 const ProposalDetails = () => {
     const { _t } = useTranslationContext();
@@ -132,6 +205,7 @@ const ProposalDetails = () => {
                         )}
                     </div>
                     <TemplateSelector />
+                    <MasterTableSelector />
                 </div>
             </div>
         </section>

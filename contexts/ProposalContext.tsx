@@ -1095,6 +1095,7 @@ export const ProposalContextProvider = ({
                         marginAnalysis: (currentValues as any)?.marginAnalysis,
                         pricingMode: d?.pricingMode,
                         purchaserLegalName: d?.purchaserLegalName,
+                        masterTableIndex: d?.masterTableIndex ?? null,
                     };
 
                     // Using specific endpoint for auto-save
@@ -2141,6 +2142,7 @@ export const ProposalContextProvider = ({
                 pricingDocument: (formValues as any)?.details?.pricingDocument,
                 marginAnalysis: (formValues as any)?.marginAnalysis,
                 pricingMode: (formValues as any)?.details?.pricingMode,
+                masterTableIndex: (formValues as any)?.details?.masterTableIndex ?? null,
             };
             const res = await fetch(`/api/projects/${effectiveId}`, {
                 method: "PATCH",

@@ -117,6 +117,7 @@ export async function PATCH(
             marginAnalysis,   // Non-LED margin analysis tables
             pricingMode,      // MIRROR | STANDARD
             purchaserLegalName, // Prompt 42: Purchaser legal name for LOI
+            masterTableIndex,   // Prompt 51: Master table selector index
         } = body;
 
         // Map address from receiverData (nested) or flat fields
@@ -207,6 +208,7 @@ export async function PATCH(
         if (marginAnalysis !== undefined) updateData.marginAnalysis = marginAnalysis;
         if (pricingMode !== undefined) updateData.pricingMode = pricingMode;
         if (purchaserLegalName !== undefined) updateData.purchaserLegalName = purchaserLegalName;
+        if (masterTableIndex !== undefined) updateData.masterTableIndex = masterTableIndex;
 
         const project = await prisma.$transaction(async (tx) => {
             // Handle snapshot creation if requested

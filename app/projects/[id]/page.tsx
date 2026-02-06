@@ -107,6 +107,7 @@ function mapDbToFormSchema(dbProject: any) {
             // Excel Mirror Mode: Restore pricing data from DB
             pricingDocument: dbProject.pricingDocument || undefined,
             pricingMode: dbProject.pricingMode || "STANDARD",
+            masterTableIndex: dbProject.masterTableIndex ?? null,
         },
         // Restore margin analysis at root level (non-LED items)
         marginAnalysis: dbProject.marginAnalysis || undefined,

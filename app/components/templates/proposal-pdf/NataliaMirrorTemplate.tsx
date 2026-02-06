@@ -114,6 +114,14 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
     return tableHeaderOverrides[table.id] || screenNameMap[table.name] || table.name;
   };
 
+  // Prompt 51: Master table index — designates which pricing table is the "Project Grand Total"
+  const masterTableIndex: number | null = (details as any)?.masterTableIndex ?? null;
+  const masterTable = masterTableIndex !== null ? tables[masterTableIndex] ?? null : null;
+  // Detail tables = all tables except the master table
+  const detailTables = masterTableIndex !== null
+    ? tables.filter((_: any, idx: number) => idx !== masterTableIndex)
+    : tables;
+
   return (
     <div className="bg-white min-h-screen font-sans">
       {/* Page container */}
@@ -137,13 +145,22 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
           displayTypeLabel={displayTypeLabel}
         />
 
-        {/* FR-2.3 FIX: LOI shows Project Grand Total BEFORE pricing tables */}
-        {documentMode === "LOI" && tables.length > 0 && (
+        {/* Prompt 51: Master table renders FIRST when designated */}
+        {masterTable && (
+          <MasterTableSection
+            table={masterTable}
+            currency={currency}
+            displayName={getTableDisplayName(masterTable)}
+          />
+        )}
+
+        {/* FR-2.3 FIX: LOI shows Project Grand Total BEFORE pricing tables (fallback when no master table) */}
+        {documentMode === "LOI" && tables.length > 0 && masterTableIndex === null && (
           <DocumentTotalSection total={documentTotal} currency={currency} isLOIPosition={true} />
         )}
 
-        {/* All pricing tables */}
-        {tables.map((table, idx) => (
+        {/* Detail pricing tables (excludes master table if set) */}
+        {detailTables.map((table, idx) => (
           <React.Fragment key={table.id}>
             <PricingTableSection
               table={table}
@@ -160,7 +177,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
         ))}
 
         {/* Document total (if multiple tables) - Budget/Proposal show at bottom */}
-        {documentMode !== "LOI" && tables.length > 1 && (
+        {documentMode !== "LOI" && detailTables.length > 1 && masterTableIndex === null && (
           <DocumentTotalSection total={documentTotal} currency={currency} />
         )}
 
@@ -293,6 +310,101 @@ function IntroSection({
     <div className="px-12 py-6">
       <p className="text-[11px] text-gray-600 leading-relaxed text-justify">
         {intro}
+      </p>
+    </div>
+  );
+}
+
+// ============================================================================
+// MASTER TABLE (Prompt 51) — Darker header, renders first as Project Summary
+// ============================================================================
+
+function MasterTableSection({
+  table,
+  currency,
+  displayName,
+}: {
+  table: PricingTable;
+  currency: "CAD" | "USD";
+  displayName?: string;
+}) {
+  const currencyLabel = `PRICING (${currency})`;
+  const headerName = displayName || table.name;
+
+  return (
+    <div className="px-12 py-4 break-inside-avoid">
+      {/* Darker French Blue header to distinguish as summary */}
+      <div className="flex justify-between items-center pb-2 mb-0" style={{ borderBottom: '3px solid #002C73' }}>
+        <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#002C73' }}>
+          {headerName}
+        </h2>
+        <span className="text-sm font-bold uppercase tracking-wide" style={{ color: '#002C73' }}>
+          {currencyLabel}
+        </span>
+      </div>
+
+      {/* Line items */}
+      <div className="border-b border-gray-300">
+        {table.items.map((item, idx) => (
+          <div
+            key={`master-item-${idx}`}
+            className="flex justify-between py-2 border-b border-gray-100 text-[11px]"
+          >
+            <div className="flex-1 pr-4">
+              <span className="text-gray-700">{item.description}</span>
+            </div>
+            <div className="text-right font-medium text-gray-800 w-28">
+              {item.isIncluded ? (
+                <span className="text-green-600">INCLUDED</span>
+              ) : (
+                formatPricingCurrency(item.sellingPrice, currency)
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer rows */}
+      <div style={{ borderTop: '3px solid #002C73' }} className="mt-0">
+        {/* Subtotal */}
+        <div className="flex justify-between py-2 text-[11px] font-bold">
+          <span className="text-gray-800">SUBTOTAL:</span>
+          <span className="text-gray-800 w-28 text-right">
+            {formatPricingCurrency(table.subtotal, currency)}
+          </span>
+        </div>
+
+        {/* Tax */}
+        {table.tax && (
+          <div className="flex justify-between py-1 text-[11px]">
+            <span className="text-gray-600">{table.tax.label}</span>
+            <span className="text-gray-800 w-28 text-right">
+              {formatPricingCurrency(table.tax.amount, currency)}
+            </span>
+          </div>
+        )}
+
+        {/* Bond */}
+        {(table.bond !== 0 || table.tax) && (
+          <div className="flex justify-between py-1 text-[11px]">
+            <span className="text-gray-600">BOND</span>
+            <span className="text-gray-800 w-28 text-right">
+              {formatPricingCurrency(table.bond, currency)}
+            </span>
+          </div>
+        )}
+
+        {/* Grand Total - prominent */}
+        <div className="flex justify-between py-2 text-sm font-bold border-t border-gray-300">
+          <span style={{ color: '#002C73' }}>GRAND TOTAL:</span>
+          <span className="w-28 text-right" style={{ color: '#002C73', fontSize: '14px' }}>
+            {formatPricingCurrency(table.grandTotal, currency)}
+          </span>
+        </div>
+      </div>
+
+      <p className="text-[9px] text-gray-400 mt-2">
+        Detailed breakdown follows below. This total represents the complete project investment.
       </p>
     </div>
   );

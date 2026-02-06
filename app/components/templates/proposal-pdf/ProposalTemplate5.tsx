@@ -61,6 +61,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const pricingDocument = (details as any)?.pricingDocument;
     const currency: "CAD" | "USD" = pricingDocument?.currency || "USD";
 
+    // Prompt 51: Master table index — designates which pricing table is the "Project Grand Total"
+    const masterTableIndex: number | null = (details as any)?.masterTableIndex ?? null;
+
     // Detect product type from screens to adjust header text
     const detectProductType = (): "LED" | "LCD" | "Display" => {
         if (!screens || screens.length === 0) return "Display";
@@ -309,6 +312,111 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         );
     };
 
+    // Prompt 51: Master Table Summary — renders the designated "Project Grand Total" table at top
+    const MasterTableSummary = () => {
+        if (masterTableIndex === null) return null;
+        const pricingTables = (pricingDocument?.tables || []) as any[];
+        const masterTable = pricingTables[masterTableIndex];
+        if (!masterTable) return null;
+
+        const tableHeaderOverrides = ((details as any)?.tableHeaderOverrides || []) as string[];
+        const tableName = (masterTable?.name ?? "").toString().trim();
+        const label = (tableHeaderOverrides[masterTableIndex] ?? screenNameMap[tableName] ?? (tableName || "Project Total")).toString().trim();
+
+        // Gather rows from the master table
+        const rows = (masterTable?.rows || []) as any[];
+        const subtotal = Number(masterTable?.subtotal ?? masterTable?.grandTotal ?? 0);
+        const tax = Number(masterTable?.tax ?? 0);
+        const bond = Number(masterTable?.bond ?? 0);
+        const grandTotal = Number(masterTable?.grandTotal ?? 0);
+
+        return (
+            <div className="px-6 mt-6 break-inside-avoid">
+                <SectionHeader title="Project Pricing" subtitle="Summary" />
+                <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
+                    {/* Darker French Blue header to distinguish from detail tables */}
+                    <div
+                        className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
+                        style={{ background: colors.primaryDark, color: colors.white }}
+                    >
+                        <div className="col-span-8">Description</div>
+                        <div className="col-span-4 text-right">Pricing</div>
+                    </div>
+
+                    {/* Rows */}
+                    {rows.map((row: any, idx: number) => {
+                        const desc = (row?.description || row?.name || "Item").toString().trim();
+                        const price = Number(row?.price ?? row?.amount ?? 0);
+                        return (
+                            <div
+                                key={`master-row-${idx}`}
+                                className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
+                                style={{
+                                    borderColor: colors.borderLight,
+                                    background: idx % 2 === 1 ? colors.surface : colors.white,
+                                    minHeight: '36px',
+                                }}
+                            >
+                                <div className="col-span-8 font-bold text-xs tracking-wide uppercase" style={{ color: colors.text }}>
+                                    {desc.toUpperCase()}
+                                </div>
+                                <div className="col-span-4 text-right font-bold text-sm whitespace-nowrap" style={{ color: colors.primaryDark }}>
+                                    {formatCurrency(price, Math.abs(price) < 0.01 ? "—" : undefined)}
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* Subtotal */}
+                    {rows.length > 0 && Math.abs(subtotal) >= 0.01 && subtotal !== grandTotal && (
+                        <div className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
+                            <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Subtotal</div>
+                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
+                                {formatCurrency(subtotal)}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Tax */}
+                    {Math.abs(tax) >= 0.01 && (
+                        <div className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
+                            <div className="col-span-8 text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Tax</div>
+                            <div className="col-span-4 text-right text-sm" style={{ color: colors.text }}>
+                                {formatCurrency(tax)}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Bond */}
+                    {Math.abs(bond) >= 0.01 && (
+                        <div className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
+                            <div className="col-span-8 text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Performance Bond</div>
+                            <div className="col-span-4 text-right text-sm" style={{ color: colors.text }}>
+                                {formatCurrency(bond)}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Grand Total */}
+                    <div
+                        className="grid grid-cols-12 px-4 py-3 border-t-2 break-inside-avoid"
+                        style={{ borderColor: colors.primary, background: colors.primaryLight }}
+                    >
+                        <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
+                            {label.toUpperCase()}{currency === "CAD" ? " (CAD)" : ""}
+                        </div>
+                        <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
+                            {formatCurrency(grandTotal, Math.abs(grandTotal) < 0.01 ? "—" : undefined)}
+                        </div>
+                    </div>
+                </div>
+                <p className="text-xs mt-2" style={{ color: colors.textMuted }}>
+                    Detailed breakdown follows below. This total represents the complete project investment.
+                </p>
+            </div>
+        );
+    };
+
     // Hybrid Pricing Section - Classic text hierarchy (UPPERCASE BOLD name, smaller specs)
     // When pricingDocument.tables exists (Margin Analysis Excel), render one row per table + PROJECT TOTAL.
     // Otherwise fall back to quoteItems or screens + internalAudit.
@@ -321,18 +429,22 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         type LineItem = { key: string; name: string; description: string; price: number };
         let lineItems: LineItem[];
         if (pricingTables.length > 0) {
-            lineItems = pricingTables.map((table: any, idx: number) => {
-                // Priority: explicit override > screen name edit (via group map) > Excel table name
-                const tableName = (table?.name ?? "").toString().trim();
-                const label = (tableHeaderOverrides[idx] ?? screenNameMap[tableName] ?? (tableName || "Item")).toString().trim();
-                const grandTotal = Number(table?.grandTotal ?? 0);
-                return {
-                    key: table?.id || `table-${idx}`,
-                    name: label.toUpperCase(),
-                    description: "",
-                    price: grandTotal,
-                };
-            });
+            // Prompt 51: Skip master table from detail listing (it's already shown above)
+            lineItems = pricingTables
+                .map((table: any, origIdx: number) => ({ table, origIdx }))
+                .filter(({ origIdx }) => origIdx !== masterTableIndex)
+                .map(({ table, origIdx }) => {
+                    // Priority: explicit override > screen name edit (via group map) > Excel table name
+                    const tableName = (table?.name ?? "").toString().trim();
+                    const label = (tableHeaderOverrides[origIdx] ?? screenNameMap[tableName] ?? (tableName || "Item")).toString().trim();
+                    const grandTotal = Number(table?.grandTotal ?? 0);
+                    return {
+                        key: table?.id || `table-${origIdx}`,
+                        name: label.toUpperCase(),
+                        description: "",
+                        price: grandTotal,
+                    };
+                });
         } else {
             // Get quote items if available
             const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
@@ -617,14 +729,17 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 </div>
             )}
 
-            {/* LOI Master Table - Project Grand Total BEFORE detailed breakdown */}
-            {isLOI && showPricingTables && <LOISummaryTable />}
+            {/* Prompt 51: Master Table — designated grand total table renders FIRST */}
+            {showPricingTables && masterTableIndex !== null && <MasterTableSummary />}
+
+            {/* LOI Master Table - Project Grand Total BEFORE detailed breakdown (fallback when no master table designated) */}
+            {isLOI && showPricingTables && masterTableIndex === null && <LOISummaryTable />}
 
             {/* Pricing / Detailed Breakdown */}
             {showPricingTables && (
                 <div className="px-6 break-inside-avoid">
                     <SectionHeader
-                        title={isLOI ? "Detailed Breakdown" : "Project Pricing"}
+                        title={masterTableIndex !== null ? "Detailed Breakdown" : (isLOI ? "Detailed Breakdown" : "Project Pricing")}
                         subtitle={currency === "CAD" ? "All amounts in Canadian Dollars (CAD)" : undefined}
                     />
                     <div className="break-inside-avoid">
