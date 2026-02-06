@@ -26,6 +26,30 @@ export async function POST(req: NextRequest) {
                 // Attach pricingDocument to the response inside details so it persists
                 if (data.formData && data.formData.details) {
                     (data.formData.details as any).pricingDocument = pricingDocument;
+
+                    // REQ-127: Backfill screen.group if missing by correlating with Pricing Tables
+                    // This ensures the link between Screens (LED Sheet) and Tables (Margin Analysis) is robust
+                    // even if the excelImportService's fuzzy matcher missed the section header.
+                    const screens = (data.formData.details.screens as any[]) || [];
+                    const tables = pricingDocument.tables;
+
+                    const norm = (s: string) => s.toLowerCase().replace(/\s+/g, "").trim();
+
+                    screens.forEach(screen => {
+                        if (!screen.group) {
+                            const sName = norm(screen.name);
+                            // Find table with matching name (fuzzy)
+                            const match = tables.find(t => {
+                                const tName = norm(t.name);
+                                return tName.includes(sName) || sName.includes(tName);
+                            });
+
+                            if (match) {
+                                screen.group = match.name;
+                                console.log(`[EXCEL IMPORT] Backfilled group for screen "${screen.name}" -> "${match.name}"`);
+                            }
+                        }
+                    });
                 }
                 console.log(`[EXCEL IMPORT] PricingDocument: ${pricingDocument.tables.length} tables, ${pricingDocument.documentTotal} total`);
             }
