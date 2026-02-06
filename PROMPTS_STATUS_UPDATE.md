@@ -1,7 +1,8 @@
-# Comprehensive Status Update — All Prompts (1–15)
+# Comprehensive Status Update — All Prompts (1–22)
 
 **Branch:** `phase2/product-database`  
-**Date:** February 2026
+**Date:** February 2026  
+**Last push:** `phase2/product-database` → origin (Prompt 16 commit)
 
 ---
 
@@ -130,6 +131,58 @@
 
 ---
 
+## Prompt 16 — Fix Proposal header ("PROPOSAL" not "SALES QUOTATION") ✅
+
+**Done:**
+- **ProposalTemplate5.tsx line 46:** `docLabel` for PROPOSAL mode changed from `"SALES QUOTATION"` to `"PROPOSAL"`.
+- **ProposalTemplate5.tsx (intro):** PROPOSAL intro text now explicitly uses the word "proposal" (lowercase): "ANC is pleased to present the following proposal for [Client Name] per the specifications and pricing below."
+
+---
+
+## Prompt 17 — Populate pricing table from pricingDocument.tables ✅
+
+**Done:**
+- **ProposalTemplate5.tsx (PricingSection):** When `details.pricingDocument?.tables` exists, the PROJECT PRICING / DETAILED BREAKDOWN table now iterates over each table: DESCRIPTION = `tableHeaderOverrides[index] ?? table.name`, AMOUNT = `table.grandTotal` (formatCurrency; "—" for zero). PROJECT TOTAL row = sum of all grandTotals, shown for both LOI and Budget/Proposal.
+- Fallback unchanged: quoteItems or screens + internalAudit when no pricingDocument.tables.
+
+---
+
+## Prompt 18 — Fix client name using Excel filename ✅
+
+**Done:**
+- **app/api/projects/[id]/route.ts:** `effectiveClientName` now uses `clientName ?? receiverData?.name ?? proposalName` so the Client Name field (receiver.name sent by auto-save) is persisted to DB and appears correctly in the PDF instead of the Excel filename.
+
+---
+
+## Prompt 19 — Exhibit A: merged headers, truncated names, brightness ✅
+
+**Done:**
+- **ExhibitA_TechnicalSpecs.tsx:** Replaced CSS grid with HTML `<table>` for reliable PDF column separation (fixes "RESOLUTIONBRIGHTNESSQTY" jammed headers). Display Name cell: removed `truncate`, added `break-words` so long names wrap; still prefers `externalName`. Brightness: show "—" when empty/null instead of blank.
+
+---
+
+## Prompt 20 — LOI section order and legal paragraph ✅
+
+**Done:**
+- **ProposalTemplate5.tsx:** LOI rendering order is now: Header → Legal paragraph → Pricing (Detailed Breakdown) → Notes → Payment Terms → Signature legal text + signature lines → Page break → Exhibit A (spec cards + table) → Exhibit B (Scope of Work, hidden if empty) → Footer. Budget/Proposal order unchanged.
+- **SignatureBlock:** Default signature legal text expanded to full paragraph (termination, binding, formal agreement, payment 30 days); still overridden by `details.signatureBlockText`.
+
+---
+
+## Prompt 21 — LOI legal paragraph completeness ✅
+
+**Done:**
+- **ProposalTemplate5.tsx (LOI intro):** Replaced with Natalia spec: "This Sales Quotation will set forth the terms by which [Purchaser Name] ("Purchaser") located at [Purchaser Address] and ANC Sports Enterprises, LLC ("ANC") located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for the [Project Name]." Data: purchaserName, purchaserAddress, details.proposalName.
+
+---
+
+## Prompt 22 — sanitizeForClient no longer injects [PROJECT TOTAL] ✅
+
+**Done:**
+- **lib/security/sanitizeForClient.ts:** Removed `projectTotal: '[PROJECT TOTAL]'` from PLACEHOLDER_FIELDS and from applyPlaceholders logic. PDF generation no longer replaces project total with the literal string; template shows real total or "—".
+
+---
+
 ## Summary Table
 
 | Prompt | Title                         | Status   |
@@ -149,6 +202,13 @@
 | 13     | Hide Phase 2 on Review step   | Done     |
 | 14     | Math step cleanup             | Done     |
 | 15     | Export bundle label           | Done     |
+| 16     | Proposal header PROPOSAL      | Done     |
+| 17     | Pricing table from pricingDocument.tables | Done     |
+| 18     | Client name from receiverData | Done     |
+| 19     | Exhibit A table / brightness  | Done     |
+| 20     | LOI section order & signature | Done     |
+| 21     | LOI legal paragraph complete  | Done     |
+| 22     | No [PROJECT TOTAL] in sanitizer | Done     |
 
 ---
 
@@ -170,12 +230,25 @@
 - `app/components/proposal/actions/PdfViewer.tsx`
 - `app/components/templates/proposal-pdf/ProposalTemplate5.tsx`
 - `app/components/templates/proposal-pdf/ProposalTemplate2.tsx`
+- `app/components/templates/proposal-pdf/exhibits/ExhibitA_TechnicalSpecs.tsx`
 - `app/components/proposal/form/sections/PricingTableEditor.tsx`
+- `app/api/projects/[id]/route.ts`
 - `lib/featureFlags.ts` (new)
 - `lib/helpers.ts`
+- `lib/security/sanitizeForClient.ts`
+- `ARCHITECTURE_ANSWERS.md` (architecture Q&A + diagnostic answers + Prompts 10/18)
 
 ---
 
 ## Branch Rule
 
 Per workspace rules: **Do not merge** `rag` and `phase2/product-database`. Push only to the current branch (`phase2/product-database`).
+
+---
+
+## Latest Push (Feb 2026)
+
+- **Pushed to:** `origin/phase2/product-database`
+- **Latest commit:** Fix: Prompt 16 — Proposal header and intro say PROPOSAL not SALES QUOTATION (`ProposalTemplate5.tsx`).
+- **Previous commit on branch:** Fix: Prompt 18, 19, 22 — Client name, Exhibit A table, and PROJECT TOTAL fixes (client name API, Exhibit A table, sanitizeForClient).
+- All Prompt 16–22 work is on `phase2/product-database`; Prompt 17 (pricingDocument.tables), 20 (LOI order), 21 (LOI paragraph) were implemented in earlier commits on this branch.
