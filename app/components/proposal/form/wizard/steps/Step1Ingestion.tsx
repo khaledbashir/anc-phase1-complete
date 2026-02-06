@@ -100,12 +100,13 @@ const Step1Ingestion = () => {
                         <button
                             onClick={() => setBriefPanelOpen(true)}
                             className={cn(
-                                "relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-white cursor-pointer transition-all shadow-md hover:shadow-lg hover:brightness-110",
+                                "relative flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold text-white cursor-pointer transition-all",
                                 "bg-gradient-to-r from-blue-500 to-indigo-500",
-                                !hasBrief && "animate-pulse",
+                                "shadow-md hover:shadow-lg hover:brightness-110",
+                                !hasBrief && "shadow-[0_0_14px_rgba(99,102,241,0.45)]",
                             )}
                         >
-                            <Sparkles className="w-4 h-4" />
+                            <Sparkles className={cn("w-4 h-4", !hasBrief && "animate-pulse")} />
                             <span>Brief Me</span>
                             {hasBrief && (
                                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-background shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
