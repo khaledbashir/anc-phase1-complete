@@ -20,7 +20,7 @@ import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 import ExhibitA_TechnicalSpecs from "@/app/components/templates/proposal-pdf/exhibits/ExhibitA_TechnicalSpecs";
 
 // Helpers
-import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText } from "@/lib/helpers";
+import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText, normalizePitch } from "@/lib/helpers";
 import { resolveDocumentMode } from "@/lib/documentMode";
 
 // Types
@@ -124,18 +124,21 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     };
 
     /**
-     * Format pixel pitch with proper decimal preservation
-     * Handles edge case where "1.25" might be stored as "125" (decimal stripped)
+     * Format pixel pitch with proper decimal preservation.
+     * Uses normalizePitch to guard against decimal-stripped values (125 → 1.25).
      */
     const formatPitchMm = (value: any): string => {
-        if (!value) return "";
-        const num = Number(value);
-        if (isNaN(num) || num <= 0) return "";
-        // If pitch > 50, it's likely a decimal-stripped value (e.g., 125 = 1.25, 250 = 2.5)
-        // Normal LED pitches range from 0.7mm to 25mm
-        const corrected = num > 50 ? num / 100 : num;
-        // Use precision based on value: sub-2mm gets 2 decimals, larger gets 1-2
+        const corrected = normalizePitch(value);
+        if (corrected <= 0) return "";
         return corrected < 2 ? corrected.toFixed(2) : corrected.toFixed(corrected % 1 === 0 ? 0 : 2);
+    };
+
+    /**
+     * Safely get corrected pitch for resolution math.
+     * Prevents "17px" from a 125mm (should be 1.25mm) bug.
+     */
+    const safePitch = (screen: any): number => {
+        return normalizePitch(screen?.pitchMm ?? screen?.pixelPitch) || 10;
     };
 
     const buildDescription = (screen: any) => {
@@ -196,8 +199,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     { label: "Quantity", value: screen.quantity || 1 },
                     { label: "Height", value: `${Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'` },
                     { label: "Width", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
-                    { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0}px` },
-                    { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0}px` },
+                    { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / safePitch(screen)) || 0}px` },
+                    { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / safePitch(screen)) || 0}px` },
                     ...(screen.brightnessNits ?? screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(Number(screen.brightnessNits ?? screen.brightness) || 0)} Brightness` }] : []),
                 ]
                     .filter((item) => !/Pixel\s*Density|HDR\s*Status/i.test(item.label))
@@ -211,7 +214,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         }}
                     >
                         <span style={{ color: colors.textMuted, fontSize: '10px' }}>{item.label}</span>
-                        <span className="font-semibold" style={{ color: colors.text, fontSize: '10px' }}>{item.value}</span>
+                        <span className="font-semibold whitespace-nowrap" style={{ color: colors.text, fontSize: '10px' }}>{item.value}</span>
                     </div>
                 ))}
             </div>
@@ -258,7 +261,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             Project Grand Total
                         </div>
                         <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
-                            {formatCurrency(total, total === 0 ? "[PROJECT TOTAL]" : undefined)}
+                            {formatCurrency(total, Math.abs(total) < 0.01 ? "[PROJECT TOTAL]" : undefined)}
                         </div>
                     </div>
                 </div>
@@ -400,7 +403,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 Project Total
                             </div>
                             <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
-                                {formatCurrency(subtotal, subtotal === 0 ? "[PROJECT TOTAL]" : undefined)}
+                                {formatCurrency(subtotal, Math.abs(subtotal) < 0.01 ? "[PROJECT TOTAL]" : undefined)}
                             </div>
                         </div>
                     )}

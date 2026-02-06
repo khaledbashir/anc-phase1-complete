@@ -545,9 +545,12 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
 
   const computePixels = (feetValue: any, pitchMm: any) => {
     const ft = Number(feetValue);
-    const pitch = Number(pitchMm);
+    // UAT: normalizePitch guards against decimal-stripped values (125 → 1.25)
+    let pitch = Number(pitchMm);
     if (!isFinite(ft) || ft <= 0) return 0;
     if (!isFinite(pitch) || pitch <= 0) return 0;
+    if (pitch > 100) pitch = pitch / 100;
+    if (pitch > 50) pitch = pitch / 10;
     return Math.round((ft * 304.8) / pitch);
   };
 
@@ -603,7 +606,7 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
                   {h > 0 && w > 0 ? `${formatFeet(h)} x ${formatFeet(w)}` : ""}
                 </div>
                 <div className="col-span-1 px-2 py-1.5 text-right tabular-nums">
-                  {pitch ? `${Number(pitch).toFixed(0)}mm` : ""}
+                  {pitch ? (() => { let p = Number(pitch); if (p > 100) p /= 100; if (p > 50) p /= 10; return `${p < 2 ? p.toFixed(2) : (p % 1 === 0 ? p.toFixed(0) : p.toFixed(2))}mm`; })() : ""}
                 </div>
                 <div className="col-span-2 px-2 py-1.5 text-right tabular-nums">
                   {resolution}

@@ -1,6 +1,6 @@
 import React from "react";
 import { ProposalType } from "@/types";
-import { formatNumberWithCommas, sanitizeNitsForDisplay } from "@/lib/helpers";
+import { formatNumberWithCommas, sanitizeNitsForDisplay, normalizePitch } from "@/lib/helpers";
 
 type ExhibitATechnicalSpecsProps = {
     data: ProposalType;
@@ -14,27 +14,20 @@ const formatFeet = (value: any) => {
 };
 
 /**
- * Format pixel pitch with proper decimal preservation
- * Handles edge case where "1.25" might be stored as "125" (decimal stripped)
+ * Format pixel pitch with proper decimal preservation.
+ * Uses normalizePitch to guard against decimal-stripped values (125 → 1.25).
  */
 const formatPitchMm = (value: any): string => {
-    if (!value) return "";
-    const num = Number(value);
-    if (!isFinite(num) || num <= 0) return "";
-    // If pitch > 50, it's likely a decimal-stripped value (e.g., 125 = 1.25)
-    // Normal LED pitches range from 0.7mm to 25mm
-    const corrected = num > 50 ? num / 100 : num;
-    // Preserve decimals for sub-2mm pitches
+    const corrected = normalizePitch(value);
+    if (corrected <= 0) return "";
     return corrected < 2 ? corrected.toFixed(2) : corrected.toFixed(corrected % 1 === 0 ? 0 : 2);
 };
 
 const computePixels = (feetValue: any, pitchMm: any) => {
     const ft = Number(feetValue);
-    let pitch = Number(pitchMm);
+    const pitch = normalizePitch(pitchMm);
     if (!isFinite(ft) || ft <= 0) return 0;
-    if (!isFinite(pitch) || pitch <= 0) return 0;
-    // Auto-correct decimal-stripped pitch (e.g., 125 -> 1.25)
-    if (pitch > 50) pitch = pitch / 100;
+    if (pitch <= 0) return 0;
     return Math.round((ft * 304.8) / pitch);
 };
 

@@ -17,7 +17,7 @@ import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 import ExhibitA_TechnicalSpecs from "@/app/components/templates/proposal-pdf/exhibits/ExhibitA_TechnicalSpecs";
 
 // Helpers
-import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay } from "@/lib/helpers";
+import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay, normalizePitch } from "@/lib/helpers";
 import { resolveDocumentMode } from "@/lib/documentMode";
 
 // Types
@@ -118,15 +118,15 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
             
             {/* Specs Grid */}
             <div>
-                {[
-                    { label: "Pixel Pitch", value: `${screen.pitchMm ?? screen.pixelPitch ?? 0} mm`, highlight: true },
+                {(() => { const sp = normalizePitch(screen.pitchMm ?? screen.pixelPitch) || 10; return [
+                    { label: "Pixel Pitch", value: `${sp < 2 ? sp.toFixed(2) : (sp % 1 === 0 ? sp.toFixed(0) : sp.toFixed(2))} mm`, highlight: true },
                     { label: "Quantity", value: screen.quantity || 1 },
                     { label: "Display Height", value: `${Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'` },
                     { label: "Display Width", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
-                    { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} px` },
-                    { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} px` },
+                    { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / sp) || 0} px` },
+                    { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / sp) || 0} px` },
                     ...(screen.brightnessNits ?? screen.brightness ? [{ label: "Brightness", value: `${formatNumberWithCommas(Number(screen.brightnessNits ?? screen.brightness) || 0)} Brightness`, highlight: true }] : []),
-                ]
+                ]; })()
                     .filter((item: any) => !/Pixel\s*Density|HDR\s*Status/i.test(item.label))
                     .map((item: any, idx) => (
                     <div 

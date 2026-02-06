@@ -114,7 +114,10 @@ const Step3Math = () => {
             parts.push(`${toExactFeet(heightFt)} H x ${toExactFeet(widthFt)} W`);
         }
         if (pitchMm != null && Number(pitchMm) > 0) {
-            parts.push(`${Math.round(Number(pitchMm))}mm`);
+            let np = Number(pitchMm);
+            if (np > 100) np /= 100;
+            if (np > 50) np /= 10;
+            parts.push(`${np < 2 ? np.toFixed(2) : (np % 1 === 0 ? Math.round(np) : np.toFixed(2))}mm`);
         }
         if (brightness != null && brightness !== "" && Number(brightness) > 0) {
             parts.push(`${Number(brightness).toLocaleString()} Brightness`);

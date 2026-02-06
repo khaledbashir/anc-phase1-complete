@@ -112,8 +112,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                             { label: "Quantity", value: screen.quantity || 1 },
                             { label: "Active Display Height (ft.)", value: `${Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'` },
                             { label: "Active Display Width (ft.)", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
-                            { label: "Pixel Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p` },
-                            { label: "Pixel Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p` },
+                            { label: "Pixel Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (normalizePitch(screen.pitchMm) || 10)) || 0} p` },
+                            { label: "Pixel Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (normalizePitch(screen.pitchMm) || 10)) || 0} p` },
                         ].map((row, idx) => (
                             <tr key={idx} className="bg-white border-b border-gray-100 last:border-b-0">
                                 <td className="p-2 text-[#6B7280] font-light">{row.label}</td>
@@ -285,7 +285,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             parts.push(`${formatFeet(heightFt)} H X ${formatFeet(widthFt)} W`);
         }
         if (pitchMm != null && Number(pitchMm) > 0) {
-            parts.push(`${Math.round(Number(pitchMm))}MM`);
+            const np = normalizePitch(pitchMm);
+            parts.push(`${np < 2 ? np.toFixed(2) : (np % 1 === 0 ? Math.round(np) : np.toFixed(2))}MM`);
         }
         return sanitizeNitsForDisplay(parts.filter(Boolean).join(" - ")) || "Display";
     };
@@ -325,11 +326,11 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     </tr>
                     <tr className="bg-white border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (H)</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
+                        <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / (normalizePitch(screen.pitchMm) || 10)) || 0} p</td>
                     </tr>
                     <tr className="bg-gray-100 border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700">Pixel Resolution (W)</td>
-                        <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (screen.pitchMm || 10)) || 0} p</td>
+                        <td className="p-1.5 text-right pr-4 text-gray-900">{screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / (normalizePitch(screen.pitchMm) || 10)) || 0} p</td>
                     </tr>
                     <tr className="bg-white border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700">Brightness</td>
@@ -443,7 +444,8 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             }
 
             if (pitchMm != null && Number(pitchMm) > 0) {
-                parts.push(`${Math.round(Number(pitchMm))}mm`);
+                const np2 = normalizePitch(pitchMm);
+                parts.push(`${np2 < 2 ? np2.toFixed(2) : (np2 % 1 === 0 ? Math.round(np2) : np2.toFixed(2))}mm`);
             }
 
             parts.push(`QTY ${qty}`);

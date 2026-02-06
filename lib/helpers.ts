@@ -41,6 +41,23 @@ export const cleanNitsFromSpecs = (value: any): number => {
 };
 
 /**
+ * UAT: Pixel pitch sanity guard.
+ * LED pixel pitch realistically ranges 0.5mm–50mm. If a value > 50 appears,
+ * it's almost certainly a decimal-stripped artifact (e.g. 125 → 1.25, 1875 → 1.875).
+ * Returns corrected number.
+ */
+export const normalizePitch = (value: any): number => {
+    if (value == null) return 0;
+    let num = typeof value === 'number' ? value : parseFloat(String(value));
+    if (isNaN(num) || num <= 0) return 0;
+    // Heuristic: pitch > 100 likely means ×100 scale (1.25 stored as 125, 1.875 as 1875)
+    if (num > 100) num = num / 100;
+    // Pitch between 50-100 likely means ×10 scale (39 = 3.9)
+    if (num > 50) num = num / 10;
+    return num;
+};
+
+/**
  * UAT: The word "Nits" must never appear in client-facing copy. Replace with "Brightness".
  * Use on Display Name, Description, and any rendered spec text (e.g. "2.5MM SMD - 1000 NITS" -> "2.5MM SMD - 1000 Brightness").
  */
