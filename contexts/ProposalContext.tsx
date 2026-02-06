@@ -359,10 +359,11 @@ export const ProposalContextProvider = ({
         // CRITICAL: Don't hydrate Excel if on /projects/new or creating a new project
         if (
             window.location.pathname === "/projects/new" ||
-            isCreatingNewRef.current
+            isCreatingNewRef.current ||
+            projectId === "new" // Prompt 44: Also check projectId directly
         ) {
             console.log(
-                "[EXCEL PREVIEW] Skipping hydration - new project page",
+                "[EXCEL PREVIEW] Skipping hydration - new project (pathname, ref, or projectId)",
             );
             return;
         }
@@ -405,7 +406,26 @@ export const ProposalContextProvider = ({
     const prevProjectIdRef = useRef<string | undefined>(undefined);
     useEffect(() => {
         if (typeof window === "undefined" || projectId === undefined) return;
+
+        // CRITICAL: If projectId is "new", always clear Excel state (Prompt 44 fix)
+        if (projectId === "new") {
+            console.log("[EXCEL] Clearing state for new project");
+            hadExcelPreviewRef.current = false;
+            setExcelPreview(null);
+            setExcelValidationOk(false);
+            setExcelSourceData(null);
+            setExcelDiagnostics(null);
+            try {
+                window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
+                window.localStorage.removeItem(getExcelPreviewStorageKey("new"));
+            } catch (e) {
+                console.warn("[EXCEL] Failed to clear storage for new project:", e);
+            }
+        }
+
+        // Also clear when switching between different existing projects
         if (prevProjectIdRef.current !== undefined && prevProjectIdRef.current !== projectId) {
+            console.log(`[EXCEL] Project changed from ${prevProjectIdRef.current} to ${projectId}, clearing state`);
             hadExcelPreviewRef.current = false;
             setExcelPreview(null);
             setExcelValidationOk(false);
