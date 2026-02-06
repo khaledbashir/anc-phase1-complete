@@ -126,6 +126,14 @@ export default async function ProjectEditorPage({ params }: PageProps) {
         }
     });
 
+    if (project) {
+        console.log(`[PAGE LOAD] Fetched project ${id} from DB:`, {
+            hasPricingDocument: !!project.pricingDocument,
+            pricingDocumentKeys: Object.keys((project.pricingDocument as any) || {}),
+            hasMarginAnalysis: !!project.marginAnalysis,
+        });
+    }
+
     if (!project) {
         redirect("/projects");
     }
