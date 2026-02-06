@@ -170,8 +170,8 @@ export async function PATCH(
 
         const updateData: any = {};
 
-        // Map proposalName to clientName if clientName is missing
-        const effectiveClientName = clientName || proposalName;
+        // Map receiver name or proposalName to clientName when clientName is not sent (auto-save sends receiverData.name, not body.clientName)
+        const effectiveClientName = clientName ?? receiverData?.name ?? proposalName;
         if (effectiveClientName !== undefined) updateData.clientName = effectiveClientName;
 
         if (status !== undefined) updateData.status = status;

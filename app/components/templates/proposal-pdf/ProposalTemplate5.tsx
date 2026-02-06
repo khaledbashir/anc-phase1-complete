@@ -277,83 +277,103 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     };
 
     // Hybrid Pricing Section - Classic text hierarchy (UPPERCASE BOLD name, smaller specs)
+    // When pricingDocument.tables exists (Margin Analysis Excel), render one row per table + PROJECT TOTAL.
+    // Otherwise fall back to quoteItems or screens + internalAudit.
     const PricingSection = () => {
         const softCostItems = internalAudit?.softCostItems || [];
+        const pricingDocument = (details as any)?.pricingDocument;
+        const pricingTables = (pricingDocument?.tables || []) as Array<{ id?: string; name?: string; grandTotal?: number }>;
+        const tableHeaderOverrides = ((details as any)?.tableHeaderOverrides || []) as string[];
 
-        // Get quote items if available
-        const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
-        
-        const lineItems = quoteItems.length > 0
-            ? quoteItems.map((it: any, idx: number) => {
-                const rawLocation = (it.locationName || "ITEM").toString();
-                const matchingScreen = screens.find((s: any) => {
-                    if (s.id && it.id && s.id === it.id) return true;
-                    const sName = (s.externalName || s.name || "").toString().trim().toUpperCase();
-                    const itName = (it.locationName || "").toString().trim().toUpperCase();
-                    if (sName === itName && sName.length > 0) return true;
-                    if (sName.length > 3 && itName.includes(sName)) return true;
-                    return false;
-                });
-                const customOverride = matchingScreen?.customDisplayName;
-                const effectiveLocation = customOverride || rawLocation;
-                const split = splitDisplayNameAndSpecs(effectiveLocation);
-                const header = (split.header || effectiveLocation).toString();
-                
-                // Strip location name from description
-                let desc = (it.description || "").toString();
-                const stripLeadingLocation = (locationName: string, raw: string) => {
-                    const loc = (locationName || "").toString().trim();
-                    const text = (raw || "").toString().trim();
-                    if (!loc || !text) return text;
-                    const locUpper = loc.toUpperCase();
-                    const textUpper = text.toUpperCase();
-                    if (textUpper === locUpper) return "";
-                    const dashPrefix = `${locUpper} - `;
-                    if (textUpper.startsWith(dashPrefix)) return text.slice(dashPrefix.length).trim();
-                    if (textUpper.startsWith(locUpper)) return text.slice(loc.length).replace(/^(\s*[-–—:]\s*)/, "").trim();
-                    return text;
-                };
-                desc = stripLeadingLocation(rawLocation, desc);
-                desc = stripLeadingLocation(effectiveLocation, desc);
-                let combined = [split.specs, desc].filter(Boolean).join(" ").trim();
-                combined = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(combined)));
-
-                const normalizedHeader = header.replace(/\s*-\s*/g, " - ").trim();
+        type LineItem = { key: string; name: string; description: string; price: number };
+        let lineItems: LineItem[];
+        if (pricingTables.length > 0) {
+            lineItems = pricingTables.map((table: any, idx: number) => {
+                const label = (tableHeaderOverrides[idx] ?? table?.name ?? "Item").toString().trim();
+                const grandTotal = Number(table?.grandTotal ?? 0);
                 return {
-                    key: it.id || `quote-${idx}`,
-                    name: stripQtyFromDescription(sanitizeNitsForDisplay(normalizedHeader)).toUpperCase(),
-                    description: combined,
-                    price: Number(it.price || 0) || 0,
-                    isAlternate: it.isAlternate || false,
+                    key: table?.id || `table-${idx}`,
+                    name: label.toUpperCase(),
+                    description: "",
+                    price: grandTotal,
                 };
-            }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01)
-            : [
-                ...(screens || []).map((screen: any, idx: number) => {
-                    const auditRow = isSharedView
-                        ? null
-                        : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
-                    const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
-                    const label = (screen?.externalName || screen?.customDisplayName || screen?.name || "Display").toString().trim();
-                    const split = splitDisplayNameAndSpecs(label);
-                    const rawDesc = split.specs || buildDescription(screen);
-                    const cleanDesc = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(rawDesc)));
-                    return {
-                        key: `screen-${screen?.id || screen?.name || idx}`,
-                        name: stripQtyFromDescription((split.header ? sanitizeNitsForDisplay(split.header) : getScreenHeader(screen))).toUpperCase(),
-                        description: cleanDesc,
-                        price: Number(price) || 0,
-                        isAlternate: screen?.isAlternate || false,
+            });
+        } else {
+            // Get quote items if available
+            const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
+
+            lineItems = quoteItems.length > 0
+                ? quoteItems.map((it: any, idx: number) => {
+                    const rawLocation = (it.locationName || "ITEM").toString();
+                    const matchingScreen = screens.find((s: any) => {
+                        if (s.id && it.id && s.id === it.id) return true;
+                        const sName = (s.externalName || s.name || "").toString().trim().toUpperCase();
+                        const itName = (it.locationName || "").toString().trim().toUpperCase();
+                        if (sName === itName && sName.length > 0) return true;
+                        if (sName.length > 3 && itName.includes(sName)) return true;
+                        return false;
+                    });
+                    const customOverride = matchingScreen?.customDisplayName;
+                    const effectiveLocation = customOverride || rawLocation;
+                    const split = splitDisplayNameAndSpecs(effectiveLocation);
+                    const header = (split.header || effectiveLocation).toString();
+
+                    // Strip location name from description
+                    let desc = (it.description || "").toString();
+                    const stripLeadingLocation = (locationName: string, raw: string) => {
+                        const loc = (locationName || "").toString().trim();
+                        const text = (raw || "").toString().trim();
+                        if (!loc || !text) return text;
+                        const locUpper = loc.toUpperCase();
+                        const textUpper = text.toUpperCase();
+                        if (textUpper === locUpper) return "";
+                        const dashPrefix = `${locUpper} - `;
+                        if (textUpper.startsWith(dashPrefix)) return text.slice(dashPrefix.length).trim();
+                        if (textUpper.startsWith(locUpper)) return text.slice(loc.length).replace(/^(\s*[-–—:]\s*)/, "").trim();
+                        return text;
                     };
-                }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
-                ...softCostItems.map((item: any, idx: number) => ({
-                    key: `soft-${idx}`,
-                    name: stripQtyFromDescription(sanitizeNitsForDisplay((item?.name || "Item").toString())).toUpperCase(),
-                    description: stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay((item?.description || "").toString()))),
-                    price: Number(item?.sell || 0),
-                    isAlternate: item?.isAlternate || false,
-                })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
-            ];
-        
+                    desc = stripLeadingLocation(rawLocation, desc);
+                    desc = stripLeadingLocation(effectiveLocation, desc);
+                    let combined = [split.specs, desc].filter(Boolean).join(" ").trim();
+                    combined = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(combined)));
+
+                    const normalizedHeader = header.replace(/\s*-\s*/g, " - ").trim();
+                    return {
+                        key: it.id || `quote-${idx}`,
+                        name: stripQtyFromDescription(sanitizeNitsForDisplay(normalizedHeader)).toUpperCase(),
+                        description: combined,
+                        price: Number(it.price || 0) || 0,
+                        isAlternate: it.isAlternate || false,
+                    };
+                }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01)
+                : [
+                    ...(screens || []).map((screen: any, idx: number) => {
+                        const auditRow = isSharedView
+                            ? null
+                            : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
+                        const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
+                        const label = (screen?.externalName || screen?.customDisplayName || screen?.name || "Display").toString().trim();
+                        const split = splitDisplayNameAndSpecs(label);
+                        const rawDesc = split.specs || buildDescription(screen);
+                        const cleanDesc = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(rawDesc)));
+                        return {
+                            key: `screen-${screen?.id || screen?.name || idx}`,
+                            name: stripQtyFromDescription((split.header ? sanitizeNitsForDisplay(split.header) : getScreenHeader(screen))).toUpperCase(),
+                            description: cleanDesc,
+                            price: Number(price) || 0,
+                            isAlternate: screen?.isAlternate || false,
+                        };
+                    }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
+                    ...softCostItems.map((item: any, idx: number) => ({
+                        key: `soft-${idx}`,
+                        name: stripQtyFromDescription(sanitizeNitsForDisplay((item?.name || "Item").toString())).toUpperCase(),
+                        description: stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay((item?.description || "").toString()))),
+                        price: Number(item?.sell || 0),
+                        isAlternate: item?.isAlternate || false,
+                    })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
+                ];
+        }
+
         const subtotal = lineItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
 
         return (
@@ -461,12 +481,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         );
     };
 
+    // Default LOI signature legal text (per-project override via details.signatureBlockText)
+    const DEFAULT_SIGNATURE_BLOCK_TEXT =
+        "Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production. If, for any reason, Purchaser terminates this Agreement prior to the completion of the work, ANC will immediately cease all work and Purchaser will pay ANC for any work performed, work in progress, and materials purchased, if any. This document will be considered binding on both parties; however, it will be followed by a formal agreement containing standard contract language, including terms of liability, indemnification, and warranty. Payment is due within thirty (30) days of ANC's invoice(s).";
+
     // Signature Block - Universal (available for all document types)
     const SignatureBlock = () => (
         <div className="mt-12 break-inside-avoid">
             <div className="text-xs leading-relaxed text-justify mb-8 break-inside-avoid" style={{ color: colors.textMuted }}>
-                {((details as any)?.signatureBlockText || "").trim() || 
-                    `Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.`}
+                {((details as any)?.signatureBlockText || "").trim() || DEFAULT_SIGNATURE_BLOCK_TEXT}
             </div>
             <h4 className="font-bold text-xs uppercase mb-6 border-b-2 pb-1 break-inside-avoid" style={{ borderColor: colors.text, color: colors.text }}>
                 Agreed To And Accepted:
@@ -543,8 +566,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <p className="text-justify whitespace-pre-wrap">{customIntroText.trim()}</p>
                         ) : documentMode === "LOI" ? (
                             <p className="text-justify">
-                                This Sales Quotation establishes the terms by which <strong style={{ color: colors.text }}>{purchaserName}</strong>
-                                {purchaserAddress && <span> located at {purchaserAddress}</span>} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> located at {ancAddress} (collectively, the "Parties") agree that ANC will provide the {displayTypeLabel} System described below.
+                                This Sales Quotation will set forth the terms by which <strong style={{ color: colors.text }}>{purchaserName}</strong> ("Purchaser"){purchaserAddress ? ` located at ${purchaserAddress}` : ""} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> ("ANC") located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for the {details?.proposalName || "project"}.
                             </p>
                         ) : documentMode === "PROPOSAL" ? (
                             <p>
@@ -560,10 +582,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             )}
 
             {/* LOI Master Table - Project Grand Total BEFORE detailed breakdown */}
-            {/* Per Natalia Feb 4 meeting: "put that one table ahead of everything else" */}
             {isLOI && showPricingTables && <LOISummaryTable />}
 
-            {/* Pricing - entire block stays together; push to next page if doesn't fit */}
+            {/* Pricing / Detailed Breakdown */}
             {showPricingTables && (
                 <div className="px-6 break-inside-avoid">
                     <SectionHeader title={isLOI ? "Detailed Breakdown" : "Project Pricing"} />
@@ -573,67 +594,109 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 </div>
             )}
 
-            {/* Payment Terms - Universal */}
-            {showPaymentTerms && (
-                <div className="px-6 break-inside-avoid">
-                    <PaymentTermsSection />
-                </div>
-            )}
-
-            {/* Notes - Universal (available for all document types) */}
-            {showNotes && (
-                <div className="px-6 break-inside-avoid">
-                    <NotesSection />
-                </div>
-            )}
-
-            {/* Scope of Work - Universal (available for all document types) */}
-            {showScopeOfWork && (
-                <div className="px-6 break-inside-avoid">
-                    <ScopeOfWorkSection />
-                </div>
-            )}
-
-            {/* Specifications - new page, entire block stays together */}
-            {showSpecifications && screens.length > 0 && (
+            {/* LOI order (per client spec Feb 2): Pricing → Notes → Payment Terms → Signature → Page break → Exhibit A → Exhibit B */}
+            {isLOI ? (
                 <>
-                    <PageBreak />
-                    <div className="px-6 break-inside-avoid">
-                        <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
-                        <div className="break-inside-avoid">
-                            {screens.map((screen: any, idx: number) => (
-                                <SpecTable key={idx} screen={screen} />
-                            ))}
+                    {/* 4. Notes (hide if empty - NotesSection returns null when empty) */}
+                    {showNotes && (
+                        <div className="px-6 break-inside-avoid">
+                            <NotesSection />
                         </div>
-                    </div>
-                </>
-            )}
-
-            {/* Hybrid Footer - Bold style with dark blue slash */}
-            {/* CRITICAL: Footer MUST appear BEFORE signature to avoid "shit after signature" */}
-            {showCompanyFooter && (
-                <div className="px-6">
-                    <HybridFooter />
-                </div>
-            )}
-
-            {/* Exhibit A - new page */}
-            {showExhibitA && (
-                <>
+                    )}
+                    {/* 5. Payment Terms */}
+                    {showPaymentTerms && (
+                        <div className="px-6 break-inside-avoid">
+                            <PaymentTermsSection />
+                        </div>
+                    )}
+                    {/* 6. Signature legal text + 7. Signature lines (binding; before exhibits) */}
+                    {showSignatureBlock && (
+                        <div className="px-6 break-inside-avoid">
+                            <SignatureBlock />
+                        </div>
+                    )}
+                    {/* 8. Page break before exhibits */}
                     <PageBreak />
-                    <div className="px-6 break-inside-avoid">
-                        <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
-                    </div>
+                    {/* 9. Exhibit A: Technical Specifications (spec cards + summary table) */}
+                    {showSpecifications && screens.length > 0 && (
+                        <div className="px-6 break-inside-avoid">
+                            <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
+                            <div className="break-inside-avoid">
+                                {screens.map((screen: any, idx: number) => (
+                                    <SpecTable key={idx} screen={screen} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {showExhibitA && (
+                        <div className="px-6 break-inside-avoid">
+                            <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
+                        </div>
+                    )}
+                    {/* 10. Exhibit B: Scope of Work (hide if empty) */}
+                    {showScopeOfWork && (
+                        <div className="px-6 break-inside-avoid">
+                            <ScopeOfWorkSection />
+                        </div>
+                    )}
+                    {showCompanyFooter && (
+                        <div className="px-6">
+                            <HybridFooter />
+                        </div>
+                    )}
                 </>
-            )}
-
-            {/* Signature Block - new page, absolute final element (Natalia requirement) */}
-            {showSignatureBlock && (
+            ) : (
+                /* Budget / Proposal order: Header → Intro → Pricing → Notes → Specs → Exhibit A (no payment terms/signatures by default) */
                 <>
-                    <PageBreak />
-                    <div className="px-6 break-inside-avoid">
-                        <SignatureBlock />
-                    </div>
+                    {showNotes && (
+                        <div className="px-6 break-inside-avoid">
+                            <NotesSection />
+                        </div>
+                    )}
+                    {showScopeOfWork && (
+                        <div className="px-6 break-inside-avoid">
+                            <ScopeOfWorkSection />
+                        </div>
+                    )}
+                    {showSpecifications && screens.length > 0 && (
+                        <>
+                            <PageBreak />
+                            <div className="px-6 break-inside-avoid">
+                                <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
+                                <div className="break-inside-avoid">
+                                    {screens.map((screen: any, idx: number) => (
+                                        <SpecTable key={idx} screen={screen} />
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    )}
+                    {showCompanyFooter && (
+                        <div className="px-6">
+                            <HybridFooter />
+                        </div>
+                    )}
+                    {showExhibitA && (
+                        <>
+                            <PageBreak />
+                            <div className="px-6 break-inside-avoid">
+                                <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
+                            </div>
+                        </>
+                    )}
+                    {showPaymentTerms && (
+                        <div className="px-6 break-inside-avoid">
+                            <PaymentTermsSection />
+                        </div>
+                    )}
+                    {showSignatureBlock && (
+                        <>
+                            <PageBreak />
+                            <div className="px-6 break-inside-avoid">
+                                <SignatureBlock />
+                            </div>
+                        </>
+                    )}
                 </>
             )}
         </ProposalLayout>

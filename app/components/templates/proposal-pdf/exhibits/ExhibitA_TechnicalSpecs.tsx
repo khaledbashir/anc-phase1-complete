@@ -49,72 +49,77 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                 </h2>
             </div>
 
-            <div className="border border-gray-300 break-inside-avoid">
-                {/* Table Header - adjusted column widths for tight single-line rows */}
-                <div className="grid grid-cols-12 text-[9px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300 break-inside-avoid">
-                    <div className="col-span-3 px-2 py-2">Display Name</div>
-                    <div className="col-span-2 px-2 py-2">Dimensions</div>
-                    <div className="col-span-2 px-2 py-2 text-right whitespace-nowrap">Pitch</div>
-                    <div className="col-span-2 px-2 py-2 text-right whitespace-nowrap">Resolution</div>
-                    <div className="col-span-2 px-2 py-2 text-right whitespace-nowrap">Brightness</div>
-                    <div className="col-span-1 px-2 py-2 text-right">Qty</div>
-                </div>
+            <div className="border border-gray-300 break-inside-avoid overflow-hidden">
+                {/* Use HTML table for reliable PDF column separation (avoids merged headers in Puppeteer) */}
+                <table className="w-full text-[9px] border-collapse break-inside-avoid" style={{ tableLayout: "fixed" }}>
+                    <thead>
+                        <tr className="text-[9px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300">
+                            <th className="text-left py-2 px-2 w-[22%]">Display Name</th>
+                            <th className="text-left py-2 px-2 w-[14%]">Dimensions</th>
+                            <th className="text-right py-2 px-2 w-[12%]">Pitch</th>
+                            <th className="text-right py-2 px-2 w-[18%]">Resolution</th>
+                            <th className="text-right py-2 px-2 w-[14%]">Brightness</th>
+                            <th className="text-right py-2 px-2 w-[8%]">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody className="text-gray-900">
+                        {screens.length > 0 ? (
+                            screens.map((screen: any, idx: number) => {
+                                // Prefer externalName (PDF/Client Name) — typically shorter; fall back to full name
+                                const rawName = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
+                                const name = sanitizeNitsForDisplay(rawName);
+                                const h = screen?.heightFt ?? screen?.height ?? 0;
+                                const w = screen?.widthFt ?? screen?.width ?? 0;
+                                const pitch = screen?.pitchMm ?? screen?.pixelPitch ?? 0;
+                                const qty = Number(screen?.quantity || 1);
+                                const pixelsH = screen?.pixelsH || computePixels(h, pitch);
+                                const pixelsW = screen?.pixelsW || computePixels(w, pitch);
+                                const resolution = pixelsH && pixelsW ? `${pixelsH} x ${pixelsW}` : "—";
+                                const rawBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits;
+                                const brightnessNumber = Number(rawBrightness);
+                                const brightnessText =
+                                    rawBrightness == null || rawBrightness === "" || rawBrightness === 0
+                                        ? "—"
+                                        : isFinite(brightnessNumber) && brightnessNumber > 0
+                                            ? formatNumberWithCommas(brightnessNumber)
+                                            : sanitizeNitsForDisplay(rawBrightness.toString()).replace(/\s*Brightness$/i, "") || "—";
 
-                {/* Table Body */}
-                <div className="text-[10px] text-gray-900">
-                    {screens.length > 0 ? (
-                        screens.map((screen: any, idx: number) => {
-                            const rawName = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
-                            const name = sanitizeNitsForDisplay(rawName);
-                            const h = screen?.heightFt ?? screen?.height ?? 0;
-                            const w = screen?.widthFt ?? screen?.width ?? 0;
-                            const pitch = screen?.pitchMm ?? screen?.pixelPitch ?? 0;
-                            const qty = Number(screen?.quantity || 1);
-                            const pixelsH = screen?.pixelsH || computePixels(h, pitch);
-                            const pixelsW = screen?.pixelsW || computePixels(w, pitch);
-                            const resolution = pixelsH && pixelsW ? `${pixelsH} x ${pixelsW}` : "";
-                            const rawBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits;
-                            const brightnessNumber = Number(rawBrightness);
-                            // FR-2.2 FIX: Never default to "Standard" - show actual value or leave blank.
-                            // Compact format for tight rows: just the number (no "Brightness" suffix)
-                            const brightnessText =
-                                rawBrightness == null || rawBrightness === "" || rawBrightness === 0
-                                    ? "" // Was "Standard" - now blank if no value
-                                    : isFinite(brightnessNumber) && brightnessNumber > 0
-                                        ? formatNumberWithCommas(brightnessNumber)
-                                        : sanitizeNitsForDisplay(rawBrightness.toString()).replace(/\s*Brightness$/i, "");
-
-                            return (
-                                <div
-                                    key={screen?.id || `${name}-${idx}`}
-                                    className="grid grid-cols-12 border-b border-gray-200 last:border-b-0 break-inside-avoid"
-                                    style={{ minHeight: '28px' }}
-                                >
-                                    <div className="col-span-3 px-2 py-1.5 font-semibold text-[9px] break-inside-avoid truncate">{name}</div>
-                                    <div className="col-span-2 px-2 py-1.5 text-gray-800 text-[9px] whitespace-nowrap break-inside-avoid">
-                                        {formatFeet(h)} x {formatFeet(w)}
-                                    </div>
-                                    <div className="col-span-2 px-2 py-1.5 text-right tabular-nums text-[9px] whitespace-nowrap break-inside-avoid">
-                                        {pitch ? `${formatPitchMm(pitch)}mm` : ""}
-                                    </div>
-                                    <div className="col-span-2 px-2 py-1.5 text-right tabular-nums text-[9px] whitespace-nowrap break-inside-avoid">
-                                        {resolution}
-                                    </div>
-                                    <div className="col-span-2 px-2 py-1.5 text-right tabular-nums text-[9px] whitespace-nowrap break-inside-avoid">
-                                        {brightnessText}
-                                    </div>
-                                    <div className="col-span-1 px-2 py-1.5 text-right tabular-nums text-[9px] break-inside-avoid">
-                                        {isFinite(qty) ? qty : ""}
-                                    </div>
-                                </div>
-                            );
-                        })
-                    ) : (
-                        <div className="px-3 py-6 text-center text-gray-400 italic break-inside-avoid">
-                            No screens configured.
-                        </div>
-                    )}
-                </div>
+                                return (
+                                    <tr
+                                        key={screen?.id || `${name}-${idx}`}
+                                        className="border-b border-gray-200 last:border-b-0 break-inside-avoid"
+                                        style={{ minHeight: 28 }}
+                                    >
+                                        <td className="py-1.5 px-2 font-semibold text-[9px] break-words align-top" style={{ wordBreak: "break-word" }}>
+                                            {name}
+                                        </td>
+                                        <td className="py-1.5 px-2 text-gray-800 text-[9px] whitespace-nowrap align-top">
+                                            {formatFeet(h)} x {formatFeet(w)}
+                                        </td>
+                                        <td className="py-1.5 px-2 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
+                                            {pitch ? `${formatPitchMm(pitch)}mm` : "—"}
+                                        </td>
+                                        <td className="py-1.5 px-2 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
+                                            {resolution}
+                                        </td>
+                                        <td className="py-1.5 px-2 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
+                                            {brightnessText}
+                                        </td>
+                                        <td className="py-1.5 px-2 text-right tabular-nums text-[9px] align-top">
+                                            {isFinite(qty) ? qty : "—"}
+                                        </td>
+                                    </tr>
+                                );
+                            })
+                        ) : (
+                            <tr>
+                                <td colSpan={6} className="px-3 py-6 text-center text-gray-400 italic">
+                                    No screens configured.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

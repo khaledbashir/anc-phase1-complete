@@ -50,9 +50,8 @@ const SECURITY_DENYLIST = [
     'contractorRates',
 ];
 
-// Fields to replace with placeholder values
+// Fields to replace with placeholder values (do NOT inject projectTotal — template shows "—" or real total)
 const PLACEHOLDER_FIELDS = {
-    projectTotal: '[PROJECT TOTAL]',
     costBasis: '[COST BASIS]',
     structuralSteel: '[STRUCTURAL STEEL]',
 };
@@ -111,11 +110,14 @@ function applyPlaceholders(obj: any): any {
 
     if (obj && typeof obj === 'object') {
         for (const [key, value] of Object.entries(obj)) {
-            // Apply placeholders
-            if (key === 'projectTotal' && (value === 0 || value === undefined || value === null)) {
-                obj[key] = PLACEHOLDER_FIELDS.projectTotal;
+            // Apply placeholders (projectTotal removed: PDF/template shows "—" or real total, not literal "[PROJECT TOTAL]")
+            if (key === 'costBasis' && (value === 0 || value === undefined || value === null)) {
+                obj[key] = PLACEHOLDER_FIELDS.costBasis;
             }
-            
+            if (key === 'structuralSteel' && (value === 0 || value === undefined || value === null)) {
+                obj[key] = PLACEHOLDER_FIELDS.structuralSteel;
+            }
+
             // Recursively process nested objects
             if (typeof value === 'object' && value !== null) {
                 obj[key] = applyPlaceholders(value);
