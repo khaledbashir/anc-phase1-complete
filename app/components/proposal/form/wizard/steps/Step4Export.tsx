@@ -67,8 +67,8 @@ const Step4Export = () => {
     const [isPlaying, setIsPlaying] = useState(false);
     const [changeRequestsLoading, setChangeRequestsLoading] = useState(false);
     const [changeRequests, setChangeRequests] = useState<any[]>([]);    // State for toggling sections
-    const [isVerificationExpanded, setIsVerificationExpanded] = React.useState(true);
-    const [isTextEditOpen, setIsTextEditOpen] = React.useState(true);
+    const [isVerificationExpanded, setIsVerificationExpanded] = useState(true);
+    const [isTextEditOpen, setIsTextEditOpen] = useState(true);
 
     // Get proposal data
     const screens = watch("details.screens") || [];
