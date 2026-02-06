@@ -11,7 +11,7 @@ import ExhibitB_CostSchedule from "@/app/components/templates/proposal-pdf/exhib
 import { MirrorPricingSection, PremiumMirrorPricingSection } from "./MirrorPricingSection";
 
 // Helpers
-import { formatNumberWithCommas, isDataUrl, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText } from "@/lib/helpers";
+import { formatNumberWithCommas, isDataUrl, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText, normalizePitch } from "@/lib/helpers";
 import { resolveDocumentMode } from "@/lib/documentMode";
 
 // Variables
