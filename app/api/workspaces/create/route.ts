@@ -63,6 +63,18 @@ export async function POST(request: NextRequest) {
     });
 
     let proposal: any = null;
+    // Prompt 52: Diagnostic logging for project persistence
+    console.log("[WORKSPACE/CREATE] Received:", {
+      name: body.name,
+      clientName: body.clientName,
+      hasExcelData: !!body.excelData,
+      screenCount: body.excelData?.screens?.length ?? 0,
+      hasInternalAudit: !!body.excelData?.internalAudit,
+      internalAuditKeys: body.excelData?.internalAudit ? Object.keys(body.excelData.internalAudit) : [],
+      hasPricingDocument: !!body.excelData?.pricingDocument,
+      hasClientSummary: !!body.excelData?.clientSummary,
+      hasMarginAnalysis: !!body.excelData?.marginAnalysis,
+    });
     if (body.createInitialProposal) {
       proposal = await prisma.proposal.create({
         data: {

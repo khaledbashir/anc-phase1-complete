@@ -2044,6 +2044,16 @@ export const ProposalContextProvider = ({
                     formValues?.details?.clientName ||
                     formValues?.details?.proposalName ||
                     "Untitled Project";
+                // Prompt 52: Diagnostic logging for save pipeline
+                console.log("[SAVE_DRAFT] Creating new project:", {
+                    clientName,
+                    screenCount: formValues?.details?.screens?.length ?? 0,
+                    hasInternalAudit: !!(formValues?.details?.internalAudit),
+                    internalAuditType: typeof formValues?.details?.internalAudit,
+                    hasPricingDocument: !!(formValues as any)?.details?.pricingDocument,
+                    hasMarginAnalysis: !!(formValues as any)?.marginAnalysis,
+                    proposalId: effectiveId,
+                });
                 const resp = await fetch("/api/workspaces/create", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -3453,6 +3463,17 @@ export const ProposalContextProvider = ({
             // CRITICAL: Immediately save Excel data to database to prevent data loss
             // Don't rely on auto-save debounce (2000ms delay) - user might navigate away
             try {
+                // Prompt 52: Pre-save diagnostic
+                const preCheck = getValues();
+                console.log("[EXCEL IMPORT] Pre-saveDraft state:", {
+                    proposalId: preCheck?.details?.proposalId,
+                    screenCount: preCheck?.details?.screens?.length ?? 0,
+                    firstScreenName: preCheck?.details?.screens?.[0]?.name,
+                    hasInternalAudit: !!preCheck?.details?.internalAudit,
+                    auditKeys: preCheck?.details?.internalAudit ? Object.keys(preCheck.details.internalAudit as any) : [],
+                    hasPricingDoc: !!(preCheck as any)?.details?.pricingDocument,
+                    receiverName: preCheck?.receiver?.name,
+                });
                 const saveResult = await saveDraft();
                 if (!saveResult.created && saveResult.error) {
                     console.error(
