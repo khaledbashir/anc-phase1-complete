@@ -52,3 +52,9 @@ easypanel-env.*
 vps-cleanup.sh
 clean-vps
 VPS_CLEANUP_README.md
+
+# Large files that shouldn't be in git
+rfp-sources/
+ppp/
+*.tar.gz
+*.pdf
