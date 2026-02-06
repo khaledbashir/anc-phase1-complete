@@ -120,40 +120,40 @@ const defaultProposalContext = {
     savedProposals: [] as ProposalType[],
     pdfUrl: null as string | null,
     activeTab: "client",
-    setActiveTab: (tab: string) => {},
-    onFormSubmit: (values: ProposalType) => {},
-    newProposal: (_opts?: { silent?: boolean }) => {},
-    resetProposal: () => {},
+    setActiveTab: (tab: string) => { },
+    onFormSubmit: (values: ProposalType) => { },
+    newProposal: (_opts?: { silent?: boolean }) => { },
+    resetProposal: () => { },
     generatePdf: async (data: ProposalType) => new Blob(),
-    removeFinalPdf: () => {},
-    downloadPdf: async () => {},
+    removeFinalPdf: () => { },
+    downloadPdf: async () => { },
     downloadAllPdfVariants: async () => Promise.resolve(),
     downloadBundlePdfs: async () => Promise.resolve(),
-    printPdf: () => {},
-    printLivePreview: () => {},
-    previewPdfInTab: () => {},
-    saveProposalData: () => {},
+    printPdf: () => { },
+    printLivePreview: () => { },
+    previewPdfInTab: () => { },
+    saveProposalData: () => { },
     saveDraft: (): Promise<{
         created: boolean;
         projectId?: string;
         error?: string;
     }> => Promise.resolve({ created: false }),
-    deleteProposalData: (index: number) => {},
+    deleteProposalData: (index: number) => { },
     // Backwards-compatible alias
-    deleteProposal: (index: number) => {},
+    deleteProposal: (index: number) => { },
     sendPdfToMail: (email: string): Promise<void> => Promise.resolve(),
-    exportProposalDataAs: (exportAs: ExportTypes) => {},
+    exportProposalDataAs: (exportAs: ExportTypes) => { },
     // Backwards-compatible alias
-    exportProposalAs: (exportAs: ExportTypes) => {},
+    exportProposalAs: (exportAs: ExportTypes) => { },
     exportAudit: () => Promise.resolve(),
-    importProposalData: (file: File) => {},
-    importANCExcel: (file: File) => Promise.resolve(),
+    importProposalData: (file: File) => { },
+    importANCExcel: (file: File, skipSave?: boolean) => Promise.resolve(),
     // Diagnostic functions
     diagnosticOpen: false,
     diagnosticPayload: null,
-    openDiagnostic: (payload: any) => {},
-    closeDiagnostic: () => {},
-    submitDiagnostic: (answers: any) => {},
+    openDiagnostic: (payload: any) => { },
+    closeDiagnostic: () => { },
+    submitDiagnostic: (answers: any) => { },
     lowMarginAlerts: [] as any[],
     // RFP functions
     rfpDocumentUrl: null as string | null,
@@ -163,7 +163,7 @@ const defaultProposalContext = {
         url: string;
         createdAt: string;
     }[],
-    refreshRfpDocuments: async () => {},
+    refreshRfpDocuments: async () => { },
     deleteRfpDocument: (id: string) => Promise.resolve(false),
     aiWorkspaceSlug: null as string | null,
     rfpQuestions: [] as Array<{
@@ -184,13 +184,13 @@ const defaultProposalContext = {
         visionDisabled?: boolean;
     } | null,
     sidebarMode: "HEALTH" as "HEALTH" | "CHAT",
-    setSidebarMode: (mode: "HEALTH" | "CHAT") => {},
+    setSidebarMode: (mode: "HEALTH" | "CHAT") => { },
     // Command execution
-    applyCommand: (command: any) => {},
-    executeAiCommand: async (message: string) => {},
+    applyCommand: (command: any) => { },
+    executeAiCommand: async (message: string) => { },
     aiMessages: [] as any[],
     aiLoading: false,
-    duplicateScreen: (index: number) => {},
+    duplicateScreen: (index: number) => { },
     // AI & Verification
     aiFields: [] as string[],
     aiCitations: {} as Record<string, string>,
@@ -198,31 +198,31 @@ const defaultProposalContext = {
         string,
         { verifiedBy: string; verifiedAt: string }
     >,
-    setFieldVerified: (fieldPath: string, userName: string) => {},
+    setFieldVerified: (fieldPath: string, userName: string) => { },
     aiFieldTimestamps: {} as Record<string, number>,
     unverifiedAiFields: [] as string[],
     isGatekeeperLocked: false,
-    trackAiFieldModification: (fieldNames: string[]) => {},
+    trackAiFieldModification: (fieldNames: string[]) => { },
     isFieldGhostActive: (fieldName: string) => false,
     rulesDetected: null as any,
-    setRulesDetected: (rules: any) => {},
+    setRulesDetected: (rules: any) => { },
     // Core State
     proposal: null as any,
     headerType: "PROPOSAL" as "LOI" | "PROPOSAL" | "BUDGET",
-    setHeaderType: (type: "LOI" | "PROPOSAL" | "BUDGET") => {},
+    setHeaderType: (type: "LOI" | "PROPOSAL" | "BUDGET") => { },
     calculationMode: "MIRROR" as "MIRROR" | "INTELLIGENCE",
-    setCalculationMode: (mode: "MIRROR" | "INTELLIGENCE") => {},
+    setCalculationMode: (mode: "MIRROR" | "INTELLIGENCE") => { },
     risks: [] as RiskItem[],
-    setRisks: (risks: RiskItem[]) => {},
+    setRisks: (risks: RiskItem[]) => { },
     // Excel Editing
     updateExcelCell: (
         sheetName: string,
         row: number,
         col: number,
         value: string,
-    ) => {},
+    ) => { },
     // PROMPT 56: Guard function to prevent competing hydration
-    setInitialDataApplied: (applied: boolean) => {},
+    setInitialDataApplied: (applied: boolean) => { },
 };
 
 export const ProposalContext = createContext(defaultProposalContext);
@@ -243,12 +243,15 @@ export const ProposalContextProvider = ({
     projectId,
 }: ProposalContextProviderProps) => {
     const router = useRouter();
-    
+
     // PROMPT 56: Guard to prevent competing hydration paths
     const initialDataAppliedRef = useRef(false);
     const setInitialDataApplied = useCallback((applied: boolean) => {
         initialDataAppliedRef.current = applied;
     }, []);
+
+    // PROMPT 57: Track last imported file to ensure safe creation sequence
+    const lastImportedFileRef = useRef<File | null>(null);
 
     // Toasts
     const {
@@ -308,7 +311,7 @@ export const ProposalContextProvider = ({
     // ExcelPreview (visual grid) is not persisted - form data (screens, pricingDocument) is what matters
     useEffect(() => {
         if (typeof window === "undefined") return;
-        
+
         // CRITICAL: Don't hydrate Excel if on /projects/new or creating a new project
         if (
             window.location.pathname === "/projects/new" ||
@@ -324,15 +327,15 @@ export const ProposalContextProvider = ({
         // PROMPT 55: For existing projects, hydrate from database (initialData)
         // Database is source of truth - pricingDocument, marginAnalysis, screens are all persisted
         const isExistingProject = projectId && projectId !== "new" && typeof projectId === "string";
-        
+
         if (isExistingProject && initialData) {
             const pricingDocument = (initialData as any).details?.pricingDocument;
             const marginAnalysis = (initialData as any).marginAnalysis;
             const screens = (initialData as any).details?.screens || [];
-            
+
             const hasPricingData = !!pricingDocument || !!marginAnalysis;
             const hasScreens = screens.length > 0;
-            
+
             if (hasPricingData || hasScreens) {
                 console.log(
                     "[EXCEL PREVIEW] Hydrated from database for project:",
@@ -344,12 +347,12 @@ export const ProposalContextProvider = ({
                         screenCount: screens.length,
                     }
                 );
-                
+
                 // Note: ExcelPreview (visual grid) is not reconstructed from database data
                 // The form data (screens, pricingDocument, marginAnalysis) is already hydrated via WizardWrapper's reset(initialData)
                 // ExcelPreview is only useful for visual editing of raw Excel grid, which isn't needed for existing projects
                 // The structured data (pricingDocument.tables, screens) is what matters and is already in the form
-                
+
                 return; // Skip localStorage lookup - database is source of truth
             }
         }
@@ -521,7 +524,7 @@ export const ProposalContextProvider = ({
                     if (
                         rfpDocumentUrl &&
                         rfpDocuments.find((d) => d.id === id)?.url ===
-                            rfpDocumentUrl
+                        rfpDocumentUrl
                     ) {
                         setRfpDocumentUrl(null);
                     }
@@ -594,8 +597,8 @@ export const ProposalContextProvider = ({
         return watchedDocumentType === "LOI"
             ? "LOI"
             : watchedPricingType === "Hard Quoted"
-              ? "PROPOSAL"
-              : "BUDGET";
+                ? "PROPOSAL"
+                : "BUDGET";
     }, [watchedDocumentType, watchedPricingType]);
 
     const mirrorMode = watch("details.mirrorMode") || false;
@@ -696,7 +699,7 @@ export const ProposalContextProvider = ({
                     LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,
                     JSON.stringify(value),
                 );
-            } catch {}
+            } catch { }
         });
         return () => subscription.unsubscribe();
     }, [watch]);
@@ -1008,7 +1011,7 @@ export const ProposalContextProvider = ({
                         });
                     setValue("details.internalAudit", internalAudit);
                     setValue("details.clientSummary", clientSummary);
-                } catch (e) {}
+                } catch (e) { }
             }
         },
         [getValues, setValue],
@@ -1058,7 +1061,7 @@ export const ProposalContextProvider = ({
                     window.localStorage.removeItem(
                         LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,
                     );
-                } catch {}
+                } catch { }
             }
 
             // 2) Wipe Excel/context state so UI never shows old workbook
@@ -1242,7 +1245,7 @@ export const ProposalContextProvider = ({
                     showError(
                         "PDF Generation Failed",
                         errorMsg +
-                            ". Try using 'Print Preview' as an alternative.",
+                        ". Try using 'Print Preview' as an alternative.",
                     );
                 }
             } finally {
@@ -1321,8 +1324,8 @@ export const ProposalContextProvider = ({
                 docMode === "LOI"
                     ? "Letter_of_Intent"
                     : docMode === "PROPOSAL"
-                      ? "Proposal"
-                      : "Budget_Estimate";
+                        ? "Proposal"
+                        : "Budget_Estimate";
             const dateStr = new Date().toISOString().slice(0, 10);
             const fileName = `ANC_${safeUnderscored(clientName)}_${documentTypeLabel}_${dateStr}.pdf`;
             const a = document.createElement("a");
@@ -1344,7 +1347,7 @@ export const ProposalContextProvider = ({
                         description: `Exported ${documentTypeLabel.replace(/_/g, " ")} PDF`,
                         metadata: { documentMode: docMode, fileName },
                     }),
-                }).catch(() => {});
+                }).catch(() => { });
             }
         }
     };
@@ -1579,7 +1582,7 @@ export const ProposalContextProvider = ({
                     description: "Exported PDF bundle (Budget + Proposal + LOI)",
                     metadata: { bundle: true },
                 }),
-            }).catch(() => {});
+            }).catch(() => { });
         }
     }, [getValues, pdfGenerationSuccess, showError]);
 
@@ -1806,552 +1809,651 @@ export const ProposalContextProvider = ({
         const formValues = getValues();
         const effectiveId = (formValues?.details?.proposalId as string) || "";
 
-        if (!effectiveId || effectiveId === "new") {
-            try {
-                const clientName =
-                    formValues?.receiver?.name ||
-                    formValues?.details?.clientName ||
-                    formValues?.details?.proposalName ||
-                    "Untitled Project";
-                // Prompt 52: Diagnostic logging for save pipeline
-                console.log("[SAVE_DRAFT] Creating new project:", {
-                    clientName,
-                    screenCount: formValues?.details?.screens?.length ?? 0,
-                    hasInternalAudit: !!(formValues?.details?.internalAudit),
-                    internalAuditType: typeof formValues?.details?.internalAudit,
-                    hasPricingDocument: !!(formValues as any)?.details?.pricingDocument,
-                    hasMarginAnalysis: !!(formValues as any)?.marginAnalysis,
-                    proposalId: effectiveId,
-                });
-                const resp = await fetch("/api/workspaces/create", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        name: clientName,
-                        userEmail:
-                            formValues?.receiver?.email || "noreply@anc.com",
-                        createInitialProposal: true,
-                        clientName,
-                        calculationMode:
-                            (formValues as any)?.details?.calculationMode ||
-                            "INTELLIGENCE",
-                        excelData: {
-                            screens: formValues?.details?.screens,
-                            receiverName: formValues?.receiver?.name,
-                            proposalName: formValues?.details?.proposalName,
-                            internalAudit: formValues?.details?.internalAudit,
-                            pricingDocument: (formValues as any)?.details
-                                ?.pricingDocument,
-                            marginAnalysis: (formValues as any)?.marginAnalysis,
-                            pricingMode: (formValues as any)?.details
-                                ?.pricingMode,
-                            clientSummary: formValues?.details?.clientSummary,
-                        },
-                    }),
-                });
-                const json = await resp.json().catch(() => null);
-                if (!resp.ok) {
-                    const base = (json as any)?.error || "Create failed";
-                    const details = (json as any)?.details;
-                    return {
-                        created: false,
-                        error: details ? `${base}: ${details}` : base,
-                    };
-                }
-                if (json?.proposal?.id) {
-                    const newId = json.proposal.id;
-                    // Prompt 52 Fix: Set real proposalId in form BEFORE navigation
-                    // so auto-save recognizes it as a valid project
-                    setValue("details.proposalId" as any, newId);
-
-                    // Prompt 52 Fix: Follow-up PATCH with COMPLETE form data
-                    // workspace/create only stores excelData subset; this ensures
-                    // screens, internalAudit, documentMode, etc. are fully persisted
-                    try {
-                        const fullValues = getValues();
-                        const d = fullValues.details as any;
-                        const fullPayload = {
-                            clientName: fullValues?.receiver?.name || clientName,
-                            clientAddress: fullValues?.receiver?.address,
-                            clientCity: fullValues?.receiver?.city,
-                            clientZip: fullValues?.receiver?.zipCode,
-                            receiverData: fullValues.receiver,
-                            proposalName: d?.proposalName,
-                            venue: d?.venue,
-                            calculationMode: d?.calculationMode || calculationMode,
-                            internalAudit: d?.internalAudit,
-                            clientSummary: d?.clientSummary,
-                            screens: d?.screens,
-                            taxRateOverride: d?.taxRateOverride,
-                            bondRateOverride: d?.bondRateOverride,
-                            documentMode: d?.documentMode,
-                            documentConfig: {
-                                includePricingBreakdown: d?.includePricingBreakdown,
-                                showPricingTables: d?.showPricingTables,
-                                showIntroText: d?.showIntroText,
-                                showBaseBidTable: d?.showBaseBidTable,
-                                showSpecifications: d?.showSpecifications,
-                                showCompanyFooter: d?.showCompanyFooter,
-                                showPaymentTerms: d?.showPaymentTerms,
-                                showSignatureBlock: d?.showSignatureBlock,
-                                showExhibitA: d?.showExhibitA,
-                                showExhibitB: d?.showExhibitB,
-                                showNotes: d?.showNotes,
-                                showScopeOfWork: d?.showScopeOfWork,
-                            },
-                            quoteItems: d?.quoteItems,
-                            paymentTerms: d?.paymentTerms,
-                            additionalNotes: d?.additionalNotes,
-                            signatureBlockText: d?.signatureBlockText,
-                            loiHeaderText: d?.loiHeaderText,
-                            customProposalNotes: d?.customProposalNotes,
-                            pricingDocument: d?.pricingDocument,
-                            marginAnalysis: (fullValues as any)?.marginAnalysis,
-                            pricingMode: d?.pricingMode,
-                            purchaserLegalName: d?.purchaserLegalName,
-                            masterTableIndex: d?.masterTableIndex ?? null,
-                        };
-                        console.log("[SAVE_DRAFT] Follow-up PATCH to persist complete data:", {
-                            newId,
-                            screenCount: d?.screens?.length ?? 0,
-                            hasInternalAudit: !!d?.internalAudit,
-                            hasPricingDocument: !!d?.pricingDocument,
-                        });
-                        await fetch(`/api/projects/${newId}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify(fullPayload),
-                        });
-                    } catch (patchErr) {
-                        console.error("[SAVE_DRAFT] Follow-up PATCH failed:", patchErr);
-                    }
-
-                    router.push(`/projects/${newId}`);
-                    return { created: true, projectId: newId };
-                }
-                return { created: false, error: "No proposal ID returned" };
-            } catch (e) {
-                const msg = e instanceof Error ? e.message : "Create failed";
-                return { created: false, error: msg };
-            }
-        }
-
         try {
-            const payload = {
-                clientName:
-                    formValues?.receiver?.name ||
-                    formValues?.details?.clientName ||
-                    "Unnamed Client",
-                clientAddress: formValues?.receiver?.address,
-                clientCity: formValues?.receiver?.city,
-                clientZip: formValues?.receiver?.zipCode,
-                proposalName: formValues?.details?.proposalName,
-                venue: (formValues as any)?.details?.venue,
-                status: formValues?.details?.status,
-                calculationMode: calculationMode,
-                internalAudit: formValues?.details?.internalAudit,
-                clientSummary: formValues?.details?.clientSummary,
-                screens: formValues?.details?.screens,
-                taxRateOverride: formValues?.details?.taxRateOverride,
-                bondRateOverride: formValues?.details?.bondRateOverride,
-                documentMode: (formValues as any)?.details?.documentMode,
-                documentConfig: {
-                    includePricingBreakdown: (formValues as any)?.details
-                        ?.includePricingBreakdown,
-                    showPricingTables: (formValues as any)?.details
-                        ?.showPricingTables,
-                    showIntroText: (formValues as any)?.details?.showIntroText,
-                    showBaseBidTable: (formValues as any)?.details
-                        ?.showBaseBidTable,
-                    showSpecifications: (formValues as any)?.details
-                        ?.showSpecifications,
-                    showCompanyFooter: (formValues as any)?.details
-                        ?.showCompanyFooter,
-                    showPaymentTerms: (formValues as any)?.details
-                        ?.showPaymentTerms,
-                    showSignatureBlock: (formValues as any)?.details
-                        ?.showSignatureBlock,
-                    showExhibitA: (formValues as any)?.details?.showExhibitA,
-                    showExhibitB: (formValues as any)?.details?.showExhibitB,
-                    showNotes: (formValues as any)?.details?.showNotes,
-                    showScopeOfWork: (formValues as any)?.details
-                        ?.showScopeOfWork,
-                },
-                quoteItems: (formValues as any)?.details?.quoteItems,
-                paymentTerms: (formValues as any)?.details?.paymentTerms,
-                additionalNotes: (formValues as any)?.details?.additionalNotes,
-                signatureBlockText: (formValues as any)?.details?.signatureBlockText,
-                loiHeaderText: (formValues as any)?.details?.loiHeaderText,
-                customProposalNotes: (formValues as any)?.details?.customProposalNotes,
-                purchaserLegalName: (formValues as any)?.details?.purchaserLegalName,
-                // CRITICAL: Persist Excel pricing data to prevent data loss on navigation
-                pricingDocument: (formValues as any)?.details?.pricingDocument,
-                marginAnalysis: (formValues as any)?.marginAnalysis,
-                pricingMode: (formValues as any)?.details?.pricingMode,
-                masterTableIndex: (formValues as any)?.details?.masterTableIndex ?? null,
-            };
-            const res = await fetch(`/api/projects/${effectiveId}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+            const clientName =
+                formValues?.receiver?.name ||
+                formValues?.details?.clientName ||
+                formValues?.details?.proposalName ||
+                "Untitled Project";
+            // Prompt 52: Diagnostic logging for save pipeline
+            console.log("[SAVE_DRAFT] Creating new project:", {
+                clientName,
+                screenCount: formValues?.details?.screens?.length ?? 0,
+                hasInternalAudit: !!(formValues?.details?.internalAudit),
+                internalAuditType: typeof formValues?.details?.internalAudit,
+                hasPricingDocument: !!(formValues as any)?.details?.pricingDocument,
+                hasMarginAnalysis: !!(formValues as any)?.marginAnalysis,
+                proposalId: effectiveId,
             });
-            if (!res.ok) {
-                const text = await res.text();
-                try {
-                    const parsed = JSON.parse(text);
-                    const base = parsed?.error || "Save failed";
-                    const details = parsed?.details;
-                    return {
-                        created: false,
-                        error: details ? `${base}: ${details}` : base,
-                    };
-                } catch {
-                    return { created: false, error: text || "Save failed" };
-                }
-            }
-            modifiedProposalSuccess();
-            return { created: false };
-        } catch (e) {
-            const msg = e instanceof Error ? e.message : "Save failed";
-            return { created: false, error: msg };
-        }
-    }, [getValues, router, calculationMode, aiFields, modifiedProposalSuccess]);
-
-    /**
-     * Delete a proposal from local storage based on the given index.
-     *
-     * @param {number} index - The index of the proposal to be deleted.
-     */
-    const deleteProposalData = (index: number) => {
-        if (index >= 0 && index < savedProposals.length) {
-            const updatedProposals = [...savedProposals];
-            updatedProposals.splice(index, 1);
-            setSavedProposals(updatedProposals);
-
-            const updatedProposalsJSON = JSON.stringify(updatedProposals);
-
-            localStorage.setItem("savedProposals", updatedProposalsJSON);
-        }
-    };
-
-    /**
-     * Send the proposal PDF to the specified email address.
-     *
-     * @param {string} email - The email address to which the Proposal PDF will be sent.
-     * @returns {Promise<void>} A promise that resolves once the email is successfully sent.
-     */
-    const sendPdfToMail = (email: string) => {
-        const fd = new FormData();
-        const formValues = getValues();
-        const id = formValues?.details?.proposalId ?? "";
-        fd.append("email", email);
-        fd.append("proposalPdf", proposalPdf, "proposal.pdf");
-        // Keep proposalNumber for backwards-compatibility and include proposalId
-        fd.append("proposalNumber", id);
-        fd.append("proposalId", id);
-
-        return fetch(SEND_PDF_API, {
-            method: "POST",
-            body: fd,
-        })
-            .then((res) => {
-                if (res.ok) {
-                    // Successful toast msg
-                    sendPdfSuccess();
-                } else {
-                    // Error toast msg
-                    sendPdfError({ email, sendPdfToMail });
-                }
-            })
-            .catch((error) => {
-                console.log(error);
-
-                // Error toast msg
-                sendPdfError({ email, sendPdfToMail });
-            });
-    };
-
-    /**
-     * Apply a JSON command returned by the controller LLM
-     * Supported command types: ADD_SCREEN, UPDATE_CLIENT, SET_MARGIN, SYNC_CATALOG
-     */
-    // Diagnostic overlay state
-    const [diagnosticOpen, setDiagnosticOpen] = useState(false);
-    const [diagnosticPayload, setDiagnosticPayload] = useState<any>(null);
-
-    const openDiagnostic = (payload: any) => {
-        setDiagnosticPayload(payload);
-        setDiagnosticOpen(true);
-    };
-
-    const closeDiagnostic = () => {
-        setDiagnosticPayload(null);
-        setDiagnosticOpen(false);
-    };
-
-    const submitDiagnostic = (answers: any) => {
-        // Merge answers with original payload and dispatch as ADD_SCREEN
-        const merged = { ...(diagnosticPayload?.payload || {}), ...answers };
-        applyCommand({ type: "ADD_SCREEN", payload: merged });
-        closeDiagnostic();
-    };
-
-    /**
-     * Syncs summarized line items to each screen based on current internalAudit
-     */
-    const syncLineItemsFromAudit = (screens: any[], internalAudit: any) => {
-        if (!internalAudit?.perScreen) return screens;
-
-        return screens.map((screen, idx) => {
-            // If line items are already present (e.g. from Excel Mirroring), preserve them
-            if (screen.lineItems && screen.lineItems.length > 0) {
-                return screen;
-            }
-
-            const audit = internalAudit.perScreen[idx];
-            if (!audit) return screen;
-
-            const b = audit.breakdown;
-            // Grouping logic for "Polished" client-facing PDF
-            // Use Decimal.js for deterministic distribution of margin
-            const totalCost = new Decimal(b.totalCost || 1); // Avoid division by zero
-            const ancMargin = new Decimal(b.ancMargin || 0);
-
-            const hardwareCost = new Decimal(b.hardware || 0);
-            const structureCost = new Decimal(b.structure || 0);
-            const laborCost = new Decimal(b.labor || 0);
-            const installCost = new Decimal(b.install || 0);
-            const laborInstallCost = laborCost.plus(installCost);
-
-            // Distribute margin proportionally to cost
-            const hardwareSell = roundToCents(
-                hardwareCost.plus(ancMargin.times(hardwareCost.div(totalCost))),
-            );
-            const structureSell = roundToCents(
-                structureCost.plus(
-                    ancMargin.times(structureCost.div(totalCost)),
-                ),
-            );
-            const laborSell = roundToCents(
-                laborInstallCost.plus(
-                    ancMargin.times(laborInstallCost.div(totalCost)),
-                ),
-            );
-
-            const finalClientTotal = new Decimal(b.finalClientTotal || 0);
-            // Calculate "Other" as the remainder to ensure the sum exactly matches the total
-            const otherSell = roundToCents(
-                finalClientTotal
-                    .minus(hardwareSell)
-                    .minus(structureSell)
-                    .minus(laborSell),
-            );
-
-            return {
-                ...screen,
-                lineItems: [
-                    {
-                        id: `hw-${idx}`,
-                        category: "LED Display System",
-                        price: hardwareSell.toNumber(),
-                    },
-                    {
-                        id: `st-${idx}`,
-                        category: "Structural Materials",
-                        price: structureSell.toNumber(),
-                    },
-                    {
-                        id: `inst-${idx}`,
-                        category: "Installation & Labor",
-                        price: laborSell.toNumber(),
-                    },
-                    {
-                        id: `other-${idx}`,
-                        category: "Electrical, Data & Conditions",
-                        price: otherSell.toNumber(),
-                    },
-                ],
-            };
-        });
-    };
-
-    const executeAiCommand = async (message: string) => {
-        if (!message.trim()) return;
-
-        const userMsg = {
-            id: `u-${Date.now()}`,
-            role: "user",
-            content: message,
-        };
-        setAiMessages((h) => [...h, userMsg]);
-        setAiLoading(true);
-
-        try {
-            const formValues = getValues();
-            const currentProposalId = formValues?.details?.proposalId || "new";
-
-            const res = await fetch("/api/command", {
+            const resp = await fetch("/api/workspaces/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    message: message,
-                    history: aiMessages.map((m) => ({
-                        role: m.role,
-                        content: m.content,
-                    })),
-                    proposalId: currentProposalId,
-                    workspace:
-                        aiWorkspaceSlug ||
-                        localStorage.getItem("aiWorkspaceSlug") ||
-                        "researcher",
+                    name: clientName,
+                    userEmail:
+                        formValues?.receiver?.email || "noreply@anc.com",
+                    createInitialProposal: true,
+                    clientName,
+                    calculationMode:
+                        (formValues as any)?.details?.calculationMode ||
+                        "INTELLIGENCE",
+                    // Send empty excelData initially - we will PATCH it after import ensures sync
+                    excelData: null,
                 }),
             });
-
-            const data = await res.json();
-            let responseText = data?.data?.textResponse || data?.text || "";
-
-            if (data?.data?.action) {
-                applyCommand(data.data.action);
+            const json = await resp.json().catch(() => null);
+            if (!resp.ok) {
+                const base = (json as any)?.error || "Create failed";
+                const details = (json as any)?.details;
+                return {
+                    created: false,
+                    error: details ? `${base}: ${details}` : base,
+                };
             }
+            if (json?.proposal?.id) {
+                const newId = json.proposal.id;
+                // Prompt 52 Fix: Set real proposalId in form BEFORE navigation
+                // so auto-save recognizes it as a valid project
+                setValue("details.proposalId" as any, newId);
 
-            if (responseText) {
-                setAiMessages((h) => [
-                    ...h,
-                    {
-                        id: `a-${Date.now()}`,
-                        role: "assistant",
-                        content: responseText,
-                    },
-                ]);
-            }
-        } catch (err) {
-            console.error("AI Command error:", err);
-        } finally {
-            setAiLoading(false);
-        }
-    };
+                // PROMPT 57 FIX: Re-run Excel import if we have a pending file
+                // This ensures the sequence: Create -> Import -> Save -> Navigate
+                if (lastImportedFileRef.current) {
+                    console.log("[SAVE_DRAFT] Re-importing Excel for new project ID:", newId);
+                    await importANCExcel(lastImportedFileRef.current, true); // skipSave to avoid recursion
+                }
 
-    const applyCommand = (command: any) => {
-        try {
-            const formValues = getValues();
-
-            if (!command || !command.type) return;
-
-            switch (command.type) {
-                case "ADD_SCREEN": {
-                    const payload = command.payload || {};
-                    const screens = formValues.details.screens ?? [];
-
-                    const newScreen = {
-                        name: payload.name ?? "New Screen",
-                        productType:
-                            payload.productType ?? payload.type ?? "Unknown",
-                        widthFt: Number(payload.widthFt ?? payload.width ?? 0),
-                        heightFt: Number(
-                            payload.heightFt ?? payload.height ?? 0,
-                        ),
-                        quantity: payload.quantity ?? payload.qty ?? 1,
-                        pitchMm: Number(
-                            payload.pitch ??
-                                payload.pitchMm ??
-                                payload.pitchMm ??
-                                10,
-                        ),
-                        costPerSqFt: Number(
-                            payload.costPerSqFt ?? payload.cost_per_sqft ?? 120,
-                        ),
-                        desiredMargin: payload.desiredMargin ?? undefined,
-                        isReplacement: payload.isReplacement ?? false,
-                        useExistingStructure:
-                            payload.useExistingStructure ?? false,
-                        includeSpareParts: payload.includeSpareParts ?? true,
+                // Prompt 52 Fix: Follow-up PATCH with COMPLETE form data
+                // workspace/create only stores excelData subset; this ensures
+                // screens, internalAudit, documentMode, etc. are fully persisted
+                try {
+                    const fullValues = getValues();
+                    const d = fullValues.details as any;
+                    const fullPayload = {
+                        clientName: fullValues?.receiver?.name || clientName,
+                        clientAddress: fullValues?.receiver?.address,
+                        clientCity: fullValues?.receiver?.city,
+                        clientZip: fullValues?.receiver?.zipCode,
+                        receiverData: fullValues.receiver,
+                        proposalName: d?.proposalName,
+                        venue: d?.venue,
+                        calculationMode: d?.calculationMode || calculationMode,
+                        internalAudit: d?.internalAudit,
+                        clientSummary: d?.clientSummary,
+                        screens: d?.screens,
+                        taxRateOverride: d?.taxRateOverride,
+                        bondRateOverride: d?.bondRateOverride,
+                        documentMode: d?.documentMode,
+                        documentConfig: {
+                            includePricingBreakdown: d?.includePricingBreakdown,
+                            showPricingTables: d?.showPricingTables,
+                            showIntroText: d?.showIntroText,
+                            showBaseBidTable: d?.showBaseBidTable,
+                            showSpecifications: d?.showSpecifications,
+                            showCompanyFooter: d?.showCompanyFooter,
+                            showPaymentTerms: d?.showPaymentTerms,
+                            showSignatureBlock: d?.showSignatureBlock,
+                            showExhibitA: d?.showExhibitA,
+                            showExhibitB: d?.showExhibitB,
+                            showNotes: d?.showNotes,
+                            showScopeOfWork: d?.showScopeOfWork,
+                        },
+                        quoteItems: d?.quoteItems,
+                        paymentTerms: d?.paymentTerms,
+                        additionalNotes: d?.additionalNotes,
+                        signatureBlockText: d?.signatureBlockText,
+                        loiHeaderText: d?.loiHeaderText,
+                        customProposalNotes: d?.customProposalNotes,
+                        pricingDocument: d?.pricingDocument,
+                        marginAnalysis: (fullValues as any)?.marginAnalysis,
+                        pricingMode: d?.pricingMode,
+                        purchaserLegalName: d?.purchaserLegalName,
+                        masterTableIndex: d?.masterTableIndex ?? null,
                     };
-
-                    // Track which fields were AI-populated for the blue glow
-                    const aiPopulated = Object.keys(payload).map(
-                        (k) => `details.screens.${screens.length}.${k}`,
-                    );
-                    setAiFields((prev) =>
-                        Array.from(new Set([...prev, ...aiPopulated])),
-                    );
-
-                    // Push new screen
-                    const updatedScreens = [...screens, newScreen];
-
-                    // Calculate audit for the new screen set
-                    const audit = calculateProposalAudit(updatedScreens, {
-                        taxRate: getValues("details.taxRateOverride"),
-                        bondPct: getValues("details.bondRateOverride"),
-                        structuralTonnage: getValues(
-                            "details.metadata.structuralTonnage",
-                        ),
-                        reinforcingTonnage: getValues(
-                            "details.metadata.reinforcingTonnage",
-                        ),
-                        projectAddress:
-                            `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
-                        venue: getValues("details.venue"),
+                    console.log("[SAVE_DRAFT] Follow-up PATCH to persist complete data:", {
+                        newId,
+                        screenCount: d?.screens?.length ?? 0,
+                        hasInternalAudit: !!d?.internalAudit,
+                        hasPricingDocument: !!d?.pricingDocument,
                     });
-                    const internalAudit = audit.internalAudit;
+                    await fetch(`/api/projects/${newId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(fullPayload),
+                    });
+                } catch (patchErr) {
+                    console.error("[SAVE_DRAFT] Follow-up PATCH failed:", patchErr);
+                }
+
+                router.push(`/projects/${newId}`);
+                return { created: true, projectId: newId };
+            }
+            return { created: false, error: "No proposal ID returned" };
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : "Create failed";
+            return { created: false, error: msg };
+        }
+    }
+
+        try {
+        const payload = {
+            clientName:
+                formValues?.receiver?.name ||
+                formValues?.details?.clientName ||
+                "Unnamed Client",
+            clientAddress: formValues?.receiver?.address,
+            clientCity: formValues?.receiver?.city,
+            clientZip: formValues?.receiver?.zipCode,
+            proposalName: formValues?.details?.proposalName,
+            venue: (formValues as any)?.details?.venue,
+            status: formValues?.details?.status,
+            calculationMode: calculationMode,
+            internalAudit: formValues?.details?.internalAudit,
+            clientSummary: formValues?.details?.clientSummary,
+            screens: formValues?.details?.screens,
+            taxRateOverride: formValues?.details?.taxRateOverride,
+            bondRateOverride: formValues?.details?.bondRateOverride,
+            documentMode: (formValues as any)?.details?.documentMode,
+            documentConfig: {
+                includePricingBreakdown: (formValues as any)?.details
+                    ?.includePricingBreakdown,
+                showPricingTables: (formValues as any)?.details
+                    ?.showPricingTables,
+                showIntroText: (formValues as any)?.details?.showIntroText,
+                showBaseBidTable: (formValues as any)?.details
+                    ?.showBaseBidTable,
+                showSpecifications: (formValues as any)?.details
+                    ?.showSpecifications,
+                showCompanyFooter: (formValues as any)?.details
+                    ?.showCompanyFooter,
+                showPaymentTerms: (formValues as any)?.details
+                    ?.showPaymentTerms,
+                showSignatureBlock: (formValues as any)?.details
+                    ?.showSignatureBlock,
+                showExhibitA: (formValues as any)?.details?.showExhibitA,
+                showExhibitB: (formValues as any)?.details?.showExhibitB,
+                showNotes: (formValues as any)?.details?.showNotes,
+                showScopeOfWork: (formValues as any)?.details
+                    ?.showScopeOfWork,
+            },
+            quoteItems: (formValues as any)?.details?.quoteItems,
+            paymentTerms: (formValues as any)?.details?.paymentTerms,
+            additionalNotes: (formValues as any)?.details?.additionalNotes,
+            signatureBlockText: (formValues as any)?.details?.signatureBlockText,
+            loiHeaderText: (formValues as any)?.details?.loiHeaderText,
+            customProposalNotes: (formValues as any)?.details?.customProposalNotes,
+            purchaserLegalName: (formValues as any)?.details?.purchaserLegalName,
+            // CRITICAL: Persist Excel pricing data to prevent data loss on navigation
+            pricingDocument: (formValues as any)?.details?.pricingDocument,
+            marginAnalysis: (formValues as any)?.marginAnalysis,
+            pricingMode: (formValues as any)?.details?.pricingMode,
+            masterTableIndex: (formValues as any)?.details?.masterTableIndex ?? null,
+        };
+        const res = await fetch(`/api/projects/${effectiveId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            try {
+                const parsed = JSON.parse(text);
+                const base = parsed?.error || "Save failed";
+                const details = parsed?.details;
+                return {
+                    created: false,
+                    error: details ? `${base}: ${details}` : base,
+                };
+            } catch {
+                return { created: false, error: text || "Save failed" };
+            }
+        }
+        modifiedProposalSuccess();
+        return { created: false };
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : "Save failed";
+        return { created: false, error: msg };
+    }
+}, [getValues, router, calculationMode, aiFields, modifiedProposalSuccess]);
+
+/**
+ * Delete a proposal from local storage based on the given index.
+ *
+ * @param {number} index - The index of the proposal to be deleted.
+ */
+const deleteProposalData = (index: number) => {
+    if (index >= 0 && index < savedProposals.length) {
+        const updatedProposals = [...savedProposals];
+        updatedProposals.splice(index, 1);
+        setSavedProposals(updatedProposals);
+
+        const updatedProposalsJSON = JSON.stringify(updatedProposals);
+
+        localStorage.setItem("savedProposals", updatedProposalsJSON);
+    }
+};
+
+/**
+ * Send the proposal PDF to the specified email address.
+ *
+ * @param {string} email - The email address to which the Proposal PDF will be sent.
+ * @returns {Promise<void>} A promise that resolves once the email is successfully sent.
+ */
+const sendPdfToMail = (email: string) => {
+    const fd = new FormData();
+    const formValues = getValues();
+    const id = formValues?.details?.proposalId ?? "";
+    fd.append("email", email);
+    fd.append("proposalPdf", proposalPdf, "proposal.pdf");
+    // Keep proposalNumber for backwards-compatibility and include proposalId
+    fd.append("proposalNumber", id);
+    fd.append("proposalId", id);
+
+    return fetch(SEND_PDF_API, {
+        method: "POST",
+        body: fd,
+    })
+        .then((res) => {
+            if (res.ok) {
+                // Successful toast msg
+                sendPdfSuccess();
+            } else {
+                // Error toast msg
+                sendPdfError({ email, sendPdfToMail });
+            }
+        })
+        .catch((error) => {
+            console.log(error);
+
+            // Error toast msg
+            sendPdfError({ email, sendPdfToMail });
+        });
+};
+
+/**
+ * Apply a JSON command returned by the controller LLM
+ * Supported command types: ADD_SCREEN, UPDATE_CLIENT, SET_MARGIN, SYNC_CATALOG
+ */
+// Diagnostic overlay state
+const [diagnosticOpen, setDiagnosticOpen] = useState(false);
+const [diagnosticPayload, setDiagnosticPayload] = useState<any>(null);
+
+const openDiagnostic = (payload: any) => {
+    setDiagnosticPayload(payload);
+    setDiagnosticOpen(true);
+};
+
+const closeDiagnostic = () => {
+    setDiagnosticPayload(null);
+    setDiagnosticOpen(false);
+};
+
+const submitDiagnostic = (answers: any) => {
+    // Merge answers with original payload and dispatch as ADD_SCREEN
+    const merged = { ...(diagnosticPayload?.payload || {}), ...answers };
+    applyCommand({ type: "ADD_SCREEN", payload: merged });
+    closeDiagnostic();
+};
+
+/**
+ * Syncs summarized line items to each screen based on current internalAudit
+ */
+const syncLineItemsFromAudit = (screens: any[], internalAudit: any) => {
+    if (!internalAudit?.perScreen) return screens;
+
+    return screens.map((screen, idx) => {
+        // If line items are already present (e.g. from Excel Mirroring), preserve them
+        if (screen.lineItems && screen.lineItems.length > 0) {
+            return screen;
+        }
+
+        const audit = internalAudit.perScreen[idx];
+        if (!audit) return screen;
+
+        const b = audit.breakdown;
+        // Grouping logic for "Polished" client-facing PDF
+        // Use Decimal.js for deterministic distribution of margin
+        const totalCost = new Decimal(b.totalCost || 1); // Avoid division by zero
+        const ancMargin = new Decimal(b.ancMargin || 0);
+
+        const hardwareCost = new Decimal(b.hardware || 0);
+        const structureCost = new Decimal(b.structure || 0);
+        const laborCost = new Decimal(b.labor || 0);
+        const installCost = new Decimal(b.install || 0);
+        const laborInstallCost = laborCost.plus(installCost);
+
+        // Distribute margin proportionally to cost
+        const hardwareSell = roundToCents(
+            hardwareCost.plus(ancMargin.times(hardwareCost.div(totalCost))),
+        );
+        const structureSell = roundToCents(
+            structureCost.plus(
+                ancMargin.times(structureCost.div(totalCost)),
+            ),
+        );
+        const laborSell = roundToCents(
+            laborInstallCost.plus(
+                ancMargin.times(laborInstallCost.div(totalCost)),
+            ),
+        );
+
+        const finalClientTotal = new Decimal(b.finalClientTotal || 0);
+        // Calculate "Other" as the remainder to ensure the sum exactly matches the total
+        const otherSell = roundToCents(
+            finalClientTotal
+                .minus(hardwareSell)
+                .minus(structureSell)
+                .minus(laborSell),
+        );
+
+        return {
+            ...screen,
+            lineItems: [
+                {
+                    id: `hw-${idx}`,
+                    category: "LED Display System",
+                    price: hardwareSell.toNumber(),
+                },
+                {
+                    id: `st-${idx}`,
+                    category: "Structural Materials",
+                    price: structureSell.toNumber(),
+                },
+                {
+                    id: `inst-${idx}`,
+                    category: "Installation & Labor",
+                    price: laborSell.toNumber(),
+                },
+                {
+                    id: `other-${idx}`,
+                    category: "Electrical, Data & Conditions",
+                    price: otherSell.toNumber(),
+                },
+            ],
+        };
+    });
+};
+
+const executeAiCommand = async (message: string) => {
+    if (!message.trim()) return;
+
+    const userMsg = {
+        id: `u-${Date.now()}`,
+        role: "user",
+        content: message,
+    };
+    setAiMessages((h) => [...h, userMsg]);
+    setAiLoading(true);
+
+    try {
+        const formValues = getValues();
+        const currentProposalId = formValues?.details?.proposalId || "new";
+
+        const res = await fetch("/api/command", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                message: message,
+                history: aiMessages.map((m) => ({
+                    role: m.role,
+                    content: m.content,
+                })),
+                proposalId: currentProposalId,
+                workspace:
+                    aiWorkspaceSlug ||
+                    localStorage.getItem("aiWorkspaceSlug") ||
+                    "researcher",
+            }),
+        });
+
+        const data = await res.json();
+        let responseText = data?.data?.textResponse || data?.text || "";
+
+        if (data?.data?.action) {
+            applyCommand(data.data.action);
+        }
+
+        if (responseText) {
+            setAiMessages((h) => [
+                ...h,
+                {
+                    id: `a-${Date.now()}`,
+                    role: "assistant",
+                    content: responseText,
+                },
+            ]);
+        }
+    } catch (err) {
+        console.error("AI Command error:", err);
+    } finally {
+        setAiLoading(false);
+    }
+};
+
+const applyCommand = (command: any) => {
+    try {
+        const formValues = getValues();
+
+        if (!command || !command.type) return;
+
+        switch (command.type) {
+            case "ADD_SCREEN": {
+                const payload = command.payload || {};
+                const screens = formValues.details.screens ?? [];
+
+                const newScreen = {
+                    name: payload.name ?? "New Screen",
+                    productType:
+                        payload.productType ?? payload.type ?? "Unknown",
+                    widthFt: Number(payload.widthFt ?? payload.width ?? 0),
+                    heightFt: Number(
+                        payload.heightFt ?? payload.height ?? 0,
+                    ),
+                    quantity: payload.quantity ?? payload.qty ?? 1,
+                    pitchMm: Number(
+                        payload.pitch ??
+                        payload.pitchMm ??
+                        payload.pitchMm ??
+                        10,
+                    ),
+                    costPerSqFt: Number(
+                        payload.costPerSqFt ?? payload.cost_per_sqft ?? 120,
+                    ),
+                    desiredMargin: payload.desiredMargin ?? undefined,
+                    isReplacement: payload.isReplacement ?? false,
+                    useExistingStructure:
+                        payload.useExistingStructure ?? false,
+                    includeSpareParts: payload.includeSpareParts ?? true,
+                };
+
+                // Track which fields were AI-populated for the blue glow
+                const aiPopulated = Object.keys(payload).map(
+                    (k) => `details.screens.${screens.length}.${k}`,
+                );
+                setAiFields((prev) =>
+                    Array.from(new Set([...prev, ...aiPopulated])),
+                );
+
+                // Push new screen
+                const updatedScreens = [...screens, newScreen];
+
+                // Calculate audit for the new screen set
+                const audit = calculateProposalAudit(updatedScreens, {
+                    taxRate: getValues("details.taxRateOverride"),
+                    bondPct: getValues("details.bondRateOverride"),
+                    structuralTonnage: getValues(
+                        "details.metadata.structuralTonnage",
+                    ),
+                    reinforcingTonnage: getValues(
+                        "details.metadata.reinforcingTonnage",
+                    ),
+                    projectAddress:
+                        `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                    venue: getValues("details.venue"),
+                });
+                const internalAudit = audit.internalAudit;
+
+                // Sync line items for PDF template
+                const screensWithLineItems = syncLineItemsFromAudit(
+                    updatedScreens,
+                    internalAudit,
+                );
+                setValue("details.screens", screensWithLineItems);
+
+                // CRITICAL: Flatten all screen-level lineItems into details.items for the PDF Template
+                const allItems = screensWithLineItems
+                    .flatMap((s) => s.lineItems || [])
+                    .map((li: any) => {
+                        let desc = "Standard specification.";
+                        if (li.category.includes("LED"))
+                            desc =
+                                "Supply of LED Display System including spare parts, power/data cabling, and processing hardware.";
+                        if (li.category.includes("Structure"))
+                            desc =
+                                "Structural engineering, fabrication, and mounting hardware.";
+                        if (li.category.includes("Installation"))
+                            desc =
+                                "Union labor installation per IBEW jurisdiction. Includes prevailing wage, certified payroll, and final commissioning.";
+                        if (li.category.includes("Electrical"))
+                            desc =
+                                "Primary power tie-in and data conduit runs.";
+
+                        return {
+                            name: li.category,
+                            description: desc,
+                            quantity: 1,
+                            unitPrice: li.price,
+                            total: li.price,
+                        };
+                    });
+                setValue("details.items", allItems);
+
+                // Normalize screens to ensure all have required fields for ScreenInput type
+                const normalizedScreens = updatedScreens.map((s: any) => ({
+                    name: s.name || "Unnamed",
+                    productType: s.productType || "Unknown",
+                    widthFt: Number(s.widthFt || s.width || 0),
+                    heightFt: Number(s.heightFt || s.height || 0),
+                    quantity: Number(s.quantity || s.qty || 1),
+                    pitchMm: Number(s.pitchMm || s.pitch || 10),
+                    costPerSqFt: Number(
+                        s.costPerSqFt || s.cost_per_sqft || 120,
+                    ),
+                    desiredMargin: s.desiredMargin,
+                    isReplacement: !!s.isReplacement,
+                    useExistingStructure: !!s.useExistingStructure,
+                    includeSpareParts: s.includeSpareParts !== false,
+                }));
+
+                // Recalculate audit and persist into form for live audit view
+                try {
+                    const { clientSummary, internalAudit } =
+                        calculateProposalAudit(normalizedScreens, {
+                            taxRate: getValues("details.taxRateOverride"),
+                            bondPct: getValues("details.bondRateOverride"),
+                            structuralTonnage: getValues(
+                                "details.metadata.structuralTonnage",
+                            ),
+                            reinforcingTonnage: getValues(
+                                "details.metadata.reinforcingTonnage",
+                            ),
+                            projectAddress:
+                                `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                            venue: getValues("details.venue"),
+                        });
+                    setValue("details.internalAudit", internalAudit);
+                    setValue("details.clientSummary", clientSummary);
 
                     // Sync line items for PDF template
                     const screensWithLineItems = syncLineItemsFromAudit(
-                        updatedScreens,
+                        normalizedScreens,
                         internalAudit,
                     );
                     setValue("details.screens", screensWithLineItems);
 
-                    // CRITICAL: Flatten all screen-level lineItems into details.items for the PDF Template
-                    const allItems = screensWithLineItems
-                        .flatMap((s) => s.lineItems || [])
-                        .map((li: any) => {
-                            let desc = "Standard specification.";
-                            if (li.category.includes("LED"))
-                                desc =
-                                    "Supply of LED Display System including spare parts, power/data cabling, and processing hardware.";
-                            if (li.category.includes("Structure"))
-                                desc =
-                                    "Structural engineering, fabrication, and mounting hardware.";
-                            if (li.category.includes("Installation"))
-                                desc =
-                                    "Union labor installation per IBEW jurisdiction. Includes prevailing wage, certified payroll, and final commissioning.";
-                            if (li.category.includes("Electrical"))
-                                desc =
-                                    "Primary power tie-in and data conduit runs.";
+                    // Flag low margins if any per-screen margin below threshold
+                    try {
+                        const threshold = parseFloat(
+                            process.env.NATALIA_MARGIN_THRESHOLD || "0.2",
+                        );
+                        const alerts: Array<{
+                            name: string;
+                            marginPct: number;
+                        }> = [];
+                        for (const s of internalAudit.perScreen) {
+                            const ancMargin = s.breakdown.ancMargin;
+                            const finalClientTotal =
+                                s.breakdown.finalClientTotal || 1;
+                            const marginPct = finalClientTotal
+                                ? ancMargin / finalClientTotal
+                                : 0;
+                            if (marginPct < threshold) {
+                                console.warn(
+                                    `Low margin detected for screen ${s.name}: ${Number((marginPct * 100).toFixed(2))}% (< ${threshold * 100}%)`,
+                                );
+                                alerts.push({ name: s.name, marginPct });
+                            }
+                        }
 
-                            return {
-                                name: li.category,
-                                description: desc,
-                                quantity: 1,
-                                unitPrice: li.price,
-                                total: li.price,
-                            };
-                        });
-                    setValue("details.items", allItems);
+                        if (alerts.length > 0) {
+                            setLowMarginAlerts(alerts);
+                        }
+                    } catch (e) { }
 
-                    // Normalize screens to ensure all have required fields for ScreenInput type
-                    const normalizedScreens = updatedScreens.map((s: any) => ({
-                        name: s.name || "Unnamed",
-                        productType: s.productType || "Unknown",
-                        widthFt: Number(s.widthFt || s.width || 0),
-                        heightFt: Number(s.heightFt || s.height || 0),
-                        quantity: Number(s.quantity || s.qty || 1),
-                        pitchMm: Number(s.pitchMm || s.pitch || 10),
-                        costPerSqFt: Number(
-                            s.costPerSqFt || s.cost_per_sqft || 120,
-                        ),
-                        desiredMargin: s.desiredMargin,
-                        isReplacement: !!s.isReplacement,
-                        useExistingStructure: !!s.useExistingStructure,
-                        includeSpareParts: s.includeSpareParts !== false,
+                    // Switch to audit tab so estimator changes are visible
+                    setActiveTab("audit");
+                } catch (e) {
+                    console.warn(
+                        "Failed to calculate audit after ADD_SCREEN",
+                        e,
+                    );
+                }
+
+                break;
+            }
+            case "UPDATE_CLIENT": {
+                const payload = command.payload || {};
+                if (payload.name) {
+                    setValue("receiver.name", payload.name);
+                    setAiFields((prev) =>
+                        Array.from(new Set([...prev, "receiver.name"])),
+                    );
+                }
+                if (payload.address) {
+                    setValue("receiver.address", payload.address);
+                    setAiFields((prev) =>
+                        Array.from(new Set([...prev, "receiver.address"])),
+                    );
+                }
+                break;
+            }
+            case "SET_MARGIN":
+            case "UPDATE_MARGIN": {
+                const payload = command.payload || {};
+                const value = Number(
+                    payload.value ??
+                    payload.margin ??
+                    payload.desiredMargin,
+                );
+                if (isFinite(value)) {
+                    // Apply to all screens
+                    const screens = formValues.details.screens ?? [];
+                    const updated = screens.map((s: any) => ({
+                        ...s,
+                        desiredMargin: value,
                     }));
+                    setValue("details.screens", updated);
 
-                    // Recalculate audit and persist into form for live audit view
+                    // Recalculate audit
                     try {
                         const { clientSummary, internalAudit } =
-                            calculateProposalAudit(normalizedScreens, {
-                                taxRate: getValues("details.taxRateOverride"),
-                                bondPct: getValues("details.bondRateOverride"),
+                            calculateProposalAudit(updated, {
+                                taxRate: getValues(
+                                    "details.taxRateOverride",
+                                ),
+                                bondPct: getValues(
+                                    "details.bondRateOverride",
+                                ),
                                 structuralTonnage: getValues(
                                     "details.metadata.structuralTonnage",
                                 ),
@@ -2367,923 +2469,824 @@ export const ProposalContextProvider = ({
 
                         // Sync line items for PDF template
                         const screensWithLineItems = syncLineItemsFromAudit(
-                            normalizedScreens,
+                            updated,
                             internalAudit,
                         );
                         setValue("details.screens", screensWithLineItems);
 
-                        // Flag low margins if any per-screen margin below threshold
-                        try {
-                            const threshold = parseFloat(
-                                process.env.NATALIA_MARGIN_THRESHOLD || "0.2",
-                            );
-                            const alerts: Array<{
-                                name: string;
-                                marginPct: number;
-                            }> = [];
-                            for (const s of internalAudit.perScreen) {
-                                const ancMargin = s.breakdown.ancMargin;
-                                const finalClientTotal =
-                                    s.breakdown.finalClientTotal || 1;
-                                const marginPct = finalClientTotal
-                                    ? ancMargin / finalClientTotal
-                                    : 0;
-                                if (marginPct < threshold) {
-                                    console.warn(
-                                        `Low margin detected for screen ${s.name}: ${Number((marginPct * 100).toFixed(2))}% (< ${threshold * 100}%)`,
-                                    );
-                                    alerts.push({ name: s.name, marginPct });
-                                }
-                            }
-
-                            if (alerts.length > 0) {
-                                setLowMarginAlerts(alerts);
-                            }
-                        } catch (e) {}
-
-                        // Switch to audit tab so estimator changes are visible
+                        // Switch to audit tab because internal pricing changed
                         setActiveTab("audit");
                     } catch (e) {
                         console.warn(
-                            "Failed to calculate audit after ADD_SCREEN",
+                            "Failed to calculate audit after SET_MARGIN",
                             e,
                         );
                     }
-
-                    break;
                 }
-                case "UPDATE_CLIENT": {
-                    const payload = command.payload || {};
-                    if (payload.name) {
-                        setValue("receiver.name", payload.name);
-                        setAiFields((prev) =>
-                            Array.from(new Set([...prev, "receiver.name"])),
-                        );
-                    }
-                    if (payload.address) {
-                        setValue("receiver.address", payload.address);
-                        setAiFields((prev) =>
-                            Array.from(new Set([...prev, "receiver.address"])),
-                        );
-                    }
-                    break;
-                }
-                case "SET_MARGIN":
-                case "UPDATE_MARGIN": {
-                    const payload = command.payload || {};
-                    const value = Number(
-                        payload.value ??
-                            payload.margin ??
-                            payload.desiredMargin,
-                    );
-                    if (isFinite(value)) {
-                        // Apply to all screens
-                        const screens = formValues.details.screens ?? [];
-                        const updated = screens.map((s: any) => ({
-                            ...s,
-                            desiredMargin: value,
-                        }));
-                        setValue("details.screens", updated);
-
-                        // Recalculate audit
-                        try {
-                            const { clientSummary, internalAudit } =
-                                calculateProposalAudit(updated, {
-                                    taxRate: getValues(
-                                        "details.taxRateOverride",
-                                    ),
-                                    bondPct: getValues(
-                                        "details.bondRateOverride",
-                                    ),
-                                    structuralTonnage: getValues(
-                                        "details.metadata.structuralTonnage",
-                                    ),
-                                    reinforcingTonnage: getValues(
-                                        "details.metadata.reinforcingTonnage",
-                                    ),
-                                    projectAddress:
-                                        `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
-                                    venue: getValues("details.venue"),
-                                });
-                            setValue("details.internalAudit", internalAudit);
-                            setValue("details.clientSummary", clientSummary);
-
-                            // Sync line items for PDF template
-                            const screensWithLineItems = syncLineItemsFromAudit(
-                                updated,
-                                internalAudit,
-                            );
-                            setValue("details.screens", screensWithLineItems);
-
-                            // Switch to audit tab because internal pricing changed
-                            setActiveTab("audit");
-                        } catch (e) {
-                            console.warn(
-                                "Failed to calculate audit after SET_MARGIN",
-                                e,
-                            );
-                        }
-                    }
-                    break;
-                }
-                case "SYNC_CATALOG": {
-                    // Ask server to sync the local catalog file with AnythingLLM
-                    (async () => {
-                        try {
-                            const res = await fetch("/api/rag/sync", {
-                                method: "POST",
-                            });
-                            const json = await res.json();
-                            console.log("SYNC_CATALOG server response", json);
-                        } catch (e) {
-                            console.error("SYNC_CATALOG failed", e);
-                        }
-                    })();
-
-                    break;
-                }
-                case "INCOMPLETE_SPECS": {
-                    // Open Diagnostic overlay
-                    openDiagnostic(command);
-                    break;
-                }
-                default:
-                    console.warn("Unknown command type:", command.type);
+                break;
             }
-        } catch (err) {
-            console.error("applyCommand error:", err);
+            case "SYNC_CATALOG": {
+                // Ask server to sync the local catalog file with AnythingLLM
+                (async () => {
+                    try {
+                        const res = await fetch("/api/rag/sync", {
+                            method: "POST",
+                        });
+                        const json = await res.json();
+                        console.log("SYNC_CATALOG server response", json);
+                    } catch (e) {
+                        console.error("SYNC_CATALOG failed", e);
+                    }
+                })();
+
+                break;
+            }
+            case "INCOMPLETE_SPECS": {
+                // Open Diagnostic overlay
+                openDiagnostic(command);
+                break;
+            }
+            default:
+                console.warn("Unknown command type:", command.type);
         }
-    };
+    } catch (err) {
+        console.error("applyCommand error:", err);
+    }
+};
 
-    /**
-     * Export an proposal in the specified format using the provided form values.
-     *
-     * This function initiates the export process with the chosen export format and the form data.
-     *
-     * @param {ExportTypes} exportAs - The format in which to export the proposal.
-     */
-    const exportProposalDataAs = (exportAs: ExportTypes) => {
-        const formValues = getValues();
-        const id =
-            formValues?.details?.proposalId ??
-            formValues?.details?.proposalNumber ??
-            "";
-        formValues.details.proposalId = id;
-        formValues.details.proposalNumber = id;
+/**
+ * Export an proposal in the specified format using the provided form values.
+ *
+ * This function initiates the export process with the chosen export format and the form data.
+ *
+ * @param {ExportTypes} exportAs - The format in which to export the proposal.
+ */
+const exportProposalDataAs = (exportAs: ExportTypes) => {
+    const formValues = getValues();
+    const id =
+        formValues?.details?.proposalId ??
+        formValues?.details?.proposalNumber ??
+        "";
+    formValues.details.proposalId = id;
+    formValues.details.proposalNumber = id;
 
-        // Service to export proposal with given parameters
-        exportProposal(exportAs, formValues);
-    };
+    // Service to export proposal with given parameters
+    exportProposal(exportAs, formValues);
+};
 
-    /**
-     * Export internal audit XLSX for the current proposal (if proposalId exists)
-     */
-    const exportAudit = async () => {
-        const formValues = getValues();
-        const screens = formValues?.details?.screens || [];
-        const id =
-            formValues?.details?.proposalId ??
-            formValues?.details?.proposalNumber ??
-            "";
-        const isMirror =
-            !!formValues?.details?.mirrorMode ||
-            formValues?.details?.calculationMode === "MIRROR";
+/**
+ * Export internal audit XLSX for the current proposal (if proposalId exists)
+ */
+const exportAudit = async () => {
+    const formValues = getValues();
+    const screens = formValues?.details?.screens || [];
+    const id =
+        formValues?.details?.proposalId ??
+        formValues?.details?.proposalNumber ??
+        "";
+    const isMirror =
+        !!formValues?.details?.mirrorMode ||
+        formValues?.details?.calculationMode === "MIRROR";
 
-        // Validate we have data to export
-        if (!screens || screens.length === 0) {
+    // Validate we have data to export
+    if (!screens || screens.length === 0) {
+        showError(
+            "Export Failed",
+            "Add at least one screen before exporting the audit.",
+        );
+        return;
+    }
+
+    try {
+        const res = await fetch("/api/proposals/export/audit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                proposalId: id || "new",
+                projectAddress:
+                    `${formValues?.receiver?.address ?? ""} ${formValues?.receiver?.city ?? ""} ${formValues?.receiver?.zipCode ?? ""} ${formValues?.details?.location ?? ""}`.trim(),
+                venue: formValues?.details?.venue ?? "",
+                internalAudit: formValues?.details?.internalAudit ?? null,
+                screens,
+                calculationMode: isMirror
+                    ? "MIRROR"
+                    : (formValues?.details?.calculationMode ??
+                        "INTELLIGENCE"),
+                mirrorMode: isMirror,
+                clientName: formValues?.receiver?.name ?? "",
+                projectName: formValues?.details?.proposalName ?? "",
+            }),
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error("Audit export failed", errText);
             showError(
                 "Export Failed",
-                "Add at least one screen before exporting the audit.",
+                "Server error while generating audit file.",
             );
             return;
         }
 
-        try {
-            const res = await fetch("/api/proposals/export/audit", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    proposalId: id || "new",
-                    projectAddress:
-                        `${formValues?.receiver?.address ?? ""} ${formValues?.receiver?.city ?? ""} ${formValues?.receiver?.zipCode ?? ""} ${formValues?.details?.location ?? ""}`.trim(),
-                    venue: formValues?.details?.venue ?? "",
-                    internalAudit: formValues?.details?.internalAudit ?? null,
-                    screens,
-                    calculationMode: isMirror
-                        ? "MIRROR"
-                        : (formValues?.details?.calculationMode ??
-                          "INTELLIGENCE"),
-                    mirrorMode: isMirror,
-                    clientName: formValues?.receiver?.name ?? "",
-                    projectName: formValues?.details?.proposalName ?? "",
-                }),
-            });
-
-            if (!res.ok) {
-                const errText = await res.text();
-                console.error("Audit export failed", errText);
-                showError(
-                    "Export Failed",
-                    "Server error while generating audit file.",
-                );
-                return;
-            }
-
-            const contentType = res.headers.get("content-type") || "";
-            if (contentType.includes("application/json")) {
-                const err = await res.json().catch(() => ({}));
-                console.error("Audit export returned JSON error", err);
-                showError(
-                    "Export Failed",
-                    err?.error || "Unable to generate audit file.",
-                );
-                return;
-            }
-
-            const blob = await res.blob();
-            if (blob.size === 0) {
-                console.error("Audit export returned empty file");
-                showError(
-                    "Export Failed",
-                    "Generated file is empty. Make sure screens have valid dimensions.",
-                );
-                return;
-            }
-
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${(
-                formValues?.details?.proposalName ||
-                id ||
-                "proposal"
-            )
-                .toString()
-                .replace(/\s+/g, "-")
-                .replace(/[^a-zA-Z0-9-_]/g, "")}-audit.xlsx`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-        } catch (e) {
-            console.error("exportAudit error:", e);
+        const contentType = res.headers.get("content-type") || "";
+        if (contentType.includes("application/json")) {
+            const err = await res.json().catch(() => ({}));
+            console.error("Audit export returned JSON error", err);
             showError(
                 "Export Failed",
-                e instanceof Error ? e.message : "Unable to export audit file.",
+                err?.error || "Unable to generate audit file.",
             );
+            return;
         }
-    };
 
-    const loadExcelPreview = useCallback(async (file: File) => {
-        setExcelPreviewLoading(true);
-        try {
-            const arrayBuffer = await file.arrayBuffer();
-            const workbook = xlsx.read(arrayBuffer, { type: "array" });
-            const maxRows = 200;
-            const maxCols = 60;
-
-            const sheets: ExcelPreviewSheet[] = workbook.SheetNames.map(
-                (name) => {
-                    const sheet = workbook.Sheets[name];
-                    const ref = (sheet as any)["!ref"] as string | undefined;
-                    const range = ref
-                        ? xlsx.utils.decode_range(ref)
-                        : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
-                    const rowsCount = Math.min(range.e.r + 1, maxRows);
-                    const colsCount = Math.min(range.e.c + 1, maxCols);
-
-                    const rawRows = xlsx.utils.sheet_to_json(sheet, {
-                        header: 1,
-                        raw: false,
-                        defval: "",
-                    }) as any[][];
-
-                    const grid: string[][] = Array.from(
-                        { length: rowsCount },
-                        (_, r) => {
-                            const src = rawRows[r] || [];
-                            return Array.from({ length: colsCount }, (_, c) =>
-                                String(src[c] ?? ""),
-                            );
-                        },
-                    );
-
-                    const merges = (
-                        ((sheet as any)["!merges"] as any[]) || []
-                    ).map((m) => ({
-                        s: { r: m.s.r, c: m.s.c },
-                        e: { r: m.e.r, c: m.e.c },
-                    }));
-
-                    const hiddenRowsMeta =
-                        ((sheet as any)["!rows"] as
-                            | Array<{ hidden?: boolean }>
-                            | undefined) || [];
-                    const hiddenRows = Array.from(
-                        { length: rowsCount },
-                        (_, r) => !!hiddenRowsMeta[r]?.hidden,
-                    );
-
-                    const colsMeta =
-                        ((sheet as any)["!cols"] as
-                            | Array<{ wch?: number; hidden?: boolean }>
-                            | undefined) || [];
-                    const colWidths = Array.from(
-                        { length: colsCount },
-                        (_, c) => {
-                            if (colsMeta[c]?.hidden) return 0;
-                            const wch = colsMeta[c]?.wch;
-                            return typeof wch === "number" ? wch : null;
-                        },
-                    );
-
-                    const normalizedSheetName = name.toLowerCase();
-                    const isLedSheet =
-                        (normalizedSheetName.includes("led") &&
-                            normalizedSheetName.includes("sheet")) ||
-                        normalizedSheetName.includes("led cost sheet");
-                    const requiredCols = { a: 0, f: 5, g: 6 };
-
-                    let headerRowIndex = 0;
-                    for (let r = 0; r < Math.min(grid.length, 15); r++) {
-                        const rowText = grid[r].join(" ").toLowerCase();
-                        if (
-                            rowText.includes("display name") ||
-                            rowText.includes("display")
-                        ) {
-                            headerRowIndex = r;
-                            break;
-                        }
-                    }
-
-                    let validationIssue = false;
-                    let hasNumericDimensions = false;
-                    if (isLedSheet) {
-                        for (let r = headerRowIndex + 1; r < grid.length; r++) {
-                            const row = grid[r];
-                            const nameCell = row[requiredCols.a] || "";
-                            const nameCellNorm = String(nameCell ?? "").trim();
-                            const isAlt =
-                                /^(alt(\b|[^a-z])|alternate(\b|[^a-z]))/i.test(
-                                    nameCellNorm,
-                                );
-                            if (hiddenRows[r] || isAlt) continue;
-                            const isRowActive = String(nameCell).trim() !== "";
-                            if (!isRowActive) continue;
-                            const h = String(row[requiredCols.f] || "").trim();
-                            const w = String(row[requiredCols.g] || "").trim();
-
-                            const isBad = (v: string) =>
-                                v === "" || v.toUpperCase().includes("TBD");
-                            if (isBad(nameCell) || isBad(h) || isBad(w)) {
-                                validationIssue = true;
-                                continue;
-                            }
-
-                            const toNum = (v: string) =>
-                                Number(String(v).replace(/[^\d.-]/g, ""));
-                            const hn = toNum(h);
-                            const wn = toNum(w);
-                            if (
-                                !isFinite(hn) ||
-                                !isFinite(wn) ||
-                                hn <= 0 ||
-                                wn <= 0
-                            ) {
-                                validationIssue = true;
-                                continue;
-                            }
-                            hasNumericDimensions = true;
-                        }
-                    }
-
-                    return {
-                        name,
-                        grid,
-                        merges,
-                        hiddenRows,
-                        colWidths,
-                        validationIssue,
-                        hasNumericDimensions,
-                    };
-                },
+        const blob = await res.blob();
+        if (blob.size === 0) {
+            console.error("Audit export returned empty file");
+            showError(
+                "Export Failed",
+                "Generated file is empty. Make sure screens have valid dimensions.",
             );
+            return;
+        }
 
-            const ledSheet = sheets.find((s) => {
-                const n = s.name.toLowerCase();
-                return (
-                    (n.includes("led") && n.includes("sheet")) ||
-                    n.includes("led cost sheet")
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${(
+            formValues?.details?.proposalName ||
+            id ||
+            "proposal"
+        )
+            .toString()
+            .replace(/\s+/g, "-")
+            .replace(/[^a-zA-Z0-9-_]/g, "")}-audit.xlsx`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (e) {
+        console.error("exportAudit error:", e);
+        showError(
+            "Export Failed",
+            e instanceof Error ? e.message : "Unable to export audit file.",
+        );
+    }
+};
+
+const loadExcelPreview = useCallback(async (file: File) => {
+    setExcelPreviewLoading(true);
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = xlsx.read(arrayBuffer, { type: "array" });
+        const maxRows = 200;
+        const maxCols = 60;
+
+        const sheets: ExcelPreviewSheet[] = workbook.SheetNames.map(
+            (name) => {
+                const sheet = workbook.Sheets[name];
+                const ref = (sheet as any)["!ref"] as string | undefined;
+                const range = ref
+                    ? xlsx.utils.decode_range(ref)
+                    : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+                const rowsCount = Math.min(range.e.r + 1, maxRows);
+                const colsCount = Math.min(range.e.c + 1, maxCols);
+
+                const rawRows = xlsx.utils.sheet_to_json(sheet, {
+                    header: 1,
+                    raw: false,
+                    defval: "",
+                }) as any[][];
+
+                const grid: string[][] = Array.from(
+                    { length: rowsCount },
+                    (_, r) => {
+                        const src = rawRows[r] || [];
+                        return Array.from({ length: colsCount }, (_, c) =>
+                            String(src[c] ?? ""),
+                        );
+                    },
                 );
-            });
-            setExcelValidationOk(
-                !!ledSheet?.hasNumericDimensions && !ledSheet?.validationIssue,
-            );
 
-            setExcelPreview({
-                fileName: file.name,
-                sheets,
-                loadedAt: Date.now(),
-            });
-        } catch {
-            setExcelPreview(null);
-            setExcelValidationOk(false);
-        } finally {
-            setExcelPreviewLoading(false);
-        }
-    }, []);
+                const merges = (
+                    ((sheet as any)["!merges"] as any[]) || []
+                ).map((m) => ({
+                    s: { r: m.s.r, c: m.s.c },
+                    e: { r: m.e.r, c: m.e.c },
+                }));
 
-    /**
-     * Update a single cell in the Excel preview and sync to form data.
-     * This enables WYSIWYG editing - changes in Excel reflect in PDF.
-     */
-    const updateExcelCell = useCallback(
-        (sheetName: string, row: number, col: number, value: string) => {
-            if (!excelPreview) return;
+                const hiddenRowsMeta =
+                    ((sheet as any)["!rows"] as
+                        | Array<{ hidden?: boolean }>
+                        | undefined) || [];
+                const hiddenRows = Array.from(
+                    { length: rowsCount },
+                    (_, r) => !!hiddenRowsMeta[r]?.hidden,
+                );
 
-            const ledSheet =
-                excelPreview.sheets.find((s) => {
-                    const n = s.name.toLowerCase();
-                    return (
-                        n.includes("led cost sheet") ||
-                        (n.includes("led") && n.includes("sheet"))
-                    );
-                }) || null;
+                const colsMeta =
+                    ((sheet as any)["!cols"] as
+                        | Array<{ wch?: number; hidden?: boolean }>
+                        | undefined) || [];
+                const colWidths = Array.from(
+                    { length: colsCount },
+                    (_, c) => {
+                        if (colsMeta[c]?.hidden) return 0;
+                        const wch = colsMeta[c]?.wch;
+                        return typeof wch === "number" ? wch : null;
+                    },
+                );
 
-            const isLedEdit = !!ledSheet && ledSheet.name === sheetName;
-            let ledHeaderRowIndex = -1;
-            let ledHeaderRow: string[] | null = null;
+                const normalizedSheetName = name.toLowerCase();
+                const isLedSheet =
+                    (normalizedSheetName.includes("led") &&
+                        normalizedSheetName.includes("sheet")) ||
+                    normalizedSheetName.includes("led cost sheet");
+                const requiredCols = { a: 0, f: 5, g: 6 };
 
-            if (isLedEdit) {
-                const grid = ledSheet.grid;
+                let headerRowIndex = 0;
                 for (let r = 0; r < Math.min(grid.length, 15); r++) {
                     const rowText = grid[r].join(" ").toLowerCase();
                     if (
                         rowText.includes("display name") ||
                         rowText.includes("display")
                     ) {
-                        ledHeaderRowIndex = r;
-                        ledHeaderRow = grid[r] || [];
+                        headerRowIndex = r;
                         break;
                     }
                 }
-                if (ledHeaderRowIndex === row && ledHeaderRow) {
-                    ledHeaderRow = ledHeaderRow.map((c, ci) =>
-                        ci === col ? value : c,
-                    );
+
+                let validationIssue = false;
+                let hasNumericDimensions = false;
+                if (isLedSheet) {
+                    for (let r = headerRowIndex + 1; r < grid.length; r++) {
+                        const row = grid[r];
+                        const nameCell = row[requiredCols.a] || "";
+                        const nameCellNorm = String(nameCell ?? "").trim();
+                        const isAlt =
+                            /^(alt(\b|[^a-z])|alternate(\b|[^a-z]))/i.test(
+                                nameCellNorm,
+                            );
+                        if (hiddenRows[r] || isAlt) continue;
+                        const isRowActive = String(nameCell).trim() !== "";
+                        if (!isRowActive) continue;
+                        const h = String(row[requiredCols.f] || "").trim();
+                        const w = String(row[requiredCols.g] || "").trim();
+
+                        const isBad = (v: string) =>
+                            v === "" || v.toUpperCase().includes("TBD");
+                        if (isBad(nameCell) || isBad(h) || isBad(w)) {
+                            validationIssue = true;
+                            continue;
+                        }
+
+                        const toNum = (v: string) =>
+                            Number(String(v).replace(/[^\d.-]/g, ""));
+                        const hn = toNum(h);
+                        const wn = toNum(w);
+                        if (
+                            !isFinite(hn) ||
+                            !isFinite(wn) ||
+                            hn <= 0 ||
+                            wn <= 0
+                        ) {
+                            validationIssue = true;
+                            continue;
+                        }
+                        hasNumericDimensions = true;
+                    }
                 }
-            }
 
-            // Update the Excel preview grid
-            setExcelPreview((prev) => {
-                if (!prev) return prev;
+                return {
+                    name,
+                    grid,
+                    merges,
+                    hiddenRows,
+                    colWidths,
+                    validationIssue,
+                    hasNumericDimensions,
+                };
+            },
+        );
 
-                const newSheets = prev.sheets.map((sheet) => {
-                    if (sheet.name !== sheetName) return sheet;
-
-                    // Clone the grid and update the cell
-                    const newGrid = sheet.grid.map((r, ri) => {
-                        if (ri !== row) return r;
-                        return r.map((c, ci) => (ci === col ? value : c));
-                    });
-
-                    return { ...sheet, grid: newGrid };
-                });
-
-                return { ...prev, sheets: newSheets };
-            });
-
-            if (!isLedEdit) return;
-            if (ledHeaderRowIndex < 0 || row <= ledHeaderRowIndex) return;
-
-            // Map column indices to field names
-            const header = ledHeaderRow || [];
-            const colName = (header[col] || "").toLowerCase().trim();
-
-            const screens = getValues("details.screens") || [];
-            const rowOneBased = row + 1;
-            const hasAnySourceRef = screens.some(
-                (s: any) => s?.sourceRef?.sheet && s?.sourceRef?.row,
+        const ledSheet = sheets.find((s) => {
+            const n = s.name.toLowerCase();
+            return (
+                (n.includes("led") && n.includes("sheet")) ||
+                n.includes("led cost sheet")
             );
+        });
+        setExcelValidationOk(
+            !!ledSheet?.hasNumericDimensions && !ledSheet?.validationIssue,
+        );
 
-            let screenIndex = -1;
-            if (hasAnySourceRef) {
-                screenIndex = screens.findIndex(
-                    (s: any) =>
-                        s?.sourceRef?.sheet === sheetName &&
-                        s?.sourceRef?.row === rowOneBased,
-                );
-                if (screenIndex < 0) {
-                    showError(
-                        "Excel Sync Error",
-                        "Edited row does not map to an imported screen. Re-import the Excel to resync.",
-                    );
-                    return;
-                }
-            } else {
-                screenIndex = row - ledHeaderRowIndex - 1;
-                if (screenIndex < 0 || screenIndex >= screens.length) return;
-            }
-
-            // Map Excel column to form field
-            // IMPORTANT: "Display Name" is client-facing; keep `name` stable for audit matching.
-            const fieldMap: Record<string, string> = {
-                "display name": "externalName",
-                display: "externalName",
-                height: "heightFt",
-                h: "heightFt",
-                width: "widthFt",
-                w: "widthFt",
-                qty: "quantity",
-                quantity: "quantity",
-                "mm pitch": "pitchMm",
-                pitch: "pitchMm",
-                "pixel pitch": "pitchMm",
-                brightness: "brightness",
-                nits: "brightness",
-            };
-
-            const fieldName = fieldMap[colName];
-            if (fieldName) {
-                const fieldPath =
-                    `details.screens.${screenIndex}.${fieldName}` as any;
-                // Convert to number for numeric fields
-                if (
-                    ["heightFt", "widthFt", "quantity", "pitchMm"].includes(
-                        fieldName,
-                    )
-                ) {
-                    const numValue = parseFloat(value.replace(/[^\d.-]/g, ""));
-                    if (!isNaN(numValue)) {
-                        setValue(fieldPath, numValue, {
-                            shouldDirty: true,
-                            shouldValidate: true,
-                        });
-                    }
-                } else {
-                    setValue(fieldPath, value, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                    });
-                }
-            }
-        },
-        [excelPreview, getValues, setValue, showError],
-    );
-
-    /**
-     * Import an proposal from a JSON file.
-     *
-     * @param {File} file - The JSON file to import.
-     */
-    const importProposalData = (file: File) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const importedData = JSON.parse(event.target?.result as string);
-
-                // Parse the dates
-                if (importedData.details) {
-                    if (importedData.details.proposalDate) {
-                        importedData.details.proposalDate = new Date(
-                            importedData.details.proposalDate,
-                        );
-                    }
-                    if (importedData.details.dueDate) {
-                        importedData.details.dueDate = new Date(
-                            importedData.details.dueDate,
-                        );
-                    }
-
-                    // Normalize IDs/dates: prefer proposalId/proposalDate and fill proposal fallbacks
-                    importedData.details.proposalId =
-                        importedData.details.proposalId ??
-                        importedData.details.proposalNumber ??
-                        "";
-                    importedData.details.proposalNumber =
-                        importedData.details.proposalNumber ??
-                        importedData.details.proposalId;
-                    importedData.details.proposalDate =
-                        importedData.details.proposalDate ??
-                        importedData.details.proposalDate ??
-                        null;
-                }
-
-                // Reset form with imported data
-                reset(importedData);
-            } catch (error) {
-                console.error("Error parsing JSON file:", error);
-                importProposalError();
-            }
-        };
-        reader.readAsText(file);
-    };
-
-    /**
-     * Import an ANC Master Excel file and update the proposal state.
-     * Nuclear reset on re-upload: flush all Excel-related state so no old data survives.
-     */
-    const importANCExcel = async (file: File) => {
-        // Nuclear reset: flush Excel/preview state before loading new file (stops leaks, zero-price bug, infinite loops)
-        // PROMPT 55: Removed localStorage cleanup - database is source of truth
-        isCreatingNewRef.current = true;
+        setExcelPreview({
+            fileName: file.name,
+            sheets,
+            loadedAt: Date.now(),
+        });
+    } catch {
         setExcelPreview(null);
         setExcelValidationOk(false);
-        setExcelSourceData(null);
-        setVerificationManifest(null);
-        setVerificationExceptions([]);
-        setExcelDiagnostics(null);
+    } finally {
+        setExcelPreviewLoading(false);
+    }
+}, []);
 
-        // NUCLEAR RESET: Flush ALL form fields so no ghost data survives a re-upload
-        setValue("details.screens", [], { shouldDirty: false });
-        setValue("details.items", [], { shouldDirty: false });
-        setValue("details.internalAudit" as any, {}, { shouldDirty: false });
-        setValue("details.clientSummary" as any, {}, { shouldDirty: false });
-        setValue("details.pricingDocument" as any, undefined, {
-            shouldDirty: false,
-        });
-        setValue("details.pricingMode" as any, "STANDARD", {
-            shouldDirty: false,
-        });
-        setValue("marginAnalysis" as any, undefined, { shouldDirty: false });
+/**
+ * Update a single cell in the Excel preview and sync to form data.
+ * This enables WYSIWYG editing - changes in Excel reflect in PDF.
+ */
+const updateExcelCell = useCallback(
+    (sheetName: string, row: number, col: number, value: string) => {
+        if (!excelPreview) return;
 
-        loadExcelPreview(file);
-        const formData = new FormData();
-        formData.append("file", file);
+        const ledSheet =
+            excelPreview.sheets.find((s) => {
+                const n = s.name.toLowerCase();
+                return (
+                    n.includes("led cost sheet") ||
+                    (n.includes("led") && n.includes("sheet"))
+                );
+            }) || null;
 
-        setExcelImportLoading(true);
-        try {
-            const res = await fetch("/api/proposals/import-excel", {
-                method: "POST",
-                body: formData,
+        const isLedEdit = !!ledSheet && ledSheet.name === sheetName;
+        let ledHeaderRowIndex = -1;
+        let ledHeaderRow: string[] | null = null;
+
+        if (isLedEdit) {
+            const grid = ledSheet.grid;
+            for (let r = 0; r < Math.min(grid.length, 15); r++) {
+                const rowText = grid[r].join(" ").toLowerCase();
+                if (
+                    rowText.includes("display name") ||
+                    rowText.includes("display")
+                ) {
+                    ledHeaderRowIndex = r;
+                    ledHeaderRow = grid[r] || [];
+                    break;
+                }
+            }
+            if (ledHeaderRowIndex === row && ledHeaderRow) {
+                ledHeaderRow = ledHeaderRow.map((c, ci) =>
+                    ci === col ? value : c,
+                );
+            }
+        }
+
+        // Update the Excel preview grid
+        setExcelPreview((prev) => {
+            if (!prev) return prev;
+
+            const newSheets = prev.sheets.map((sheet) => {
+                if (sheet.name !== sheetName) return sheet;
+
+                // Clone the grid and update the cell
+                const newGrid = sheet.grid.map((r, ri) => {
+                    if (ri !== row) return r;
+                    return r.map((c, ci) => (ci === col ? value : c));
+                });
+
+                return { ...sheet, grid: newGrid };
             });
 
-            if (!res.ok) {
-                const text = await res.text();
-                let msg = text;
-                try {
-                    const j = JSON.parse(text);
-                    if (j?.error) msg = j.error;
-                } catch {
-                    /* use text as-is */
-                }
-                throw new Error(msg);
-            }
+            return { ...prev, sheets: newSheets };
+        });
 
-            const data = await res.json();
+        if (!isLedEdit) return;
+        if (ledHeaderRowIndex < 0 || row <= ledHeaderRowIndex) return;
 
-            setExcelSourceData(data.excelData ?? null);
-            setVerificationManifest(data.verificationManifest ?? null);
-            setVerificationExceptions(
-                Array.isArray(data.exceptions) ? data.exceptions : [],
+        // Map column indices to field names
+        const header = ledHeaderRow || [];
+        const colName = (header[col] || "").toLowerCase().trim();
+
+        const screens = getValues("details.screens") || [];
+        const rowOneBased = row + 1;
+        const hasAnySourceRef = screens.some(
+            (s: any) => s?.sourceRef?.sheet && s?.sourceRef?.row,
+        );
+
+        let screenIndex = -1;
+        if (hasAnySourceRef) {
+            screenIndex = screens.findIndex(
+                (s: any) =>
+                    s?.sourceRef?.sheet === sheetName &&
+                    s?.sourceRef?.row === rowOneBased,
             );
-
-            if (data.formData) {
-                const { formData, internalAudit } = data;
-
-                // 1. Batch update main form fields
-                const currentReceiverName = (getValues("receiver.name") ?? "")
-                    .toString()
-                    .trim();
-                const importedReceiverName = (formData.receiver?.name ?? "")
-                    .toString()
-                    .trim();
-                const currentProposalName = (
-                    getValues("details.proposalName") ?? ""
-                )
-                    .toString()
-                    .trim();
-                const importedProposalName = (
-                    formData.details?.proposalName ?? ""
-                )
-                    .toString()
-                    .trim();
-
-                const isReceiverPlaceholder =
-                    currentReceiverName.length === 0 ||
-                    currentReceiverName === FORM_DEFAULT_VALUES.receiver.name ||
-                    currentReceiverName.toLowerCase() === "new project" ||
-                    currentReceiverName.toLowerCase() === "placeholder";
-
-                const isImportedReceiverPlaceholder =
-                    importedReceiverName.length === 0 ||
-                    importedReceiverName ===
-                        FORM_DEFAULT_VALUES.receiver.name ||
-                    importedReceiverName.toLowerCase() === "new project" ||
-                    importedReceiverName.toLowerCase() === "placeholder";
-
-                const isProposalPlaceholder =
-                    currentProposalName.length === 0 ||
-                    currentProposalName.toLowerCase() === "new project" ||
-                    currentProposalName.toLowerCase() === "placeholder";
-
-                const isImportedProposalPlaceholder =
-                    importedProposalName.length === 0 ||
-                    importedProposalName.toLowerCase() ===
-                        "anc led display proposal" ||
-                    importedProposalName.toLowerCase() === "new project" ||
-                    importedProposalName.toLowerCase() === "placeholder";
-
-                // Only overwrite if current is placeholder AND imported is NOT placeholder
-                if (isReceiverPlaceholder && !isImportedReceiverPlaceholder) {
-                    setValue("receiver.name", importedReceiverName, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                    });
-                }
-
-                if (isProposalPlaceholder && !isImportedProposalPlaceholder) {
-                    setValue("details.proposalName", importedProposalName, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                    });
-                }
-
-                // Also preserve address/city/zip if they exist locally
-                const fieldsToPreserve = [
-                    "receiver.address",
-                    "receiver.city",
-                    "receiver.zipCode",
-                    "details.venue",
-                    "details.location",
-                ] as const;
-
-                fieldsToPreserve.forEach((field) => {
-                    const current = (getValues(field) ?? "").toString().trim();
-                    const imported = (
-                        formData.receiver?.[
-                            field.split(
-                                ".",
-                            )[1] as keyof typeof formData.receiver
-                        ] ??
-                        formData.details?.[
-                            field.split(".")[1] as keyof typeof formData.details
-                        ] ??
-                        ""
-                    )
-                        .toString()
-                        .trim();
-
-                    const isCurrentEmpty =
-                        current.length === 0 ||
-                        current.toLowerCase() === "placeholder";
-                    const isImportedNotEmpty =
-                        imported.length > 0 &&
-                        imported.toLowerCase() !== "placeholder";
-
-                    if (isCurrentEmpty && isImportedNotEmpty) {
-                        setValue(field, imported, {
-                            shouldValidate: true,
-                            shouldDirty: true,
-                        });
-                    }
-                });
-
-                if (formData.details?.mirrorMode !== undefined) {
-                    setValue(
-                        "details.mirrorMode",
-                        formData.details.mirrorMode,
-                        { shouldValidate: true, shouldDirty: true },
-                    );
-                    setValue(
-                        "details.calculationMode",
-                        formData.details.mirrorMode ? "MIRROR" : "INTELLIGENCE",
-                        { shouldValidate: true, shouldDirty: true },
-                    );
-                }
-
-                // 2. Handle Screens & Line Items
-                if (formData.details?.screens && internalAudit) {
-                    const screens = formData.details.screens.filter(
-                        (s: any) => {
-                            const name = (s?.name ?? "")
-                                .toString()
-                                .trim()
-                                .toUpperCase();
-                            const w = Number(s?.widthFt ?? s?.width ?? 0);
-                            const h = Number(s?.heightFt ?? s?.height ?? 0);
-                            if (name.includes("OPTION") && (w <= 0 || h <= 0))
-                                return false;
-                            return true;
-                        },
-                    );
-
-                    // Sync line items for PDF template (Injecting pricing from Audit into Screen Objects)
-                    const screensWithLineItems = syncLineItemsFromAudit(
-                        screens,
-                        internalAudit,
-                    );
-                    setValue("details.screens", screensWithLineItems, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                    });
-                    setValue("details.internalAudit", internalAudit, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                    });
-                    setValue("details.clientSummary", internalAudit.totals, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                    });
-
-                    // CRITICAL: Set marginAnalysis for complete Project Total (includes non-LED items)
-                    // This is used by ProposalTemplate1 to show Structural, Electrical, PM, etc.
-                    if (
-                        formData.details?.marginAnalysis &&
-                        formData.details.marginAnalysis.length > 0
-                    ) {
-                        setValue(
-                            "marginAnalysis",
-                            formData.details.marginAnalysis,
-                            { shouldValidate: true, shouldDirty: true },
-                        );
-                    }
-
-                    // 3. CRITICAL: Update the PDF Item Table (The "Items" array used by templates)
-                    const allItems = screensWithLineItems.flatMap((s) =>
-                        (s.lineItems || []).map((li: any) => ({
-                            name: li.category,
-                            description:
-                                s.description || "Standard LED specification.",
-                            quantity: 1,
-                            unitPrice: li.price,
-                            total: li.price,
-                        })),
-                    );
-                    setValue("details.items", allItems, {
-                        shouldValidate: true,
-                        shouldDirty: true,
-                    });
-                }
-            }
-
-            // 4. NEW: Store PricingDocument for Natalia Mirror Mode
-            const pricingDocument =
-                (data as any).pricingDocument ||
-                (data.formData?.details as any)?.pricingDocument;
-            if (pricingDocument) {
-                setValue("details.pricingDocument" as any, pricingDocument, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                });
-                // Auto-enable mirror mode when pricingDocument is available
-                setValue("details.pricingMode" as any, "MIRROR", {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                });
-                // Mirror Mode: hide SOW (not relevant), keep specs visible for screen edits
-                setValue("details.showExhibitA", false, { shouldDirty: true });
-                console.log("[CONTEXT] PricingDocument stored for Mirror Mode");
-            }
-
-            // VISUAL VALIDATION: Compute diagnostics for the "Check Engine Light"
-            const diagnosticWarnings: string[] = [];
-            const diagnosticErrors: string[] = [];
-
-            const importedScreens = getValues("details.screens") || [];
-            const importedAudit = getValues("details.internalAudit") as any;
-            const auditTotal = Number(
-                importedAudit?.totals?.finalClientTotal ||
-                    importedAudit?.totals?.sellPrice ||
-                    0,
-            );
-
-            if (importedScreens.length === 0) {
-                diagnosticErrors.push(
-                    "No display screens were extracted from the Excel file. Check that the LED Sheet tab exists and has valid rows.",
+            if (screenIndex < 0) {
+                showError(
+                    "Excel Sync Error",
+                    "Edited row does not map to an imported screen. Re-import the Excel to resync.",
                 );
+                return;
             }
-            if (auditTotal === 0 && importedScreens.length > 0) {
-                diagnosticWarnings.push(
-                    'Project total is $0.00. The Margin Analysis tab may be missing, or the total row could not be located. Check your Excel for a "Sub Total (Bid Form)" or "Grand Total" row.',
-                );
-            }
+        } else {
+            screenIndex = row - ledHeaderRowIndex - 1;
+            if (screenIndex < 0 || screenIndex >= screens.length) return;
+        }
+
+        // Map Excel column to form field
+        // IMPORTANT: "Display Name" is client-facing; keep `name` stable for audit matching.
+        const fieldMap: Record<string, string> = {
+            "display name": "externalName",
+            display: "externalName",
+            height: "heightFt",
+            h: "heightFt",
+            width: "widthFt",
+            w: "widthFt",
+            qty: "quantity",
+            quantity: "quantity",
+            "mm pitch": "pitchMm",
+            pitch: "pitchMm",
+            "pixel pitch": "pitchMm",
+            brightness: "brightness",
+            nits: "brightness",
+        };
+
+        const fieldName = fieldMap[colName];
+        if (fieldName) {
+            const fieldPath =
+                `details.screens.${screenIndex}.${fieldName}` as any;
+            // Convert to number for numeric fields
             if (
-                !data.formData?.details?.marginAnalysis ||
-                data.formData.details.marginAnalysis.length === 0
+                ["heightFt", "widthFt", "quantity", "pitchMm"].includes(
+                    fieldName,
+                )
             ) {
-                diagnosticWarnings.push(
-                    "No Margin Analysis sheet was found. Non-LED costs (structural, electrical, PM) will not appear in the proposal.",
-                );
+                const numValue = parseFloat(value.replace(/[^\d.-]/g, ""));
+                if (!isNaN(numValue)) {
+                    setValue(fieldPath, numValue, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                    });
+                }
+            } else {
+                setValue(fieldPath, value, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                });
             }
-            const pricingDoc =
-                (data as any).pricingDocument ||
-                (data.formData?.details as any)?.pricingDocument;
-            if (!pricingDoc) {
-                diagnosticWarnings.push(
-                    "Mirror Mode pricing data could not be extracted. The proposal will use Intelligence Mode calculations instead.",
-                );
+        }
+    },
+    [excelPreview, getValues, setValue, showError],
+);
+
+/**
+ * Import an proposal from a JSON file.
+ *
+ * @param {File} file - The JSON file to import.
+ */
+const importProposalData = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        try {
+            const importedData = JSON.parse(event.target?.result as string);
+
+            // Parse the dates
+            if (importedData.details) {
+                if (importedData.details.proposalDate) {
+                    importedData.details.proposalDate = new Date(
+                        importedData.details.proposalDate,
+                    );
+                }
+                if (importedData.details.dueDate) {
+                    importedData.details.dueDate = new Date(
+                        importedData.details.dueDate,
+                    );
+                }
+
+                // Normalize IDs/dates: prefer proposalId/proposalDate and fill proposal fallbacks
+                importedData.details.proposalId =
+                    importedData.details.proposalId ??
+                    importedData.details.proposalNumber ??
+                    "";
+                importedData.details.proposalNumber =
+                    importedData.details.proposalNumber ??
+                    importedData.details.proposalId;
+                importedData.details.proposalDate =
+                    importedData.details.proposalDate ??
+                    importedData.details.proposalDate ??
+                    null;
             }
 
-            setExcelDiagnostics({
-                warnings: diagnosticWarnings,
-                errors: diagnosticErrors,
-                totalOk: auditTotal > 0 && importedScreens.length > 0,
+            // Reset form with imported data
+            reset(importedData);
+        } catch (error) {
+            console.error("Error parsing JSON file:", error);
+            importProposalError();
+        }
+    };
+    reader.readAsText(file);
+};
+
+/**
+ * Import an ANC Master Excel file and update the proposal state.
+ * Nuclear reset on re-upload: flush all Excel-related state so no old data survives.
+ */
+const importANCExcel = async (file: File, skipSave = false) => {
+    // PROMPT 57: Track file for creation sequence
+    lastImportedFileRef.current = file;
+
+    // Nuclear reset: flush Excel/preview state before loading new file (stops leaks, zero-price bug, infinite loops)
+    // PROMPT 55: Removed localStorage cleanup - database is source of truth
+    isCreatingNewRef.current = true;
+    setExcelPreview(null);
+    setExcelValidationOk(false);
+    setExcelSourceData(null);
+    setVerificationManifest(null);
+    setVerificationExceptions([]);
+    setExcelDiagnostics(null);
+
+    // NUCLEAR RESET: Flush ALL form fields so no ghost data survives a re-upload
+    setValue("details.screens", [], { shouldDirty: false });
+    setValue("details.items", [], { shouldDirty: false });
+    setValue("details.internalAudit" as any, {}, { shouldDirty: false });
+    setValue("details.clientSummary" as any, {}, { shouldDirty: false });
+    setValue("details.pricingDocument" as any, undefined, {
+        shouldDirty: false,
+    });
+    setValue("details.pricingMode" as any, "STANDARD", {
+        shouldDirty: false,
+    });
+    setValue("marginAnalysis" as any, undefined, { shouldDirty: false });
+
+    loadExcelPreview(file);
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setExcelImportLoading(true);
+    try {
+        const res = await fetch("/api/proposals/import-excel", {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            let msg = text;
+            try {
+                const j = JSON.parse(text);
+                if (j?.error) msg = j.error;
+            } catch {
+                /* use text as-is */
+            }
+            throw new Error(msg);
+        }
+
+        const data = await res.json();
+
+        setExcelSourceData(data.excelData ?? null);
+        setVerificationManifest(data.verificationManifest ?? null);
+        setVerificationExceptions(
+            Array.isArray(data.exceptions) ? data.exceptions : [],
+        );
+
+        if (data.formData) {
+            const { formData, internalAudit } = data;
+
+            // 1. Batch update main form fields
+            const currentReceiverName = (getValues("receiver.name") ?? "")
+                .toString()
+                .trim();
+            const importedReceiverName = (formData.receiver?.name ?? "")
+                .toString()
+                .trim();
+            const currentProposalName = (
+                getValues("details.proposalName") ?? ""
+            )
+                .toString()
+                .trim();
+            const importedProposalName = (
+                formData.details?.proposalName ?? ""
+            )
+                .toString()
+                .trim();
+
+            const isReceiverPlaceholder =
+                currentReceiverName.length === 0 ||
+                currentReceiverName === FORM_DEFAULT_VALUES.receiver.name ||
+                currentReceiverName.toLowerCase() === "new project" ||
+                currentReceiverName.toLowerCase() === "placeholder";
+
+            const isImportedReceiverPlaceholder =
+                importedReceiverName.length === 0 ||
+                importedReceiverName ===
+                FORM_DEFAULT_VALUES.receiver.name ||
+                importedReceiverName.toLowerCase() === "new project" ||
+                importedReceiverName.toLowerCase() === "placeholder";
+
+            const isProposalPlaceholder =
+                currentProposalName.length === 0 ||
+                currentProposalName.toLowerCase() === "new project" ||
+                currentProposalName.toLowerCase() === "placeholder";
+
+            const isImportedProposalPlaceholder =
+                importedProposalName.length === 0 ||
+                importedProposalName.toLowerCase() ===
+                "anc led display proposal" ||
+                importedProposalName.toLowerCase() === "new project" ||
+                importedProposalName.toLowerCase() === "placeholder";
+
+            // Only overwrite if current is placeholder AND imported is NOT placeholder
+            if (isReceiverPlaceholder && !isImportedReceiverPlaceholder) {
+                setValue("receiver.name", importedReceiverName, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                });
+            }
+
+            if (isProposalPlaceholder && !isImportedProposalPlaceholder) {
+                setValue("details.proposalName", importedProposalName, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                });
+            }
+
+            // Also preserve address/city/zip if they exist locally
+            const fieldsToPreserve = [
+                "receiver.address",
+                "receiver.city",
+                "receiver.zipCode",
+                "details.venue",
+                "details.location",
+            ] as const;
+
+            fieldsToPreserve.forEach((field) => {
+                const current = (getValues(field) ?? "").toString().trim();
+                const imported = (
+                    formData.receiver?.[
+                    field.split(
+                        ".",
+                    )[1] as keyof typeof formData.receiver
+                    ] ??
+                    formData.details?.[
+                    field.split(".")[1] as keyof typeof formData.details
+                    ] ??
+                    ""
+                )
+                    .toString()
+                    .trim();
+
+                const isCurrentEmpty =
+                    current.length === 0 ||
+                    current.toLowerCase() === "placeholder";
+                const isImportedNotEmpty =
+                    imported.length > 0 &&
+                    imported.toLowerCase() !== "placeholder";
+
+                if (isCurrentEmpty && isImportedNotEmpty) {
+                    setValue(field, imported, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                    });
+                }
             });
 
-            aiExtractionSuccess();
-            setActiveTab("audit");
+            if (formData.details?.mirrorMode !== undefined) {
+                setValue(
+                    "details.mirrorMode",
+                    formData.details.mirrorMode,
+                    { shouldValidate: true, shouldDirty: true },
+                );
+                setValue(
+                    "details.calculationMode",
+                    formData.details.mirrorMode ? "MIRROR" : "INTELLIGENCE",
+                    { shouldValidate: true, shouldDirty: true },
+                );
+            }
 
-            // CRITICAL: Immediately save Excel data to database to prevent data loss
-            // Don't rely on auto-save debounce (2000ms delay) - user might navigate away
+            // 2. Handle Screens & Line Items
+            if (formData.details?.screens && internalAudit) {
+                const screens = formData.details.screens.filter(
+                    (s: any) => {
+                        const name = (s?.name ?? "")
+                            .toString()
+                            .trim()
+                            .toUpperCase();
+                        const w = Number(s?.widthFt ?? s?.width ?? 0);
+                        const h = Number(s?.heightFt ?? s?.height ?? 0);
+                        if (name.includes("OPTION") && (w <= 0 || h <= 0))
+                            return false;
+                        return true;
+                    },
+                );
+
+                // Sync line items for PDF template (Injecting pricing from Audit into Screen Objects)
+                const screensWithLineItems = syncLineItemsFromAudit(
+                    screens,
+                    internalAudit,
+                );
+                setValue("details.screens", screensWithLineItems, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                });
+                setValue("details.internalAudit", internalAudit, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                });
+                setValue("details.clientSummary", internalAudit.totals, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                });
+
+                // CRITICAL: Set marginAnalysis for complete Project Total (includes non-LED items)
+                // This is used by ProposalTemplate1 to show Structural, Electrical, PM, etc.
+                if (
+                    formData.details?.marginAnalysis &&
+                    formData.details.marginAnalysis.length > 0
+                ) {
+                    setValue(
+                        "marginAnalysis",
+                        formData.details.marginAnalysis,
+                        { shouldValidate: true, shouldDirty: true },
+                    );
+                }
+
+                // 3. CRITICAL: Update the PDF Item Table (The "Items" array used by templates)
+                const allItems = screensWithLineItems.flatMap((s) =>
+                    (s.lineItems || []).map((li: any) => ({
+                        name: li.category,
+                        description:
+                            s.description || "Standard LED specification.",
+                        quantity: 1,
+                        unitPrice: li.price,
+                        total: li.price,
+                    })),
+                );
+                setValue("details.items", allItems, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                });
+            }
+        }
+
+        // 4. NEW: Store PricingDocument for Natalia Mirror Mode
+        const pricingDocument =
+            (data as any).pricingDocument ||
+            (data.formData?.details as any)?.pricingDocument;
+        if (pricingDocument) {
+            setValue("details.pricingDocument" as any, pricingDocument, {
+                shouldValidate: true,
+                shouldDirty: true,
+            });
+            // Auto-enable mirror mode when pricingDocument is available
+            setValue("details.pricingMode" as any, "MIRROR", {
+                shouldValidate: true,
+                shouldDirty: true,
+            });
+            // Mirror Mode: hide SOW (not relevant), keep specs visible for screen edits
+            setValue("details.showExhibitA", false, { shouldDirty: true });
+            console.log("[CONTEXT] PricingDocument stored for Mirror Mode");
+        }
+
+        // VISUAL VALIDATION: Compute diagnostics for the "Check Engine Light"
+        const diagnosticWarnings: string[] = [];
+        const diagnosticErrors: string[] = [];
+
+        const importedScreens = getValues("details.screens") || [];
+        const importedAudit = getValues("details.internalAudit") as any;
+        const auditTotal = Number(
+            importedAudit?.totals?.finalClientTotal ||
+            importedAudit?.totals?.sellPrice ||
+            0,
+        );
+
+        if (importedScreens.length === 0) {
+            diagnosticErrors.push(
+                "No display screens were extracted from the Excel file. Check that the LED Sheet tab exists and has valid rows.",
+            );
+        }
+        if (auditTotal === 0 && importedScreens.length > 0) {
+            diagnosticWarnings.push(
+                'Project total is $0.00. The Margin Analysis tab may be missing, or the total row could not be located. Check your Excel for a "Sub Total (Bid Form)" or "Grand Total" row.',
+            );
+        }
+        if (
+            !data.formData?.details?.marginAnalysis ||
+            data.formData.details.marginAnalysis.length === 0
+        ) {
+            diagnosticWarnings.push(
+                "No Margin Analysis sheet was found. Non-LED costs (structural, electrical, PM) will not appear in the proposal.",
+            );
+        }
+        const pricingDoc =
+            (data as any).pricingDocument ||
+            (data.formData?.details as any)?.pricingDocument;
+        if (!pricingDoc) {
+            diagnosticWarnings.push(
+                "Mirror Mode pricing data could not be extracted. The proposal will use Intelligence Mode calculations instead.",
+            );
+        }
+
+        setExcelDiagnostics({
+            warnings: diagnosticWarnings,
+            errors: diagnosticErrors,
+            totalOk: auditTotal > 0 && importedScreens.length > 0,
+        });
+
+        aiExtractionSuccess();
+        setActiveTab("audit");
+
+        // CRITICAL: Immediately save Excel data to database to prevent data loss
+        // Don't rely on auto-save debounce (2000ms delay) - user might navigate away
+        if (!skipSave) {
             try {
                 // Prompt 52: Pre-save diagnostic
                 const preCheck = getValues();
@@ -3317,7 +3320,7 @@ export const ProposalContextProvider = ({
                                 description: `Imported ${file.name}`,
                                 metadata: { fileName: file.name },
                             }),
-                        }).catch(() => {});
+                        }).catch(() => { });
                     }
                 }
             } catch (saveError) {
@@ -3751,15 +3754,15 @@ export const ProposalContextProvider = ({
                                 const ext = data.extractedData;
                                 const v = (x: any) =>
                                     x != null &&
-                                    typeof x === "object" &&
-                                    "value" in x
+                                        typeof x === "object" &&
+                                        "value" in x
                                         ? x.value
                                         : x;
                                 const c = (x: any) =>
                                     x != null &&
-                                    typeof x === "object" &&
-                                    "citation" in x &&
-                                    typeof (x as any).citation === "string"
+                                        typeof x === "object" &&
+                                        "citation" in x &&
+                                        typeof (x as any).citation === "string"
                                         ? (x as any).citation
                                         : undefined;
                                 const aiPopulated: string[] = [];
@@ -3900,7 +3903,7 @@ export const ProposalContextProvider = ({
                                                 );
                                                 const cit = c(
                                                     s.pixelResolutionH ??
-                                                        s.pixelsH,
+                                                    s.pixelsH,
                                                 );
                                                 if (cit)
                                                     citations[
@@ -3913,7 +3916,7 @@ export const ProposalContextProvider = ({
                                                 );
                                                 const cit = c(
                                                     s.pixelResolutionW ??
-                                                        s.pixelsW,
+                                                    s.pixelsW,
                                                 );
                                                 if (cit)
                                                     citations[
@@ -4007,7 +4010,7 @@ export const ProposalContextProvider = ({
                                             "details.clientSummary",
                                             clientSummary,
                                         );
-                                    } catch (e) {}
+                                    } catch (e) { }
                                 } else {
                                     setAiCitations((prev) => ({
                                         ...prev,
@@ -4046,9 +4049,9 @@ export const ProposalContextProvider = ({
                                 : x;
                         const c = (x: any) =>
                             x != null &&
-                            typeof x === "object" &&
-                            "citation" in x &&
-                            typeof (x as any).citation === "string"
+                                typeof x === "object" &&
+                                "citation" in x &&
+                                typeof (x as any).citation === "string"
                                 ? (x as any).citation
                                 : undefined;
                         const aiPopulated: string[] = [];
@@ -4365,8 +4368,8 @@ export const ProposalContextProvider = ({
             {/* Diagnostic overlay placed in provider so it can block the whole app */}
             {typeof window !== "undefined"
                 ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                  // @ts-ignore - dynamic require to avoid SSR issues
-                  require("@/app/components/DiagnosticOverlay").default()
+                // @ts-ignore - dynamic require to avoid SSR issues
+                require("@/app/components/DiagnosticOverlay").default()
                 : null}
         </ProposalContext.Provider>
     );
