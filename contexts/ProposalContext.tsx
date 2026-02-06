@@ -769,225 +769,54 @@ export const ProposalContextProvider = ({
     }, [watch, rulesDetected, getValues]);
 
     // Hydrate from initialData if provided (Server Component support)
+    // Prompt 53 Fix: initialData arrives in two possible shapes:
+    //   1. Form-shaped (from mapDbToFormSchema in page.tsx): { sender, receiver, details: { proposalId, screens, ... } }
+    //   2. Raw Prisma shape (legacy): { id, clientName, detailsData, senderData, ... }
+    // WizardWrapper already calls reset(initialData) for form-shaped data.
+    // This effect must NOT call reset() again for form-shaped data (it would clobber with wrong mapping).
     useEffect(() => {
-        // @ts-ignore
-        if (initialData && typeof reset === "function") {
-            const d = initialData;
-            console.log("Hydrating ProposalContext from Server Data:", d.id);
+        if (!initialData || typeof reset !== "function") return;
 
-            // Fetch RFP documents
-            if (d.id && d.id !== "new") {
-                fetch(`/api/rfp/upload?proposalId=${d.id}`)
-                    .then((res) => res.json())
-                    .then((data) => {
-                        if (data.docs) setRfpDocuments(data.docs);
-                    })
-                    .catch((e) => console.error("Failed to load RFP docs:", e));
+        // Detect shape: form-shaped has details.proposalId; Prisma-shaped has id at root
+        const isFormShaped = !!(initialData as any).details?.proposalId;
+        const effectiveId = isFormShaped
+            ? (initialData as any).details.proposalId
+            : (initialData as any).id;
+
+        console.log("[HYDRATE] initialData shape:", isFormShaped ? "form" : "prisma", "id:", effectiveId);
+
+        // Fetch RFP documents (both shapes need this)
+        if (effectiveId && effectiveId !== "new") {
+            fetch(`/api/rfp/upload?proposalId=${effectiveId}`)
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data.docs) setRfpDocuments(data.docs);
+                })
+                .catch((e) => console.error("Failed to load RFP docs:", e));
+        }
+
+        if (isFormShaped) {
+            // Form-shaped: WizardWrapper already called reset(initialData).
+            // Only hydrate side-effect state here — do NOT re-map or reset the form.
+            const det = (initialData as any).details || {};
+
+            if (det.aiWorkspaceSlug) {
+                setValue("details.aiWorkspaceSlug", det.aiWorkspaceSlug);
             }
 
-            // Map Prisma model to Form structure
-            // Ensure we explicitly map JSON fields
-            let details: any = {};
-            let sender: any = {};
-            let receiver: any = {};
-
-            try {
-                details =
-                    typeof d.detailsData === "string" &&
-                    d.detailsData.trim() !== ""
-                        ? JSON.parse(d.detailsData)
-                        : d.detailsData || {};
-            } catch (e) {
-                console.error("Error parsing detailsData:", e);
-            }
-
-            try {
-                sender =
-                    typeof d.senderData === "string" &&
-                    d.senderData.trim() !== ""
-                        ? JSON.parse(d.senderData)
-                        : d.senderData || {};
-            } catch (e) {
-                console.error("Error parsing senderData:", e);
-            }
-
-            try {
-                receiver =
-                    typeof d.receiverData === "string" &&
-                    d.receiverData.trim() !== ""
-                        ? JSON.parse(d.receiverData)
-                        : d.receiverData || {};
-            } catch (e) {
-                console.error("Error parsing receiverData:", e);
-            }
-
-            const mappedData: ProposalType = {
-                sender: {
-                    name: sender.name || FORM_DEFAULT_VALUES.sender.name,
-                    address:
-                        sender.address || FORM_DEFAULT_VALUES.sender.address,
-                    zipCode:
-                        sender.zipCode || FORM_DEFAULT_VALUES.sender.zipCode,
-                    city: sender.city || FORM_DEFAULT_VALUES.sender.city,
-                    country:
-                        sender.country || FORM_DEFAULT_VALUES.sender.country,
-                    email: sender.email || FORM_DEFAULT_VALUES.sender.email,
-                    phone: sender.phone || FORM_DEFAULT_VALUES.sender.phone,
-                    customInputs: sender.customInputs || [],
-                },
-                receiver: {
-                    name: receiver.name || FORM_DEFAULT_VALUES.receiver.name,
-                    address:
-                        receiver.address ||
-                        FORM_DEFAULT_VALUES.receiver.address,
-                    zipCode:
-                        receiver.zipCode ||
-                        FORM_DEFAULT_VALUES.receiver.zipCode,
-                    city: receiver.city || FORM_DEFAULT_VALUES.receiver.city,
-                    country:
-                        receiver.country ||
-                        FORM_DEFAULT_VALUES.receiver.country,
-                    email: receiver.email || FORM_DEFAULT_VALUES.receiver.email,
-                    phone: receiver.phone || FORM_DEFAULT_VALUES.receiver.phone,
-                    customInputs: receiver.customInputs || [],
-                },
-                details: {
-                    proposalId: d.id, // Use DB ID
-                    proposalNumber: d.id, // Legacy compat
-                    proposalName: details.proposalName || d.proposalName || "",
-                    proposalDate:
-                        details.proposalDate || new Date().toISOString(),
-                    dueDate: details.dueDate || new Date().toISOString(),
-                    items: details.items || [],
-                    currency: details.currency || "USD",
-                    language: "English",
-                    taxDetails:
-                        details.taxDetails ||
-                        FORM_DEFAULT_VALUES.details.taxDetails,
-                    discountDetails:
-                        details.discountDetails ||
-                        FORM_DEFAULT_VALUES.details.discountDetails,
-                    shippingDetails:
-                        details.shippingDetails ||
-                        FORM_DEFAULT_VALUES.details.shippingDetails,
-                    paymentInformation:
-                        details.paymentInformation ||
-                        FORM_DEFAULT_VALUES.details.paymentInformation,
-                    additionalNotes: details.additionalNotes || "",
-                    paymentTerms: details.paymentTerms || "Net 30", // Default if missing
-                    pdfTemplate: details.pdfTemplate || 5, // Default to Standard (Hybrid) template
-                    venue: details.venue || "Generic",
-                    subTotal: details.subTotal || 0,
-                    totalAmount: details.totalAmount || 0,
-                    totalAmountInWords: details.totalAmountInWords || "",
-                    // Critical: Screens
-                    screens: d.screens
-                        ? d.screens.map((s: any) => ({
-                              ...s,
-                              pitchMm: Number(s.pitchMm || 0),
-                              widthFt: Number(s.widthFt || 0),
-                              heightFt: Number(s.heightFt || 0),
-                              quantity: Number(s.quantity || 1),
-                          }))
-                        : details.screens || [],
-                    clientName: d.clientName || "",
-                    workspaceId: d.workspaceId || "",
-                    aiWorkspaceSlug: d.aiWorkspaceSlug || null, // Hydrate the workspace slug!
-                    internalAudit:
-                        details.internalAudit ||
-                        FORM_DEFAULT_VALUES.details.internalAudit,
-                    clientSummary:
-                        details.clientSummary ||
-                        FORM_DEFAULT_VALUES.details.clientSummary,
-                    documentType: d.documentType || "First Round",
-                    pricingType: d.pricingType || "Budget",
-                    documentMode:
-                        details.documentMode ||
-                        (d.documentType === "LOI"
-                            ? "LOI"
-                            : d.pricingType === "Hard Quoted"
-                              ? "PROPOSAL"
-                              : "BUDGET"),
-                    mirrorMode:
-                        d.mirrorMode ?? FORM_DEFAULT_VALUES.details.mirrorMode,
-                    calculationMode:
-                        d.calculationMode ||
-                        FORM_DEFAULT_VALUES.details.calculationMode, // Hydrate calculation mode
-                    taxRateOverride:
-                        d.taxRateOverride ??
-                        details.taxRateOverride ??
-                        FORM_DEFAULT_VALUES.details.taxRateOverride,
-                    bondRateOverride:
-                        d.bondRateOverride ??
-                        details.bondRateOverride ??
-                        FORM_DEFAULT_VALUES.details.bondRateOverride,
-                    overheadRate: details.overheadRate ?? 0.1,
-                    profitRate: details.profitRate ?? 0.05,
-                    quoteItems:
-                        details.quoteItems ??
-                        FORM_DEFAULT_VALUES.details.quoteItems,
-                    includePricingBreakdown:
-                        details.includePricingBreakdown ?? false, // Default: show pricing
-                    showPricingTables:
-                        (details as any).showPricingTables ?? true,
-                    showIntroText: (details as any).showIntroText ?? true,
-                    showBaseBidTable:
-                        (details as any).showBaseBidTable ?? false,
-                    showSpecifications:
-                        (details as any).showSpecifications ?? true,
-                    showCompanyFooter:
-                        (details as any).showCompanyFooter ?? true,
-                    showPaymentTerms: details.showPaymentTerms ?? true,
-                    showSignatureBlock: details.showSignatureBlock ?? true,
-                    showAssumptions: details.showAssumptions ?? false,
-                    showExhibitA: details.showExhibitA ?? false,
-                    showExhibitB: details.showExhibitB ?? false,
-                    showNotes: (details as any).showNotes ?? true,
-                    showScopeOfWork: (details as any).showScopeOfWork ?? false,
-                    // FR-4.1 & FR-4.2: Manual overrides
-                    tableHeaderOverrides:
-                        (details as any).tableHeaderOverrides ?? {},
-                    customProposalNotes:
-                        (details as any).customProposalNotes ?? "",
-                },
-            };
-
-            reset(mappedData);
-            // Force update the slug state if needed
-            setValue("details.aiWorkspaceSlug", d.aiWorkspaceSlug);
-
-            // Hydrate calculation mode from database
             setCalculationModeState(
-                d.calculationMode ||
-                    FORM_DEFAULT_VALUES.details.calculationMode,
+                det.calculationMode || FORM_DEFAULT_VALUES.details.calculationMode,
             );
 
-            // Cleanup AI state on project switch
+            // Reset AI state for clean project load
             setAiMessages([]);
-            setAiFields(
-                d.aiFilledFields ||
-                    details.metadata?.aiFilledFields ||
-                    details.metadata?.filledByAI ||
-                    [],
-            ); // Hydrate AI fields
-            setAiCitations(
-                (d.aiCitations as Record<string, string>) ||
-                    details.metadata?.aiCitations ||
-                    {},
-            ); // Hydrate citations for Blue Glow tooltips
-            setVerifiedFields(
-                (d.verifiedFields as any) ||
-                    details.metadata?.verifiedFields ||
-                    {},
-            ); // Hydrate Verified fields
+            setAiFields([]);
+            setAiCitations({});
+            setVerifiedFields({});
             setProposalPdf(new Blob());
 
-            // BUG FIX: New projects must start with no Excel. If this project has no pricingDocument
-            // (e.g. freshly created or never had Excel), clear all Excel/upload state and localStorage
-            // so the Setup step shows an empty "Drop your Excel here" instead of stale workbook data.
-            const hasNoExcel =
-                !(d.details && (d.details as any).pricingDocument) &&
-                !(d.details && (d.details as any).marginAnalysis);
+            // Excel cleanup for projects without pricing data
+            const hasNoExcel = !det.pricingDocument && !(initialData as any).marginAnalysis;
             if (hasNoExcel) {
                 hadExcelPreviewRef.current = false;
                 setExcelPreview(null);
@@ -999,10 +828,227 @@ export const ProposalContextProvider = ({
                         window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
                         window.localStorage.removeItem(getExcelPreviewStorageKey("new"));
                         if (projectId) window.localStorage.removeItem(getExcelPreviewStorageKey(projectId));
-                        if (d.id) window.localStorage.removeItem(getExcelPreviewStorageKey(d.id));
+                        if (effectiveId) window.localStorage.removeItem(getExcelPreviewStorageKey(effectiveId));
                     } catch (e) {
-                        console.warn("[EXCEL] Failed to clear storage for clean project:", e);
+                        console.warn("[EXCEL] Failed to clear storage:", e);
                     }
+                }
+            }
+            return; // Skip legacy Prisma re-mapping path
+        }
+
+        // Legacy path: initialData is raw Prisma model shape (d.detailsData, d.senderData, etc.)
+        const d = initialData as any;
+        console.log("Hydrating ProposalContext from Server Data (legacy):", d.id);
+
+        let details: any = {};
+        let sender: any = {};
+        let receiver: any = {};
+
+        try {
+            details =
+                typeof d.detailsData === "string" &&
+                d.detailsData.trim() !== ""
+                    ? JSON.parse(d.detailsData)
+                    : d.detailsData || {};
+        } catch (e) {
+            console.error("Error parsing detailsData:", e);
+        }
+
+        try {
+            sender =
+                typeof d.senderData === "string" &&
+                d.senderData.trim() !== ""
+                    ? JSON.parse(d.senderData)
+                    : d.senderData || {};
+        } catch (e) {
+            console.error("Error parsing senderData:", e);
+        }
+
+        try {
+            receiver =
+                typeof d.receiverData === "string" &&
+                d.receiverData.trim() !== ""
+                    ? JSON.parse(d.receiverData)
+                    : d.receiverData || {};
+        } catch (e) {
+            console.error("Error parsing receiverData:", e);
+        }
+
+        const mappedData: ProposalType = {
+            sender: {
+                name: sender.name || FORM_DEFAULT_VALUES.sender.name,
+                address:
+                    sender.address || FORM_DEFAULT_VALUES.sender.address,
+                zipCode:
+                    sender.zipCode || FORM_DEFAULT_VALUES.sender.zipCode,
+                city: sender.city || FORM_DEFAULT_VALUES.sender.city,
+                country:
+                    sender.country || FORM_DEFAULT_VALUES.sender.country,
+                email: sender.email || FORM_DEFAULT_VALUES.sender.email,
+                phone: sender.phone || FORM_DEFAULT_VALUES.sender.phone,
+                customInputs: sender.customInputs || [],
+            },
+            receiver: {
+                name: receiver.name || FORM_DEFAULT_VALUES.receiver.name,
+                address:
+                    receiver.address ||
+                    FORM_DEFAULT_VALUES.receiver.address,
+                zipCode:
+                    receiver.zipCode ||
+                    FORM_DEFAULT_VALUES.receiver.zipCode,
+                city: receiver.city || FORM_DEFAULT_VALUES.receiver.city,
+                country:
+                    receiver.country ||
+                    FORM_DEFAULT_VALUES.receiver.country,
+                email: receiver.email || FORM_DEFAULT_VALUES.receiver.email,
+                phone: receiver.phone || FORM_DEFAULT_VALUES.receiver.phone,
+                customInputs: receiver.customInputs || [],
+            },
+            details: {
+                proposalId: d.id, // Use DB ID
+                proposalNumber: d.id, // Legacy compat
+                proposalName: details.proposalName || d.proposalName || "",
+                proposalDate:
+                    details.proposalDate || new Date().toISOString(),
+                dueDate: details.dueDate || new Date().toISOString(),
+                items: details.items || [],
+                currency: details.currency || "USD",
+                language: "English",
+                taxDetails:
+                    details.taxDetails ||
+                    FORM_DEFAULT_VALUES.details.taxDetails,
+                discountDetails:
+                    details.discountDetails ||
+                    FORM_DEFAULT_VALUES.details.discountDetails,
+                shippingDetails:
+                    details.shippingDetails ||
+                    FORM_DEFAULT_VALUES.details.shippingDetails,
+                paymentInformation:
+                    details.paymentInformation ||
+                    FORM_DEFAULT_VALUES.details.paymentInformation,
+                additionalNotes: details.additionalNotes || "",
+                paymentTerms: details.paymentTerms || "Net 30", // Default if missing
+                pdfTemplate: details.pdfTemplate || 5, // Default to Standard (Hybrid) template
+                venue: details.venue || "Generic",
+                subTotal: details.subTotal || 0,
+                totalAmount: details.totalAmount || 0,
+                totalAmountInWords: details.totalAmountInWords || "",
+                // Critical: Screens
+                screens: d.screens
+                    ? d.screens.map((s: any) => ({
+                          ...s,
+                          pitchMm: Number(s.pitchMm || 0),
+                          widthFt: Number(s.widthFt || 0),
+                          heightFt: Number(s.heightFt || 0),
+                          quantity: Number(s.quantity || 1),
+                      }))
+                    : details.screens || [],
+                clientName: d.clientName || "",
+                workspaceId: d.workspaceId || "",
+                aiWorkspaceSlug: d.aiWorkspaceSlug || null,
+                internalAudit:
+                    details.internalAudit ||
+                    FORM_DEFAULT_VALUES.details.internalAudit,
+                clientSummary:
+                    details.clientSummary ||
+                    FORM_DEFAULT_VALUES.details.clientSummary,
+                documentType: d.documentType || "First Round",
+                pricingType: d.pricingType || "Budget",
+                documentMode:
+                    details.documentMode ||
+                    (d.documentType === "LOI"
+                        ? "LOI"
+                        : d.pricingType === "Hard Quoted"
+                          ? "PROPOSAL"
+                          : "BUDGET"),
+                mirrorMode:
+                    d.mirrorMode ?? FORM_DEFAULT_VALUES.details.mirrorMode,
+                calculationMode:
+                    d.calculationMode ||
+                    FORM_DEFAULT_VALUES.details.calculationMode,
+                taxRateOverride:
+                    d.taxRateOverride ??
+                    details.taxRateOverride ??
+                    FORM_DEFAULT_VALUES.details.taxRateOverride,
+                bondRateOverride:
+                    d.bondRateOverride ??
+                    details.bondRateOverride ??
+                    FORM_DEFAULT_VALUES.details.bondRateOverride,
+                overheadRate: details.overheadRate ?? 0.1,
+                profitRate: details.profitRate ?? 0.05,
+                quoteItems:
+                    details.quoteItems ??
+                    FORM_DEFAULT_VALUES.details.quoteItems,
+                includePricingBreakdown:
+                    details.includePricingBreakdown ?? false,
+                showPricingTables:
+                    (details as any).showPricingTables ?? true,
+                showIntroText: (details as any).showIntroText ?? true,
+                showBaseBidTable:
+                    (details as any).showBaseBidTable ?? false,
+                showSpecifications:
+                    (details as any).showSpecifications ?? true,
+                showCompanyFooter:
+                    (details as any).showCompanyFooter ?? true,
+                showPaymentTerms: details.showPaymentTerms ?? true,
+                showSignatureBlock: details.showSignatureBlock ?? true,
+                showAssumptions: details.showAssumptions ?? false,
+                showExhibitA: details.showExhibitA ?? false,
+                showExhibitB: details.showExhibitB ?? false,
+                showNotes: (details as any).showNotes ?? true,
+                showScopeOfWork: (details as any).showScopeOfWork ?? false,
+                tableHeaderOverrides:
+                    (details as any).tableHeaderOverrides ?? {},
+                customProposalNotes:
+                    (details as any).customProposalNotes ?? "",
+            },
+        };
+
+        reset(mappedData);
+        setValue("details.aiWorkspaceSlug", d.aiWorkspaceSlug);
+
+        setCalculationModeState(
+            d.calculationMode ||
+                FORM_DEFAULT_VALUES.details.calculationMode,
+        );
+
+        setAiMessages([]);
+        setAiFields(
+            d.aiFilledFields ||
+                details.metadata?.aiFilledFields ||
+                details.metadata?.filledByAI ||
+                [],
+        );
+        setAiCitations(
+            (d.aiCitations as Record<string, string>) ||
+                details.metadata?.aiCitations ||
+                {},
+        );
+        setVerifiedFields(
+            (d.verifiedFields as any) ||
+                details.metadata?.verifiedFields ||
+                {},
+        );
+        setProposalPdf(new Blob());
+
+        const hasNoExcel =
+            !(d.details && (d.details as any).pricingDocument) &&
+            !(d.details && (d.details as any).marginAnalysis);
+        if (hasNoExcel) {
+            hadExcelPreviewRef.current = false;
+            setExcelPreview(null);
+            setExcelValidationOk(false);
+            setExcelSourceData(null);
+            setExcelDiagnostics(null);
+            if (typeof window !== "undefined") {
+                try {
+                    window.localStorage.removeItem(getExcelPreviewStorageKey("draft"));
+                    window.localStorage.removeItem(getExcelPreviewStorageKey("new"));
+                    if (projectId) window.localStorage.removeItem(getExcelPreviewStorageKey(projectId));
+                    if (d.id) window.localStorage.removeItem(getExcelPreviewStorageKey(d.id));
+                } catch (e) {
+                    console.warn("[EXCEL] Failed to clear storage for clean project:", e);
                 }
             }
         }
