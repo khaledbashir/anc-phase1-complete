@@ -30,7 +30,7 @@ export const CURRENCIES_API =
  * Centralized hardcoded base URL with strict /api/v1 versioning
  * All AnythingLLM calls MUST use this constant - Lead Protocol
  */
-const rawUrl = process.env.ANYTHING_LLM_URL || 'https://basheer-anything-llm.c9tnyg.easypanel.host';
+const rawUrl = process.env.ANYTHING_LLM_URL || 'https://basheer-anything-llm.prd42b.easypanel.host';
 export const ANYTHING_LLM_BASE_URL = rawUrl.endsWith('/api/v1') ? rawUrl : `${rawUrl}/api/v1`;
 export const ANYTHING_LLM_KEY = process.env.ANYTHING_LLM_KEY;
 
