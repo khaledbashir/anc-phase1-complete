@@ -87,6 +87,10 @@ export function useAutoSave({
                     pricingDocument: (formData.details as any)?.pricingDocument,
                     marginAnalysis: (formData as any)?.marginAnalysis,
                     pricingMode: (formData.details as any)?.pricingMode,
+                    paymentTerms: (formData.details as any)?.paymentTerms,
+                    additionalNotes: (formData.details as any)?.additionalNotes,
+                    signatureBlockText: (formData.details as any)?.signatureBlockText,
+                    loiHeaderText: (formData.details as any)?.loiHeaderText,
                 }),
             });
 

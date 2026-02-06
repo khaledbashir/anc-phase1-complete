@@ -37,6 +37,7 @@ const Screens = () => {
     const additionalNotes = useWatch({ control, name: "details.additionalNotes" }) || "";
     const scopeOfWorkText = useWatch({ control, name: "details.scopeOfWorkText" }) || "";
     const signatureBlockText = useWatch({ control, name: "details.signatureBlockText" }) || "";
+    const loiHeaderText = useWatch({ control, name: "details.loiHeaderText" }) || "";
     const specsSectionTitle = useWatch({ control, name: "details.specsSectionTitle" }) || "";
     
     // Count how many fields have custom content
@@ -45,9 +46,21 @@ const Screens = () => {
         paymentTerms,
         additionalNotes,
         scopeOfWorkText,
-        signatureBlockText
+        signatureBlockText,
+        loiHeaderText
     ].filter(Boolean).length;
     
+    // Default LOI header paragraph (placeholders substituted on "Load default")
+    const getDefaultLoiHeaderText = () => {
+        const r = getValues("receiver");
+        const d = getValues("details");
+        const clientName = (r?.name || "").toString().trim() || "Purchaser";
+        const parts = [r?.address, r?.city, r?.zipCode].filter(Boolean);
+        const clientAddress = parts.length > 0 ? parts.join(", ") : "[Client Address]";
+        const projectName = (d?.proposalName || "").toString().trim() || "[Project Name]";
+        return `This Sales Quotation will set forth the terms by which ${clientName} ("Purchaser") located at ${clientAddress} and ANC Sports Enterprises, LLC ("ANC") located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for the ${projectName}.`;
+    };
+
     // Default legal text for signature block
     const defaultSignatureText = `Please sign below to indicate Purchaser's agreement to purchase the Display System as described herein and to authorize ANC to commence production.
 
@@ -291,6 +304,33 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                             
                             {/* LOI Tab */}
                             <TabsContent value="loi" className="space-y-4 mt-4">
+                                {/* LOI Header Paragraph - at TOP of LOI tab only */}
+                                <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-xs font-medium text-muted-foreground">
+                                            LOI Header Paragraph
+                                        </Label>
+                                        {!loiHeaderText && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setValue("details.loiHeaderText", getDefaultLoiHeaderText(), { shouldDirty: true })}
+                                                className="text-[10px] text-primary hover:underline"
+                                            >
+                                                Load default
+                                            </button>
+                                        )}
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground">
+                                        Opening legal paragraph that appears at the top of the LOI.
+                                    </p>
+                                    <Textarea
+                                        placeholder="This Sales Quotation will set forth the terms by which..."
+                                        value={loiHeaderText}
+                                        onChange={(e) => setValue("details.loiHeaderText", e.target.value, { shouldDirty: true })}
+                                        className="min-h-[100px] text-sm bg-background border-border resize-none"
+                                    />
+                                </div>
+
                                 {/* Payment Terms */}
                                 <div className="space-y-1.5">
                                     <Label className="text-xs font-medium text-muted-foreground">

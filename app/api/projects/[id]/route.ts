@@ -97,6 +97,7 @@ export async function PATCH(
             paymentTerms,
             additionalNotes,
             signatureBlockText, // Bug #4: Signature block text persistence
+            loiHeaderText,      // LOI opening legal paragraph (Prompt 10)
             customProposalNotes, // Bug #5: Custom proposal notes persistence
             createSnapshot, // NEW: Flag to create a version snapshot
             totalSellingPrice, // NEW: For version history
@@ -190,6 +191,7 @@ export async function PATCH(
         if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms;
         if (additionalNotes !== undefined) updateData.additionalNotes = additionalNotes;
         if (signatureBlockText !== undefined) updateData.signatureBlockText = signatureBlockText;
+        if (loiHeaderText !== undefined) updateData.loiHeaderText = loiHeaderText;
         if (customProposalNotes !== undefined) updateData.customProposalNotes = customProposalNotes;
         if (pricingDocument !== undefined) updateData.pricingDocument = pricingDocument;
         if (marginAnalysis !== undefined) updateData.marginAnalysis = marginAnalysis;

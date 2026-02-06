@@ -100,6 +100,7 @@ function mapDbToFormSchema(dbProject: any) {
             // FR-4.1 & FR-4.2: Manual overrides
             tableHeaderOverrides: dbProject.tableHeaderOverrides || {},
             customProposalNotes: dbProject.customProposalNotes || "",
+            loiHeaderText: dbProject.loiHeaderText || "",
             // Excel Mirror Mode: Restore pricing data from DB
             pricingDocument: dbProject.pricingDocument || undefined,
             pricingMode: dbProject.pricingMode || "STANDARD",

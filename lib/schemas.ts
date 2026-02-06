@@ -348,6 +348,8 @@ const ProposalDetailsSchema = z.object({
     customProposalNotes: z.string().optional(),
     // FR-4.3: Editable Introduction Text (custom header blurb with currency disclaimers)
     introductionText: z.string().optional(),
+    // Prompt 10: LOI opening legal paragraph (editable in LOI tab of Document Text Settings)
+    loiHeaderText: z.string().optional(),
 });
 
 const ProposalSchema = z.object({

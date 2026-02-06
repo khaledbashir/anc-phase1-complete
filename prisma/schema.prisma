@@ -93,6 +93,7 @@ model Proposal {
   paymentTerms         String?
   additionalNotes      String?
   signatureBlockText   String?             // Bug #4: Persisted signature block text for LOI
+  loiHeaderText        String?             // LOI opening legal paragraph (Prompt 10)
   customProposalNotes  String?             // Bug #5: Persisted custom proposal notes
   status               ProposalStatus      @default(DRAFT)
   calculationMode      CalculationMode     @default(INTELLIGENCE)

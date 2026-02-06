@@ -560,7 +560,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             {showIntroText && (
                 <div className="px-6 mb-6 break-inside-avoid">
                     <div className="text-sm leading-relaxed" style={{ color: colors.textMuted }}>
-                        {customIntroText?.trim() ? (
+                        {(documentMode === "LOI" && (details as any)?.loiHeaderText?.trim()) ? (
+                            <p className="text-justify whitespace-pre-wrap">{(details as any).loiHeaderText.trim()}</p>
+                        ) : customIntroText?.trim() ? (
                             <p className="text-justify whitespace-pre-wrap">{customIntroText.trim()}</p>
                         ) : documentMode === "LOI" ? (
                             <p className="text-justify">
