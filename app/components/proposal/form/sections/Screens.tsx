@@ -31,7 +31,7 @@ const Screens = () => {
 
     // Selection for bulk delete
     const [selectedIndices, setSelectedIndices] = useState<Set<number>>(new Set());
-    
+
     // Watch current values
     const paymentTerms = useWatch({ control, name: "details.paymentTerms" }) || "";
     const additionalNotes = useWatch({ control, name: "details.additionalNotes" }) || "";
@@ -39,7 +39,7 @@ const Screens = () => {
     const signatureBlockText = useWatch({ control, name: "details.signatureBlockText" }) || "";
     const loiHeaderText = useWatch({ control, name: "details.loiHeaderText" }) || "";
     const specsSectionTitle = useWatch({ control, name: "details.specsSectionTitle" }) || "";
-    
+
     // Count how many fields have custom content
     const customFieldsCount = [
         specsSectionTitle,
@@ -49,7 +49,7 @@ const Screens = () => {
         signatureBlockText,
         loiHeaderText
     ].filter(Boolean).length;
-    
+
     // Default LOI header paragraph (placeholders substituted on "Load default")
     const getDefaultLoiHeaderText = () => {
         const r = getValues("receiver");
@@ -85,6 +85,24 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
             isReplacement: false,
             useExistingStructure: false,
             includeSpareParts: false,
+            isManualLineItem: false,
+        });
+    };
+
+    const addNewManualLineItem = () => {
+        append({
+            name: "",
+            productType: "Manual Item",
+            quantity: 1,
+            desiredMargin: 0.25,
+            isManualLineItem: true,
+            manualCost: 0,
+            widthFt: 0,
+            heightFt: 0,
+            pitchMm: 0,
+            isReplacement: false,
+            useExistingStructure: false,
+            includeSpareParts: false,
         });
     };
 
@@ -102,7 +120,7 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
             title: "Screen removed",
             description: `"${deletedScreen?.name || 'Untitled Screen'}" has been deleted.`,
             action: (
-                <ToastAction 
+                <ToastAction
                     altText="Undo"
                     onClick={() => {
                         append(deletedScreen, { shouldFocus: false });
@@ -222,10 +240,16 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                 ))}
             </div>
 
-            <BaseButton tooltipLabel="Add a new screen" onClick={addNewScreen}>
-                <Plus />
-                {_t("form.steps.screens.addNewScreen")}
-            </BaseButton>
+            <div className="grid grid-cols-2 gap-3">
+                <BaseButton tooltipLabel="Add a new screen" onClick={addNewScreen} className="w-full">
+                    <Plus className="w-4 h-4" />
+                    {_t("form.steps.screens.addNewScreen")}
+                </BaseButton>
+                <BaseButton variant="outline" tooltipLabel="Add a non-display line item (Manual Cost/Margin)" onClick={addNewManualLineItem} className="w-full">
+                    <Plus className="w-4 h-4" />
+                    Add Line Item
+                </BaseButton>
+            </div>
 
             {/* Document Settings with Tabs */}
             <div className="mt-4">
@@ -245,7 +269,7 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                     </div>
                     {showDocSettings ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                 </button>
-                
+
                 {showDocSettings && (
                     <div className="mt-2 p-4 bg-card border border-border rounded-lg animate-in fade-in slide-in-from-top-2 duration-200">
                         <Tabs defaultValue="budget" className="w-full">
@@ -263,7 +287,7 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                                     LOI
                                 </TabsTrigger>
                             </TabsList>
-                            
+
                             {/* Budget Tab */}
                             <TabsContent value="budget" className="space-y-4 mt-4">
                                 <div className="space-y-1.5">
@@ -282,7 +306,7 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                                     </p>
                                 </div>
                             </TabsContent>
-                            
+
                             {/* Proposal Tab */}
                             <TabsContent value="proposal" className="space-y-4 mt-4">
                                 <div className="space-y-1.5">
@@ -301,7 +325,7 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                                     </p>
                                 </div>
                             </TabsContent>
-                            
+
                             {/* LOI Tab */}
                             <TabsContent value="loi" className="space-y-4 mt-4">
                                 {/* LOI Header Paragraph - at TOP of LOI tab only */}

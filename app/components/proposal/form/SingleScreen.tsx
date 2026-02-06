@@ -65,6 +65,8 @@ const SingleScreen = ({
     const quantity = useWatch({ name: `${name}[${index}].quantity`, control });
     const pitch = useWatch({ name: `${name}[${index}].pitchMm`, control });
     const desiredMargin = useWatch({ name: `${name}[${index}].desiredMargin`, control });
+    const isManualLineItem = useWatch({ name: `${name}[${index}].isManualLineItem`, control });
+    const manualCost = useWatch({ name: `${name}[${index}].manualCost`, control });
 
     // Watch the audit result for this screen
     const audit = useWatch({ name: `details.internalAudit.perScreen[${index}]`, control });
@@ -138,9 +140,15 @@ const SingleScreen = ({
                             #{index + 1} - {screenName || "Untitled Screen"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                            {width > 0 && height > 0 ? `${formatDimension(Number(width))}' × ${formatDimension(Number(height))}'` : "No dimensions"}
-                            {quantity > 1 && ` × ${quantity}`}
-                            {pitch > 0 && ` • ${pitch}mm pitch`}
+                            {isManualLineItem ? (
+                                <span className="text-amber-500 font-medium">Manual Line Item</span>
+                            ) : (
+                                <>
+                                    {width > 0 && height > 0 ? `${formatDimension(Number(width))}' × ${formatDimension(Number(height))}'` : "No dimensions"}
+                                    {quantity > 1 && ` × ${quantity}`}
+                                    {pitch > 0 && ` • ${pitch}mm pitch`}
+                                </>
+                            )}
                         </p>
                     </div>
 
@@ -296,8 +304,8 @@ const SingleScreen = ({
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                         <FormInput
                             name={`${name}[${index}].name`}
-                            label="Screen Name"
-                            placeholder="e.g., Main Scoreboard"
+                            label={isManualLineItem ? "Description" : "Screen Name"}
+                            placeholder={isManualLineItem ? "e.g., Installation Surcharge" : "e.g., Main Scoreboard"}
                             vertical
                         />
                         <FormInput
@@ -307,21 +315,31 @@ const SingleScreen = ({
                             placeholder="e.g., Ribbon - North Upper"
                             vertical
                         />
-                        {FEATURES.INTELLIGENCE_MODE && (
-                        <FormInput
-                            name={`${name}[${index}].productType`}
-                            label="Product Type"
-                            placeholder="e.g., A Series"
-                            vertical
-                        />
+                        {isManualLineItem ? (
+                            <FormInput
+                                name={`${name}[${index}].manualCost`}
+                                label="Internal Cost ($)"
+                                type="number"
+                                vertical
+                            />
+                        ) : (
+                            FEATURES.INTELLIGENCE_MODE && (
+                                <FormInput
+                                    name={`${name}[${index}].productType`}
+                                    label="Product Type"
+                                    placeholder="e.g., A Series"
+                                    vertical
+                                />
+                            )
                         )}
 
                         <div className="flex flex-col gap-1">
                             <Label className="text-[11px] text-muted-foreground font-medium">Service Type</Label>
                             <select
                                 {...register(`${name}[${index}].serviceType`)}
+                                disabled={isManualLineItem}
                                 className={cn(
-                                    "h-9 px-3 text-sm border rounded-md bg-background w-full focus:ring-1 focus:ring-[#0A52EF] focus:outline-none transition-all",
+                                    "h-9 px-3 text-sm border rounded-md bg-background w-full focus:ring-1 focus:ring-[#0A52EF] focus:outline-none transition-all disabled:opacity-50",
                                     aiFields?.includes(`${name}[${index}].serviceType`) ? "border-[#0A52EF] ring-1 ring-[#0A52EF]" : "border-input"
                                 )}
                             >
@@ -334,8 +352,9 @@ const SingleScreen = ({
                             <Label className="text-[11px] text-muted-foreground font-medium">Form Factor</Label>
                             <select
                                 {...register(`${name}[${index}].formFactor`)}
+                                disabled={isManualLineItem}
                                 className={cn(
-                                    "h-9 px-3 text-sm border rounded-md bg-background w-full focus:ring-1 focus:ring-[#0A52EF] focus:outline-none transition-all",
+                                    "h-9 px-3 text-sm border rounded-md bg-background w-full focus:ring-1 focus:ring-[#0A52EF] focus:outline-none transition-all disabled:opacity-50",
                                     aiFields?.includes(`${name}[${index}].formFactor`) ? "border-[#0A52EF] ring-1 ring-[#0A52EF]" : "border-input"
                                 )}
                             >
@@ -345,42 +364,44 @@ const SingleScreen = ({
                         </div>
                     </div>
 
-                    {/* Dimensions Row */}
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                        <FormInput
-                            name={`${name}[${index}].widthFt`}
-                            label="Width (ft)"
-                            type="number"
-                            vertical
-                        />
-                        <FormInput
-                            name={`${name}[${index}].heightFt`}
-                            label="Height (ft)"
-                            type="number"
-                            vertical
-                        />
+                    {/* Dimensions Row - Hidden for Manual Items */}
+                    {!isManualLineItem && (
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                            <FormInput
+                                name={`${name}[${index}].widthFt`}
+                                label="Width (ft)"
+                                type="number"
+                                vertical
+                            />
+                            <FormInput
+                                name={`${name}[${index}].heightFt`}
+                                label="Height (ft)"
+                                type="number"
+                                vertical
+                            />
 
-                        <FormInput
-                            name={`${name}[${index}].quantity`}
-                            label="Quantity"
-                            type="number"
-                            vertical
-                        />
+                            <FormInput
+                                name={`${name}[${index}].quantity`}
+                                label="Quantity"
+                                type="number"
+                                vertical
+                            />
 
-                        <FormInput
-                            name={`${name}[${index}].pitchMm`}
-                            label="Pitch (mm)"
-                            type="number"
-                            vertical
-                        />
+                            <FormInput
+                                name={`${name}[${index}].pitchMm`}
+                                label="Pitch (mm)"
+                                type="number"
+                                vertical
+                            />
 
-                        <FormInput
-                            name={`${name}[${index}].brightness`}
-                            label="Brightness"
-                            placeholder="e.g., 6000"
-                            vertical
-                        />
-                    </div>
+                            <FormInput
+                                name={`${name}[${index}].brightness`}
+                                label="Brightness"
+                                placeholder="e.g., 6000"
+                                vertical
+                            />
+                        </div>
+                    )}
 
                     {/* Desired Margin Toggle */}
                     <button
@@ -513,19 +534,31 @@ const SingleScreen = ({
 
                     {/* Live Stats Footer */}
                     <div className="flex items-center gap-6 pt-3 border-t border-border text-xs">
-                        <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">Area:</span>
-                            <span className="font-medium text-foreground">{area} sq ft</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">Price/SqFt:</span>
-                            <span className="font-medium text-[#0A52EF]">
-                                {sellingPricePerSqFt > 0
-                                    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(sellingPricePerSqFt)
-                                    : "—"
-                                }
-                            </span>
-                        </div>
+                        {!isManualLineItem && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">Area:</span>
+                                <span className="font-medium text-foreground">{area} sq ft</span>
+                            </div>
+                        )}
+                        {!isManualLineItem && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">Price/SqFt:</span>
+                                <span className="font-medium text-[#0A52EF]">
+                                    {sellingPricePerSqFt > 0
+                                        ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(sellingPricePerSqFt)
+                                        : "—"
+                                    }
+                                </span>
+                            </div>
+                        )}
+                        {isManualLineItem && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground">Internal Cost:</span>
+                                <span className="font-medium text-foreground">
+                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(manualCost || 0)}
+                                </span>
+                            </div>
+                        )}
                         <div className="ml-auto flex items-center gap-2">
                             {hasErrors ? (
                                 <>
@@ -537,7 +570,7 @@ const SingleScreen = ({
                                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                     <span className="text-emerald-400">Ready</span>
                                 </>
-                            ) : isMissingDimensions ? (
+                            ) : (!isManualLineItem && isMissingDimensions) ? (
                                 <span className="text-muted-foreground">Add dimensions to calculate</span>
                             ) : null}
                         </div>

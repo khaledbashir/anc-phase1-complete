@@ -187,6 +187,8 @@ export interface ScreenInput {
   useExistingStructure?: boolean;
   includeSpareParts?: boolean;
   sparePartsPercentage?: number; // 0.02 for 2%, 0.05 for 5% (default: 0.05 if includeSpareParts is true)
+  isManualLineItem?: boolean;
+  manualCost?: number;
   aiSource?: any;
 }
 
@@ -408,11 +410,15 @@ export function calculatePerScreenAudit(
   const area = roundToCents(height.times(width));
   const totalArea = roundToCents(area.times(qty)); // Total project area
 
+  const hardwareBase = s.isManualLineItem && s.manualCost !== undefined
+    ? new Decimal(s.manualCost)
+    : roundToCents(area.times(costPerSqFt));
+
   // Ferrari Logic 1: Spare Parts (RFP Exhibit A, Page 11) - Dynamic percentage based on risk detection
-  const hardwareBase = roundToCents(area.times(costPerSqFt));
   // Use detected percentage (2% or 5%) or default to 5% if includeSpareParts is true but no percentage specified
   const sparePercent = s.sparePartsPercentage ? new Decimal(s.sparePartsPercentage) : new Decimal(0.05);
-  const sparePartsCost = s.includeSpareParts ? roundToCents(hardwareBase.times(sparePercent)) : new Decimal(0);
+  // Manual items usually don't have spare parts unless explicitly asked
+  const sparePartsCost = (s.includeSpareParts && !s.isManualLineItem) ? roundToCents(hardwareBase.times(sparePercent)) : new Decimal(0);
   const hardwareUnit = roundToCents(hardwareBase.plus(sparePartsCost));
   const hardware = roundToCents(hardwareUnit.times(qty));
 
@@ -420,7 +426,7 @@ export function calculatePerScreenAudit(
   const isCurved = formFactor.toLowerCase() === "curved";
   const structureMultiplier = isCurved ? 1.25 : 1.0;
   const curvedLaborMultiplier = isCurved ? 1.15 : 1.0;
-  
+
   // Combine curved multiplier with regional labor multiplier
   // e.g., curved (1.15) × Manhattan (1.5) = 1.725
   const totalLaborMultiplier = curvedLaborMultiplier * regionalLaborMultiplier;

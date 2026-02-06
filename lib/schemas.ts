@@ -254,6 +254,8 @@ const ProposalDetailsSchema = z.object({
         brightness: z.string().optional(), // Terminology: Brightness (formerly Nits)
         costPerSqFt: z.coerce.number().nonnegative().optional(),
         desiredMargin: z.coerce.number().min(0).max(1).optional(),
+        isManualLineItem: z.boolean().optional().default(false),
+        manualCost: z.coerce.number().nonnegative().optional(),
         serviceType: z.string().optional(), // "Top" or "Front/Rear"
         formFactor: z.string().optional(), // "Straight" or "Curved"
         outletDistance: z.coerce.number().nonnegative().optional(),

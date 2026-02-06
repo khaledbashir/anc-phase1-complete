@@ -347,8 +347,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
                         style={{ background: colors.primaryDark, color: colors.white }}
                     >
-                        <div className="col-span-8">Description</div>
-                        <div className="col-span-4 text-right">Pricing</div>
+                        <div className="col-span-8">WORK</div>
+                        <div className="col-span-4 text-right">PRICING</div>
                     </div>
 
                     {/* Rows */}
@@ -542,8 +542,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
                         style={{ background: colors.primary, color: colors.white }}
                     >
-                        <div className="col-span-8">Description</div>
-                        <div className="col-span-4 text-right">Amount</div>
+                        <div className="col-span-8">WORK</div>
+                        <div className="col-span-4 text-right">PRICING</div>
                     </div>
 
                     {/* Items - Classic hierarchy: UPPERCASE BOLD name, smaller specs (tight rows) */}

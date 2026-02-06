@@ -16,7 +16,6 @@
 // DENYLIST: Fields that MUST NEVER appear in client exports
 // ============================================================================
 const SECURITY_DENYLIST = [
-    'internalAudit',
     'cost',
     'margin',
     'marginPercentage',
@@ -68,7 +67,7 @@ export function sanitizeForClient<T = any>(data: T): T {
 
     // Recursively strip denylist fields
     const sanitized = stripFields(clone);
-    
+
     // Apply placeholder logic
     return applyPlaceholders(sanitized as any) as T;
 }
@@ -83,20 +82,20 @@ function stripFields(obj: any): any {
 
     if (obj && typeof obj === 'object') {
         const sanitized: any = {};
-        
+
         for (const [key, value] of Object.entries(obj)) {
             // Skip denylist fields
             if (SECURITY_DENYLIST.includes(key)) {
                 continue;
             }
-            
+
             // Recursively process nested objects
             sanitized[key] = stripFields(value);
         }
-        
+
         return sanitized;
     }
-    
+
     return obj;
 }
 
@@ -123,10 +122,10 @@ function applyPlaceholders(obj: any): any {
                 obj[key] = applyPlaceholders(value);
             }
         }
-        
+
         return obj;
     }
-    
+
     return obj;
 }
 
@@ -143,17 +142,17 @@ export function sanitizeLineItems(lineItems: any[]): any[] {
             margin: 0,
             marginPercentage: 0,
         };
-        
+
         // If this is structural steel, hide or aggregate
-        if (item.category?.toLowerCase().includes('structural') || 
+        if (item.category?.toLowerCase().includes('structural') ||
             item.category?.toLowerCase().includes('steel')) {
             // Option 1: Hide completely
             return null;
-            
+
             // Option 2 (alternative): Aggregate into main display (not implemented here)
             // This would require summing into a parent category
         }
-        
+
         return sanitized;
     }).filter(item => item !== null); // Remove hidden items
 }
@@ -163,13 +162,13 @@ export function sanitizeLineItems(lineItems: any[]): any[] {
  */
 export function validateSanitized(data: any): boolean {
     const dataStr = JSON.stringify(data).toLowerCase();
-    
+
     // Check for leaked internal fields
-    const leakedFields = SECURITY_DENYLIST.filter(field => 
-        dataStr.includes(field.toLowerCase()) && 
+    const leakedFields = SECURITY_DENYLIST.filter(field =>
+        dataStr.includes(field.toLowerCase()) &&
         !field.toLowerCase().includes('internal') // Allow 'internalAudit' field name itself
     );
-    
+
     return leakedFields.length === 0;
 }
 

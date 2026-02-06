@@ -73,13 +73,13 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                 {/* Use HTML table for reliable PDF column separation (avoids merged headers in Puppeteer) */}
                 <table className="w-full text-[9px] border-collapse" style={{ tableLayout: "fixed", pageBreakInside: 'auto' }}>
                     <thead>
-                        <tr className="text-[9px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                            <th className="text-left py-2 px-2" style={{ width: hasAnyBrightness ? "30%" : "35%" }}>Display Name</th>
-                            <th className="text-left py-2 px-2" style={{ width: hasAnyBrightness ? "15%" : "18%" }}>Dimensions</th>
-                            <th className="text-right py-2 px-2" style={{ width: hasAnyBrightness ? "12%" : "15%" }}>Pitch</th>
-                            <th className="text-right py-2 px-2" style={{ width: hasAnyBrightness ? "18%" : "20%" }}>Resolution</th>
-                            {hasAnyBrightness && <th className="text-right py-2 px-2 w-[13%]">Brightness</th>}
-                            <th className="text-right py-2 px-2 w-[12%]">Qty</th>
+                        <tr className="text-[10px] font-bold uppercase tracking-wider text-white" style={{ background: "#0A52EF", pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                            <th className="text-left py-2.5 px-3" style={{ width: hasAnyBrightness ? "30%" : "35%" }}>Display Name</th>
+                            <th className="text-left py-2.5 px-3" style={{ width: hasAnyBrightness ? "15%" : "18%" }}>Dimensions</th>
+                            <th className="text-right py-2.5 px-3" style={{ width: hasAnyBrightness ? "12%" : "15%" }}>Pitch</th>
+                            <th className="text-right py-2.5 px-3" style={{ width: hasAnyBrightness ? "18%" : "20%" }}>Resolution</th>
+                            {hasAnyBrightness && <th className="text-right py-2.5 px-3 w-[13%]">Brightness</th>}
+                            <th className="text-right py-2.5 px-3 w-[12%]">Qty</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-900">
@@ -109,24 +109,24 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
                                         className="border-b border-gray-200 last:border-b-0 break-inside-avoid"
                                         style={{ minHeight: 28, pageBreakInside: 'avoid', breakInside: 'avoid' }}
                                     >
-                                        <td className="py-1.5 px-2 font-semibold text-[9px] break-words align-top" style={{ wordBreak: "break-word" }}>
+                                        <td className="py-1.5 px-3 font-semibold text-[9px] break-words align-top" style={{ wordBreak: "break-word" }}>
                                             {name}
                                         </td>
-                                        <td className="py-1.5 px-2 text-gray-800 text-[9px] whitespace-nowrap align-top">
+                                        <td className="py-1.5 px-3 text-gray-800 text-[9px] whitespace-nowrap align-top">
                                             {formatFeet(h)} x {formatFeet(w)}
                                         </td>
-                                        <td className="py-1.5 px-2 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
+                                        <td className="py-1.5 px-3 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
                                             {pitch ? `${formatPitchMm(pitch)}mm` : "—"}
                                         </td>
-                                        <td className="py-1.5 px-2 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
+                                        <td className="py-1.5 px-3 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
                                             {resolution}
                                         </td>
                                         {hasAnyBrightness && (
-                                            <td className="py-1.5 px-2 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
+                                            <td className="py-1.5 px-3 text-right tabular-nums text-[9px] whitespace-nowrap align-top">
                                                 {brightnessText}
                                             </td>
                                         )}
-                                        <td className="py-1.5 px-2 text-right tabular-nums text-[9px] align-top">
+                                        <td className="py-1.5 px-3 text-right tabular-nums text-[9px] align-top">
                                             {isFinite(qty) ? qty : "—"}
                                         </td>
                                     </tr>

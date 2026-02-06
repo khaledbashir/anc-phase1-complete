@@ -34,7 +34,11 @@ This document tracks the verification and fix process for the Screen Name Mappin
   - **Toggle Visibility:** Updated `Step4Export.tsx` to default the "Edit Document Text" panel to *Expanded*.
   - **Logic:** Implemented override lookups allowing users to rename pricing tables and add custom notes that reflect in the PDF.
 
-### 4. Brief Me Functionality (Next Steps)
+### 4. Brightness Display Fix (Implemented & Pushed)
+- **Problem:** Brightness values like "4444ee" (non-numeric) were being hidden in the PDF because the template strictly required a number > 0.
+- **Fix:** Updated `ProposalTemplate5.tsx` to display the raw string if the variable exists but is not a valid number. Numeric values are still formatted with " nits".
+
+### 5. Brief Me Functionality (Next Steps)
 - **Status:** Investigating server port / 404 error.
 - **Plan:** Verify `brief` generation endpoint once environment connectivity is stable.
 - **Brief Me:**
