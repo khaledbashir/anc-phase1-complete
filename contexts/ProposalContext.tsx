@@ -353,6 +353,33 @@ export const ProposalContextProvider = ({
                 // ExcelPreview is only useful for visual editing of raw Excel grid, which isn't needed for existing projects
                 // The structured data (pricingDocument.tables, screens) is what matters and is already in the form
 
+                // Hydrate a placeholder ExcelPreview to ensure the UI shows "Preview Mode"
+                // instead of the "Upload" screen. We don't store the raw Excel file,
+                // but we have the parsed data, so we show a placeholder grid.
+                setExcelPreview({
+                    fileName: "Restored from Database",
+                    loadedAt: Date.now(),
+                    sheets: [
+                        {
+                            name: "Processed Data",
+                            grid: [
+                                ["Data Source", "Status", "Note"],
+                                ["Database", "Loaded", "Raw Excel file is not stored in database to save space."],
+                                ["Pricing Tables", "Available", `${pricingDocument?.tables?.length || 0} tables restored.`],
+                                ["Screens", "Available", `${screens.length} screens restored.`]
+                            ],
+                            merges: [],
+                            hiddenRows: [],
+                            colWidths: [null, null, null],
+                            validationIssue: false,
+                            hasNumericDimensions: true
+                        }
+                    ]
+                });
+
+                // Mark validation as OK so we don't show warnings
+                setExcelValidationOk(true);
+
                 return; // Skip localStorage lookup - database is source of truth
             }
         }
