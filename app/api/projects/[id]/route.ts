@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isImmutable, isFinancialLocked, LOCKED_FINANCIAL_FIELDS, validateApprovalTransition } from "@/lib/proposal-lifecycle";
 import { analyzeGaps } from "@/lib/gap-analysis";
+import { logActivity, detectMeaningfulChanges } from "@/services/proposal/server/activityLogService";
 
 import { prisma } from "@/lib/prisma";
 
@@ -53,7 +54,15 @@ export async function PATCH(
         // REQ-125: Immutability enforcement - check status before allowing edits
         const existingProject = await prisma.proposal.findUnique({
             where: { id },
-            select: { status: true, isLocked: true }
+            select: {
+                status: true,
+                isLocked: true,
+                clientName: true,
+                paymentTerms: true,
+                loiHeaderText: true,
+                documentMode: true,
+                pricingDocument: true,
+            }
         });
 
         if (!existingProject) {
@@ -278,6 +287,19 @@ export async function PATCH(
 
             return updated;
         });
+
+        // Log meaningful changes (fire-and-forget, non-blocking)
+        const changes = detectMeaningfulChanges(existingProject as any, {
+            clientName: effectiveClientName,
+            paymentTerms,
+            loiHeaderText,
+            status,
+            documentMode,
+            pricingDocument,
+        });
+        for (const change of changes) {
+            logActivity(id, change.action, change.description, null, change.metadata);
+        }
 
         return NextResponse.json({
             success: true,

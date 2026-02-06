@@ -22,6 +22,7 @@ import { FEATURES } from "@/lib/featureFlags";
 import { useState, useEffect } from "react";
 import ExcelGridViewer from "@/app/components/ExcelGridViewer";
 import ScreensGridEditor from "@/app/components/proposal/form/ScreensGridEditor";
+import ActivityLog from "@/app/components/proposal/ActivityLog";
 import { AiWand, FormInput } from "@/app/components";
 import AgentSearchAnimation, { type AgentSearchPhase } from "@/app/components/reusables/AgentSearchAnimation";
 import { cn } from "@/lib/utils";
@@ -407,6 +408,9 @@ const Step1Ingestion = () => {
                                             <TabsTrigger value="screens">
                                                 Screen Editor
                                             </TabsTrigger>
+                                            <TabsTrigger value="activity">
+                                                History
+                                            </TabsTrigger>
                                         </TabsList>
                                     </div>
 
@@ -425,6 +429,15 @@ const Step1Ingestion = () => {
                                     >
                                         <div className="h-[620px] max-h-[72vh] min-h-[400px] overflow-hidden flex flex-col">
                                             <ScreensGridEditor />
+                                        </div>
+                                    </TabsContent>
+
+                                    <TabsContent
+                                        value="activity"
+                                        className="m-0 h-full data-[state=inactive]:hidden"
+                                    >
+                                        <div className="h-[620px] max-h-[72vh] min-h-[400px] overflow-hidden flex flex-col">
+                                            <ActivityLog proposalId={proposalId} />
                                         </div>
                                     </TabsContent>
                                 </Tabs>

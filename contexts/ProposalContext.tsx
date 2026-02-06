@@ -1523,6 +1523,20 @@ export const ProposalContextProvider = ({
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
+
+            // Log PDF export activity
+            const pid = getValues("details.proposalId");
+            if (pid && pid !== "new") {
+                fetch(`/api/projects/${pid}/activities`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        action: "pdf_exported",
+                        description: `Exported ${documentTypeLabel.replace(/_/g, " ")} PDF`,
+                        metadata: { documentMode: docMode, fileName },
+                    }),
+                }).catch(() => {});
+            }
         }
     };
 
@@ -1744,6 +1758,20 @@ export const ProposalContextProvider = ({
         }
         setPdfBatchProgress(null);
         pdfGenerationSuccess();
+
+        // Log bundle export activity
+        const pid = data.details?.proposalId;
+        if (pid && pid !== "new") {
+            fetch(`/api/projects/${pid}/activities`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "pdf_exported",
+                    description: "Exported PDF bundle (Budget + Proposal + LOI)",
+                    metadata: { bundle: true },
+                }),
+            }).catch(() => {});
+        }
     }, [getValues, pdfGenerationSuccess, showError]);
 
     /**
@@ -3390,6 +3418,19 @@ export const ProposalContextProvider = ({
                     console.log(
                         "[EXCEL IMPORT] Excel data saved to database successfully",
                     );
+                    // Log Excel import activity
+                    const pid = getValues("details.proposalId");
+                    if (pid && pid !== "new") {
+                        fetch(`/api/projects/${pid}/activities`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                action: "excel_imported",
+                                description: `Imported ${file.name}`,
+                                metadata: { fileName: file.name },
+                            }),
+                        }).catch(() => {});
+                    }
                 }
             } catch (saveError) {
                 console.error(

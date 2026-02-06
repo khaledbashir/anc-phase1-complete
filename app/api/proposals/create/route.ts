@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateANCProject, calculateProposalAudit, ScreenInput } from "@/lib/estimator";
+import { logActivity } from "@/services/proposal/server/activityLogService";
 
 export interface CreateProposalRequest {
   workspaceId: string;
@@ -122,6 +123,15 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Log project creation (fire-and-forget)
+    logActivity(
+      proposal.id,
+      "created",
+      `Project created for ${body.clientName} with ${body.screens.length} screen(s)`,
+      null,
+      { clientName: body.clientName, screenCount: body.screens.length },
+    );
 
     return NextResponse.json(
       {

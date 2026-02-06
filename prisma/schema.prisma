@@ -314,12 +314,13 @@ model ActivityLog {
   proposalId      String
   proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   userId          String?
-  action          String   // "CREATE", "UPDATE", "STATUS_CHANGE", "EXPORT"
+  actor           String?  // Human-readable name/email for display
+  action          String   // "created", "excel_imported", "pdf_exported", "client_name_updated", "text_edited", "screen_renamed"
   description     String
-  metadata        Json?    // Store diffs or extra info
+  metadata        Json?    // Store old/new values, filename, etc.
   createdAt       DateTime @default(now())
 
-  @@index([proposalId])
+  @@index([proposalId, createdAt])
 }
 
 // REQ-114: E-Signature Audit Trail (Section 9.2)

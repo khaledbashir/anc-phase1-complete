@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import { Builder as XMLBuilder } from "xml2js";
+import { logActivity } from "@/services/proposal/server/activityLogService";
 
 // REQ-125: Sanitization Denylist - fields that must NEVER appear in client exports
 const SANITIZATION_DENYLIST = [
@@ -83,6 +84,17 @@ export async function POST(req: NextRequest) {
       }
     }
     // ---------------------------------------------------
+
+    // Log data export activity (fire-and-forget)
+    if (proposalId && proposalId !== "new") {
+      logActivity(
+        proposalId,
+        "data_exported",
+        `Exported proposal as ${format}`,
+        null,
+        { format, isInternal: isInternalExport },
+      );
+    }
 
     // REQ-125: Sanitize data unless explicitly marked as internal export
     const sanitizedBody = isInternalExport ? body : sanitizeForExport(body);
