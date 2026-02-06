@@ -18,6 +18,7 @@ import React from "react";
 import { ProposalLayout } from "@/app/components";
 import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 import ExhibitA_TechnicalSpecs from "@/app/components/templates/proposal-pdf/exhibits/ExhibitA_TechnicalSpecs";
+import PageBreak from "@/app/components/templates/proposal-pdf/PageBreak";
 
 // Helpers
 import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText, normalizePitch } from "@/lib/helpers";
@@ -106,9 +107,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const customPaymentTerms = (details as any)?.paymentTerms || "";
 
     // ===== HELPERS =====
+    /** Display name: prefer PDF/Client Name (externalName), normalize " -" to " - ", ALL CAPS per Natalia */
     const getScreenHeader = (screen: any) => {
-        const raw = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
-        return sanitizeNitsForDisplay(raw) || "Display";
+        const raw = (screen?.externalName || screen?.customDisplayName || screen?.name || "Display").toString().trim();
+        const cleaned = sanitizeNitsForDisplay(raw) || "Display";
+        const normalized = cleaned.replace(/\s*-\s*/g, " - ").trim();
+        return normalized ? normalized.toUpperCase() : "DISPLAY";
     };
 
     const splitDisplayNameAndSpecs = (value: string) => {
@@ -261,7 +265,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             Project Grand Total
                         </div>
                         <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
-                            {formatCurrency(total, Math.abs(total) < 0.01 ? "[PROJECT TOTAL]" : undefined)}
+                            {formatCurrency(total, Math.abs(total) < 0.01 ? "—" : undefined)}
                         </div>
                     </div>
                 </div>
@@ -314,9 +318,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 let combined = [split.specs, desc].filter(Boolean).join(" ").trim();
                 combined = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(combined)));
 
+                const normalizedHeader = header.replace(/\s*-\s*/g, " - ").trim();
                 return {
                     key: it.id || `quote-${idx}`,
-                    name: stripQtyFromDescription(sanitizeNitsForDisplay(header)).toUpperCase(),
+                    name: stripQtyFromDescription(sanitizeNitsForDisplay(normalizedHeader)).toUpperCase(),
                     description: combined,
                     price: Number(it.price || 0) || 0,
                     isAlternate: it.isAlternate || false,
@@ -328,7 +333,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         ? null
                         : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
                     const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
-                    const label = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim();
+                    const label = (screen?.externalName || screen?.customDisplayName || screen?.name || "Display").toString().trim();
                     const split = splitDisplayNameAndSpecs(label);
                     const rawDesc = split.specs || buildDescription(screen);
                     const cleanDesc = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(rawDesc)));
@@ -388,7 +393,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 )}
                             </div>
                             <div className="col-span-4 text-right font-bold text-sm whitespace-nowrap" style={{ color: colors.primaryDark }}>
-                                {formatCurrency(item.price)}
+                                {formatCurrency(item.price, Math.abs(Number(item.price)) < 0.01 ? "—" : undefined)}
                             </div>
                         </div>
                     ))}
@@ -403,7 +408,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 Project Total
                             </div>
                             <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
-                                {formatCurrency(subtotal, Math.abs(subtotal) < 0.01 ? "[PROJECT TOTAL]" : undefined)}
+                                {formatCurrency(subtotal, Math.abs(subtotal) < 0.01 ? "—" : undefined)}
                             </div>
                         </div>
                     )}
@@ -589,16 +594,19 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 </div>
             )}
 
-            {/* Specifications - entire block stays together; push to next page if doesn't fit */}
+            {/* Specifications - new page, entire block stays together */}
             {showSpecifications && screens.length > 0 && (
-                <div className="px-6 break-inside-avoid break-before-page">
-                    <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
-                    <div className="break-inside-avoid">
-                        {screens.map((screen: any, idx: number) => (
-                            <SpecTable key={idx} screen={screen} />
-                        ))}
+                <>
+                    <PageBreak />
+                    <div className="px-6 break-inside-avoid">
+                        <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
+                        <div className="break-inside-avoid">
+                            {screens.map((screen: any, idx: number) => (
+                                <SpecTable key={idx} screen={screen} />
+                            ))}
+                        </div>
                     </div>
-                </div>
+                </>
             )}
 
             {/* Hybrid Footer - Bold style with dark blue slash */}
@@ -609,19 +617,24 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 </div>
             )}
 
-            {/* Exhibit A - Technical Specs (when enabled) */}
+            {/* Exhibit A - new page */}
             {showExhibitA && (
-                <div className="px-6 break-before-page">
-                    <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
-                </div>
+                <>
+                    <PageBreak />
+                    <div className="px-6 break-inside-avoid">
+                        <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
+                    </div>
+                </>
             )}
 
-            {/* Signature Block - ABSOLUTE FINAL ELEMENT (Natalia requirement) */}
-            {/* Must be last to satisfy legal requirement: signature applies to all above */}
+            {/* Signature Block - new page, absolute final element (Natalia requirement) */}
             {showSignatureBlock && (
-                <div className="px-6 break-before-page">
-                    <SignatureBlock />
-                </div>
+                <>
+                    <PageBreak />
+                    <div className="px-6 break-inside-avoid">
+                        <SignatureBlock />
+                    </div>
+                </>
             )}
         </ProposalLayout>
     );

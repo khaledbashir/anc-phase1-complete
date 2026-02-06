@@ -53,7 +53,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     const city = receiver?.city;
                     const zip = receiver?.zipCode;
                     const parts = [address, city, zip].filter(Boolean) as string[];
-                    if (parts.length === 0) return "[CLIENT ADDRESS]";
+                    if (parts.length === 0) return "—";
                     if (parts.length === 1) return parts[0];
                     if (parts.length === 2) return `${parts[0]}, ${parts[1]}`;
                     return `${parts[0]}, ${parts[1]}, ${parts[2]}`;

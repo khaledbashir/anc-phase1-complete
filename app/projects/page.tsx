@@ -19,6 +19,7 @@ import NewProjectModal from "@/app/components/modals/NewProjectModal";
 import ProjectCard from "@/app/components/ProjectCard";
 import DashboardChat from "@/app/components/DashboardChat";
 import DashboardSidebar from "@/app/components/layout/DashboardSidebar";
+import { FEATURES } from "@/lib/featureFlags";
 import { cn } from "@/lib/utils";
 
 interface Project {
@@ -140,7 +141,12 @@ export default function ProjectsPage() {
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                             <div className="space-y-1">
                                 <h1 className="text-4xl font-normal text-foreground serif-vault flex items-baseline gap-2">
-                                    Evening <span className="text-muted-foreground italic">User,</span>
+                                    {(() => {
+                                        const h = new Date().getHours();
+                                        if (h < 12) return "Good morning,";
+                                        if (h < 17) return "Good afternoon,";
+                                        return "Good evening,";
+                                    })()}
                                 </h1>
                                 <p className="text-sm text-muted-foreground font-medium">
                                     here's a quick look at how things are going.
@@ -197,12 +203,14 @@ export default function ProjectsPage() {
                     </div>
                 </main>
 
-                {/* Midday-Style Bottom AI Chat - Positioned to account for sidebar */}
+                {/* Dashboard chat (Phase 2 - hidden when not functional) */}
+                {FEATURES.DASHBOARD_CHAT && (
                 <div className="fixed bottom-0 left-16 md:left-20 right-0 p-4 sm:p-8 flex justify-center pointer-events-none z-40">
                     <div className="w-full max-w-3xl min-w-0 pointer-events-auto">
                         <DashboardChat />
                     </div>
                 </div>
+                )}
             </div>
         </div>
     );

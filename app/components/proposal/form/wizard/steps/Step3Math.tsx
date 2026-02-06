@@ -44,6 +44,7 @@ const Step3Math = () => {
     const quoteItems = watch("details.quoteItems") || [];
     const bondRate = useWatch({ name: "details.bondRate", control }) || 1.5;
     const mirrorMode = useWatch({ name: "details.mirrorMode", control });
+    const pricingDocument = useWatch({ name: "details.pricingDocument", control });
 
     // Global pricing controls
     const globalMargin = useWatch({ name: "details.globalMargin", control });
@@ -205,9 +206,16 @@ const Step3Math = () => {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 p-6">
                 {/* Natalia Math Engine Status */}
                 <div className="bg-muted/50 border border-border rounded-2xl p-6 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-5 rotate-12">
-                        <Sparkles className="w-24 h-24 text-brand-blue" />
-                    </div>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <div className="absolute top-0 right-0 p-8 opacity-10 hover:opacity-20 rotate-12 transition-opacity cursor-default" aria-hidden>
+                                <Sparkles className="w-24 h-24 text-brand-blue" />
+                            </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="max-w-[200px]">
+                            <p className="text-xs">Natalia Math Engine — strategic pricing and margin verification</p>
+                        </TooltipContent>
+                    </Tooltip>
 
                     <div className="flex items-center justify-between mb-8 relative z-10">
                         <div className="flex items-center gap-3">
@@ -216,7 +224,7 @@ const Step3Math = () => {
                             </div>
                             <div>
                                 <h2 className="text-xl font-bold text-foreground italic tracking-tight">Natalia Math Engine</h2>
-                                <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-bold">Phase 3: Automated Engineering & Math</p>
+                                <p className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-bold">Math Verification</p>
                             </div>
                         </div>
 
@@ -241,11 +249,12 @@ const Step3Math = () => {
                                 <span className="text-[10px] font-bold uppercase tracking-wider">Selling Price / SQFT</span>
                             </div>
                             <div className="text-xl font-bold text-foreground tracking-tight">
-                                {formatCurrency(sellPricePerSqFt)}
+                                {formatCurrency(sellPricePerSqFt, Math.abs(sellPricePerSqFt || 0) < 0.01 ? "—" : undefined)}
                             </div>
                         </div>
 
-                        {/* KPI 2: Structural Labor */}
+                        {/* KPI 2: Structural Labor - hide when N/A (0) */}
+                        {(structuralLabor == null || Math.abs(structuralLabor || 0) >= 0.01) && (
                         <div className="bg-card p-4 rounded-xl border border-border group hover:border-brand-blue/30 transition-all shadow-sm">
                             <div className="flex items-center gap-2 text-muted-foreground mb-1">
                                 <Hammer className="w-3 h-3" />
@@ -255,8 +264,10 @@ const Step3Math = () => {
                                 {formatCurrency(structuralLabor)}
                             </div>
                         </div>
+                        )}
 
-                        {/* KPI 3: Shipping */}
+                        {/* KPI 3: Shipping - hide when N/A (0) */}
+                        {(shippingLogistics == null || Math.abs(shippingLogistics || 0) >= 0.01) && (
                         <div className="bg-card p-4 rounded-xl border border-border group hover:border-brand-blue/30 transition-all shadow-sm">
                             <div className="flex items-center gap-2 text-muted-foreground mb-1">
                                 <Truck className="w-3 h-3" />
@@ -266,15 +277,16 @@ const Step3Math = () => {
                                 {formatCurrency(shippingLogistics)}
                             </div>
                         </div>
+                        )}
 
-                        {/* KPI 4: Overall Value */}
+                        {/* KPI 4: Final Client Total - always show; display actual total or — */}
                         <div className="bg-brand-blue/10 p-4 rounded-xl border border-brand-blue/20 group hover:border-brand-blue/40 transition-all">
                             <div className="flex items-center gap-2 text-brand-blue mb-1">
                                 <TrendingUp className="w-3 h-3" />
                                 <span className="text-[10px] font-bold uppercase tracking-wider">Final Client Total</span>
                             </div>
-                            <div className="text-xl font-bold text-white tracking-tight">
-                                {formatCurrency(totalProjectValue)}
+                            <div className="text-xl font-bold text-foreground tracking-tight">
+                                {formatCurrency(totalProjectValue, Math.abs(totalProjectValue || 0) < 0.01 ? "—" : undefined)}
                             </div>
                         </div>
                     </div>
@@ -424,7 +436,10 @@ const Step3Math = () => {
                         <CardContent className="pt-6">
                             {internalAudit?.perScreen && internalAudit.perScreen.length > 0 ? (
                                 <div className="space-y-3">
-                                    {internalAudit.perScreen.map((screen: any, idx: number) => (
+                                    {internalAudit.perScreen.map((screen: any, idx: number) => {
+                                        const fromExcel = pricingDocument?.tables?.[idx]?.grandTotal;
+                                        const displayTotal = fromExcel != null ? fromExcel : (screen.breakdown?.finalClientTotal ?? 0);
+                                        return (
                                         <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-border bg-card/30">
                                             <div className="min-w-0">
                                                 <div className="text-sm font-semibold text-foreground truncate">
@@ -437,18 +452,19 @@ const Step3Math = () => {
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <div className="text-sm font-bold text-foreground">
-                                                    {formatCurrency(screen.breakdown?.finalClientTotal || 0)}
+                                                    {Math.abs(Number(displayTotal)) < 0.01 ? "—" : formatCurrency(displayTotal)}
                                                 </div>
                                                 <div className="text-[10px] text-muted-foreground">Client Total</div>
                                             </div>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                     <div className="flex items-center justify-between p-3 rounded-xl border-2 border-brand-blue/20 bg-brand-blue/5">
                                         <div className="text-sm font-bold text-foreground uppercase tracking-tight">
                                             Project Total
                                         </div>
                                         <div className="text-lg font-bold text-brand-blue">
-                                            {formatCurrency(internalAudit.totals?.finalClientTotal || 0)}
+                                            {formatCurrency(internalAudit.totals?.finalClientTotal || 0, Math.abs(internalAudit.totals?.finalClientTotal || 0) < 0.01 ? "—" : undefined)}
                                         </div>
                                     </div>
                                 </div>

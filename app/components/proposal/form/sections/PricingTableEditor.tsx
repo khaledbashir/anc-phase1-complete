@@ -98,33 +98,31 @@ export default function PricingTableEditor() {
                                 const displayName = overriddenName || table.name;
 
                                 return (
-                                    <div key={table.id} className="flex items-center gap-3">
-                                        <div className="w-32 shrink-0">
-                                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                                                Original:
-                                            </span>
-                                            <div className="text-xs font-mono text-muted-foreground truncate" title={table.name}>
-                                                {table.name}
-                                            </div>
+                                    <div key={table.id} className="space-y-1.5">
+                                        <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                                            Original
                                         </div>
-                                        <div className="flex-1">
+                                        <div className="text-xs text-muted-foreground break-words">
+                                            {table.name}
+                                        </div>
+                                        <div className="flex items-center gap-2">
                                             <input
                                                 type="text"
                                                 placeholder={table.name}
                                                 value={overriddenName}
                                                 onChange={(e) => handleHeaderChange(table.id, e.target.value)}
-                                                className="w-full px-3 py-2 text-sm bg-background border border-border rounded-md focus:border-[#0A52EF] focus:ring-1 focus:ring-[#0A52EF]/20 transition-colors"
+                                                className="flex-1 min-w-0 px-3 py-2 text-sm bg-background border border-border rounded-md focus:border-[#0A52EF] focus:ring-1 focus:ring-[#0A52EF]/20 transition-colors"
                                             />
+                                            {overriddenName && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleHeaderChange(table.id, "")}
+                                                    className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted transition-colors shrink-0"
+                                                >
+                                                    Reset
+                                                </button>
+                                            )}
                                         </div>
-                                        {overriddenName && (
-                                            <button
-                                                type="button"
-                                                onClick={() => handleHeaderChange(table.id, "")}
-                                                className="text-[10px] text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted transition-colors"
-                                            >
-                                                Reset
-                                            </button>
-                                        )}
                                     </div>
                                 );
                             })}

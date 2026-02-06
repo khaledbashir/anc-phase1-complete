@@ -67,7 +67,7 @@ function getPdfFingerprint(data: ProposalType): string {
 const PdfViewer = () => {
     const { watch } = useFormContext<ProposalType>();
     const formValues = watch();
-    const { generatePdf, proposalPdfLoading, pdfUrl } = useProposalContext();
+    const { generatePdf, proposalPdfLoading, pdfUrl, excelPreview } = useProposalContext();
     const [exactPdfPreview, setExactPdfPreview] = useState(false);
     const lastGeneratedFingerprint = useRef<string>("");
     const isGenerating = useRef(false);
@@ -128,7 +128,17 @@ const PdfViewer = () => {
                         </div>
                     )
                 ) : Template ? (
-                    <Template {...debouncedValues} />
+                    (() => {
+                        if (!excelPreview) {
+                            return (
+                                <div className="flex flex-col items-center justify-center h-full text-center p-8 bg-muted/20 rounded-xl border border-dashed border-border">
+                                    <p className="text-sm font-medium text-foreground">Live Preview</p>
+                                    <p className="text-xs text-muted-foreground mt-2 max-w-[220px]">Upload an Excel file to see your proposal preview here.</p>
+                                </div>
+                            );
+                        }
+                        return <Template {...debouncedValues} />;
+                    })()
                 ) : (
                     <div className="flex items-center justify-center h-full text-gray-400">
                         Generator Loading...

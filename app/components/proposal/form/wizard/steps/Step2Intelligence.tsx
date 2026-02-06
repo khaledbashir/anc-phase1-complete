@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { Calculator, Sparkles, Info, ChevronDown, ChevronUp } from "lucide-react";
+import { Calculator, Info, ChevronDown, ChevronUp } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Screens } from "@/app/components";
@@ -39,10 +39,9 @@ const Step2Intelligence = () => {
                         className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors"
                     >
                         <div className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-brand-blue" />
-                            <span className="text-sm font-medium text-foreground">AI Analysis</span>
+                            <span className="text-sm font-medium text-foreground">Screen Configuration</span>
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-brand-blue/30 text-brand-blue">
-                                {screenCount} screens detected
+                                {screenCount} screen{screenCount !== 1 ? "s" : ""}
                             </Badge>
                         </div>
                         {showIntelligence ? (

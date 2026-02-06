@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExcelGridViewer from "@/app/components/ExcelGridViewer";
+import { FEATURES } from "@/lib/featureFlags";
 import type { ProposalType } from "@/types";
 
 const Step4Export = () => {
@@ -290,7 +291,7 @@ const Step4Export = () => {
                         <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
                         <div>
                             <div className="font-semibold text-amber-200">Data Mapping Failed: Pricing not found</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">Project Total is $0. Check Excel mapping or screen pricing in the Math step.</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">Project total has no value yet. Check Excel mapping or screen pricing in the Math step.</div>
                         </div>
                     </div>
                 )}
@@ -915,7 +916,7 @@ const Step4Export = () => {
                                             </div>
                                             <div>
                                                 <h4 className="text-sm font-bold text-foreground group-hover:text-brand-blue transition-colors">Global Export Bundle</h4>
-                                                <p className="text-[11px] text-muted-foreground">Download 4 files: Budget/Proposal/LOI PDFs + Internal Audit Excel</p>
+                                                <p className="text-[11px] text-muted-foreground">Downloads Budget PDF, Proposal PDF, LOI PDF, and Internal Audit Excel</p>
                                             </div>
                                         </div>
                                         <button
@@ -991,6 +992,7 @@ const Step4Export = () => {
                             </CardContent>
                         </Card>
 
+                        {FEATURES.CLIENT_REQUESTS && (
                         <Card className="bg-card/40 border border-border/60 overflow-hidden">
                             <CardHeader className="border-b border-border/60 pb-3">
                                 <div className="flex items-center justify-between gap-3">
@@ -1078,16 +1080,19 @@ const Step4Export = () => {
                                 )}
                             </CardContent>
                         </Card>
+                        )}
+
                     </div>
                 </div>
 
+                {FEATURES.VERIFICATION_STUDIO && (
                 <Card className="bg-card/40 border border-border/60 overflow-hidden">
                     <CardHeader className="border-b border-border/60 cursor-pointer" onClick={() => setIsVerificationExpanded(!isVerificationExpanded)}>
                         <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
                                 <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
                                     <Columns className="w-4 h-4 text-brand-blue" />
-                                    Verification Studio
+                                    Compare
                                     <ChevronRight className={cn(
                                         "w-4 h-4 text-muted-foreground transition-transform",
                                         isVerificationExpanded && "rotate-90"
@@ -1351,6 +1356,7 @@ const Step4Export = () => {
                     </CardContent>
                     )}
                 </Card>
+                )}
 
             </div>
         </TooltipProvider>

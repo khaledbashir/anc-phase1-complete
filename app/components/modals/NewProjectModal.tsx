@@ -87,8 +87,8 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
 
         <DialogContent className="max-w-lg bg-background/95 backdrop-blur-2xl border border-border">
           <DialogHeader>
-            <DialogTitle>Initialize AI Strategic Hub</DialogTitle>
-            <DialogDescription>Create a new ANC workspace + initial proposal</DialogDescription>
+            <DialogTitle>New Project</DialogTitle>
+            <DialogDescription>Start a new proposal</DialogDescription>
           </DialogHeader>
 
           {!loading ? (
@@ -97,7 +97,7 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
               <Input placeholder="Contact Email (optional)" value={email} onChange={(e) => setEmail(e.target.value)} />
               <div className="flex justify-end gap-2 mt-3">
                 <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={handleCreate} className="shadow-[0_0_20px_rgba(255,255,255,0.03)]">Initialize Project</Button>
+                <Button onClick={handleCreate} className="shadow-[0_0_20px_rgba(255,255,255,0.03)]">Create Project</Button>
               </div>
             </div>
           ) : (
@@ -107,7 +107,7 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
               </motion.div>
               <div className="text-center">
                 <div className="text-foreground font-medium">{steps[step]}</div>
-                <div className="text-muted-foreground text-sm mt-2">Initializing AI Strategic Hub. This may take a few seconds.</div>
+                <div className="text-muted-foreground text-sm mt-2">Creating your project. This may take a few seconds.</div>
               </div>
               {error && (
                 <div className="w-full max-w-md rounded-lg border border-red-500/30 bg-red-950/20 px-4 py-3 text-xs text-red-200 break-words">

@@ -19,7 +19,8 @@ import {
 } from "@/app/components/proposal/form/wizard/steps";
 
 // Context
-import { useProposalContext } from "@/contexts/ProposalContext";
+import { useProposalContext, ProposalContextProvider } from "@/contexts/ProposalContext";
+import { FEATURES } from "@/lib/featureFlags";
 
 import AuditTable from "@/app/components/proposal/AuditTable";
 import { ProposalFormErrorBoundary } from "@/app/components/ProposalFormErrorBoundary";
@@ -142,7 +143,9 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
           <p className="text-xs text-zinc-500">Real-time margin verification and profitability analysis.</p>
         </div>
         <div className="flex flex-col items-end gap-1.5">
-          <Badge className="bg-[#0A52EF]/10 text-[#0A52EF] border-[#0A52EF]/10 font-semibold px-2 py-0.5 rounded">17/20 Strategic Match</Badge>
+          {FEATURES.STRATEGIC_MATCH_BADGE && (
+            <Badge className="bg-[#0A52EF]/10 text-[#0A52EF] border-[#0A52EF]/10 font-semibold px-2 py-0.5 rounded" title="Strategic match score (Phase 2)">17/20 Strategic Match</Badge>
+          )}
           <span className="text-[10px] text-zinc-500 font-medium">Natalia Math Engine Active</span>
         </div>
       </div>
@@ -172,16 +175,20 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
 };
 
 /**
- * ProposalPage - Main workspace with Wizard context provider
+ * ProposalPage - Main workspace with Wizard context provider.
+ * Wraps with a scoped ProposalContextProvider so initialData/projectId are available
+ * in context; this ensures new projects get a clean Excel state (no stale cache).
  */
 const ProposalPage = ({ initialData, projectId }: ProposalPageProps) => {
   return (
-    <Wizard header={<WizardWrapper initialData={initialData} projectId={projectId} />}>
-      <div className="hidden" />
-      <div className="hidden" />
-      <div className="hidden" />
-      <div className="hidden" />
-    </Wizard>
+    <ProposalContextProvider initialData={initialData} projectId={projectId}>
+      <Wizard header={<WizardWrapper initialData={initialData} projectId={projectId} />}>
+        <div className="hidden" />
+        <div className="hidden" />
+        <div className="hidden" />
+        <div className="hidden" />
+      </Wizard>
+    </ProposalContextProvider>
   );
 };
 

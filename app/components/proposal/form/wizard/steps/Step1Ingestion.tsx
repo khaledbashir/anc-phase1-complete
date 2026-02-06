@@ -18,6 +18,7 @@ import {
     RefreshCw,
 } from "lucide-react";
 import { useProposalContext } from "@/contexts/ProposalContext";
+import { FEATURES } from "@/lib/featureFlags";
 import { useState, useEffect } from "react";
 import ExcelGridViewer from "@/app/components/ExcelGridViewer";
 import ScreensGridEditor from "@/app/components/proposal/form/ScreensGridEditor";
@@ -64,13 +65,13 @@ const Step1Ingestion = () => {
                 <div>
                     <h1 className="text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
                         <span className="w-2 h-2 rounded-full bg-brand-blue shadow-[0_0_8px_rgba(59,130,246,0.5)]"></span>
-                        Ingestion Studio
+                        Import
                     </h1>
-                    <p className="text-muted-foreground text-xs mt-0.5">
-                        {excelPreview
-                            ? "Reviewing Excel Data"
-                            : "Initialize Project & Upload Data"}
-                    </p>
+                    {!excelPreview && (
+                        <p className="text-muted-foreground text-xs mt-0.5">
+                            Drop your Excel here or upload to get started
+                        </p>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -175,10 +176,11 @@ const Step1Ingestion = () => {
 
                     {/* Main Content Area */}
                     {!excelPreview ? (
-                        /* Empty State / Upload Mode */
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[500px]">
+                        /* Empty State / Upload Mode - Option A: only Excel, full width centered (RFP hidden until Phase 2) */
+                        <div className="flex items-center justify-center min-h-[500px] w-full">
+                            <div className="w-full max-w-lg">
                             {/* Excel Upload Card */}
-                            <div className="group relative rounded-2xl border border-border bg-card hover:bg-muted/50 hover:border-brand-blue/30 transition-all duration-300 flex flex-col items-center justify-center text-center p-8 cursor-pointer border-dashed">
+                            <div className="group relative rounded-2xl border border-border bg-card hover:bg-muted/50 hover:border-brand-blue/30 transition-all duration-300 flex flex-col items-center justify-center text-center p-8 cursor-pointer border-dashed min-h-[420px]">
                                 <input
                                     type="file"
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
@@ -210,7 +212,8 @@ const Step1Ingestion = () => {
                                 )}
                             </div>
 
-                            {/* RFP Upload Card */}
+                            {/* RFP Upload - Phase 2: hidden; when ready set FEATURES.DOCUMENT_INTELLIGENCE true and restore second card */}
+                            {FEATURES.DOCUMENT_INTELLIGENCE && (
                             <div className="group relative rounded-2xl border border-border bg-card/20 hover:bg-card/40 hover:border-emerald-500/30 transition-all duration-300 flex flex-col items-center justify-center text-center p-8 border-dashed">
                                 <input
                                     type="file"
@@ -244,9 +247,7 @@ const Step1Ingestion = () => {
                                 </p>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono bg-muted/50 px-3 py-1.5 rounded-full">
                                     <Shield className="w-3 h-3" />
-                                    {rfpDocuments.length > 0
-                                        ? `${rfpDocuments.length} files in Vault`
-                                        : "Vault Empty"}
+                                    {rfpDocuments.length > 0 ? `${rfpDocuments.length} file${rfpDocuments.length !== 1 ? "s" : ""} uploaded` : ""}
                                 </div>
 
                                 {rfpUploading && (
@@ -259,6 +260,8 @@ const Step1Ingestion = () => {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+                            )}
                             </div>
                         </div>
                     ) : (
@@ -294,7 +297,8 @@ const Step1Ingestion = () => {
                                             </span>
                                         </div>
 
-                                        {/* RFP Quick Upload in Preview Mode */}
+                                        {/* RFP Quick Upload - Phase 2 */}
+                                        {FEATURES.DOCUMENT_INTELLIGENCE && (
                                         <div className="flex items-center gap-2">
                                             <label className="cursor-pointer text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5">
                                                 <FileText className="w-3.5 h-3.5" />
@@ -337,6 +341,7 @@ const Step1Ingestion = () => {
                                                 <Zap className="w-3 h-3 text-emerald-500 animate-pulse" />
                                             )}
                                         </div>
+                                        )}
                                     </div>
 
                                     <div className="text-[10px] text-muted-foreground font-mono">

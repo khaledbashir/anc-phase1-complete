@@ -98,10 +98,10 @@ const formatNumberWithCommas = (number: number | string) => {
  * @returns Formatted currency string or placeholder
  */
 export const formatCurrency = (amount: number | undefined | null, placeholder?: string) => {
-    // REQ-125: Return placeholder for zero/undefined values in PDF context
+    // Use placeholder for zero/undefined or negligible amounts when caller provides one (e.g. "—" in PDF)
+    const val = amount ?? 0;
+    if (placeholder != null && (val === 0 || Math.abs(val) < 0.01)) return placeholder;
     if (amount === undefined || amount === null || amount === 0) {
-        // If a placeholder is provided, use it; otherwise return formatted zero
-        // This allows callers to opt-in to placeholder behavior
         if (placeholder) return placeholder;
     }
     return new Intl.NumberFormat('en-US', {

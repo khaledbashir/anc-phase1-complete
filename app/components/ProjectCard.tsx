@@ -24,8 +24,9 @@ interface Project {
     proposalName: string | null;
     clientLogo?: string | null;
     status: string;
-    documentType: string;
-    pricingType: string;
+    documentType?: string;
+    documentMode?: "BUDGET" | "PROPOSAL" | "LOI";
+    pricingType?: string;
     createdAt: string;
     updatedAt: string;
     lastSavedAt: string | null;
@@ -90,7 +91,7 @@ const ProjectCard = ({ project, onImport, onDelete }: ProjectCardProps) => {
                     {project.clientName}
                 </h3>
                 <p className="text-xs text-muted-foreground group-hover:text-card-foreground/70 transition-colors">
-                    {project.proposalName || "Standard Project Resolution"}
+                    {project.proposalName || (project.documentMode === "LOI" ? "LOI" : project.documentMode === "PROPOSAL" ? "Proposal" : "Budget")}
                 </p>
             </div>
 

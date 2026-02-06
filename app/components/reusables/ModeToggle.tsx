@@ -11,6 +11,8 @@ type Mode = "form" | "ai";
 interface ModeToggleProps {
     mode: Mode;
     onChange: (mode: Mode) => void;
+    /** When false, only Drafting mode is shown (Intelligence hidden) */
+    showIntelligence?: boolean;
 }
 
 /**
@@ -19,7 +21,7 @@ interface ModeToggleProps {
  * Uses French Blue (#0A52EF) for active state
  * Zero-lag switching via parent state
  */
-export function ModeToggle({ mode, onChange, isCollapsed = false }: ModeToggleProps & { isCollapsed?: boolean }) {
+export function ModeToggle({ mode, onChange, isCollapsed = false, showIntelligence = true }: ModeToggleProps & { isCollapsed?: boolean }) {
     if (isCollapsed) {
         return (
             <div className="flex flex-col items-center gap-2">
@@ -34,6 +36,7 @@ export function ModeToggle({ mode, onChange, isCollapsed = false }: ModeTogglePr
                 >
                     <PenLine className="w-4 h-4" />
                 </button>
+                {showIntelligence && (
                 <button
                     type="button"
                     onClick={() => onChange("ai")}
@@ -45,6 +48,7 @@ export function ModeToggle({ mode, onChange, isCollapsed = false }: ModeTogglePr
                 >
                     <Bot className="w-4 h-4" />
                 </button>
+                )}
             </div>
         );
     }
@@ -64,6 +68,7 @@ export function ModeToggle({ mode, onChange, isCollapsed = false }: ModeTogglePr
                 <PenLine className="w-3.5 h-3.5" />
                 Drafting
             </button>
+            {showIntelligence && (
             <button
                 type="button"
                 onClick={() => onChange("ai")}
@@ -77,6 +82,7 @@ export function ModeToggle({ mode, onChange, isCollapsed = false }: ModeTogglePr
                 <Bot className="w-3.5 h-3.5" />
                 Intelligence
             </button>
+            )}
         </div>
     );
 }

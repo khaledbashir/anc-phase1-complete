@@ -21,6 +21,7 @@ import { ChevronDown, ChevronUp, Trash2, Copy, ShieldCheck, Zap, AlertTriangle, 
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { FEATURES } from "@/lib/featureFlags";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Enterprise Math
@@ -230,11 +231,14 @@ const SingleScreen = ({
                         <p className="text-base font-semibold text-[#0A52EF]">
                             {finalClientTotal > 0
                                 ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(formatCurrencyPDF(finalClientTotal))
-                                : "$0"
+                                : "—"
                             }
                         </p>
                         <p className="text-xs text-muted-foreground">
-                            {(desiredMargin * 100 || 0).toFixed(0)}% margin
+                            {desiredMargin != null && (desiredMargin * 100 || 0) > 0
+                                ? `${(desiredMargin * 100).toFixed(0)}% margin`
+                                : "—"
+                            }
                         </p>
                     </div>
 
@@ -303,12 +307,14 @@ const SingleScreen = ({
                             placeholder="e.g., Ribbon - North Upper"
                             vertical
                         />
+                        {FEATURES.INTELLIGENCE_MODE && (
                         <FormInput
                             name={`${name}[${index}].productType`}
                             label="Product Type"
                             placeholder="e.g., A Series"
                             vertical
                         />
+                        )}
 
                         <div className="flex flex-col gap-1">
                             <Label className="text-[11px] text-muted-foreground font-medium">Service Type</Label>
@@ -372,13 +378,6 @@ const SingleScreen = ({
                             name={`${name}[${index}].brightness`}
                             label="Brightness"
                             placeholder="e.g., 6000"
-                            vertical
-                        />
-
-                        <FormInput
-                            name={`${name}[${index}].outletDistance`}
-                            label="Outlet Dist (ft)"
-                            type="number"
                             vertical
                         />
                     </div>
@@ -469,6 +468,12 @@ const SingleScreen = ({
                     {showAdvanced && (
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/30 rounded-xl border border-border">
                             <FormInput
+                                name={`${name}[${index}].outletDistance`}
+                                label="Outlet Dist (ft)"
+                                type="number"
+                                vertical
+                            />
+                            <FormInput
                                 name={`${name}[${index}].costPerSqFt`}
                                 label="Cost per Sq Ft ($)"
                                 type="number"
@@ -517,7 +522,7 @@ const SingleScreen = ({
                             <span className="font-medium text-[#0A52EF]">
                                 {sellingPricePerSqFt > 0
                                     ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(sellingPricePerSqFt)
-                                    : "$0.00"
+                                    : "—"
                                 }
                             </span>
                         </div>
@@ -532,11 +537,9 @@ const SingleScreen = ({
                                     <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                                     <span className="text-emerald-400">Ready</span>
                                 </>
-                            ) : (
-                                <>
-                                    <span className="text-muted-foreground">Add dimensions to calculate</span>
-                                </>
-                            )}
+                            ) : isMissingDimensions ? (
+                                <span className="text-muted-foreground">Add dimensions to calculate</span>
+                            ) : null}
                         </div>
                     </div>
                 </div>

@@ -119,10 +119,15 @@ export function StudioHeader({
                 <div className="hidden md:block h-8 w-px bg-border mx-1" />
 
                 <div className="hidden md:flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold text-primary uppercase tracking-widest border border-primary/20 shadow-[0_0_15px_rgba(10,82,239,0.05)]">
+                    {completionRate > 0 && (
+                    <span
+                        className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-[10px] font-bold text-primary uppercase tracking-widest border border-primary/20 shadow-[0_0_15px_rgba(10,82,239,0.05)]"
+                        title="Percentage of required proposal fields filled (from Excel or form)"
+                    >
                         <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                        {Math.round(completionRate)}% Match
+                        {Math.round(completionRate)}% filled
                     </span>
+                    )}
                     {excelValidationOk && (
                         <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
                             <CheckCircle2 className="w-3 h-3" />

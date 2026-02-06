@@ -83,13 +83,32 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                             break-before: page;
                         }
                         
+                        /* Flawless page break: single element, next content = new page (like docx PageBreak) */
+                        .pdf-page-break {
+                            page-break-before: always !important;
+                            break-before: page !important;
+                            height: 0 !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            overflow: hidden !important;
+                            border: none !important;
+                            min-height: 0 !important;
+                            line-height: 0 !important;
+                        }
+                        
+                        /* Content that immediately follows a page break gets a clean top margin on the new page */
+                        .pdf-page-break + * {
+                            padding-top: 0;
+                            margin-top: 0;
+                        }
+                        
                         /* Prevent orphans and widows */
                         p, div {
                             orphans: 3;
                             widows: 3;
                         }
                         
-                        /* Ensure proper spacing around page breaks */
+                        /* Ensure break-before sections don't leave stray space on the previous page */
                         .break-before-page {
                             margin-top: 0;
                             padding-top: 0;

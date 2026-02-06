@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { FEATURES } from "@/lib/featureFlags";
 import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
 import { LayoutDashboard, MessageSquare, Table, PanelLeftClose, PanelLeftOpen, Folder } from "lucide-react";
 import ModeToggle from "@/app/components/reusables/ModeToggle";
@@ -37,6 +38,11 @@ export function StudioLayout({
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isHealthSidebarVisible, setIsHealthSidebarVisible] = useState(false);
 
+    // When Intelligence mode is disabled, stay on form if user was on ai
+    useEffect(() => {
+        if (!FEATURES.INTELLIGENCE_MODE && viewMode === "ai") setViewMode("form");
+    }, [viewMode]);
+
     const navItems = [
         { id: "form", icon: LayoutDashboard, label: "Edit Proposal" },
         { id: "audit", icon: Table, label: "Pricing Breakdown" },
@@ -65,6 +71,7 @@ export function StudioLayout({
                             mode={viewMode === "ai" ? "ai" : "form"}
                             onChange={(m) => setViewMode(m as ViewMode)}
                             isCollapsed={isSidebarCollapsed}
+                            showIntelligence={FEATURES.INTELLIGENCE_MODE}
                         />
                     </div>
                     <div className="flex-1 py-4 flex flex-col gap-2">
