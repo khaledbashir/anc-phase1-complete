@@ -1,21 +1,27 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
 const FRENCH_BLUE = "#0A52EF";
 const FRENCH_BLUE_DARK = "#002C73";
 
-function LoginForm() {
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/";
-  const error = searchParams.get("error");
+export default function LoginPage() {
+  const [callbackUrl, setCallbackUrl] = useState("/");
+  const [urlError, setUrlError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [logoError, setLogoError] = useState(false);
+
+  // Read search params after mount to avoid Suspense/SSR issues
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setCallbackUrl(params.get("callbackUrl") ?? "/");
+    setUrlError(params.get("error"));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -43,28 +49,43 @@ function LoginForm() {
     setLoading(false);
   }
 
+  const showError = urlError === "CredentialsSignin" || message;
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc] px-4">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc] px-4"
+      style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "#f8fafc", padding: "1rem" }}
+    >
       <div
         className="w-full max-w-md rounded-2xl border border-[var(--anc-border)] bg-white p-8 shadow-lg"
-        style={{ borderColor: "#e4e4e7" }}
+        style={{ maxWidth: "28rem", width: "100%", borderRadius: "1rem", border: "1px solid #e4e4e7", backgroundColor: "#fff", padding: "2rem", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
       >
         <div className="flex flex-col items-center mb-8">
-          <Image
-            src="/ANC_Logo_2023_blue.png"
-            alt="ANC Sports"
-            width={160}
-            height={48}
-            className="mb-6"
-            priority
-          />
+          {!logoError ? (
+            <Image
+              src="/ANC_Logo_2023_blue.png"
+              alt="ANC Sports"
+              width={160}
+              height={48}
+              className="mb-6"
+              priority
+              onError={() => setLogoError(true)}
+            />
+          ) : (
+            <div
+              className="mb-6 text-xl font-bold tracking-tight"
+              style={{ color: FRENCH_BLUE_DARK }}
+            >
+              ANC Proposal Engine
+            </div>
+          )}
           <h1
             className="text-xl font-bold tracking-tight"
-            style={{ color: FRENCH_BLUE_DARK }}
+            style={{ color: FRENCH_BLUE_DARK, fontSize: "1.25rem", fontWeight: 700 }}
           >
             ANC Proposal Engine
           </h1>
-          <p className="text-sm text-zinc-500 mt-1">Sign in to continue</p>
+          <p className="text-sm text-zinc-500 mt-1" style={{ color: "#71717a", marginTop: "0.25rem" }}>Sign in to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -107,7 +128,7 @@ function LoginForm() {
             />
           </div>
 
-          {(error === "CredentialsSignin" || message) && (
+          {showError && (
             <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
               {message || "Invalid credentials. Please try again."}
             </p>
@@ -118,6 +139,11 @@ function LoginForm() {
             disabled={loading}
             className="w-full h-11 rounded-lg font-semibold text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
             style={{
+              width: "100%",
+              height: "2.75rem",
+              borderRadius: "0.5rem",
+              fontWeight: 600,
+              color: "#fff",
               backgroundColor: FRENCH_BLUE,
             }}
           >
@@ -130,13 +156,5 @@ function LoginForm() {
         </p>
       </div>
     </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#f8fafc]"><span className="text-zinc-500">Loading…</span></div>}>
-      <LoginForm />
-    </Suspense>
   );
 }

@@ -4,7 +4,8 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Settings, LogOut } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { Settings, LogOut, Users } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,14 +31,18 @@ import {
 const BaseNavbar = () => {
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.authRole === "admin";
 
   // Hide Navbar on:
-  // 1. Root ("/") - The main editor
-  // 2. Projects Dashboard ("/projects") - Dashboard view
-  // 3. Project Editor ("/projects/[id]") - Individual project
+  // 1. Auth (login, etc.) - Standalone auth pages
+  // 2. Root ("/") - The main editor
+  // 3. Projects Dashboard ("/projects") - Dashboard view
+  // 4. Project Editor ("/projects/[id]") - Individual project
+  const isAuth = pathname.startsWith("/auth");
   const isEditor = pathname === "/" || pathname.startsWith("/projects") || pathname.startsWith("/share");
 
-  if (isEditor) return null;
+  if (isAuth || isEditor) return null;
 
   return (
     <header className="lg:container z-[99] py-4">
@@ -94,6 +99,19 @@ const BaseNavbar = () => {
                   </ul>
                 </NavigationMenuContent>
               </NavigationMenuItem>
+              {isAdmin && (
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <Link
+                      href="/admin/users"
+                      className="flex items-center gap-2 px-4 py-2 text-sm font-medium"
+                    >
+                      <Users className="h-4 w-4" />
+                      Users
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              )}
             </NavigationMenuList>
           </NavigationMenu>
 
@@ -126,8 +144,8 @@ const BaseNavbar = () => {
                 <AlertDialogAction
                   className="bg-red-600 hover:bg-red-700"
                   onClick={() => {
-                    // Handle sign out logic here
                     setShowSignOutDialog(false);
+                    signOut({ callbackUrl: "/auth/login" });
                   }}
                 >
                   Sign out

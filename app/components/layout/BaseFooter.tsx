@@ -1,4 +1,10 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 const BaseFooter = () => {
+  const pathname = usePathname();
+  if (pathname?.startsWith("/auth")) return null;
   return (
     <footer className="container py-6 text-center text-sm text-muted-foreground">
       <p>
