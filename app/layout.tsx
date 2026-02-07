@@ -95,7 +95,7 @@ export default function RootLayout({
                             dangerouslySetInnerHTML={{
                                 __html: `
                                     window.Userback = window.Userback || {};
-                                    Userback.access_token = "A-OXUdlawX3Chq2DNUpjOh8n5hA";
+                                    Userback.access_token = ${JSON.stringify(process.env.NEXT_PUBLIC_USERBACK_ACCESS_TOKEN || "")};
                                     Userback.user_data = {
                                         id: "123456",
                                         info: {

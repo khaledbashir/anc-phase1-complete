@@ -3,7 +3,6 @@ export const maxDuration = 60;
 
 import { NextRequest } from "next/server";
 
-// Services
 import { generateProposalPdfServiceV2 } from "@/services/proposal/server/generateProposalPdfServiceV2";
 
 export async function POST(req: NextRequest) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { parseANCExcel } from "@/services/proposal/server/excelImportService";
 import { parsePricingTables } from "@/services/pricing/pricingTableParser";
 import * as xlsx from "xlsx";
@@ -54,12 +55,13 @@ export async function POST(req: NextRequest) {
                 console.log(`[EXCEL IMPORT] PricingDocument: ${pricingDocument.tables.length} tables, ${pricingDocument.documentTotal} total`);
             }
         } catch (pricingErr) {
-            // Non-fatal - continue with existing data even if pricing parser fails
+            Sentry.captureException(pricingErr, { tags: { area: "pricingTableParser" } });
             console.warn("[EXCEL IMPORT] PricingTable parser warning:", pricingErr);
         }
 
         return NextResponse.json(data);
     } catch (err) {
+        Sentry.captureException(err, { tags: { area: "excelImport" } });
         console.error("Excel import error:", err);
         return NextResponse.json({ error: String(err) }, { status: 500 });
     }

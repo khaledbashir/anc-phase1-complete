@@ -9,7 +9,7 @@ export const ENV = process.env.NODE_ENV;
 /**
  * Websites
  */
-export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://basheer-natalia.prd42b.easypanel.host";
+export const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || (typeof window === "undefined" ? "http://localhost:3003" : "");
 export const ANC_WEBSITE = "https://ancsports.com";
 
 /**
@@ -30,8 +30,8 @@ export const CURRENCIES_API =
  * Centralized hardcoded base URL with strict /api/v1 versioning
  * All AnythingLLM calls MUST use this constant - Lead Protocol
  */
-const rawUrl = process.env.ANYTHING_LLM_URL || 'https://basheer-anything-llm.prd42b.easypanel.host';
-export const ANYTHING_LLM_BASE_URL = rawUrl.endsWith('/api/v1') ? rawUrl : `${rawUrl}/api/v1`;
+const rawUrl = (process.env.ANYTHING_LLM_URL || "").trim();
+export const ANYTHING_LLM_BASE_URL = !rawUrl ? "" : rawUrl.endsWith("/api/v1") ? rawUrl : `${rawUrl.replace(/\/+$/, "")}/api/v1`;
 export const ANYTHING_LLM_KEY = process.env.ANYTHING_LLM_KEY;
 
 /**

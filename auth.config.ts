@@ -1,0 +1,41 @@
+import type { NextAuthConfig } from "next-auth";
+
+export const authConfig = {
+  pages: {
+    signIn: "/auth/login",
+  },
+  callbacks: {
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const isAuthPage = nextUrl.pathname.startsWith("/auth/");
+      const isPublic =
+        nextUrl.pathname === "/api/health" ||
+        nextUrl.pathname.startsWith("/api/auth") ||
+        nextUrl.pathname.startsWith("/api/uploadthing");
+      if (isAuthPage) {
+        if (isLoggedIn) return Response.redirect(new URL("/", nextUrl.origin));
+        return true;
+      }
+      if (isPublic) return true;
+      if (!isLoggedIn)
+        return Response.redirect(new URL("/auth/login", nextUrl.origin));
+      return true;
+    },
+    jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.authRole = (user as { authRole?: string }).authRole;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        (session.user as { authRole?: string }).authRole = token.authRole as string;
+      }
+      return session;
+    },
+  },
+  providers: [], // Added in auth.ts
+} satisfies NextAuthConfig;

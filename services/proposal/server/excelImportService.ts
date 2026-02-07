@@ -1,4 +1,5 @@
 import * as xlsx from 'xlsx';
+import * as Sentry from '@sentry/nextjs';
 import { InternalAudit, ScreenAudit } from '@/lib/estimator';
 import { formatDimension, formatCurrencyInternal } from '@/lib/math';
 import { computeManifest } from '@/lib/verification';
@@ -24,7 +25,8 @@ function isAlternateRowLabel(label: string) {
  * Focuses on 'LED Sheet', 'Install (In-Bowl)', and 'Install (Concourse)' tabs.
  */
 export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<ParsedANCProposal> {
-    const workbook = xlsx.read(buffer, { type: 'buffer' });
+    try {
+        const workbook = xlsx.read(buffer, { type: 'buffer' });
 
     // 1. Primary Data Source: fuzzy match LED / Cost / Sheet (e.g. "LED Sheet", "LED Cost Sheet", "Copy of LED Sheet")
     const ledSheetName = findLedOrCostSheet(workbook);
@@ -573,6 +575,10 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
         exceptions, // NEW: Include detected exceptions
         excelData,
     };
+    } catch (e) {
+        Sentry.captureException(e, { tags: { area: "excelImportService" }, extra: { fileName } });
+        throw e;
+    }
 }
 
 function parseMarginAnalysisRows(data: any[][]) {

@@ -5,6 +5,7 @@
  * Designed for Natalia's "Mirror Mode" - exact replication of Excel pricing.
  */
 
+import * as Sentry from "@sentry/nextjs";
 import {
   PricingTable,
   PricingLineItem,
@@ -63,6 +64,18 @@ interface TableBoundary {
  * Parse Excel workbook and extract PricingDocument
  */
 export function parsePricingTables(
+  workbook: any,
+  fileName: string = "import.xlsx"
+): PricingDocument | null {
+  try {
+    return parsePricingTablesInner(workbook, fileName);
+  } catch (err) {
+    Sentry.captureException(err, { tags: { area: "pricingTableParser" }, extra: { fileName } });
+    throw err;
+  }
+}
+
+function parsePricingTablesInner(
   workbook: any,
   fileName: string = "import.xlsx"
 ): PricingDocument | null {

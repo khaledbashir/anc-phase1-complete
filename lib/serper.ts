@@ -3,7 +3,7 @@
  * Fallback for venue/stadium address lookups when LLM services are unavailable
  */
 
-const SERPER_API_KEY = process.env.SERPER_API_KEY || "a2ced8aa811681e1036259d341d7093630ab6dae";
+const SERPER_API_KEY = process.env.SERPER_API_KEY;
 const SERPER_ENDPOINT = "https://google.serper.dev/search";
 
 export interface SerperSearchResult {
@@ -30,6 +30,7 @@ export interface SerperResponse {
  * Search Google via Serper API
  */
 export async function searchSerper(query: string): Promise<SerperResponse | null> {
+    if (!SERPER_API_KEY) return null;
     try {
         const res = await fetch(SERPER_ENDPOINT, {
             method: "POST",

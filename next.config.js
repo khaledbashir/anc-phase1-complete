@@ -1,5 +1,6 @@
 const withNextIntl = require("next-intl/plugin")("./i18n/request.ts");
 const path = require("path");
+const { withSentryConfig } = require("@sentry/nextjs");
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -27,4 +28,12 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
     enabled: process.env.ANALYZE === "true",
 });
 
-module.exports = withBundleAnalyzer(withNextIntl(nextConfig));
+const wrapped = withBundleAnalyzer(withNextIntl(nextConfig));
+
+const sentryOptions = {
+    org: process.env.SENTRY_ORG || "",
+    project: process.env.SENTRY_PROJECT || "",
+    silent: !process.env.CI,
+};
+
+module.exports = withSentryConfig(wrapped, sentryOptions);
