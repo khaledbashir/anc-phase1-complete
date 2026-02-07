@@ -44,7 +44,7 @@ const Step3Math = () => {
     const quoteItems = watch("details.quoteItems") || [];
     const bondRate = useWatch({ name: "details.bondRate", control }) || 1.5;
     const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
-    const pricingDocument = useWatch({ name: "details.pricingDocument", control });
+    const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
     const isMirrorMode =
         mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
     const mirrorMode = isMirrorMode;

@@ -78,7 +78,7 @@ const Step4Export = () => {
     const totalValue = internalAudit?.totals?.finalClientTotal || 0;
     const lastSaved = watch("details.updatedAt");
     const mirrorModeFlag = watch("details.mirrorMode");
-    const pricingDocument = watch("details.pricingDocument");
+    const pricingDocument = watch("details.pricingDocument" as any);
     const mirrorMode =
         mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
 

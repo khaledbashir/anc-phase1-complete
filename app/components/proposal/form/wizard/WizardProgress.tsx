@@ -51,7 +51,7 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
     const step4Valid = !errors.details?.paymentInformation;
 
     const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
-    const pricingDocument = useWatch({ name: "details.pricingDocument", control });
+    const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
     const isMirrorMode =
         mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
 

@@ -25,7 +25,7 @@ const WizardNavigation = () => {
     const [proposalName, receiverName] = watch(["details.proposalName", "receiver.name"]);
     const isStep1Ready = Boolean(proposalName?.toString().trim()) && Boolean(receiverName?.toString().trim());
     const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
-    const pricingDocument = useWatch({ name: "details.pricingDocument", control });
+    const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
     const isMirrorMode =
         mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
 
