@@ -13,7 +13,7 @@ export default async function AdminUsersPage() {
     orderBy: { email: "asc" },
   });
   return (
-    <div className="container max-w-4xl py-10 px-4">
+    <div className="container max-w-5xl py-10 px-4">
       <UsersTableClient users={users} />
     </div>
   );

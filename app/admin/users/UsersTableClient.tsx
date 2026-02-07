@@ -24,62 +24,47 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { createUser, updateUserRole, deleteUser } from "@/app/actions/users";
-import { Pencil, Trash2, UserPlus, Shield, FileSpreadsheet, Eye, Loader2, AlertCircle } from "lucide-react";
+import { Pencil, Trash2, Plus, Shield, FileSpreadsheet, Eye, Loader2, AlertCircle } from "lucide-react";
 
-// ── Role Config ──
 type RoleOption = "admin" | "estimator" | "proposal_team";
 
 const ROLES: Record<RoleOption, {
   label: string;
-  description: string;
   permissions: string;
   color: string;
-  bgLight: string;
-  borderActive: string;
+  bg: string;
   icon: typeof Shield;
 }> = {
   admin: {
     label: "Admin",
-    description: "Full system access",
-    permissions: "Manage users, all proposals, settings, billing",
-    color: "text-[#0A52EF]",
-    bgLight: "bg-[#0A52EF]/10",
-    borderActive: "border-[#0A52EF] bg-[#0A52EF]/5",
+    permissions: "Full access — users, proposals, settings",
+    color: "text-zinc-900",
+    bg: "bg-zinc-100",
     icon: Shield,
   },
   estimator: {
     label: "Estimator",
-    description: "Create & edit proposals",
-    permissions: "Upload Excel, build quotes, generate PDFs, edit pricing",
-    color: "text-emerald-600",
-    bgLight: "bg-emerald-50",
-    borderActive: "border-emerald-500 bg-emerald-50",
+    permissions: "Create, edit proposals, upload Excel, PDFs",
+    color: "text-zinc-900",
+    bg: "bg-zinc-100",
     icon: FileSpreadsheet,
   },
   proposal_team: {
     label: "Proposal Team",
-    description: "Review & share proposals",
-    permissions: "View proposals, share with clients, request changes",
-    color: "text-violet-600",
-    bgLight: "bg-violet-50",
-    borderActive: "border-violet-500 bg-violet-50",
+    permissions: "View, share with clients, request changes",
+    color: "text-zinc-900",
+    bg: "bg-zinc-100",
     icon: Eye,
   },
 };
 
-type UserRow = {
-  id: string;
-  email: string;
-  name: string | null;
-  authRole: string | null;
-};
+type UserRow = { id: string; email: string; name: string | null; authRole: string | null };
 
-// ── Role Selector Cards ──
 function RoleSelector({ value, onChange }: { value: RoleOption; onChange: (r: RoleOption) => void }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <Label className="text-sm font-medium text-zinc-700">Role</Label>
-      <div className="grid gap-3">
+      <div className="space-y-1.5">
         {(Object.keys(ROLES) as RoleOption[]).map((key) => {
           const role = ROLES[key];
           const isActive = value === key;
@@ -89,25 +74,22 @@ function RoleSelector({ value, onChange }: { value: RoleOption; onChange: (r: Ro
               key={key}
               type="button"
               onClick={() => onChange(key)}
-              className={`flex items-start gap-3 p-3.5 rounded-xl border-2 text-left transition-all duration-200 ${
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left text-sm transition-all ${
                 isActive
-                  ? role.borderActive
-                  : "border-zinc-200 hover:border-zinc-300 bg-white"
+                  ? "border-zinc-900 bg-zinc-50"
+                  : "border-zinc-200 hover:border-zinc-300"
               }`}
             >
-              <div className={`mt-0.5 p-1.5 rounded-lg ${role.bgLight}`}>
-                <Icon className={`h-4 w-4 ${role.color}`} />
-              </div>
+              <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-zinc-900" : "text-zinc-400"}`} />
               <div className="flex-1 min-w-0">
-                <div className={`font-semibold text-sm ${isActive ? role.color : "text-zinc-900"}`}>
-                  {role.label}
-                </div>
-                <div className="text-xs text-zinc-500 mt-0.5">{role.permissions}</div>
+                <span className={`font-medium ${isActive ? "text-zinc-900" : "text-zinc-600"}`}>{role.label}</span>
+                <span className="text-zinc-400 ml-1.5">—</span>
+                <span className="text-zinc-400 ml-1.5 text-xs">{role.permissions}</span>
               </div>
-              <div className={`mt-1 w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all ${
-                isActive ? "border-[#0A52EF]" : "border-zinc-300"
+              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                isActive ? "border-zinc-900" : "border-zinc-300"
               }`}>
-                {isActive && <div className="w-2 h-2 rounded-full bg-[#0A52EF]" />}
+                {isActive && <div className="w-2 h-2 rounded-full bg-zinc-900" />}
               </div>
             </button>
           );
@@ -117,7 +99,6 @@ function RoleSelector({ value, onChange }: { value: RoleOption; onChange: (r: Ro
   );
 }
 
-// ── Main Component ──
 export function UsersTableClient({ users }: { users: UserRow[] }) {
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
@@ -182,28 +163,32 @@ export function UsersTableClient({ users }: { users: UserRow[] }) {
 
   return (
     <>
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-8">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-zinc-900 tracking-tight">
-            Team
-          </h1>
-          <p className="text-sm text-zinc-500 mt-1">
-            {users.length} member{users.length !== 1 ? "s" : ""} with access to the proposal engine
-          </p>
+          <h1 className="text-lg font-semibold text-zinc-900">Team</h1>
+          <p className="text-sm text-zinc-500">{users.length} members</p>
         </div>
         <Button
           onClick={() => setCreateOpen(true)}
-          className="h-11 px-5 rounded-lg bg-[#0A52EF] hover:bg-[#0385DD] text-white font-semibold transition-all duration-300 hover:-translate-y-[1px]"
-          style={{ boxShadow: "0 8px 20px -5px rgba(10, 82, 239, 0.25)" }}
+          size="sm"
+          className="h-9 px-3 bg-zinc-900 hover:bg-zinc-800 text-white text-sm font-medium"
         >
-          <UserPlus className="h-4 w-4 mr-2" />
-          Invite User
+          <Plus className="h-4 w-4 mr-1.5" />
+          Add member
         </Button>
       </div>
 
-      {/* ── User Cards ── */}
-      <div className="space-y-3">
+      {/* Table */}
+      <div className="border border-zinc-200 rounded-lg overflow-hidden">
+        {/* Table header */}
+        <div className="grid grid-cols-[1fr_140px_80px] px-4 py-2.5 bg-zinc-50 border-b border-zinc-200">
+          <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Member</span>
+          <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Role</span>
+          <span className="text-xs font-medium text-zinc-500 uppercase tracking-wider text-right">Actions</span>
+        </div>
+
+        {/* Rows */}
         {users.map((u, i) => {
           const roleKey = getRoleOption(u.authRole);
           const role = ROLES[roleKey];
@@ -211,73 +196,67 @@ export function UsersTableClient({ users }: { users: UserRow[] }) {
           return (
             <motion.div
               key={u.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: i * 0.05 }}
-              className="group relative flex items-center gap-4 p-4 rounded-xl border border-zinc-200 bg-white hover:border-zinc-300 transition-all duration-300"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.2, delay: i * 0.03 }}
+              className="group grid grid-cols-[1fr_140px_80px] items-center px-4 py-3 border-b border-zinc-100 last:border-b-0 hover:bg-zinc-50/50 transition-colors"
             >
-              {/* Avatar */}
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm ${role.bgLight} ${role.color}`}>
-                {getInitial(u)}
+              {/* Member */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-xs font-semibold text-zinc-600 shrink-0">
+                  {getInitial(u)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-zinc-900 truncate">{u.email}</p>
+                  <p className="text-xs text-zinc-400 truncate">{role.permissions}</p>
+                </div>
               </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2.5">
-                  <span className="font-medium text-zinc-900 truncate">{u.email}</span>
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${role.bgLight} ${role.color}`}>
-                    <Icon className="h-3 w-3" />
-                    {role.label}
-                  </span>
-                </div>
-                <p className="text-xs text-zinc-400 mt-0.5">{role.permissions}</p>
+              {/* Role badge */}
+              <div>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-zinc-100 text-zinc-700">
+                  <Icon className="h-3 w-3" />
+                  {role.label}
+                </span>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
-                  onClick={() => {
-                    setEditUserId(u.id);
-                    setEditRole(getRoleOption(u.authRole));
-                  }}
-                  className="p-2 rounded-lg text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
+                  onClick={() => { setEditUserId(u.id); setEditRole(getRoleOption(u.authRole)); }}
+                  className="p-1.5 rounded text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition-colors"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => setDeleteUserId(u.id)}
-                  className="p-2 rounded-lg text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  className="p-1.5 rounded text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
-
-              {/* Bottom glow on hover */}
-              <div className="absolute bottom-0 left-4 right-4 h-[2px] bg-gradient-to-r from-transparent via-[#0A52EF]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-full" />
             </motion.div>
           );
         })}
       </div>
 
-      {/* ── Create User Dialog ── */}
+      {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl font-bold tracking-tight">
-              Invite a team member
-            </DialogTitle>
+            <DialogTitle className="text-base font-semibold">Add team member</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreate}>
-            <div className="space-y-5 py-4">
+            <div className="space-y-4 py-3">
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-zinc-700">Email address</Label>
+                <Label className="text-sm font-medium text-zinc-700">Email</Label>
                 <Input
                   type="email"
                   value={createEmail}
                   onChange={(e) => setCreateEmail(e.target.value)}
-                  placeholder="colleague@anc.com"
+                  placeholder="name@company.com"
                   required
-                  className="h-12 rounded-lg border-zinc-200 bg-zinc-50/50 text-base px-4 focus-visible:ring-[#0A52EF]/30 focus-visible:border-[#0A52EF] transition-all duration-200"
+                  className="h-9 text-sm"
                 />
               </div>
               <div className="space-y-1.5">
@@ -289,98 +268,61 @@ export function UsersTableClient({ users }: { users: UserRow[] }) {
                   placeholder="Min 8 characters"
                   minLength={8}
                   required
-                  className="h-12 rounded-lg border-zinc-200 bg-zinc-50/50 text-base px-4 focus-visible:ring-[#0A52EF]/30 focus-visible:border-[#0A52EF] transition-all duration-200"
+                  className="h-9 text-sm"
                 />
               </div>
               <RoleSelector value={createRole} onChange={setCreateRole} />
               {createError && (
-                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-                  <AlertCircle className="h-4 w-4 shrink-0" />
+                <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+                  <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                   {createError}
                 </div>
               )}
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setCreateOpen(false)} className="rounded-lg">
+            <DialogFooter className="pt-2">
+              <Button type="button" variant="outline" size="sm" onClick={() => setCreateOpen(false)}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={createPending}
-                className="rounded-lg bg-[#0A52EF] hover:bg-[#0385DD] text-white font-semibold transition-all duration-300"
-                style={{ boxShadow: "0 6px 16px -4px rgba(10, 82, 239, 0.3)" }}
-              >
-                {createPending ? (
-                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating...</>
-                ) : (
-                  "Create User"
-                )}
+              <Button type="submit" size="sm" disabled={createPending} className="bg-zinc-900 hover:bg-zinc-800 text-white">
+                {createPending ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Creating...</> : "Create"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* ── Edit Role Dialog ── */}
+      {/* Edit Role Dialog */}
       <Dialog open={!!editUserId} onOpenChange={(open) => !open && setEditUserId(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
-            <DialogTitle className="font-serif text-xl font-bold tracking-tight">
-              Change role
-            </DialogTitle>
-            <p className="text-sm text-zinc-500 mt-1">
-              {users.find((u) => u.id === editUserId)?.email}
-            </p>
+            <DialogTitle className="text-base font-semibold">Change role</DialogTitle>
+            <p className="text-sm text-zinc-500">{users.find((u) => u.id === editUserId)?.email}</p>
           </DialogHeader>
-          <div className="py-4">
+          <div className="py-3">
             <RoleSelector value={editRole} onChange={setEditRole} />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditUserId(null)} className="rounded-lg">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUpdateRole}
-              disabled={editPending}
-              className="rounded-lg bg-[#0A52EF] hover:bg-[#0385DD] text-white font-semibold transition-all duration-300"
-              style={{ boxShadow: "0 6px 16px -4px rgba(10, 82, 239, 0.3)" }}
-            >
-              {editPending ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Saving...</>
-              ) : (
-                "Save Changes"
-              )}
+          <DialogFooter className="pt-2">
+            <Button variant="outline" size="sm" onClick={() => setEditUserId(null)}>Cancel</Button>
+            <Button size="sm" onClick={handleUpdateRole} disabled={editPending} className="bg-zinc-900 hover:bg-zinc-800 text-white">
+              {editPending ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Saving...</> : "Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete Dialog ── */}
+      {/* Delete Dialog */}
       <AlertDialog open={!!deleteUserId} onOpenChange={(open) => !open && setDeleteUserId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-serif text-xl font-bold tracking-tight">
-              Remove team member
-            </AlertDialogTitle>
+            <AlertDialogTitle className="text-base font-semibold">Remove member</AlertDialogTitle>
             <AlertDialogDescription>
-              <span className="font-medium text-zinc-700">
-                {users.find((u) => u.id === deleteUserId)?.email}
-              </span>{" "}
-              will lose access immediately. This cannot be undone.
+              <span className="font-medium text-zinc-700">{users.find((u) => u.id === deleteUserId)?.email}</span> will lose access immediately.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-lg">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-lg bg-red-600 text-white hover:bg-red-700 transition-all duration-300"
-              style={{ boxShadow: "0 6px 16px -4px rgba(220, 38, 38, 0.3)" }}
-              onClick={handleDelete}
-            >
-              {deletePending ? (
-                <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Removing...</>
-              ) : (
-                "Remove User"
-              )}
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 text-white hover:bg-red-700" onClick={handleDelete}>
+              {deletePending ? <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />Removing...</> : "Remove"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
