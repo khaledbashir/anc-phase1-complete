@@ -77,20 +77,28 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		const html = `<!doctype html><html><head><meta charset="utf-8"/><base href="${baseHref}"/></head><body>${htmlTemplate}</body></html>`;
 
 		const puppeteer = (await import("puppeteer-core")).default;
-		const browserlessUrl = process.env.BROWSERLESS_URL;
+		const internalUrl = process.env.BROWSERLESS_INTERNAL_URL || "ws://basheer_browserless:3000";
+		const externalUrl = process.env.BROWSERLESS_URL;
 
-		console.log("BROWSERLESS_URL configured:", browserlessUrl ? `${browserlessUrl.slice(0, 50)}...` : "NOT SET");
+		// Try internal Docker network first (faster, no auth overhead)
+		try {
+			console.log(`Attempting internal Browserless: ${internalUrl.slice(0, 50)}...`);
+			browser = await puppeteer.connect({ browserWSEndpoint: internalUrl });
+			console.log("Browserless connected via internal network!");
+		} catch (e) {
+			const errMsg = e instanceof Error ? e.message : String(e);
+			console.log(`Internal Browserless unavailable: ${errMsg}`);
+		}
 
-		if (browserlessUrl) {
+		// Fall back to external Browserless URL
+		if (!browser && externalUrl) {
 			try {
-				console.log("Attempting Browserless connection...");
-				browser = await puppeteer.connect({
-					browserWSEndpoint: browserlessUrl,
-				});
-				console.log("Browserless connected successfully!");
+				console.log(`Attempting external Browserless: ${externalUrl.slice(0, 50)}...`);
+				browser = await puppeteer.connect({ browserWSEndpoint: externalUrl });
+				console.log("Browserless connected via external URL!");
 			} catch (e) {
 				const errMsg = e instanceof Error ? e.message : String(e);
-				console.error("Browserless connect failed:", errMsg);
+				console.error("External Browserless connect failed:", errMsg);
 				console.error("Falling back to local Chromium...");
 			}
 		}

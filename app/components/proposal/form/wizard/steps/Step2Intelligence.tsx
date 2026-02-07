@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Screens } from "@/app/components";
 import { Badge } from "@/components/ui/badge";
 import { useProposalContext } from "@/contexts/ProposalContext";
-import { resolveDocumentMode } from "@/lib/documentMode";
+import { resolveDocumentMode, applyDocumentModeDefaults, type DocumentMode } from "@/lib/documentMode";
 import { SOWGeneratorPanel } from "@/app/components/proposal/SOWGeneratorPanel";
 import {
     Select,
@@ -87,7 +87,7 @@ const MasterTableSelector = () => {
 
 const Step2Intelligence = () => {
     const { aiWorkspaceSlug } = useProposalContext();
-    const { control } = useFormContext();
+    const { control, setValue, getValues } = useFormContext();
     const screens = useWatch({
         name: "details.screens",
         control
@@ -147,22 +147,68 @@ const Step2Intelligence = () => {
 
             {/* Document Mode + Master Table Selector */}
             <div className="flex flex-col gap-3 px-4 py-3 rounded-lg border border-border bg-card/50">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-medium text-muted-foreground">Document Mode:</span>
-                        <div className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-wide ${
-                            mode === "BUDGET" ? "bg-amber-500/20 text-amber-400" :
-                            mode === "PROPOSAL" ? "bg-[#0A52EF]/20 text-[#0A52EF]" :
-                            "bg-emerald-500/20 text-emerald-400"
-                        }`}>
-                            {mode === "BUDGET" ? "Budget" : mode === "PROPOSAL" ? "Proposal" : "LOI"}
-                        </div>
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                        <label className="text-xs font-medium text-muted-foreground">Document Mode</label>
+                        <span className="text-[10px] text-muted-foreground">
+                            {mode === "BUDGET" && "Non-binding estimate"}
+                            {mode === "PROPOSAL" && "Formal quote"}
+                            {mode === "LOI" && "Legal contract"}
+                        </span>
                     </div>
-                    <span className="text-[10px] text-muted-foreground">
-                        {mode === "BUDGET" && "Non-binding estimate"}
-                        {mode === "PROPOSAL" && "Formal quote"}
-                        {mode === "LOI" && "Legal contract"}
-                    </span>
+                    <Select
+                        value={mode}
+                        onValueChange={(val) => {
+                            const newMode = val as DocumentMode;
+                            setValue("details.documentMode", newMode, { shouldDirty: true });
+                            const currentDetails = getValues("details") as any;
+                            const updated = applyDocumentModeDefaults(newMode, currentDetails);
+                            const desiredDocumentType = newMode === "LOI" ? "LOI" : "First Round";
+                            const desiredPricingType = newMode === "PROPOSAL" ? "Hard Quoted" : "Budget";
+                            if (currentDetails?.documentType !== desiredDocumentType) {
+                                setValue("details.documentType", desiredDocumentType as any, { shouldDirty: true });
+                            }
+                            if (currentDetails?.pricingType !== desiredPricingType) {
+                                setValue("details.pricingType", desiredPricingType as any, { shouldDirty: true });
+                            }
+                            for (const [key, value] of Object.entries(updated)) {
+                                if (key.startsWith("show") && currentDetails?.[key] !== value) {
+                                    setValue(`details.${key}` as any, value, { shouldDirty: true });
+                                }
+                            }
+                        }}
+                    >
+                        <SelectTrigger className={`w-full text-sm font-semibold border-border ${
+                            mode === "BUDGET" ? "bg-amber-500/10 text-amber-400 border-amber-500/30" :
+                            mode === "PROPOSAL" ? "bg-[#0A52EF]/10 text-[#0A52EF] border-[#0A52EF]/30" :
+                            "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                        }`}>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border text-foreground">
+                            <SelectItem value="BUDGET" className="text-foreground focus:bg-muted focus:text-foreground">Budget</SelectItem>
+                            <SelectItem value="PROPOSAL" className="text-foreground focus:bg-muted focus:text-foreground">Proposal</SelectItem>
+                            <SelectItem value="LOI" className="text-foreground focus:bg-muted focus:text-foreground">LOI</SelectItem>
+                        </SelectContent>
+                    </Select>
+                    {mode === "BUDGET" && (
+                        <div className="flex gap-2">
+                            <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                                onClick={() => setValue("details.documentMode", "PROPOSAL" as DocumentMode, { shouldDirty: true })}>
+                                Promote to Proposal
+                            </button>
+                            <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+                                onClick={() => setValue("details.documentMode", "LOI" as DocumentMode, { shouldDirty: true })}>
+                                Promote to LOI
+                            </button>
+                        </div>
+                    )}
+                    {mode === "PROPOSAL" && (
+                        <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 transition-colors w-fit"
+                            onClick={() => setValue("details.documentMode", "LOI" as DocumentMode, { shouldDirty: true })}>
+                            Promote to LOI
+                        </button>
+                    )}
                 </div>
                 {/* Prompt 51: Master Table Selector */}
                 <MasterTableSelector />

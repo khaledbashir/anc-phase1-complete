@@ -162,6 +162,13 @@ function parsePricingTablesInner(
     alternatesCount: tables.reduce((sum, t) => sum + t.alternates.length, 0),
   };
 
+  // Diagnostic: log each table's breakdown
+  for (const t of tables) {
+    console.log(`[PRICING PARSER]   Table "${t.name}": ${t.items.length} items, subtotal=${t.subtotal.toFixed(2)}, tax=${t.tax?.amount?.toFixed(2) || '0'}, bond=${t.bond.toFixed(2)}, grandTotal=${t.grandTotal.toFixed(2)}, alternates=${t.alternates.length}`);
+  }
+  const globalTotalLog = Number.isFinite(globalTotal) ? (globalTotal as number).toFixed(2) : 'not found';
+  console.log(`[PRICING PARSER] Global "SUB TOTAL (BID FORM)": ${globalTotalLog}`);
+  console.log(`[PRICING PARSER] documentTotal: ${documentTotal.toFixed(2)} (${Number.isFinite(globalTotal) ? 'from global total row' : 'sum of table grandTotals'})`);
   console.log(`[PRICING PARSER] Complete: ${metadata.tablesCount} tables, ${metadata.itemsCount} items, ${metadata.alternatesCount} alternates`);
 
   return {
@@ -273,7 +280,7 @@ function parseAllRows(
     const isSubtotal = labelNorm.includes("subtotal") || labelNorm.includes("sub total") || (labelNorm === "" && hasNumericData);
     const isTax = labelNorm === "tax" || labelNorm.startsWith("tax ");
     const isBond = labelNorm === "bond";
-    const isGrandTotal = labelNorm.includes("grand total") || labelNorm.includes("sub total (bid form)") || labelNorm === "total";
+    const isGrandTotal = labelNorm.includes("grand total") || labelNorm.includes("sub total (bid form)") || labelNorm === "total" || labelNorm === "project total";
     const isAlternateHeader = labelNorm.includes("alternate") && !hasNumericData;
     const isAlternateLine = labelNorm.startsWith("alt ") || labelNorm.startsWith("alt-") || labelNorm.includes("alternate");
 
@@ -631,6 +638,12 @@ function extractTable(
 
   // If no grand total found, calculate it
   if (grandTotal === 0) {
+    grandTotal = subtotal + (tax?.amount || 0) + bond;
+  }
+
+  // If grandTotal equals subtotal exactly but tax/bond exist separately,
+  // the "Total" row was likely a subtotal — recalculate to include tax/bond.
+  if (grandTotal > 0 && grandTotal === subtotal && (tax || bond > 0)) {
     grandTotal = subtotal + (tax?.amount || 0) + bond;
   }
 
