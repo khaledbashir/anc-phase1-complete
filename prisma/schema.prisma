@@ -458,3 +458,72 @@ model ManufacturerProduct {
   @@index([manufacturer])
   @@index([isActive])
 }
+
+// ============================================================================
+// I1: Normalized Product Catalog — Manufacturer → Series → Module + Processor
+// ============================================================================
+
+model Manufacturer {
+  id          String          @id @default(cuid())
+  name        String          @unique // "Yaham", "LG", "Absen"
+  website     String?
+  contactName String?
+  contactEmail String?
+  contactPhone String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  series      ProductSeries[]
+}
+
+model ProductSeries {
+  id             String          @id @default(cuid())
+  name           String          // "HVO", "LSBC", "S3"
+  description    String?
+  environment    String          // "indoor", "outdoor", "indoor_outdoor"
+  manufacturerId String
+  manufacturer   Manufacturer    @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  modules        ProductModule[]
+
+  @@unique([manufacturerId, name])
+  @@index([manufacturerId])
+}
+
+model ProductModule {
+  id            String        @id @default(cuid())
+  modelNumber   String        @unique
+  seriesId      String
+  series        ProductSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  // Physical
+  pixelPitch    Float         // mm
+  moduleWidth   Float         // mm
+  moduleHeight  Float         // mm
+  weight        Float         // kg per module/cabinet
+
+  // Optical
+  brightness    Int           // nits (max)
+
+  // Electrical
+  powerMax      Int           // watts per module
+  powerAvg      Int?          // watts per module (typical)
+
+  // Performance
+  refreshRate   Int?          // Hz
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([seriesId])
+  @@index([pixelPitch])
+}
+
+model Processor {
+  id          String   @id @default(cuid())
+  name        String   // "Novastar VX1000", "Brompton Tessera SX40"
+  maxPixels   Int      // max pixel count (e.g., 6500000)
+  inputs      String   // "4x HDMI 2.0, 2x DP 1.2"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
