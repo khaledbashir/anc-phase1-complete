@@ -31,11 +31,11 @@ const MasterTableSelector = () => {
 
     const tables = useMemo(() => (pricingDocument as any)?.tables || [], [pricingDocument]);
 
-    // Auto-detect: if first table name contains "TOTAL", pre-select it (only on initial null)
+    // Auto-detect: if first table name looks like a summary/roll-up, pre-select it
     useEffect(() => {
         if (tables.length > 0 && masterTableIndex === undefined) {
             const firstName = ((tables[0] as any)?.name || "").toString();
-            if (/total/i.test(firstName)) {
+            if (/total|roll.?up|summary|project\s+grand/i.test(firstName)) {
                 setValue("details.masterTableIndex" as any, 0, { shouldDirty: false });
             }
         }
