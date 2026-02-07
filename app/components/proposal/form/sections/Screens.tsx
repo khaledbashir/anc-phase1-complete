@@ -169,8 +169,10 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
 
     const { duplicateScreen } = useProposalContext();
     const screens = getValues(SCREENS_NAME) || [];
-    const pricingDocument = getValues("details.pricingDocument") as any;
-    const mirrorMode = getValues("details.mirrorMode") === true || (pricingDocument?.tables?.length ?? 0) > 0;
+    const pricingDocument = (getValues() as any)?.details?.pricingDocument as any;
+    const mirrorMode =
+        getValues("details.mirrorMode") === true ||
+        (pricingDocument?.tables?.length ?? 0) > 0;
     const optionIndices = screens
         .map((s: any, idx: number) => {
             const name = (s?.name ?? "").toString().trim().toUpperCase();
