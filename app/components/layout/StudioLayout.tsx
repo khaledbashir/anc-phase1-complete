@@ -18,6 +18,8 @@ interface StudioLayoutProps {
     aiContent?: React.ReactNode;
     /** Content for the Audit View */
     auditContent?: React.ReactNode;
+    /** Hide audit navigation and panel */
+    showAudit?: boolean;
     /** Content for the PDF Anchor (right pane) */
     pdfContent: React.ReactNode;
 }
@@ -33,6 +35,7 @@ export function StudioLayout({
     aiContent,
     auditContent,
     pdfContent,
+    showAudit = true,
 }: StudioLayoutProps) {
     const [viewMode, setViewMode] = useState<ViewMode>("form");
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -43,9 +46,13 @@ export function StudioLayout({
         if (!FEATURES.INTELLIGENCE_MODE && viewMode === "ai") setViewMode("form");
     }, [viewMode]);
 
+    useEffect(() => {
+        if (!showAudit && viewMode === "audit") setViewMode("form");
+    }, [showAudit, viewMode]);
+
     const navItems = [
         { id: "form", icon: LayoutDashboard, label: "Edit Proposal" },
-        { id: "audit", icon: Table, label: "Pricing Breakdown" },
+        ...(showAudit ? [{ id: "audit", icon: Table, label: "Pricing Breakdown" }] : []),
     ];
 
     return (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 import { Wizard, useWizard } from "react-use-wizard";
 
 // Components
@@ -46,6 +46,11 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   const { onFormSubmit, importANCExcel, excelImportLoading, setInitialDataApplied } = useProposalContext();
   const wizard = useWizard();
   const { activeStep } = wizard;
+
+  const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
+  const pricingDocument = useWatch({ name: "details.pricingDocument", control });
+  const isMirrorMode =
+    mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
 
   // PROMPT 56: Single hydration path - ONE function that sets EVERYTHING
   const normalizedProjectId = projectId && projectId !== "new" ? projectId : null;
@@ -99,6 +104,13 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
     debounceMs: 2000
   });
 
+  // Mirror Mode: skip Math step entirely
+  useEffect(() => {
+    if (isMirrorMode && activeStep === 2) {
+      wizard.goToStep(3);
+    }
+  }, [isMirrorMode, activeStep, wizard]);
+
   // Header: Logo | Stepper (center) | Actions
   const HeaderContent = (
     <StudioHeader
@@ -112,6 +124,7 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   );
 
   // Form Content (The Hub - Drafting Mode)
+  const effectiveStep = isMirrorMode && activeStep === 2 ? 3 : activeStep;
   const FormContent = (
     <div className="flex flex-col h-full">
       {/* ActionToolbar: only visible in drafting mode */}
@@ -121,22 +134,22 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
 
       <div className="flex-1 overflow-auto custom-scrollbar">
         <ProposalFormErrorBoundary>
-          {activeStep === 0 && (
+          {effectiveStep === 0 && (
             <WizardStep>
               <Step1Ingestion />
             </WizardStep>
           )}
-          {activeStep === 1 && (
+          {effectiveStep === 1 && (
             <WizardStep>
               <Step2Intelligence />
             </WizardStep>
           )}
-          {activeStep === 2 && (
+          {!isMirrorMode && activeStep === 2 && (
             <WizardStep>
               <Step3Math />
             </WizardStep>
           )}
-          {activeStep === 3 && (
+          {effectiveStep === 3 && (
             <WizardStep>
               <Step4Export />
             </WizardStep>
@@ -187,7 +200,8 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
       header={HeaderContent}
       formContent={FormContent}
       aiContent={AIContent}
-      auditContent={AuditContent}
+      auditContent={isMirrorMode ? null : AuditContent}
+      showAudit={!isMirrorMode}
       pdfContent={PDFContent}
     />
   );

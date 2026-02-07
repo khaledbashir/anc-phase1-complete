@@ -43,8 +43,13 @@ const Step3Math = () => {
     const screens = watch("details.screens") || [];
     const quoteItems = watch("details.quoteItems") || [];
     const bondRate = useWatch({ name: "details.bondRate", control }) || 1.5;
-    const mirrorMode = useWatch({ name: "details.mirrorMode", control });
+    const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
     const pricingDocument = useWatch({ name: "details.pricingDocument", control });
+    const isMirrorMode =
+        mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
+    const mirrorMode = isMirrorMode;
+
+    if (isMirrorMode) return null;
 
     // Global pricing controls
     const globalMargin = useWatch({ name: "details.globalMargin", control });

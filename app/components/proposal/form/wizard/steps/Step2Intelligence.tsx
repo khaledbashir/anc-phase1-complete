@@ -93,7 +93,10 @@ const Step2Intelligence = () => {
         control
     }) || [];
     const details = useWatch({ name: "details", control });
-    const mirrorMode = useWatch({ name: "details.mirrorMode", control });
+    const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
+    const pricingDocument = useWatch({ name: "details.pricingDocument", control });
+    const mirrorMode =
+        mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
     const mode = resolveDocumentMode(details);
 
     const screenCount = screens.length;

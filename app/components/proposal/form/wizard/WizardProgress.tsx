@@ -3,7 +3,7 @@
 import React from "react";
 
 // RHF
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 
 // React Wizard
 import { WizardValues } from "react-use-wizard";
@@ -12,7 +12,7 @@ import { WizardValues } from "react-use-wizard";
 import { useTranslationContext } from "@/contexts/TranslationContext";
 
 // Types
-import { ProposalType, WizardStepType } from "@/types";
+import { ProposalType } from "@/types";
 import { useDebouncedSave } from "@/app/hooks/useDebouncedSave";
 
 // Utils
@@ -36,6 +36,7 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
 
     const {
         formState: { errors },
+        control,
     } = useFormContext<ProposalType>();
 
     const { _t } = useTranslationContext();
@@ -49,34 +50,45 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
     const step3Valid = !errors.details?.items;
     const step4Valid = !errors.details?.paymentInformation;
 
-    const steps: WizardStepType[] = [
-        { id: 0, label: "Setup", isValid: step1Valid },
-        { id: 1, label: "Configure", isValid: step2Valid },
-        { id: 2, label: "Math", isValid: step3Valid },
-        { id: 3, label: "Review", isValid: step4Valid },
-    ];
+    const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
+    const pricingDocument = useWatch({ name: "details.pricingDocument", control });
+    const isMirrorMode =
+        mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
+
+    const steps: Array<{ wizardStep: number; label: string; isValid?: boolean }> = isMirrorMode
+        ? [
+            { wizardStep: 0, label: "Setup", isValid: step1Valid },
+            { wizardStep: 1, label: "Configure", isValid: step2Valid },
+            { wizardStep: 3, label: "Review", isValid: step4Valid },
+        ]
+        : [
+            { wizardStep: 0, label: "Setup", isValid: step1Valid },
+            { wizardStep: 1, label: "Configure", isValid: step2Valid },
+            { wizardStep: 2, label: "Math", isValid: step3Valid },
+            { wizardStep: 3, label: "Review", isValid: step4Valid },
+        ];
 
     const { saveToDb } = useDebouncedSave();
 
-    const handleStepChange = async (stepId: number) => {
+    const handleStepChange = async (wizardStep: number) => {
         saveToDb();
-        wizard.goToStep(stepId);
+        wizard.goToStep(wizardStep);
     };
 
     return (
         <div className="w-full px-4 py-2">
             <div className="flex items-center justify-between max-w-2xl mx-auto">
                 {steps.map((step, idx) => {
-                    const isActive = activeStep === step.id;
-                    const isPassed = activeStep > step.id;
+                    const isActive = activeStep === step.wizardStep;
+                    const isPassed = activeStep > step.wizardStep;
                     const isError = !step.isValid && isPassed;
 
                     return (
-                        <React.Fragment key={step.id}>
+                        <React.Fragment key={step.wizardStep}>
                             {/* Step Circle + Label */}
                             <button
                                 type="button"
-                                onClick={() => handleStepChange(step.id)}
+                                onClick={() => handleStepChange(step.wizardStep)}
                                 className="flex flex-col items-center gap-2 group relative z-10"
                             >
                                 {/* Circle */}
@@ -92,7 +104,7 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
                                     {isPassed && !isError ? (
                                         <Check className="w-4 h-4" />
                                     ) : (
-                                        step.id + 1
+                                        idx + 1
                                     )}
                                 </div>
 
@@ -113,7 +125,7 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
                                 <div
                                     className={cn(
                                         "flex-1 h-[1px] mx-4 transition-colors relative -top-3",
-                                        activeStep > idx ? "bg-emerald-500/30" : "bg-border"
+                                        activeStep > step.wizardStep ? "bg-emerald-500/30" : "bg-border"
                                     )}
                                 />
                             )}

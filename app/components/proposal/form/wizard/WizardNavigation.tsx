@@ -10,20 +10,30 @@ import { BaseButton } from "@/app/components";
 import { useTranslationContext } from "@/contexts/TranslationContext";
 
 // Icons
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 // RHF
-import { useFormContext } from "react-hook-form";
+import { useFormContext, useWatch } from "react-hook-form";
 
 // Types
 import { ProposalType } from "@/types";
 
 const WizardNavigation = () => {
-    const { isFirstStep, isLastStep, nextStep, previousStep, activeStep } = useWizard();
-    const { watch, trigger } = useFormContext<ProposalType>();
+    const { isFirstStep, isLastStep, nextStep, previousStep, activeStep, goToStep } = useWizard();
+    const { watch, trigger, control } = useFormContext<ProposalType>();
     const [proposalName, receiverName] = watch(["details.proposalName", "receiver.name"]);
     const isStep1Ready = Boolean(proposalName?.toString().trim()) && Boolean(receiverName?.toString().trim());
+    const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
+    const pricingDocument = useWatch({ name: "details.pricingDocument", control });
+    const isMirrorMode =
+        mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
+
+    useEffect(() => {
+        if (isMirrorMode && activeStep === 2) {
+            goToStep(3);
+        }
+    }, [isMirrorMode, activeStep, goToStep]);
     
     // Allow clicking next even if "disabled" to show error toast
     // But for visual feedback, we keep it enabled and handle validation in handleNext
@@ -36,6 +46,10 @@ const WizardNavigation = () => {
                 // Optional: Show toast here if you have a toast system
                 return;
             }
+        }
+        if (isMirrorMode && activeStep === 1) {
+            goToStep(3);
+            return;
         }
         nextStep();
     };
@@ -53,7 +67,13 @@ const WizardNavigation = () => {
             {!isFirstStep && (
                 <BaseButton
                     tooltipLabel="Go back to the previous step"
-                    onClick={previousStep}
+                    onClick={() => {
+                        if (isMirrorMode && activeStep === 3) {
+                            goToStep(1);
+                            return;
+                        }
+                        previousStep();
+                    }}
                 >
                     <ArrowLeft />
                     {_t("form.wizard.back")}
