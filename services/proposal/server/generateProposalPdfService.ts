@@ -42,22 +42,11 @@ export async function generateProposalPdfService(req: NextRequest) {
 
 	try {
 		const ReactDOMServer = (await import("react-dom/server")).default;
-		// Mirror Mode MUST use NataliaMirrorTemplate (alternates + exact Excel mirroring)
-		const isMirrorMode =
-			(body.details as any)?.mirrorMode === true ||
-			(((body.details as any)?.pricingDocument?.tables || []) as any[]).length > 0;
-
-		let ProposalTemplate: any;
-		if (isMirrorMode) {
-			const mirrorModule = await import("@/app/components/templates/proposal-pdf/NataliaMirrorTemplate");
-			ProposalTemplate = mirrorModule.default;
-		} else {
-			let templateId = body.details?.pdfTemplate ?? 5; // Default to template 5 (ANC Hybrid - Enterprise Standard)
-			// REQ-Fix: Templates 1, 2, 4 are deprecated. Map to 5 (Hybrid) which is the enterprise standard.
-			const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
-			if (DEPRECATED_TEMPLATES.includes(templateId)) templateId = 5;
-			ProposalTemplate = await getProposalTemplate(templateId);
-		}
+		// Always use ProposalTemplate5 (Hybrid) — handles both Mirror Mode and Intelligence Mode
+		let templateId = body.details?.pdfTemplate ?? 5;
+		const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
+		if (DEPRECATED_TEMPLATES.includes(templateId)) templateId = 5;
+		const ProposalTemplate = await getProposalTemplate(templateId);
 
 		if (!ProposalTemplate) {
 			throw new Error("Failed to load ProposalTemplate2");

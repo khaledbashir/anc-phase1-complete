@@ -12,26 +12,14 @@ const DynamicProposalTemplateSkeleton = () => {
 };
 
 /**
- * Dynamic template selector — detects Mirror Mode vs Hybrid.
- *
- * Mirror Mode: pricingDocument.tables exists → NataliaMirrorTemplate
- * Otherwise:   ProposalTemplate5 (Hybrid) for Budget, Proposal, LOI
- *
- * Must match the same detection logic as generateProposalPdfServiceV2.ts
+ * Always uses ProposalTemplate5 (Hybrid) — the enterprise-standard design.
+ * Hybrid handles both Mirror Mode (pricingDocument.tables) and Intelligence Mode.
  */
 const DynamicProposalTemplate = (props: ProposalType) => {
-    // Mirror Mode detection — same logic as PDF generation service
-    const isMirrorMode =
-        (props.details as any)?.mirrorMode === true ||
-        (((props.details as any)?.pricingDocument?.tables || []) as any[]).length > 0;
-
-    const templateName = useMemo(() => {
-        if (isMirrorMode) return "NataliaMirrorTemplate";
-        const rawId = props.details?.pdfTemplate || 5;
-        const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
-        const templateId = DEPRECATED_TEMPLATES.includes(rawId) ? 5 : rawId;
-        return `ProposalTemplate${templateId}`;
-    }, [isMirrorMode, props.details?.pdfTemplate]);
+    const rawId = props.details?.pdfTemplate || 5;
+    const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
+    const templateId = DEPRECATED_TEMPLATES.includes(rawId) ? 5 : rawId;
+    const templateName = `ProposalTemplate${templateId}`;
 
     const DynamicProposal = useMemo(
         () =>
