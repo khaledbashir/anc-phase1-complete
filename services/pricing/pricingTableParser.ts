@@ -84,19 +84,48 @@ export function parsePricingTables(
   console.log(`[PRICING PARSER] Detected currency: ${currency}`);
 
   // 4. Find column headers
-  const columnMap = findColumnHeaders(data);
+  let columnMap = findColumnHeaders(data);
   if (!columnMap) {
     console.log("[PRICING PARSER] Could not find valid column headers");
     return null;
   }
   console.log(`[PRICING PARSER] Column map: label@${columnMap.label}, cost@${columnMap.cost}, sell@${columnMap.sell}`);
 
-  // 5. Parse all rows with metadata
-  const rows = parseAllRows(data, columnMap);
+  // 5. Parse all rows with metadata (standard detection)
+  const headerRowIdx = findHeaderRowIndex(data, columnMap);
+  let rows = parseAllRows(data, columnMap, headerRowIdx);
   console.log(`[PRICING PARSER] Parsed ${rows.length} rows`);
 
-  // 6. Identify table boundaries
-  const boundaries = findTableBoundaries(rows);
+  // 6. Identify table boundaries (standard)
+  let boundaries = findTableBoundaries(rows);
+
+  // Fallback: if no boundaries detected, attempt flexible column shift + single-table mode.
+  if (boundaries.length === 0) {
+    console.warn("[PRICING PARSER] No section headers detected. Attempting fallback parsing...");
+
+    const shiftedMap = deriveBestShiftedColumnMap(data, headerRowIdx, columnMap);
+    if (shiftedMap) {
+      const isShifted =
+        shiftedMap.label !== columnMap.label ||
+        shiftedMap.cost !== columnMap.cost ||
+        shiftedMap.sell !== columnMap.sell;
+
+      if (isShifted) {
+        console.warn(
+          `[PRICING PARSER] Applying column shift fallback: label@${shiftedMap.label}, cost@${shiftedMap.cost}, sell@${shiftedMap.sell}`
+        );
+        columnMap = shiftedMap;
+        rows = parseAllRows(data, columnMap, headerRowIdx);
+      }
+    }
+
+    // If still no boundaries, treat entire sheet as a single table (mirror mode)
+    boundaries = findTableBoundaries(rows);
+    if (boundaries.length === 0) {
+      boundaries = buildSingleTableBoundary(rows, sheetName);
+    }
+  }
+
   console.log(`[PRICING PARSER] Found ${boundaries.length} table(s)`);
 
   // 7. Extract PricingTable for each boundary
@@ -194,23 +223,19 @@ function findColumnHeaders(data: any[][]): ColumnMap | null {
 /**
  * Parse all rows and add metadata
  */
-function parseAllRows(data: any[][], columnMap: ColumnMap): RawRow[] {
+function parseAllRows(
+  data: any[][],
+  columnMap: ColumnMap,
+  headerRowIdxOverride?: number
+): RawRow[] {
   const norm = (s: any) => String(s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
   const rows: RawRow[] = [];
 
   // Find header row index
-  let headerRowIdx = -1;
-  for (let i = 0; i < Math.min(data.length, 40); i++) {
-    const row = data[i] || [];
-    const cells = row.map(norm);
-    if (cells[columnMap.cost] === "cost" ||
-        cells[columnMap.cost] === "budgeted cost" ||
-        cells[columnMap.sell] === "selling price" ||
-        cells[columnMap.sell] === "revenue") {
-      headerRowIdx = i;
-      break;
-    }
-  }
+  const headerRowIdx =
+    typeof headerRowIdxOverride === "number"
+      ? headerRowIdxOverride
+      : findHeaderRowIndex(data, columnMap);
 
   // Parse rows after header
   for (let i = headerRowIdx + 1; i < data.length; i++) {
@@ -259,6 +284,26 @@ function parseAllRows(data: any[][], columnMap: ColumnMap): RawRow[] {
 }
 
 /**
+ * Locate header row index for the given column map.
+ */
+function findHeaderRowIndex(data: any[][], columnMap: ColumnMap): number {
+  const norm = (s: any) => String(s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+  for (let i = 0; i < Math.min(data.length, 40); i++) {
+    const row = data[i] || [];
+    const cells = row.map(norm);
+    if (
+      cells[columnMap.cost] === "cost" ||
+      cells[columnMap.cost] === "budgeted cost" ||
+      cells[columnMap.sell] === "selling price" ||
+      cells[columnMap.sell] === "revenue"
+    ) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+/**
  * Parse number from cell (handles currency formatting)
  * Defensive: never throws. Returns NaN for unparseable values.
  */
@@ -273,6 +318,68 @@ function parseNumber(value: any): number {
   } catch {
     return NaN;
   }
+}
+
+/**
+ * Derive a shifted column map if data appears offset from headers.
+ * Only used as a fallback when standard parsing yields no sections.
+ */
+function deriveBestShiftedColumnMap(
+  data: any[][],
+  headerRowIdx: number,
+  baseMap: ColumnMap
+): ColumnMap | null {
+  const shifts = [0, -1, 1, -2, 2];
+  const start = Math.max(headerRowIdx + 1, 0);
+  const end = Math.min(data.length, start + 40);
+
+  const isTextLabel = (v: any) =>
+    typeof v === "string" && /[a-z]/i.test(v) && v.trim().length > 0;
+  const isNumeric = (v: any) => Number.isFinite(parseNumber(v));
+
+  let bestShift = 0;
+  let bestScore = -Infinity;
+
+  for (const shift of shifts) {
+    const labelIdx = baseMap.label + shift;
+    const costIdx = baseMap.cost + shift;
+    const sellIdx = baseMap.sell + shift;
+    const marginIdx = baseMap.margin + shift;
+    const marginPctIdx = baseMap.marginPct + shift;
+
+    if (labelIdx < 0 || costIdx < 0 || sellIdx < 0 || marginIdx < 0 || marginPctIdx < 0) continue;
+
+    let labelText = 0;
+    let labelNumeric = 0;
+    let costNumeric = 0;
+    let sellNumeric = 0;
+
+    for (let i = start; i < end; i++) {
+      const row = data[i] || [];
+      const labelVal = row[labelIdx];
+      if (isTextLabel(labelVal)) labelText++;
+      else if (isNumeric(labelVal)) labelNumeric++;
+
+      if (isNumeric(row[costIdx])) costNumeric++;
+      if (isNumeric(row[sellIdx])) sellNumeric++;
+    }
+
+    const score = labelText * 5 + (costNumeric + sellNumeric) - labelNumeric * 2;
+    if (score > bestScore) {
+      bestScore = score;
+      bestShift = shift;
+    }
+  }
+
+  if (bestScore === -Infinity) return null;
+
+  return {
+    label: baseMap.label + bestShift,
+    cost: baseMap.cost + bestShift,
+    sell: baseMap.sell + bestShift,
+    margin: baseMap.margin + bestShift,
+    marginPct: baseMap.marginPct + bestShift,
+  };
 }
 
 // ============================================================================
@@ -342,6 +449,35 @@ function findTableBoundaries(rows: RawRow[]): TableBoundary[] {
   return boundaries;
 }
 
+function buildSingleTableBoundary(rows: RawRow[], name: string): TableBoundary[] {
+  if (!rows.length) return [];
+  let alternatesStartRow: number | null = null;
+  let alternatesEndRow: number | null = null;
+  let inAlternates = false;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (row.isAlternateHeader) {
+      alternatesStartRow = i;
+      inAlternates = true;
+      continue;
+    }
+    if (inAlternates && row.isAlternateLine) {
+      alternatesEndRow = i;
+    }
+  }
+
+  return [
+    {
+      name,
+      startRow: 0,
+      endRow: rows.length - 1,
+      alternatesStartRow,
+      alternatesEndRow,
+    },
+  ];
+}
+
 // ============================================================================
 // TABLE EXTRACTION
 // ============================================================================
@@ -402,7 +538,19 @@ function extractTable(
     }
 
     // Regular line item
-    if (row.label && Number.isFinite(row.sell) && !row.isAlternateLine) {
+    if (row.isAlternateLine) {
+      // If no explicit alternates section, still preserve alternates
+      if (boundary.alternatesStartRow === null && row.label && Number.isFinite(row.sell)) {
+        alternates.push({
+          description: row.label,
+          priceDifference: row.sell,
+          sourceRow: row.rowIndex,
+        });
+      }
+      continue;
+    }
+
+    if (row.label && Number.isFinite(row.sell)) {
       items.push({
         description: row.label,
         sellingPrice: row.sell,
