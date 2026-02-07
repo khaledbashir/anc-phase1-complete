@@ -11,7 +11,10 @@ export const authConfig = {
       const isPublic =
         nextUrl.pathname === "/api/health" ||
         nextUrl.pathname.startsWith("/api/auth") ||
-        nextUrl.pathname.startsWith("/api/uploadthing");
+        nextUrl.pathname.startsWith("/api/uploadthing") ||
+        nextUrl.pathname.startsWith("/_next") ||
+        nextUrl.pathname.startsWith("/favicon") ||
+        nextUrl.pathname.includes(".");
       if (isAuthPage) {
         if (isLoggedIn) return Response.redirect(new URL("/", nextUrl.origin));
         return true;
