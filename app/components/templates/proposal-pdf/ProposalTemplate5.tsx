@@ -331,10 +331,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         // Priority: Override > Screen Name Map > Original Name
         const label = (override ?? screenNameMap[tableName] ?? (tableName || "Project Total")).toString().trim();
 
-        // Gather rows from the master table
-        const rows = (masterTable?.rows || []) as any[];
+        // Gather items from the master table (parser outputs "items", not "rows")
+        const rows = (masterTable?.items || masterTable?.rows || []) as any[];
         const subtotal = Number(masterTable?.subtotal ?? masterTable?.grandTotal ?? 0);
-        const tax = Number(masterTable?.tax ?? 0);
+        const taxInfo = masterTable?.tax;
+        const tax = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
         const bond = Number(masterTable?.bond ?? 0);
         const grandTotal = Number(masterTable?.grandTotal ?? 0);
 
@@ -354,7 +355,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {/* Rows */}
                     {rows.map((row: any, idx: number) => {
                         const desc = (row?.description || row?.name || "Item").toString().trim();
-                        const price = Number(row?.price ?? row?.amount ?? 0);
+                        const price = Number(row?.sellingPrice ?? row?.price ?? row?.amount ?? 0);
                         return (
                             <div
                                 key={`master-row-${idx}`}
@@ -426,40 +427,150 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     };
 
     // Hybrid Pricing Section - Classic text hierarchy (UPPERCASE BOLD name, smaller specs)
-    // When pricingDocument.tables exists (Margin Analysis Excel), render one row per table + PROJECT TOTAL.
+    // When pricingDocument.tables exists (Mirror Mode), render FULL DETAIL per table.
     // Otherwise fall back to quoteItems or screens + internalAudit.
     const PricingSection = () => {
         const softCostItems = internalAudit?.softCostItems || [];
         const pricingDocument = (details as any)?.pricingDocument;
-        const pricingTables = (pricingDocument?.tables || []) as Array<{ id?: string; name?: string; grandTotal?: number }>;
+        const pricingTables = (pricingDocument?.tables || []) as any[];
         const tableHeaderOverrides = ((details as any)?.tableHeaderOverrides || {}) as Record<string, string>;
 
-        type LineItem = { key: string; name: string; description: string; price: number };
-        let lineItems: LineItem[];
+        // Mirror Mode: render each table with full item detail
         if (pricingTables.length > 0) {
-            // Prompt 51: Skip master table from detail listing (it's already shown above)
-            lineItems = pricingTables
+            const detailTables = pricingTables
                 .map((table: any, origIdx: number) => ({ table, origIdx }))
-                .filter(({ origIdx }) => origIdx !== masterTableIndex)
-                .map(({ table, origIdx }) => {
-                    // Priority: explicit override > screen name edit (via group map) > Excel table name
-                    const tableName = (table?.name ?? "").toString().trim();
-                    const tableId = table?.id;
-                    const override = tableId ? tableHeaderOverrides[tableId] : undefined;
-                    const label = (override || screenNameMap[tableName] || (tableName || "Item")).toString().trim();
-                    const grandTotal = Number(table?.grandTotal ?? 0);
-                    return {
-                        key: table?.id || `table-${origIdx}`,
-                        name: label.toUpperCase(),
-                        description: "",
-                        price: grandTotal,
-                    };
-                });
-        } else {
-            // Get quote items if available
-            const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
+                .filter(({ origIdx }) => origIdx !== masterTableIndex);
 
-            lineItems = quoteItems.length > 0
+            const documentTotal = Number.isFinite(pricingDocument?.documentTotal)
+                ? pricingDocument.documentTotal
+                : pricingTables.reduce((sum: number, t: any) => sum + (Number(t?.grandTotal ?? 0) || 0), 0);
+
+            return (
+                <>
+                    {detailTables.map(({ table, origIdx }) => {
+                        const tableName = (table?.name ?? "").toString().trim();
+                        const tableId = table?.id;
+                        const override = tableId ? tableHeaderOverrides[tableId] : undefined;
+                        const label = (override || screenNameMap[tableName] || (tableName || "Section")).toString().trim();
+                        const items = (table?.items || []) as any[];
+                        const alternates = (table?.alternates || []) as any[];
+                        const subtotal = Number(table?.subtotal ?? 0);
+                        const taxInfo = table?.tax;
+                        const taxAmount = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
+                        const taxLabel = typeof taxInfo === 'object' ? (taxInfo?.label || "TAX") : "TAX";
+                        const bond = Number(table?.bond ?? 0);
+                        const grandTotal = Number(table?.grandTotal ?? 0);
+
+                        return (
+                            <div key={tableId || `table-${origIdx}`} className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
+                                    {/* Table header */}
+                                    <div
+                                        className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
+                                        style={{ background: colors.primary, color: colors.white }}
+                                    >
+                                        <div className="col-span-8">{label.toUpperCase()}</div>
+                                        <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
+                                    </div>
+
+                                    {/* Line items */}
+                                    {items.map((item: any, idx: number) => (
+                                        <div
+                                            key={`${tableId}-item-${idx}`}
+                                            className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
+                                            style={{
+                                                borderColor: colors.borderLight,
+                                                background: idx % 2 === 1 ? colors.surface : colors.white,
+                                                minHeight: '32px',
+                                            }}
+                                        >
+                                            <div className="col-span-8 pr-2 text-xs" style={{ color: colors.text }}>
+                                                {(item?.description || "Item").toString()}
+                                            </div>
+                                            <div className="col-span-4 text-right font-semibold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
+                                                {item?.isIncluded
+                                                    ? <span style={{ color: '#10b981' }}>INCLUDED</span>
+                                                    : formatCurrency(Number(item?.sellingPrice ?? 0))}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {/* Alternates */}
+                                    {alternates.length > 0 && (
+                                        <>
+                                            <div className="grid grid-cols-12 px-4 py-2 border-t text-xs font-semibold uppercase tracking-wider" style={{ borderColor: colors.border, background: colors.surface, color: colors.textMuted }}>
+                                                <div className="col-span-8">ALTERNATES</div>
+                                                <div className="col-span-4 text-right">PRICING</div>
+                                            </div>
+                                            {alternates.map((alt: any, aidx: number) => (
+                                                <div key={`alt-${aidx}`} className="grid grid-cols-12 px-4 py-1.5 border-t text-xs italic" style={{ borderColor: colors.borderLight, color: colors.textMuted }}>
+                                                    <div className="col-span-8">{(alt?.description || "Alternate").toString()}</div>
+                                                    <div className="col-span-4 text-right font-medium" style={{ color: colors.text }}>
+                                                        {formatCurrency(Number(alt?.priceDifference ?? 0))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+
+                                    {/* Footer: Subtotal / Tax / Bond / Grand Total */}
+                                    <div className="border-t-2" style={{ borderColor: colors.border }}>
+                                        {Math.abs(subtotal) >= 0.01 && subtotal !== grandTotal && (
+                                            <div className="grid grid-cols-12 px-4 py-1.5 text-xs font-bold" style={{ color: colors.text }}>
+                                                <div className="col-span-8">SUBTOTAL</div>
+                                                <div className="col-span-4 text-right">{formatCurrency(subtotal)}</div>
+                                            </div>
+                                        )}
+                                        {Math.abs(taxAmount) >= 0.01 && (
+                                            <div className="grid grid-cols-12 px-4 py-1 text-xs" style={{ color: colors.textMuted }}>
+                                                <div className="col-span-8">{taxLabel}</div>
+                                                <div className="col-span-4 text-right">{formatCurrency(taxAmount)}</div>
+                                            </div>
+                                        )}
+                                        {(Math.abs(bond) >= 0.01 || Math.abs(taxAmount) >= 0.01) && (
+                                            <div className="grid grid-cols-12 px-4 py-1 text-xs" style={{ color: colors.textMuted }}>
+                                                <div className="col-span-8">BOND</div>
+                                                <div className="col-span-4 text-right">{formatCurrency(bond)}</div>
+                                            </div>
+                                        )}
+                                        <div
+                                            className="grid grid-cols-12 px-4 py-2.5 border-t break-inside-avoid"
+                                            style={{ borderColor: colors.primary, background: colors.primaryLight }}
+                                        >
+                                            <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>GRAND TOTAL</div>
+                                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.primaryDark }}>{formatCurrency(grandTotal)}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+
+                    {/* Document total (when multiple detail tables and no master table) */}
+                    {detailTables.length > 1 && masterTableIndex === null && (
+                        <div className="mt-6 break-inside-avoid">
+                            <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.primary }}>
+                                <div className="grid grid-cols-12 px-4 py-3" style={{ background: colors.primaryLight }}>
+                                    <div className="col-span-8 font-bold text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>
+                                        PROJECT GRAND TOTAL{currency === "CAD" ? " (CAD)" : ""}
+                                    </div>
+                                    <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
+                                        {formatCurrency(documentTotal)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </>
+            );
+        }
+
+        // Intelligence Mode fallback: quoteItems or screens + internalAudit
+        type LineItem = { key: string; name: string; description: string; price: number; isAlternate?: boolean };
+        // Get quote items if available
+        const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
+
+        const lineItems: LineItem[] = quoteItems.length > 0
                 ? quoteItems.map((it: any, idx: number) => {
                     const rawLocation = (it.locationName || "ITEM").toString();
                     const matchingScreen = screens.find((s: any) => {
@@ -529,7 +640,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         isAlternate: item?.isAlternate || false,
                     })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
                 ];
-        }
 
         const subtotal = lineItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
 
