@@ -25,7 +25,7 @@ import type { ProposalType } from "@/types";
  * so it renders at the top of the document.
  */
 const MasterTableSelector = () => {
-    const { setValue, control } = useFormContext<ProposalType>();
+    const { setValue, control, getFieldState, formState } = useFormContext<ProposalType>();
     const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
     const masterTableIndex = useWatch({ name: "details.masterTableIndex" as any, control });
 
@@ -33,14 +33,16 @@ const MasterTableSelector = () => {
 
     // Auto-detect: scan ALL tables for a summary/roll-up name, not just the first one
     useEffect(() => {
-        if (tables.length > 0 && masterTableIndex === undefined) {
+        const fieldState = getFieldState("details.masterTableIndex" as any, formState);
+        if (fieldState.isDirty) return;
+        if (tables.length > 0 && masterTableIndex == null) {
             const rollUpRegex = /\b(total|roll.?up|summary|project\s+grand|grand\s+total|project\s+total|cost\s+summary|pricing\s+summary|roll.?up\s+summary)\b/i;
             const matchIdx = tables.findIndex((t: any) => rollUpRegex.test(((t as any)?.name || "").toString()));
             if (matchIdx >= 0) {
                 setValue("details.masterTableIndex" as any, matchIdx, { shouldDirty: false });
             }
         }
-    }, [tables, masterTableIndex, setValue]);
+    }, [tables, masterTableIndex, setValue, getFieldState, formState]);
 
     // Don't render if no pricing tables
     if (tables.length === 0) return null;

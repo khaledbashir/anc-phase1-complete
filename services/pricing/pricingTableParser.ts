@@ -142,13 +142,16 @@ function parsePricingTablesInner(
   console.log(`[PRICING PARSER] Found ${boundaries.length} table(s)`);
 
   // 7. Extract PricingTable for each boundary
-  const tables = boundaries.map((boundary, idx) =>
+  let tables = boundaries.map((boundary, idx) =>
     extractTable(rows, boundary, idx, currency)
   );
 
   // 8. Calculate document total
   // Mirror rule: trust Excel's "SUB TOTAL (BID FORM)" if present as a global total.
   const globalTotal = findGlobalDocumentTotal(rows, boundaries);
+  // If the workbook has a document-level total row but no explicit roll-up section,
+  // synthesize one so UI auto-detection can select a master summary table.
+  tables = prependSyntheticRollupTable(tables, globalTotal, currency);
   const documentTotal = Number.isFinite(globalTotal)
     ? (globalTotal as number)
     : tables.reduce((sum, t) => sum + t.grandTotal, 0);
@@ -179,6 +182,42 @@ function parsePricingTablesInner(
     documentTotal,
     metadata,
   };
+}
+
+function prependSyntheticRollupTable(
+  tables: PricingTable[],
+  globalTotal: number | null,
+  currency: "CAD" | "USD"
+): PricingTable[] {
+  if (!tables.length || !Number.isFinite(globalTotal)) return tables;
+
+  const rollUpRegex =
+    /\b(total|roll.?up|summary|project\s+grand|grand\s+total|project\s+total|cost\s+summary|pricing\s+summary|roll.?up\s+summary)\b/i;
+  if (tables.some((t) => rollUpRegex.test((t.name || "").toString()))) {
+    return tables;
+  }
+
+  const summaryItems: PricingLineItem[] = tables.map((t, idx) => ({
+    description: t.name || `Section ${idx + 1}`,
+    sellingPrice: Number.isFinite(t.grandTotal) ? t.grandTotal : 0,
+    isIncluded: false,
+  }));
+  const summarySubtotal = summaryItems.reduce((sum, item) => sum + item.sellingPrice, 0);
+  const summaryTable: PricingTable = {
+    id: createTableId("Project Grand Total", 0),
+    name: "Project Grand Total",
+    currency,
+    items: summaryItems,
+    subtotal: summarySubtotal,
+    tax: null,
+    bond: 0,
+    grandTotal: globalTotal as number,
+    alternates: [],
+    sourceStartRow: -1,
+    sourceEndRow: -1,
+  };
+
+  return [summaryTable, ...tables];
 }
 
 // ============================================================================
