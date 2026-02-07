@@ -66,8 +66,11 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   const clientZip = receiver?.zipCode || (details as any)?.clientZip || "";
   const purchaserAddress = [clientAddress, clientCity, clientZip].filter(Boolean).join(", ");
 
-  // Document total
-  const documentTotal = tables.reduce((sum, t) => sum + t.grandTotal, 0);
+  // Document total: trust Excel's "SUB TOTAL (BID FORM)" when provided by parser
+  const documentTotal =
+    Number.isFinite(pricingDocument?.documentTotal)
+      ? (pricingDocument?.documentTotal as number)
+      : tables.reduce((sum, t) => sum + t.grandTotal, 0);
 
   // Screen specifications from form (for Technical Specs section)
   const screens = (details as any)?.screens || [];

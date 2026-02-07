@@ -134,7 +134,11 @@ export function parsePricingTables(
   );
 
   // 8. Calculate document total
-  const documentTotal = tables.reduce((sum, t) => sum + t.grandTotal, 0);
+  // Mirror rule: trust Excel's "SUB TOTAL (BID FORM)" if present as a global total.
+  const globalTotal = findGlobalDocumentTotal(rows, boundaries);
+  const documentTotal = Number.isFinite(globalTotal)
+    ? (globalTotal as number)
+    : tables.reduce((sum, t) => sum + t.grandTotal, 0);
 
   // 9. Build metadata
   const metadata = {
@@ -476,6 +480,36 @@ function buildSingleTableBoundary(rows: RawRow[], name: string): TableBoundary[]
       alternatesEndRow,
     },
   ];
+}
+
+/**
+ * Find a global "SUB TOTAL (BID FORM)" row that appears before any section headers.
+ * Used to override documentTotal when a summary block exists above detailed sections.
+ */
+function findGlobalDocumentTotal(
+  rows: RawRow[],
+  boundaries: TableBoundary[]
+): number | null {
+  if (!rows.length || !boundaries.length) return null;
+
+  const firstBoundaryStartRowIndex = Math.min(
+    ...boundaries.map((b) => {
+      const row = rows[b.startRow];
+      return row ? row.rowIndex : Number.POSITIVE_INFINITY;
+    })
+  );
+  if (!Number.isFinite(firstBoundaryStartRowIndex)) return null;
+
+  const candidates = rows.filter(
+    (r) =>
+      r.isGrandTotal &&
+      Number.isFinite(r.sell) &&
+      r.rowIndex < firstBoundaryStartRowIndex
+  );
+
+  if (!candidates.length) return null;
+  // Use the last grand total before the first section header (closest summary total)
+  return candidates[candidates.length - 1].sell;
 }
 
 // ============================================================================
