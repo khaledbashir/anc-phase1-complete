@@ -20,7 +20,7 @@ const menuItems = [
     { icon: LayoutGrid, label: "Vault", href: "/projects" },
     { icon: FileText, label: "Templates", href: "/templates", soon: true },
     { icon: BarChart3, label: "Analytics", href: "/analytics", soon: true },
-    { icon: Users, label: "Team", href: "/team", soon: true },
+    { icon: Users, label: "Team", href: "/admin/users", soon: false },
 ];
 
 export default function DashboardSidebar() {
