@@ -2,10 +2,107 @@
 
 import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
-import Image from "next/image";
 
 const FRENCH_BLUE = "#0A52EF";
 const FRENCH_BLUE_DARK = "#002C73";
+
+const pageStyles: Record<string, React.CSSProperties> = {
+  root: {
+    minHeight: "100vh",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f8fafc",
+    padding: "1rem",
+    fontFamily: "system-ui, -apple-system, sans-serif",
+  },
+  card: {
+    maxWidth: "28rem",
+    width: "100%",
+    borderRadius: "1rem",
+    border: "1px solid #e4e4e7",
+    backgroundColor: "#fff",
+    padding: "2rem",
+    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
+  },
+  header: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    marginBottom: "2rem",
+  },
+  title: {
+    color: FRENCH_BLUE_DARK,
+    fontSize: "1.5rem",
+    fontWeight: 700,
+    letterSpacing: "-0.025em",
+    margin: 0,
+  },
+  subtitle: {
+    color: "#71717a",
+    fontSize: "0.875rem",
+    marginTop: "0.25rem",
+    margin: 0,
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "1.25rem",
+  },
+  field: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.375rem",
+  },
+  label: {
+    display: "block",
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    color: "#3f3f46",
+  },
+  input: {
+    width: "100%",
+    height: "2.75rem",
+    padding: "0 0.75rem",
+    borderRadius: "0.5rem",
+    border: "1px solid #d4d4d8",
+    backgroundColor: "#fff",
+    color: "#18181b",
+    fontSize: "1rem",
+    boxSizing: "border-box",
+  },
+  error: {
+    fontSize: "0.875rem",
+    color: "#dc2626",
+    backgroundColor: "#fef2f2",
+    padding: "0.5rem 0.75rem",
+    borderRadius: "0.5rem",
+    margin: 0,
+  },
+  button: {
+    width: "100%",
+    height: "2.75rem",
+    borderRadius: "0.5rem",
+    fontWeight: 600,
+    color: "#fff",
+    backgroundColor: FRENCH_BLUE,
+    border: "none",
+    fontSize: "1rem",
+    cursor: "pointer",
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+    cursor: "not-allowed",
+  },
+  footer: {
+    marginTop: "1.5rem",
+    textAlign: "center" as const,
+    fontSize: "0.75rem",
+    color: "#71717a",
+    margin: "1.5rem 0 0 0",
+  },
+};
 
 export default function LoginPage() {
   const [callbackUrl, setCallbackUrl] = useState("/");
@@ -14,9 +111,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
-  const [logoError, setLogoError] = useState(false);
 
-  // Read search params after mount to avoid Suspense/SSR issues
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     setCallbackUrl(params.get("callbackUrl") ?? "/");
@@ -52,84 +147,56 @@ export default function LoginPage() {
   const showError = urlError === "CredentialsSignin" || message;
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc] px-4"
-      style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", backgroundColor: "#f8fafc", padding: "1rem" }}
-    >
-      <div
-        className="w-full max-w-md rounded-2xl border border-[var(--anc-border)] bg-white p-8 shadow-lg"
-        style={{ maxWidth: "28rem", width: "100%", borderRadius: "1rem", border: "1px solid #e4e4e7", backgroundColor: "#fff", padding: "2rem", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
-      >
-        <div className="flex flex-col items-center mb-8">
-          {!logoError ? (
-            <Image
-              src="/ANC_Logo_2023_blue.png"
-              alt="ANC Sports"
-              width={160}
-              height={48}
-              className="mb-6"
-              priority
-              onError={() => setLogoError(true)}
-            />
-          ) : (
-            <div
-              className="mb-6 text-xl font-bold tracking-tight"
-              style={{ color: FRENCH_BLUE_DARK }}
-            >
-              ANC Proposal Engine
-            </div>
-          )}
-          <h1
-            className="text-xl font-bold tracking-tight"
-            style={{ color: FRENCH_BLUE_DARK, fontSize: "1.25rem", fontWeight: 700 }}
-          >
-            ANC Proposal Engine
-          </h1>
-          <p className="text-sm text-zinc-500 mt-1" style={{ color: "#71717a", marginTop: "0.25rem" }}>Sign in to continue</p>
+    <div style={pageStyles.root}>
+      <style>{`
+        #login-email:focus, #login-password:focus {
+          outline: none;
+          border-color: ${FRENCH_BLUE};
+          box-shadow: 0 0 0 2px ${FRENCH_BLUE}40;
+        }
+      `}</style>
+      <div style={pageStyles.card}>
+        <div style={pageStyles.header}>
+          <h1 style={pageStyles.title}>ANC Proposal Engine</h1>
+          <p style={pageStyles.subtitle}>Sign in to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-zinc-700 mb-1.5"
-            >
+        <form onSubmit={handleSubmit} style={pageStyles.form}>
+          <div style={pageStyles.field}>
+            <label htmlFor="login-email" style={pageStyles.label}>
               Email
             </label>
             <input
-              id="email"
+              id="login-email"
               name="email"
               type="email"
               autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full h-11 px-3 rounded-lg border border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all focus:ring-[#0A52EF]"
               placeholder="you@example.com"
+              style={pageStyles.input}
             />
           </div>
-          <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-zinc-700 mb-1.5"
-            >
+          <div style={pageStyles.field}>
+            <label htmlFor="login-password" style={pageStyles.label}>
               Password
             </label>
             <input
-              id="password"
+              id="login-password"
               name="password"
               type="password"
               autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-11 px-3 rounded-lg border border-zinc-300 bg-white text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all focus:ring-[#0A52EF]"
               placeholder="••••••••"
+              style={pageStyles.input}
             />
           </div>
 
           {showError && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+            <p style={pageStyles.error}>
               {message || "Invalid credentials. Please try again."}
             </p>
           )}
@@ -137,21 +204,16 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-11 rounded-lg font-semibold text-white transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center"
             style={{
-              width: "100%",
-              height: "2.75rem",
-              borderRadius: "0.5rem",
-              fontWeight: 600,
-              color: "#fff",
-              backgroundColor: FRENCH_BLUE,
+              ...pageStyles.button,
+              ...(loading ? pageStyles.buttonDisabled : {}),
             }}
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-zinc-500">
+        <p style={pageStyles.footer}>
           Use your ANC account to access the proposal engine.
         </p>
       </div>
