@@ -31,12 +31,13 @@ const MasterTableSelector = () => {
 
     const tables = useMemo(() => (pricingDocument as any)?.tables || [], [pricingDocument]);
 
-    // Auto-detect: if first table name looks like a summary/roll-up, pre-select it
+    // Auto-detect: scan ALL tables for a summary/roll-up name, not just the first one
     useEffect(() => {
         if (tables.length > 0 && masterTableIndex === undefined) {
-            const firstName = ((tables[0] as any)?.name || "").toString();
-            if (/total|roll.?up|summary|project\s+grand/i.test(firstName)) {
-                setValue("details.masterTableIndex" as any, 0, { shouldDirty: false });
+            const rollUpRegex = /\b(total|roll.?up|summary|project\s+grand|grand\s+total|project\s+total|cost\s+summary|pricing\s+summary|roll.?up\s+summary)\b/i;
+            const matchIdx = tables.findIndex((t: any) => rollUpRegex.test(((t as any)?.name || "").toString()));
+            if (matchIdx >= 0) {
+                setValue("details.masterTableIndex" as any, matchIdx, { shouldDirty: false });
             }
         }
     }, [tables, masterTableIndex, setValue]);
