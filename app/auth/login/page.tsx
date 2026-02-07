@@ -2,107 +2,12 @@
 
 import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
-
-const FRENCH_BLUE = "#0A52EF";
-const FRENCH_BLUE_DARK = "#002C73";
-
-const pageStyles: Record<string, React.CSSProperties> = {
-  root: {
-    minHeight: "100vh",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f8fafc",
-    padding: "1rem",
-    fontFamily: "system-ui, -apple-system, sans-serif",
-  },
-  card: {
-    maxWidth: "28rem",
-    width: "100%",
-    borderRadius: "1rem",
-    border: "1px solid #e4e4e7",
-    backgroundColor: "#fff",
-    padding: "2rem",
-    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)",
-  },
-  header: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    marginBottom: "2rem",
-  },
-  title: {
-    color: FRENCH_BLUE_DARK,
-    fontSize: "1.5rem",
-    fontWeight: 700,
-    letterSpacing: "-0.025em",
-    margin: 0,
-  },
-  subtitle: {
-    color: "#71717a",
-    fontSize: "0.875rem",
-    marginTop: "0.25rem",
-    margin: 0,
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "1.25rem",
-  },
-  field: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "0.375rem",
-  },
-  label: {
-    display: "block",
-    fontSize: "0.875rem",
-    fontWeight: 500,
-    color: "#3f3f46",
-  },
-  input: {
-    width: "100%",
-    height: "2.75rem",
-    padding: "0 0.75rem",
-    borderRadius: "0.5rem",
-    border: "1px solid #d4d4d8",
-    backgroundColor: "#fff",
-    color: "#18181b",
-    fontSize: "1rem",
-    boxSizing: "border-box",
-  },
-  error: {
-    fontSize: "0.875rem",
-    color: "#dc2626",
-    backgroundColor: "#fef2f2",
-    padding: "0.5rem 0.75rem",
-    borderRadius: "0.5rem",
-    margin: 0,
-  },
-  button: {
-    width: "100%",
-    height: "2.75rem",
-    borderRadius: "0.5rem",
-    fontWeight: 600,
-    color: "#fff",
-    backgroundColor: FRENCH_BLUE,
-    border: "none",
-    fontSize: "1rem",
-    cursor: "pointer",
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-    cursor: "not-allowed",
-  },
-  footer: {
-    marginTop: "1.5rem",
-    textAlign: "center" as const,
-    fontSize: "0.75rem",
-    color: "#71717a",
-    margin: "1.5rem 0 0 0",
-  },
-};
+import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const [callbackUrl, setCallbackUrl] = useState("/");
@@ -147,75 +52,213 @@ export default function LoginPage() {
   const showError = urlError === "CredentialsSignin" || message;
 
   return (
-    <div style={pageStyles.root}>
+    <div className="flex flex-col md:flex-row min-h-screen bg-white">
       <style>{`
-        #login-email:focus, #login-password:focus {
-          outline: none;
-          border-color: ${FRENCH_BLUE};
-          box-shadow: 0 0 0 2px ${FRENCH_BLUE}40;
+        @keyframes login-glow-drift {
+          0%, 100% { opacity: 0.15; transform: translate(0%, 0%) scale(1); }
+          50% { opacity: 0.25; transform: translate(10%, 10%) scale(1.1); }
         }
       `}</style>
-      <div style={pageStyles.card}>
-        <div style={pageStyles.header}>
-          <h1 style={pageStyles.title}>ANC Proposal Engine</h1>
-          <p style={pageStyles.subtitle}>Sign in to continue</p>
+
+      {/* ── Left Showcase Panel ── */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="relative h-[30vh] md:h-auto md:w-1/2 lg:w-[55%] overflow-hidden flex items-center justify-center md:justify-start"
+        style={{
+          background: "linear-gradient(135deg, #002C73 0%, #0385DD 50%, #0A52EF 100%)",
+        }}
+      >
+        {/* Slash pattern overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(145deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 1px, transparent 1px, transparent 60px)",
+          }}
+        />
+
+        {/* Radial glow with drift */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "radial-gradient(ellipse at 30% 30%, rgba(3,184,255,0.2) 0%, transparent 60%)",
+            animation: "login-glow-drift 8s ease-in-out infinite",
+          }}
+        />
+
+        {/* Content */}
+        <div className="relative z-10 px-8 md:px-12 lg:px-16 text-center md:text-left">
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 0.2, ease: "easeOut" }}
+          >
+            <Image
+              src="/anc-logo-white.png"
+              alt="ANC"
+              width={128}
+              height={40}
+              priority
+              className="inline-block md:block"
+            />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 0.4, ease: "easeOut" }}
+          >
+            <h2 className="font-serif text-2xl md:text-3xl lg:text-4xl font-bold text-white mt-6 md:mt-8 tracking-tight">
+              Proposal Engine
+            </h2>
+            <p className="hidden md:block text-base text-white/60 font-light mt-3 tracking-wide">
+              Professional Sports Display Technology
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.6 }}
+            className="hidden md:flex gap-2 mt-12"
+          >
+            <div className="w-2 h-2 rounded-full bg-[#03B8FF]" />
+            <div className="w-2 h-2 rounded-full bg-white" />
+            <div className="w-2 h-2 rounded-full bg-[#03B8FF]/50" />
+          </motion.div>
         </div>
 
-        <form onSubmit={handleSubmit} style={pageStyles.form}>
-          <div style={pageStyles.field}>
-            <label htmlFor="login-email" style={pageStyles.label}>
-              Email
-            </label>
-            <input
-              id="login-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              style={pageStyles.input}
-            />
-          </div>
-          <div style={pageStyles.field}>
-            <label htmlFor="login-password" style={pageStyles.label}>
-              Password
-            </label>
-            <input
-              id="login-password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              style={pageStyles.input}
+        {/* Bottom copyright */}
+        <span className="hidden md:block absolute bottom-6 left-16 text-xs text-white/25">
+          &copy; 2026 ANC Sports Enterprises
+        </span>
+      </motion.div>
+
+      {/* ── Right Login Panel ── */}
+      <div className="flex-1 flex items-center justify-center p-6 md:p-12 bg-white">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+          className="w-full max-w-sm"
+        >
+          {/* Mobile-only logo */}
+          <div className="md:hidden flex justify-center mb-6">
+            <Image
+              src="/anc-logo-blue.png"
+              alt="ANC"
+              width={40}
+              height={40}
+              priority
             />
           </div>
 
-          {showError && (
-            <p style={pageStyles.error}>
-              {message || "Invalid credentials. Please try again."}
-            </p>
-          )}
+          {/* Header */}
+          <h1 className="font-serif text-2xl font-bold text-zinc-900 tracking-tight text-center md:text-left">
+            Welcome back
+          </h1>
+          <p className="text-sm text-zinc-500 mt-1 text-center md:text-left">
+            Sign in to your account
+          </p>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              ...pageStyles.button,
-              ...(loading ? pageStyles.buttonDisabled : {}),
-            }}
-          >
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            <div className="space-y-1.5">
+              <Label htmlFor="login-email" className="text-sm font-medium text-zinc-700">
+                Email address
+              </Label>
+              <Input
+                id="login-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="h-12 rounded-lg border-zinc-200 bg-zinc-50/50 text-base px-4 focus-visible:ring-[#0A52EF]/30 focus-visible:border-[#0A52EF] transition-all duration-200"
+              />
+            </div>
 
-        <p style={pageStyles.footer}>
-          Use your ANC account to access the proposal engine.
-        </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="login-password" className="text-sm font-medium text-zinc-700">
+                Password
+              </Label>
+              <Input
+                id="login-password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="h-12 rounded-lg border-zinc-200 bg-zinc-50/50 text-base px-4 focus-visible:ring-[#0A52EF]/30 focus-visible:border-[#0A52EF] transition-all duration-200"
+              />
+            </div>
+
+            <AnimatePresence>
+              {showError && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    {message || "Invalid credentials. Please try again."}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 rounded-lg bg-[#0A52EF] hover:bg-[#0385DD] text-white font-semibold text-base transition-all duration-300 hover:-translate-y-[1px]"
+              style={{
+                boxShadow: loading
+                  ? "none"
+                  : "0 10px 25px -5px rgba(10, 82, 239, 0.25)",
+              }}
+            >
+              <AnimatePresence mode="wait">
+                {loading ? (
+                  <motion.span
+                    key="loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex items-center"
+                  >
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Signing in...
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="idle"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Sign in
+                  </motion.span>
+                )}
+              </AnimatePresence>
+            </Button>
+          </form>
+
+          <p className="text-xs text-zinc-400 text-center mt-8">
+            Authorized personnel only
+          </p>
+        </motion.div>
       </div>
     </div>
   );
