@@ -527,3 +527,71 @@ model Processor {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// ============================================================================
+// I2: Pricing Logic Database — Decision Tree for Intelligence Mode
+// ============================================================================
+
+model Category {
+  id          String         @id @default(cuid())
+  name        String         @unique  // "LED", "Electrical", "Structural", "CMS"
+  description String?
+  nodes       DecisionNode[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model DecisionNode {
+  id           String         @id @default(cuid())
+  categoryId   String
+  category     Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  parentNodeId String?
+  parent       DecisionNode?  @relation("TreeHierarchy", fields: [parentNodeId], references: [id])
+  children     DecisionNode[]  @relation("TreeHierarchy")
+  question     String         // "Indoor or Outdoor?", "What pixel pitch?"
+  order        Int            // Display order in the tree
+  options      DecisionOption[] @relation("DecisionOptionParent")
+  parentOptions DecisionOption[] @relation("DecisionOptionNext")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([categoryId])
+  @@index([parentNodeId])
+}
+
+model DecisionOption {
+  id          String          @id @default(cuid())
+  nodeId      String
+  node        DecisionNode    @relation("DecisionOptionParent", fields: [nodeId], references: [id], onDelete: Cascade)
+  optionText  String          // "Indoor", "Outdoor", "1.5mm", "3.9mm", "LG", "Yaham"
+  nextNodeId  String?
+  next        DecisionNode?   @relation("DecisionOptionNext", fields: [nextNodeId], references: [id])
+  isFinal     Boolean         @default(false)  // true = leaf node with formula
+  formula     PricingFormula? // ONE pricing formula for final nodes
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([nodeId])
+  @@index([isFinal])
+}
+
+model PricingFormula {
+  id        String   @id @default(cuid())
+  optionId  String   @unique
+  option    DecisionOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  formula   String   // "base_cost * square_footage + 50"
+  unit      String   // "USD"
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FormulaVariable {
+  id            String   @id @default(cuid())
+  variableName  String   @unique  // "base_cost", "square_footage", "labor_hours"
+  defaultValue  Decimal?
+  source        String   // "Product catalog", "User input", "Estimator input", "Company policy"
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

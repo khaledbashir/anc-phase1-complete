@@ -12,6 +12,7 @@ export const authConfig = {
         nextUrl.pathname === "/api/health" ||
         nextUrl.pathname.startsWith("/api/auth") ||
         nextUrl.pathname.startsWith("/api/uploadthing") ||
+        nextUrl.pathname.startsWith("/api/pricing-logic") ||
         nextUrl.pathname.startsWith("/_next") ||
         nextUrl.pathname.startsWith("/favicon") ||
         nextUrl.pathname.includes(".");
