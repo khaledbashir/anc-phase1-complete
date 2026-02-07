@@ -4,15 +4,14 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
     LayoutGrid,
     FileText,
     BarChart3,
     Users,
+    Workflow,
     Settings,
-    HelpCircle,
-    Hexagon,
-    Shield
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,8 +22,15 @@ const menuItems = [
     { icon: Users, label: "Team", href: "/admin/users", soon: false },
 ];
 
+const adminMenuItems = [
+    { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", soon: false },
+];
+
 export default function DashboardSidebar() {
     const pathname = usePathname();
+    const { data: session } = useSession();
+    const isAdmin = session?.user?.authRole === "admin";
+    const allItems = [...menuItems, ...(isAdmin ? adminMenuItems : [])];
 
     return (
         <aside className="w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-8 z-50 transition-colors duration-300">
@@ -54,7 +60,7 @@ export default function DashboardSidebar() {
 
             {/* Main Nav */}
             <nav className="flex-1 flex flex-col gap-6">
-                {menuItems.map((item) => {
+                {allItems.map((item) => {
                     const isActive = pathname === item.href;
                     return (
                         <Link
