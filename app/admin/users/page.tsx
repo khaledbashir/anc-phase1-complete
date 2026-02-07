@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { Card } from "@/components/ui/card";
 import { UsersTableClient } from "./UsersTableClient";
 
 export default async function AdminUsersPage() {
@@ -10,15 +9,12 @@ export default async function AdminUsersPage() {
     redirect("/");
   }
   const users = await prisma.user.findMany({
-    select: { id: true, email: true, authRole: true },
+    select: { id: true, email: true, name: true, authRole: true },
     orderBy: { email: "asc" },
   });
   return (
-    <div className="container py-8">
-      <h1 className="text-2xl font-semibold mb-6">Users</h1>
-      <Card className="p-6">
-        <UsersTableClient users={users} />
-      </Card>
+    <div className="container max-w-4xl py-10 px-4">
+      <UsersTableClient users={users} />
     </div>
   );
 }
