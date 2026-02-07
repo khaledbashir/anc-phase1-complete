@@ -2,7 +2,7 @@ FROM node:22-bullseye-slim AS build
 
 WORKDIR /app
 COPY package* .
-RUN npm install --production=false --prefer-offline --no-audit --no-fund
+RUN npm install --production=false --prefer-offline --no-audit --no-fund --legacy-peer-deps
 COPY . .
 RUN npx prisma generate
 RUN npm run build
