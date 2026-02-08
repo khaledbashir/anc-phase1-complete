@@ -1498,7 +1498,8 @@ export const ProposalContextProvider = ({
     }, [getValues, pdfGenerationSuccess, showError]);
 
     /**
-     * Downloads 3 PDFs (Budget, Proposal, LOI) with the current template for the Export Bundle.
+     * Downloads 4 separate files (Audit Excel + Budget PDF + Proposal PDF + LOI PDF).
+     * Each file triggers its own browser download — no zip.
      */
     const downloadBundlePdfs = useCallback(async () => {
         const data = getValues();
@@ -1536,16 +1537,25 @@ export const ProposalContextProvider = ({
                 .replace(/\s+/g, "_")
                 .trim()
                 .slice(0, 50) || "Client";
-        const bundleDateStr = new Date().toISOString().slice(0, 10);
+        const now = new Date();
+        const bundleDateStr = `${now.getMonth() + 1}-${now.getDate()}-${now.getFullYear()}`;
 
-        const total = MODES.length;
+        const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+        const triggerDownload = (blob: Blob, filename: string) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        };
+
+        const total = MODES.length + 1; // +1 for Excel audit
         setPdfBatchProgress({ current: 0, total, label: "Starting…" });
 
-        // Lazy load JSZip to avoid initial bundle bloat
-        const JSZip = (await import("jszip")).default;
-        const zip = new JSZip();
-
-        // Also export Excel Audit
+        // 1. Download Excel Audit
         try {
             setPdfBatchProgress({ current: 0, total, label: "Preparing Excel Audit..." });
 
@@ -1571,14 +1581,15 @@ export const ProposalContextProvider = ({
 
             if (excelRes.ok) {
                 const excelBlob = await excelRes.blob();
-                zip.file(`Internal_Audit_${safeUnderscored(clientName)}.xlsx`, excelBlob);
+                triggerDownload(excelBlob, `ANC_${safeUnderscored(clientName)}_Audit_${bundleDateStr}.xlsx`);
+                await delay(800);
             }
         } catch (e) {
-            console.warn("Failed to add Excel to bundle", e);
+            console.warn("Failed to download Excel audit", e);
         }
 
-        let current = 0;
-        // Run sequentially to avoid server overload, or use Promise.all if server is robust
+        // 2-4. Download Budget, Proposal, LOI PDFs sequentially
+        let current = 1;
         for (const { mode, label: modeLabel } of MODES) {
             current += 1;
             setPdfBatchProgress({ current, total, label: modeLabel });
@@ -1610,35 +1621,18 @@ export const ProposalContextProvider = ({
                 const blob = await res.blob();
                 if (blob.size === 0) continue;
 
-                const bundleDocType = mode === "LOI" ? "Letter_of_Intent" : mode === "PROPOSAL" ? "Proposal" : "Budget_Estimate";
-                const fileName = `ANC_${safeUnderscored(clientName)}_${bundleDocType}.pdf`;
+                const bundleDocType = mode === "LOI" ? "LOI" : mode === "PROPOSAL" ? "Proposal" : "Budget_Estimate";
+                const fileName = `ANC_${safeUnderscored(clientName)}_${bundleDocType}_${bundleDateStr}.pdf`;
 
-                zip.file(fileName, blob);
+                triggerDownload(blob, fileName);
+                await delay(800);
             } catch (e) {
                 console.error(`PDF ${modeLabel} failed:`, e);
-                // Continue with other files even if one fails
             }
         }
 
-        setPdfBatchProgress({ current: total, total, label: "Zipping..." });
-
-        try {
-            const content = await zip.generateAsync({ type: "blob" });
-            const url = window.URL.createObjectURL(content);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `ANC_Bundle_${safeUnderscored(clientName)}_${bundleDateStr}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-
-            pdfGenerationSuccess();
-        } catch (e) {
-            showError("Bundle Error", "Failed to zip files.");
-        } finally {
-            setPdfBatchProgress(null);
-        }
+        setPdfBatchProgress(null);
+        pdfGenerationSuccess();
 
         // Log bundle export activity
         const pid = data.details?.proposalId;

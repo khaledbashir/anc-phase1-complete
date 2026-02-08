@@ -223,9 +223,8 @@ const Step4Export = () => {
         if (isBlocked) return;
         setExporting(true);
         try {
-            // Download 4 files: Excel + Budget/Proposal/LOI PDFs
+            // Download 4 separate files: Audit Excel + Budget/Proposal/LOI PDFs
             await downloadBundlePdfs();
-            await exportAudit();
         } finally {
             setTimeout(() => setExporting(false), 2000);
         }
