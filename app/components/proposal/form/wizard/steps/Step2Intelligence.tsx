@@ -221,13 +221,15 @@ const Step2Intelligence = () => {
                     <SelectTrigger className="w-full bg-card border-border text-sm text-foreground">
                         <SelectValue placeholder="Select page layout" />
                     </SelectTrigger>
-                    <SelectContent className="bg-card border-border text-foreground">
-                        <SelectItem value="portrait-letter" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — Letter</SelectItem>
-                        <SelectItem value="portrait-legal" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — Legal</SelectItem>
-                        <SelectItem value="landscape-letter" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — Letter</SelectItem>
-                        <SelectItem value="landscape-legal" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — Legal</SelectItem>
-                    </SelectContent>
-                </Select>
+	                    <SelectContent className="bg-card border-border text-foreground">
+	                        <SelectItem value="portrait-letter" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — Letter</SelectItem>
+	                        <SelectItem value="portrait-legal" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — Legal</SelectItem>
+	                        <SelectItem value="portrait-a4" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — A4</SelectItem>
+	                        <SelectItem value="landscape-letter" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — Letter</SelectItem>
+	                        <SelectItem value="landscape-legal" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — Legal</SelectItem>
+	                        <SelectItem value="landscape-a4" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — A4</SelectItem>
+	                    </SelectContent>
+	                </Select>
                 <span className="text-[10px] text-muted-foreground">
                     {((details as any)?.pageLayout || "portrait-letter").startsWith("landscape")
                         ? "Landscape: pricing sections render two per row"

@@ -45,8 +45,10 @@ export async function generateProposalPdfService(req: NextRequest) {
 		const pageLayoutMap: Record<string, { width: string; height: string }> = {
 			"portrait-letter": { width: "8.5in", height: "11in" },
 			"portrait-legal": { width: "8.5in", height: "14in" },
+			"portrait-a4": { width: "8.27in", height: "11.69in" },
 			"landscape-letter": { width: "11in", height: "8.5in" },
 			"landscape-legal": { width: "14in", height: "8.5in" },
+			"landscape-a4": { width: "11.69in", height: "8.27in" },
 		};
 		const requestedLayout = (body.details as any)?.pageLayout;
 		const pageLayout = pageLayoutMap[requestedLayout] ? requestedLayout : "portrait-letter";
