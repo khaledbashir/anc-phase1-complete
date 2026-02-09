@@ -88,40 +88,6 @@ const MasterTableSelector = () => {
     );
 };
 
-/**
- * Column Header Style Toggle — Prompt 43
- * Lets user switch between WORK/PRICING and DESCRIPTION/AMOUNT column headers in the PDF.
- */
-const ColumnHeaderStyleToggle = () => {
-    const { setValue, control } = useFormContext<ProposalType>();
-    const columnHeaderStyle = useWatch({ name: "details.columnHeaderStyle" as any, control }) || "WORK_PRICING";
-
-    return (
-        <div className="flex flex-col gap-1.5 w-full">
-            <label className="text-xs font-medium text-muted-foreground">Column Headers</label>
-            <Select
-                value={columnHeaderStyle}
-                onValueChange={(val) => {
-                    setValue("details.columnHeaderStyle" as any, val, { shouldDirty: true });
-                }}
-            >
-                <SelectTrigger className="w-full bg-card border-border text-sm text-foreground">
-                    <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border text-foreground">
-                    <SelectItem value="WORK_PRICING" className="text-foreground focus:bg-muted focus:text-foreground">
-                        WORK / PRICING
-                    </SelectItem>
-                    <SelectItem value="DESCRIPTION_AMOUNT" className="text-foreground focus:bg-muted focus:text-foreground">
-                        DESCRIPTION / AMOUNT
-                    </SelectItem>
-                </SelectContent>
-            </Select>
-            <span className="text-[10px] text-muted-foreground">Controls the pricing table column headers in the PDF</span>
-        </div>
-    );
-};
-
 const Step2Intelligence = () => {
     const { aiWorkspaceSlug } = useProposalContext();
     const { control, setValue, getValues, register } = useFormContext();
@@ -236,11 +202,10 @@ const Step2Intelligence = () => {
                 )}
             </div>
 
-            {/* Mirror Mode only: Master Table + Column Headers */}
+            {/* Mirror Mode only: Master Table */}
             {mirrorMode && (
                 <>
                     <MasterTableSelector />
-                    <ColumnHeaderStyleToggle />
                 </>
             )}
         </div>

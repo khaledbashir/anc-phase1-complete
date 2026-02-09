@@ -62,10 +62,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     // Prompt 42: Description overrides for inline typo editing (Mirror Mode)
     const descriptionOverrides: Record<string, string> = (details as any)?.descriptionOverrides || {};
 
-    // Prompt 43: Column header style toggle — WORK/PRICING (default) or DESCRIPTION/AMOUNT
-    const columnHeaderStyle: "WORK_PRICING" | "DESCRIPTION_AMOUNT" = (details as any)?.columnHeaderStyle || "WORK_PRICING";
-    const colHeaderLeft = columnHeaderStyle === "DESCRIPTION_AMOUNT" ? "DESCRIPTION" : "WORK";
-    const colHeaderRight = columnHeaderStyle === "DESCRIPTION_AMOUNT" ? "AMOUNT" : "PRICING";
+    // Hardcoded per business requirement: always WORK / PRICING.
+    const colHeaderLeft = "WORK";
+    const colHeaderRight = "PRICING";
 
     // Detect product type from screens to adjust header text
     const detectProductType = (): "LED" | "LCD" | "Display" => {
