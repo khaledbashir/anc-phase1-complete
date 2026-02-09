@@ -184,8 +184,11 @@ export async function POST(
                 // Universal toggles for Hybrid Template
                 showNotes: cfg.showNotes ?? true,
                 showScopeOfWork: cfg.showScopeOfWork ?? false,
+                pageLayout: cfg.pageLayout ?? "portrait-letter",
                 // FR-4.1 & FR-4.2: Manual overrides
                 tableHeaderOverrides: (project as any).tableHeaderOverrides || {},
+                descriptionOverrides: (project as any).descriptionOverrides || {},
+                priceOverrides: (project as any).priceOverrides || {},
                 customProposalNotes: (project as any).customProposalNotes || ""
             }
         };

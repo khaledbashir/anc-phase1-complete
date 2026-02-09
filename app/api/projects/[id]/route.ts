@@ -120,6 +120,9 @@ export async function PATCH(
             mirrorMode,       // Mode gate: true = Upload Excel → PDF, false = Build from Scratch
             purchaserLegalName, // Prompt 42: Purchaser legal name for LOI
             masterTableIndex,   // Prompt 51: Master table selector index
+            tableHeaderOverrides, // Mirror Mode: section header overrides
+            descriptionOverrides, // Mirror Mode: line item description overrides
+            priceOverrides,       // Mirror Mode: line item price overrides
         } = body;
 
         // Map address from receiverData (nested) or flat fields
@@ -212,6 +215,9 @@ export async function PATCH(
         if (typeof mirrorMode === 'boolean') updateData.mirrorMode = mirrorMode;
         if (purchaserLegalName !== undefined) updateData.purchaserLegalName = purchaserLegalName;
         if (masterTableIndex !== undefined) updateData.masterTableIndex = masterTableIndex;
+        if (tableHeaderOverrides !== undefined) updateData.tableHeaderOverrides = tableHeaderOverrides;
+        if (descriptionOverrides !== undefined) updateData.descriptionOverrides = descriptionOverrides;
+        if (priceOverrides !== undefined) updateData.priceOverrides = priceOverrides;
 
         const project = await prisma.$transaction(async (tx) => {
             // Handle snapshot creation if requested

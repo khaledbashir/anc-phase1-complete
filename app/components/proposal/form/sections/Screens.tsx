@@ -11,8 +11,6 @@ import SingleScreen from "../SingleScreen";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import PricingTableEditor from "./PricingTableEditor";
-
 // Contexts
 import { useTranslationContext } from "@/contexts/TranslationContext";
 import { useProposalContext } from "@/contexts/ProposalContext";
@@ -426,8 +424,6 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
                 )}
             </div>
 
-            {/* FR-4.1 & FR-4.2: Pricing Table Editor (only visible in Mirror Mode) */}
-            <PricingTableEditor />
         </section>
     );
 };

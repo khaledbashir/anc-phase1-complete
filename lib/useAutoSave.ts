@@ -92,6 +92,10 @@ export function useAutoSave({
                     additionalNotes: (formData.details as any)?.additionalNotes,
                     signatureBlockText: (formData.details as any)?.signatureBlockText,
                     loiHeaderText: (formData.details as any)?.loiHeaderText,
+                    customProposalNotes: (formData.details as any)?.customProposalNotes,
+                    tableHeaderOverrides: (formData.details as any)?.tableHeaderOverrides,
+                    descriptionOverrides: (formData.details as any)?.descriptionOverrides,
+                    priceOverrides: (formData.details as any)?.priceOverrides,
                 }),
             });
 

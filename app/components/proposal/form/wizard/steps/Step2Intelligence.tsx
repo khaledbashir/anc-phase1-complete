@@ -6,6 +6,7 @@ import { Calculator, Info, ChevronDown, ChevronUp, RotateCcw, Tv } from "lucide-
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Screens } from "@/app/components";
+import PricingTableEditor from "@/app/components/proposal/form/sections/PricingTableEditor";
 import { Badge } from "@/components/ui/badge";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { resolveDocumentMode, applyDocumentModeDefaults, type DocumentMode } from "@/lib/documentMode";
@@ -241,9 +242,12 @@ const Step2Intelligence = () => {
 
     if (mirrorMode) {
         // ═══ MIRROR MODE: Configure ═══
-        // Doc mode, master table, column headers, custom text, brightness per screen
+        // Pricing editor first (most important), then doc mode, custom text, brightness per screen
         return (
             <div className="h-full flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {/* Pricing Line Items — primary editing surface for Mirror Mode */}
+                <PricingTableEditor />
+
                 {DocumentModeSelector}
 
                 {/* Custom Intro / Notes */}

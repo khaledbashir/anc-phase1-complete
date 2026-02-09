@@ -46,6 +46,9 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
 
   // FR-4.1: Table header overrides (e.g., "G7" → "Ribbon Display")
   const tableHeaderOverrides: Record<string, string> = (details as any)?.tableHeaderOverrides || {};
+  // Mirror Mode overrides for line items
+  const descriptionOverrides: Record<string, string> = (details as any)?.descriptionOverrides || {};
+  const priceOverrides: Record<string, number> = (details as any)?.priceOverrides || {};
 
   // FR-4.2: Custom proposal notes
   const customProposalNotes: string = (details as any)?.customProposalNotes || "";
@@ -69,11 +72,36 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   const clientZip = receiver?.zipCode || (details as any)?.clientZip || "";
   const purchaserAddress = [clientAddress, clientCity, clientZip].filter(Boolean).join(", ");
 
-  // Document total: trust Excel's "SUB TOTAL (BID FORM)" when provided by parser
-  const documentTotal =
-    Number.isFinite(pricingDocument?.documentTotal)
-      ? (pricingDocument?.documentTotal as number)
-      : tables.reduce((sum, t) => sum + t.grandTotal, 0);
+  // Override-aware helpers
+  const getItemDesc = (tableId: string, idx: number, original: string) =>
+    descriptionOverrides[`${tableId}:${idx}`] || original;
+  const getItemPrice = (tableId: string, idx: number, original: number) => {
+    const key = `${tableId}:${idx}`;
+    return priceOverrides[key] !== undefined ? priceOverrides[key] : original;
+  };
+  const hasPriceOverrides = Object.keys(priceOverrides).length > 0;
+  const computeTableSubtotal = (table: PricingTable) =>
+    (table.items || []).reduce((sum, item, idx) => {
+      if (item.isIncluded) return sum;
+      return sum + getItemPrice(table.id, idx, item.sellingPrice);
+    }, 0);
+  const computeTableTax = (table: PricingTable, sub: number) => {
+    if (!table.tax) return 0;
+    const rate = table.subtotal > 0 ? table.tax.amount / table.subtotal : 0;
+    return sub * rate;
+  };
+  const computeTableGrandTotal = (table: PricingTable) => {
+    const sub = computeTableSubtotal(table);
+    const tax = computeTableTax(table, sub);
+    return sub + tax + (table.bond || 0);
+  };
+
+  // Document total: trust Excel when no overrides, otherwise recompute
+  const documentTotal = hasPriceOverrides
+    ? tables.reduce((sum, t) => sum + computeTableGrandTotal(t), 0)
+    : (Number.isFinite(pricingDocument?.documentTotal)
+        ? (pricingDocument?.documentTotal as number)
+        : tables.reduce((sum, t) => sum + t.grandTotal, 0));
 
   // Screen specifications from form (for Technical Specs section)
   const screens = (details as any)?.screens || [];
@@ -163,6 +191,8 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
             table={table}
             currency={currency}
             displayName={getTableDisplayName(table)}
+            descriptionOverrides={descriptionOverrides}
+            priceOverrides={priceOverrides}
           />
           {table.alternates.length > 0 && (
             <AlternatesSection
@@ -180,6 +210,8 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
           table={table}
           currency={currency}
           displayName={getTableDisplayName(table)}
+          descriptionOverrides={descriptionOverrides}
+          priceOverrides={priceOverrides}
         />
         {table.alternates.length > 0 && (
           <AlternatesSection
@@ -229,6 +261,8 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
                 table={masterTable}
                 currency={currency}
                 displayName={getTableDisplayName(masterTable)}
+                descriptionOverrides={descriptionOverrides}
+                priceOverrides={priceOverrides}
               />
 
               {/* ── Page 2: Payment Terms + Signatures ── */}
@@ -300,6 +334,8 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
             table={masterTable}
             currency={currency}
             displayName={getTableDisplayName(masterTable)}
+            descriptionOverrides={descriptionOverrides}
+            priceOverrides={priceOverrides}
           />
         )}
 
@@ -460,13 +496,36 @@ function MasterTableSection({
   table,
   currency,
   displayName,
+  descriptionOverrides = {},
+  priceOverrides = {},
 }: {
   table: PricingTable;
   currency: "CAD" | "USD";
   displayName?: string;
+  descriptionOverrides?: Record<string, string>;
+  priceOverrides?: Record<string, number>;
 }) {
   const currencyLabel = `PRICING (${currency})`;
   const headerName = displayName || table.name;
+  // Override helpers scoped to this component
+  const _getDesc = (idx: number, original: string) =>
+    descriptionOverrides[`${table.id}:${idx}`] || original;
+  const _getPrice = (idx: number, original: number) => {
+    const key = `${table.id}:${idx}`;
+    return priceOverrides[key] !== undefined ? priceOverrides[key] : original;
+  };
+  const _computeSub = () => (table.items || []).reduce((sum, item, idx) => {
+    if (item.isIncluded) return sum;
+    return sum + _getPrice(idx, item.sellingPrice);
+  }, 0);
+  const _computeTax = (sub: number) => {
+    if (!table.tax) return 0;
+    const rate = table.subtotal > 0 ? table.tax.amount / table.subtotal : 0;
+    return sub * rate;
+  };
+  const effectiveSub = _computeSub();
+  const effectiveTax = _computeTax(effectiveSub);
+  const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
 
   return (
     <div className="px-12 py-4 break-inside-avoid">
@@ -488,13 +547,13 @@ function MasterTableSection({
             className="flex justify-between py-2 border-b border-gray-100 text-[11px]"
           >
             <div className="flex-1 pr-4">
-              <span className="text-gray-700">{item.description}</span>
+              <span className="text-gray-700">{_getDesc(idx, item.description)}</span>
             </div>
             <div className="text-right font-medium text-gray-800 w-28">
               {item.isIncluded ? (
                 <span className="text-gray-800">INCLUDED</span>
               ) : (
-                formatPricingCurrency(item.sellingPrice, currency)
+                formatPricingCurrency(_getPrice(idx, item.sellingPrice), currency)
               )}
             </div>
           </div>
@@ -507,7 +566,7 @@ function MasterTableSection({
         <div className="flex justify-between py-2 text-[11px] font-bold">
           <span className="text-gray-800">SUBTOTAL:</span>
           <span className="text-gray-800 w-28 text-right">
-            {formatPricingCurrency(table.subtotal, currency)}
+            {formatPricingCurrency(effectiveSub, currency)}
           </span>
         </div>
 
@@ -516,7 +575,7 @@ function MasterTableSection({
           <div className="flex justify-between py-1 text-[11px]">
             <span className="text-gray-600">{table.tax.label}</span>
             <span className="text-gray-800 w-28 text-right">
-              {formatPricingCurrency(table.tax.amount, currency)}
+              {formatPricingCurrency(effectiveTax, currency)}
             </span>
           </div>
         )}
@@ -535,7 +594,7 @@ function MasterTableSection({
         <div className="flex justify-between py-2 text-sm font-bold border-t border-gray-300">
           <span style={{ color: '#002C73' }}>GRAND TOTAL:</span>
           <span className="w-28 text-right" style={{ color: '#002C73', fontSize: '14px' }}>
-            {formatPricingCurrency(table.grandTotal, currency)}
+            {formatPricingCurrency(effectiveGrand, currency)}
           </span>
         </div>
       </div>
@@ -552,13 +611,33 @@ function PricingTableSection({
   table,
   currency,
   displayName,
+  descriptionOverrides = {},
+  priceOverrides = {},
 }: {
   table: PricingTable;
   currency: "CAD" | "USD";
-  displayName?: string; // FR-4.1: Optional override for table name
+  displayName?: string;
+  descriptionOverrides?: Record<string, string>;
+  priceOverrides?: Record<string, number>;
 }) {
   const currencyLabel = `PRICING (${currency})`;
   const headerName = displayName || table.name;
+  const _getDesc = (idx: number, original: string) =>
+    descriptionOverrides[`${table.id}:${idx}`] || original;
+  const _getPrice = (idx: number, original: number) => {
+    const key = `${table.id}:${idx}`;
+    return priceOverrides[key] !== undefined ? priceOverrides[key] : original;
+  };
+  const effectiveSub = (table.items || []).reduce((sum, item, idx) => {
+    if (item.isIncluded) return sum;
+    return sum + _getPrice(idx, item.sellingPrice);
+  }, 0);
+  const effectiveTax = (() => {
+    if (!table.tax) return 0;
+    const rate = table.subtotal > 0 ? table.tax.amount / table.subtotal : 0;
+    return effectiveSub * rate;
+  })();
+  const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
 
   return (
     <div className="px-12 py-4 break-inside-avoid">
@@ -580,13 +659,13 @@ function PricingTableSection({
             className="flex justify-between py-2 border-b border-gray-100 text-[11px]"
           >
             <div className="flex-1 pr-4">
-              <span className="text-gray-700">{item.description}</span>
+              <span className="text-gray-700">{_getDesc(idx, item.description)}</span>
             </div>
             <div className="text-right font-medium text-gray-800 w-28">
               {item.isIncluded ? (
                 <span className="text-gray-800">INCLUDED</span>
               ) : (
-                formatPricingCurrency(item.sellingPrice, currency)
+                formatPricingCurrency(_getPrice(idx, item.sellingPrice), currency)
               )}
             </div>
           </div>
@@ -599,7 +678,7 @@ function PricingTableSection({
         <div className="flex justify-between py-2 text-[11px] font-bold">
           <span className="text-gray-800">SUBTOTAL:</span>
           <span className="text-gray-800 w-28 text-right">
-            {formatPricingCurrency(table.subtotal, currency)}
+            {formatPricingCurrency(effectiveSub, currency)}
           </span>
         </div>
 
@@ -608,7 +687,7 @@ function PricingTableSection({
           <div className="flex justify-between py-1 text-[11px]">
             <span className="text-gray-600">{table.tax.label}</span>
             <span className="text-gray-800 w-28 text-right">
-              {formatPricingCurrency(table.tax.amount, currency)}
+              {formatPricingCurrency(effectiveTax, currency)}
             </span>
           </div>
         )}
@@ -627,7 +706,7 @@ function PricingTableSection({
         <div className="flex justify-between py-2 text-sm font-bold border-t border-gray-300">
           <span className="text-gray-800">GRAND TOTAL:</span>
           <span className="text-[#0A52EF] w-28 text-right">
-            {formatPricingCurrency(table.grandTotal, currency)}
+            {formatPricingCurrency(effectiveGrand, currency)}
           </span>
         </div>
       </div>

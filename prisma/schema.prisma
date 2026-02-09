@@ -136,6 +136,9 @@ model Proposal {
   loiHeaderText        String?             // LOI opening legal paragraph (Prompt 10)
   purchaserLegalName   String?             // Prompt 42: Purchaser legal entity name for LOI (defaults to clientName)
   customProposalNotes  String?             // Bug #5: Persisted custom proposal notes
+  tableHeaderOverrides Json?               // Mirror Mode: section header renames (Record<tableId, name>)
+  descriptionOverrides Json?               // Mirror Mode: line item description edits (Record<tableId:idx, text>)
+  priceOverrides       Json?               // Mirror Mode: line item price edits (Record<tableId:idx, number>)
   status               ProposalStatus      @default(DRAFT)
   calculationMode      CalculationMode     @default(INTELLIGENCE)
   internalAudit        String?

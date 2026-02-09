@@ -335,6 +335,10 @@ const ProposalDetailsSchema = z.object({
     showScopeOfWork: z.boolean().optional().default(false), // Toggle for Scope of Work section (all doc types)
     // FR-4.1: Manual Section Header Overrides (e.g., "G7" → "Ribbon Display")
     tableHeaderOverrides: z.record(z.string()).optional().default({}),
+    // Mirror Mode: Line item description overrides (key: "tableId:itemIndex")
+    descriptionOverrides: z.record(z.string()).optional().default({}),
+    // Mirror Mode: Line item price/amount overrides (key: "tableId:itemIndex")
+    priceOverrides: z.record(z.number()).optional().default({}),
     // FR-4.2: Custom Proposal Notes (ad-hoc text injection)
     customProposalNotes: z.string().optional(),
     // FR-4.3: Editable Introduction Text (custom header blurb with currency disclaimers)

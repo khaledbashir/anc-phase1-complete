@@ -62,6 +62,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Prompt 42: Description overrides for inline typo editing (Mirror Mode)
     const descriptionOverrides: Record<string, string> = (details as any)?.descriptionOverrides || {};
+    const priceOverrides: Record<string, number> = (details as any)?.priceOverrides || {};
 
     // Hardcoded per business requirement: always WORK / PRICING.
     const colHeaderLeft = "WORK";
@@ -358,8 +359,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Rows */}
                     {rows.map((row: any, idx: number) => {
-                        const desc = (row?.description || row?.name || "Item").toString().trim();
-                        const price = Number(row?.sellingPrice ?? row?.price ?? row?.amount ?? 0);
+                        const origDesc = (row?.description || row?.name || "Item").toString().trim();
+                        const desc = (descriptionOverrides[`${tableId}:${idx}`] || origDesc);
+                        const origPrice = Number(row?.sellingPrice ?? row?.price ?? row?.amount ?? 0);
+                        const price = priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : origPrice;
                         return (
                             <div
                                 key={`master-row-${idx}`}
@@ -442,9 +445,23 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 .map((table: any, origIdx: number) => ({ table, origIdx }))
                 .filter(({ origIdx }) => origIdx !== masterTableIndex);
 
-            const documentTotal = Number.isFinite(pricingDocument?.documentTotal)
-                ? pricingDocument.documentTotal
-                : pricingTables.reduce((sum: number, t: any) => sum + (Number(t?.grandTotal ?? 0) || 0), 0);
+            const hasPriceOvr = Object.keys(priceOverrides).length > 0;
+            const documentTotal = hasPriceOvr
+                ? pricingTables.reduce((sum: number, t: any) => {
+                    const tItems = (t?.items || []) as any[];
+                    const tSub = tItems.reduce((s: number, item: any, idx: number) => {
+                        if (item?.isIncluded) return s;
+                        const key = `${t?.id}:${idx}`;
+                        return s + (priceOverrides[key] !== undefined ? priceOverrides[key] : Number(item?.sellingPrice ?? 0));
+                    }, 0);
+                    const tOrigSub = Number(t?.subtotal ?? 0);
+                    const tOrigTax = typeof t?.tax === 'object' ? Number(t?.tax?.amount ?? 0) : Number(t?.tax ?? 0);
+                    const tRate = tOrigSub > 0 ? tOrigTax / tOrigSub : 0;
+                    return sum + tSub + (tSub * tRate) + Number(t?.bond ?? 0);
+                }, 0)
+                : (Number.isFinite(pricingDocument?.documentTotal)
+                    ? pricingDocument.documentTotal
+                    : pricingTables.reduce((sum: number, t: any) => sum + (Number(t?.grandTotal ?? 0) || 0), 0));
 
             // Render a single detail table card (reused in both portrait and landscape)
             const renderDetailTable = ({ table, origIdx }: { table: any; origIdx: number }) => {
@@ -454,12 +471,21 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         const label = (override || screenNameMap[tableName] || (tableName || "Section")).toString().trim();
                         const items = (table?.items || []) as any[];
                         const alternates = (table?.alternates || []) as any[];
-                        const subtotal = Number(table?.subtotal ?? 0);
+                        const originalSubtotal = Number(table?.subtotal ?? 0);
                         const taxInfo = table?.tax;
-                        const taxAmount = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
+                        const originalTaxAmount = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
                         const taxLabel = typeof taxInfo === 'object' ? (taxInfo?.label || "TAX") : "TAX";
                         const bond = Number(table?.bond ?? 0);
-                        const grandTotal = Number(table?.grandTotal ?? 0);
+                        // Recompute totals when price overrides exist
+                        const subtotal = items.reduce((sum: number, item: any, idx: number) => {
+                            if (item?.isIncluded) return sum;
+                            const key = `${tableId}:${idx}`;
+                            const price = priceOverrides[key] !== undefined ? priceOverrides[key] : Number(item?.sellingPrice ?? 0);
+                            return sum + price;
+                        }, 0);
+                        const taxRate = originalSubtotal > 0 ? originalTaxAmount / originalSubtotal : 0;
+                        const taxAmount = subtotal * taxRate;
+                        const grandTotal = subtotal + taxAmount + bond;
 
                         return (
                             <div key={tableId || `table-${origIdx}`} className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
@@ -490,7 +516,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                             <div className="col-span-4 text-right font-semibold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
                                                 {item?.isIncluded
                                                     ? <span style={{ color: colors.text }}>INCLUDED</span>
-                                                    : formatCurrency(Number(item?.sellingPrice ?? 0))}
+                                                    : formatCurrency(priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : Number(item?.sellingPrice ?? 0))}
                                             </div>
                                         </div>
                                     ))}

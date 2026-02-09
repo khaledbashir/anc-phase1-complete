@@ -228,7 +228,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                             // Let's rely on screenNameMap for now as that's the primary user request (screen name edits).
                             return !isLOI_premium && showPricingTables_premium && (
                                 (details as any).pricingDocument && (details as any).mirrorMode ? (
-                                    <PremiumMirrorPricingSection document={(details as any).pricingDocument} overrides={screenNameMap} />
+                                    <PremiumMirrorPricingSection document={(details as any).pricingDocument} overrides={screenNameMap} descriptionOverrides={(details as any)?.descriptionOverrides || {}} priceOverrides={(details as any)?.priceOverrides || {}} />
                                 ) : (
                                     <PremiumPricingSection />
                                 )
@@ -808,7 +808,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     <>
                         <SectionHeader title="PRICING" />
                         {(details as any).pricingDocument && (details as any).mirrorMode ? (
-                            <MirrorPricingSection document={(details as any).pricingDocument} />
+                            <MirrorPricingSection document={(details as any).pricingDocument} descriptionOverrides={(details as any)?.descriptionOverrides || {}} priceOverrides={(details as any)?.priceOverrides || {}} />
                         ) : includePricingBreakdown ? (
                             screens && screens.length > 0 ? (
                                 screens.map((screen: any, idx: number) => (
