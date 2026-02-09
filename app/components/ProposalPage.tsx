@@ -189,20 +189,22 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
     </div>
   );
 
-  // Copilot: send messages via AnythingLLM workspace
+  // Copilot: send messages via THIS PROJECT's AnythingLLM workspace
   const handleCopilotMessage = useCallback(async (message: string, _history: any[]) => {
-    const workspace =
-      (typeof window !== "undefined" && localStorage.getItem("aiWorkspaceSlug")) || "dashboard-vault";
+    if (!projectId || projectId === "new") {
+      return "Save this project first to enable AI Copilot. The AI workspace is created when the project is saved.";
+    }
+
     const useAgent = message.startsWith("@agent");
 
-    const res = await fetch("/api/dashboard/chat", {
+    const res = await fetch("/api/copilot/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, workspace, useAgent }),
+      body: JSON.stringify({ projectId, message, useAgent }),
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "AI request failed");
+    if (!res.ok) return data.response || data.error || "AI request failed";
 
     let content = data.response || "No response received.";
     // Strip <think> tags if present
@@ -210,7 +212,7 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
       content = content.replace(/<think>[\s\S]*?<\/think>/, "").trim();
     }
     return content;
-  }, []);
+  }, [projectId]);
 
   // PDF Content (The Anchor)
   const PDFContent = (
