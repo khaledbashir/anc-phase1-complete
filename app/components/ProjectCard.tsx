@@ -11,6 +11,7 @@ import {
     Loader2,
     MonitorPlay,
     Sparkles,
+    Trash2,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -38,6 +39,7 @@ interface ProjectCardProps {
     project: ProjectCardData;
     onStatusChange: (id: string, status: DashboardStatus) => Promise<void> | void;
     onBriefMe: (id: string) => void;
+    onDelete?: (id: string) => void;
 }
 
 const modeBadgeConfig: Record<ProjectCardData["documentMode"], { label: string; bg: string; text: string }> = {
@@ -89,7 +91,7 @@ const formatDateStamp = () => {
 const safeFileName = (value: string) =>
     value.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_").slice(0, 80) || "Project";
 
-export default function ProjectCard({ project, onStatusChange, onBriefMe }: ProjectCardProps) {
+export default function ProjectCard({ project, onStatusChange, onBriefMe, onDelete }: ProjectCardProps) {
     const router = useRouter();
     const modeBadge = modeBadgeConfig[project.documentMode];
     const workflowBadge = project.mirrorMode
@@ -300,6 +302,20 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe }: Proj
                     >
                         {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                     </button>
+                    {onDelete && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("Are you sure you want to delete this project?")) {
+                                    onDelete(project.id);
+                                }
+                            }}
+                            className="p-2 text-muted-foreground hover:text-red-500"
+                            title="Delete Project"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    )}
                     <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-all transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </div>
             </div>

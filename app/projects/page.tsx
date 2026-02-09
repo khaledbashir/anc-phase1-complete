@@ -204,6 +204,24 @@ export default function ProjectsPage() {
         setIsBriefOpen(true);
     }, []);
 
+    const handleDelete = useCallback(async (id: string) => {
+        try {
+            const response = await fetch(`/api/projects/${id}`, {
+                method: "DELETE",
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || "Failed to delete project");
+            }
+
+            setProjects((current) => current.filter((project) => project.id !== id));
+        } catch (error) {
+            console.error("Error deleting project:", error);
+            alert("Failed to delete project. Please try again.");
+        }
+    }, []);
+
     const copilotContext = useMemo(() => {
         const topProjects = [...projects]
             .sort((a, b) => (b.totalAmount || 0) - (a.totalAmount || 0))
@@ -393,6 +411,7 @@ export default function ProjectsPage() {
                                             project={project}
                                             onStatusChange={handleStatusChange}
                                             onBriefMe={handleBriefMe}
+                                            onDelete={handleDelete}
                                         />
                                     ))}
                                 </div>
