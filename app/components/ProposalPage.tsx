@@ -23,6 +23,7 @@ import { useProposalContext, ProposalContextProvider } from "@/contexts/Proposal
 import { FEATURES } from "@/lib/featureFlags";
 
 import AuditTable from "@/app/components/proposal/AuditTable";
+import CopilotPanel from "@/app/components/chat/CopilotPanel";
 import { ProposalFormErrorBoundary } from "@/app/components/ProposalFormErrorBoundary";
 import { Badge } from "@/components/ui/badge";
 
@@ -196,14 +197,17 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   );
 
   return (
-    <StudioLayout
-      header={HeaderContent}
-      formContent={FormContent}
-      aiContent={AIContent}
-      auditContent={isMirrorMode ? null : AuditContent}
-      showAudit={!isMirrorMode}
-      pdfContent={PDFContent}
-    />
+    <>
+      <StudioLayout
+        header={HeaderContent}
+        formContent={FormContent}
+        aiContent={AIContent}
+        auditContent={isMirrorMode ? null : AuditContent}
+        showAudit={!isMirrorMode}
+        pdfContent={PDFContent}
+      />
+      <CopilotPanel />
+    </>
   );
 };
 
