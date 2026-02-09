@@ -222,10 +222,10 @@ export default function CopilotPanel({
                 setCollectedData(data.collected);
             }
 
-            return data.reply || "I didn't understand that. Could you try again?";
-        } catch (err) {
+            return data.reply || data.error || "No reply from AI backend.";
+        } catch (err: any) {
             console.error("[Copilot] Guided flow error:", err);
-            return "Something went wrong. Try again, or type your answer differently.";
+            return `Error: ${err?.message || String(err)}`;
         }
     };
 
@@ -370,12 +370,12 @@ export default function CopilotPanel({
                 thinking: thinkBuf || undefined,
                 isThinking: false,
             });
-        } catch (err) {
+        } catch (err: any) {
             console.error("[Copilot] Stream error:", err);
             setMessages((prev) =>
                 prev.map((m) =>
                     m.id === assistantId
-                        ? { ...m, content: "Sorry, something went wrong. Please try again.", isThinking: false }
+                        ? { ...m, content: `Stream error: ${err?.message || String(err)}`, isThinking: false }
                         : m
                 )
             );
@@ -402,7 +402,7 @@ export default function CopilotPanel({
 
         try {
             if (mode === "guided") {
-                // Guided mode: non-streaming (fast regex processing)
+                // Guided mode: LLM-powered via /api/copilot/propose
                 const response = await handleGuidedSend(text);
                 const assistantMsg: ChatMessage = {
                     id: newId(),
@@ -433,11 +433,11 @@ export default function CopilotPanel({
                 };
                 setMessages((prev) => [...prev, assistantMsg]);
             }
-        } catch (err) {
+        } catch (err: any) {
             const errorMsg: ChatMessage = {
                 id: newId(),
                 role: "assistant",
-                content: "Sorry, something went wrong. Please try again.",
+                content: `Error: ${err?.message || String(err)}`,
                 timestamp: Date.now(),
             };
             setMessages((prev) => [...prev, errorMsg]);

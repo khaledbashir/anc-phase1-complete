@@ -152,23 +152,24 @@ export async function POST(req: NextRequest) {
                         }
                     }
 
-                    // If we got zero chunks, send a diagnostic message
+                    // If we got zero chunks, forward the actual error
                     if (chunkCount === 0) {
-                        console.error("[Copilot/Stream] No chunks parsed from upstream. Buffer remainder:", buffer.slice(0, 500));
+                        const remainder = buffer.slice(0, 500);
+                        console.error("[Copilot/Stream] No chunks parsed from upstream. Buffer remainder:", remainder);
                         controller.enqueue(
                             encoder.encode(`data: ${JSON.stringify({
                                 type: "textResponseChunk",
-                                textResponse: "The AI is thinking but the response format was unexpected. Try again or switch to non-streaming mode.",
+                                textResponse: "",
                                 close: true,
-                                error: null,
+                                error: `Stream returned no parseable chunks. Raw: ${remainder.slice(0, 200)}`,
                                 sources: [],
                             })}\n\n`)
                         );
                     }
-                } catch (err) {
+                } catch (err: any) {
                     console.error("[Copilot/Stream] Stream error:", err);
                     controller.enqueue(
-                        encoder.encode(`data: ${JSON.stringify({ type: "error", textResponse: "Stream interrupted", close: true })}\n\n`)
+                        encoder.encode(`data: ${JSON.stringify({ type: "error", textResponse: "", error: `Stream error: ${err?.message || String(err)}`, close: true })}\n\n`)
                     );
                 } finally {
                     reader.releaseLock();

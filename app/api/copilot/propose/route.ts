@@ -3,7 +3,6 @@ import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { prisma } from "@/lib/prisma";
 import {
     ConversationStage,
-    processStage,
     createInitialState,
 } from "@/services/chat/proposalConversationFlow";
 import type { CollectedData, StageAction } from "@/services/chat/proposalConversationFlow";
@@ -14,7 +13,7 @@ import type { CollectedData, StageAction } from "@/services/chat/proposalConvers
  * LLM-powered guided conversation for building proposals.
  * Every message goes through AnythingLLM with a stage-aware system prompt.
  * The LLM responds naturally AND returns structured JSON for form actions.
- * Falls back to regex parsing if LLM doesn't return valid JSON.
+ * Returns 503 if AnythingLLM is unavailable — no fake fallbacks.
  */
 export async function POST(req: NextRequest) {
     try {
@@ -58,21 +57,19 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Fallback: regex state machine (if LLM is unavailable)
-        console.log("[Copilot/Propose] LLM unavailable, falling back to regex parser");
-        const result = processStage(stage, message, collected);
+        // LLM is unavailable — tell the user the truth
+        console.error("[Copilot/Propose] LLM unavailable — no ANYTHING_LLM_BASE_URL, KEY, or workspace slug");
         return NextResponse.json({
-            reply: result.reply,
-            actions: result.actions,
-            nextStage: result.nextStage,
-            collected: result.collected,
-            summary: result.summary || null,
-        });
+            reply: "AI backend is not connected. Check that AnythingLLM is configured and the project has a workspace.",
+            actions: [],
+            nextStage: stage,
+            collected,
+        }, { status: 503 });
     } catch (error: any) {
         console.error("[Copilot/Propose] Error:", error);
         return NextResponse.json({
             error: error.message,
-            reply: "Something went wrong. Try again.",
+            reply: `Error: ${error.message}`,
             actions: [],
             nextStage: "GREETING",
             collected: createInitialState().collected,
