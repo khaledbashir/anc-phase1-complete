@@ -40,14 +40,16 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		const ReactDOMServer = (await import("react-dom/server")).default;
 
 		// Map pageLayout to Puppeteer PDF dimensions
-		const pageLayout = (body.details as any)?.pageLayout || "portrait-letter";
-		const PAGE_DIMENSIONS: Record<string, { width: string; height: string; landscape: boolean; viewportWidth: number }> = {
-			"portrait-letter":   { width: "8.5in",  height: "11in",  landscape: false, viewportWidth: 1200 },
-			"portrait-legal":    { width: "8.5in",  height: "14in",  landscape: false, viewportWidth: 1200 },
-			"landscape-letter":  { width: "11in",   height: "8.5in", landscape: true,  viewportWidth: 1600 },
-			"landscape-legal":   { width: "14in",   height: "8.5in", landscape: true,  viewportWidth: 2000 },
+		const pageLayoutMap: Record<string, { width: string; height: string }> = {
+			"portrait-letter": { width: "8.5in", height: "11in" },
+			"portrait-legal": { width: "8.5in", height: "14in" },
+			"landscape-letter": { width: "11in", height: "8.5in" },
+			"landscape-legal": { width: "14in", height: "8.5in" },
 		};
-		const pageDims = PAGE_DIMENSIONS[pageLayout] || PAGE_DIMENSIONS["portrait-letter"];
+		const requestedLayout = (body.details as any)?.pageLayout;
+		const pageLayout = pageLayoutMap[requestedLayout] ? requestedLayout : "portrait-letter";
+		const layout = pageLayoutMap[pageLayout];
+		const isLandscapeLayout = pageLayout.startsWith("landscape");
 
 		// Always use ProposalTemplate5 (Hybrid) — handles both Mirror Mode and Intelligence Mode
 		let templateId = body.details?.pdfTemplate ?? 5;
@@ -133,7 +135,8 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		}
 
 		page = await browser.newPage();
-		await page.setViewport({ width: pageDims.viewportWidth, height: 1697, deviceScaleFactor: 1 });
+		const viewportWidth = isLandscapeLayout ? 1122 : 794;
+		await page.setViewport({ width: viewportWidth, height: 1122, deviceScaleFactor: 1 });
 		try {
 			await page.emulateMediaType("screen");
 		} catch {
@@ -141,6 +144,11 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		await page.setContent(html, {
 			waitUntil: ["domcontentloaded", "load"],
 			timeout: 60000,
+		});
+
+		// Keep CSS print page size synchronized with the selected PDF layout.
+		await page.addStyleTag({
+			content: `@media print { @page { size: ${layout.width} ${layout.height}; } }`,
 		});
 
 		try {
@@ -174,9 +182,9 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		}
 
 		const pdf: Uint8Array = await page.pdf({
-			width: pageDims.width,
-			height: pageDims.height,
-			landscape: pageDims.landscape,
+			width: layout.width,
+			height: layout.height,
+			landscape: isLandscapeLayout,
 			printBackground: true,
 			displayHeaderFooter: true,
 			// Empty header (1px font hides default browser header)

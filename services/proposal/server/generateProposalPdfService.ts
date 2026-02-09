@@ -42,6 +42,16 @@ export async function generateProposalPdfService(req: NextRequest) {
 
 	try {
 		const ReactDOMServer = (await import("react-dom/server")).default;
+		const pageLayoutMap: Record<string, { width: string; height: string }> = {
+			"portrait-letter": { width: "8.5in", height: "11in" },
+			"portrait-legal": { width: "8.5in", height: "14in" },
+			"landscape-letter": { width: "11in", height: "8.5in" },
+			"landscape-legal": { width: "14in", height: "8.5in" },
+		};
+		const requestedLayout = (body.details as any)?.pageLayout;
+		const pageLayout = pageLayoutMap[requestedLayout] ? requestedLayout : "portrait-letter";
+		const layout = pageLayoutMap[pageLayout];
+		const isLandscapeLayout = pageLayout.startsWith("landscape");
 		// Always use ProposalTemplate5 (Hybrid) — handles both Mirror Mode and Intelligence Mode
 		let templateId = body.details?.pdfTemplate ?? 5;
 		const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
@@ -119,9 +129,15 @@ export async function generateProposalPdfService(req: NextRequest) {
 		}
 
 		page = await browser.newPage();
+		const viewportWidth = isLandscapeLayout ? 1122 : 794;
+		await page.setViewport({ width: viewportWidth, height: 1122, deviceScaleFactor: 1 });
 		await page.setContent(html, {
 			waitUntil: ["networkidle0", "load", "domcontentloaded"],
 			timeout: 30000,
+		});
+
+		await page.addStyleTag({
+			content: `@media print { @page { size: ${layout.width} ${layout.height}; } }`,
 		});
 
 		await page.addStyleTag({
@@ -129,9 +145,10 @@ export async function generateProposalPdfService(req: NextRequest) {
 		});
 
 		const pdf: Uint8Array = await page.pdf({
-			format: "a4",
+			width: layout.width,
+			height: layout.height,
+			landscape: isLandscapeLayout,
 			printBackground: true,
-			preferCSSPageSize: true,
 			displayHeaderFooter: true,
 			footerTemplate: `
                 <div style="font-family: 'Open Sans', sans-serif; font-size: 8px; width: 100%; padding: 0 40px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 10px;">
