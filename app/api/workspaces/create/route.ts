@@ -160,11 +160,15 @@ export async function POST(request: NextRequest) {
             }
 
             // 2. AUTOMATED CONFIGURATION (Ferrari Efficiency)
+            // System prompt is inherited from AnythingLLM admin default — don't override it here
+            // Only set: model, agent config, temperature (low for factual answers), chatMode
             await updateWorkspaceSettings(slug, {
               chatModel: process.env.Z_AI_MODEL_NAME || "glm-4.6v",
               agent_provider: "openai",
               agent_model: process.env.Z_AI_MODEL_NAME || "glm-4.6v",
-              web_search: true
+              web_search: true,
+              openAiTemp: 0.2,
+              chatMode: "chat",
             }).catch(e => console.error("AI Settings Provision Failed:", e));
 
             // 3. Provision Master Catalog (Background)
