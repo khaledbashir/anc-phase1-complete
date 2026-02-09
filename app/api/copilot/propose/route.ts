@@ -343,6 +343,7 @@ async function llmGuidedFlow(
         let extracted: any = null;
         let nextStage = stage;
         let actions: StageAction[] = [];
+        let screenActions: any[] = [];
 
         if (jsonMatch) {
             try {
@@ -443,26 +444,33 @@ async function llmGuidedFlow(
                         collected: fresh,
                     };
                 }
+
+                // ---- Extract screenActions from the SAME parsed JSON ----
+                if (Array.isArray(parsed.screenActions) && parsed.screenActions.length > 0) {
+                    screenActions = parsed.screenActions;
+                    console.log(`[Copilot/Propose] Parsed ${screenActions.length} screenActions from LLM JSON`);
+                }
             } catch (e) {
                 console.warn("[Copilot/Propose] Failed to parse LLM JSON, using response as-is:", e);
             }
         }
 
-        // Extract screenActions from LLM response (pass through to client)
-        let screenActions: any[] = [];
-        if (jsonMatch) {
-            try {
-                const jsonStr = jsonMatch[1] || jsonMatch[0];
-                const parsed = JSON.parse(jsonStr);
-                if (Array.isArray(parsed.screenActions)) {
-                    screenActions = parsed.screenActions;
-                }
-            } catch { /* already parsed above */ }
+        // ---- SERVER-SIDE INTENT DETECTION FALLBACK ----
+        // If the LLM didn't emit screenActions in JSON but the user clearly asked
+        // to change a field, detect it from the original message and generate actions.
+        if (screenActions.length === 0) {
+            const detected = detectFieldChangeIntent(message, screenContext);
+            if (detected.length > 0) {
+                screenActions = detected;
+                console.log(`[Copilot/Propose] Intent detection generated ${detected.length} screenActions from user message`);
+            }
         }
 
         // Clean the reply — remove the JSON block from what the user sees
         let reply = content.replace(/```json[\s\S]*?```/, "").trim();
         if (!reply) reply = content.split("{")[0].trim() || "Got it.";
+
+        console.log(`[Copilot/Propose] Response: reply=${reply.slice(0, 80)}... actions=${actions.length} screenActions=${screenActions.length}`);
 
         return {
             reply,
@@ -475,6 +483,143 @@ async function llmGuidedFlow(
         console.error("[Copilot/Propose] LLM flow error:", error);
         return null; // Fall back to regex
     }
+}
+
+// ============================================================================
+// SERVER-SIDE INTENT DETECTION — FALLBACK FOR FIELD CHANGES
+// ============================================================================
+
+/**
+ * When the LLM doesn't emit screenActions in its JSON (common with thinking models),
+ * detect "change X to Y" intent from the user's raw message and generate actions.
+ */
+function detectFieldChangeIntent(message: string, screenContext?: any): any[] {
+    const actions: any[] = [];
+    const msg = message.trim();
+    const lower = msg.toLowerCase();
+
+    // ---- "change/set/update CLIENT NAME to X" ----
+    const clientNameMatch = lower.match(
+        /(?:change|set|update|make|rename)\s+(?:the\s+)?(?:client(?:\s*name)?|receiver(?:\s*name)?|company(?:\s*name)?)\s+(?:to|=|:)\s*(.+)/i
+    );
+    if (clientNameMatch) {
+        const val = msg.slice(msg.toLowerCase().indexOf(clientNameMatch[1].toLowerCase()), msg.length).trim().replace(/[.!?]+$/, "");
+        if (val) actions.push({ action: "set_field", field: "clientName", value: val });
+    }
+
+    // ---- "change X to just Y" / "change X to Y" (generic with known current value) ----
+    if (actions.length === 0 && screenContext?.clientName) {
+        const currentClient = screenContext.clientName.toLowerCase();
+        // "change Denver Gold Diggers to just Denver" or "change the name to Denver"
+        if (lower.includes(currentClient.split(" ")[0]) || lower.includes("client") || lower.includes("name")) {
+            const toMatch = msg.match(/(?:to\s+(?:just\s+)?)([\w\s&'-]+?)(?:\s*$|[.!?])/i);
+            if (toMatch) {
+                const newVal = toMatch[1].trim();
+                if (newVal && newVal.toLowerCase() !== currentClient) {
+                    actions.push({ action: "set_field", field: "clientName", value: newVal });
+                }
+            }
+        }
+    }
+
+    // ---- "add city X" / "set city to X" / "city: X" ----
+    const cityMatch = lower.match(
+        /(?:add|set|change|update|make)\s+(?:the\s+)?(?:city|client\s*city|location)\s+(?:to\s+|=\s*|:\s*)?(.+)/i
+    );
+    if (cityMatch) {
+        const val = msg.slice(msg.toLowerCase().indexOf(cityMatch[1].toLowerCase())).trim().replace(/[.!?]+$/, "");
+        if (val) actions.push({ action: "set_field", field: "clientCity", value: val });
+    }
+
+    // ---- "set currency to X" ----
+    const currencyMatch = lower.match(
+        /(?:change|set|switch|update)\s+(?:the\s+)?currency\s+(?:to\s+)?(\w{3})/i
+    );
+    if (currencyMatch) {
+        actions.push({ action: "set_field", field: "currency", value: currencyMatch[1].toUpperCase() });
+    }
+
+    // ---- "switch to LOI/PROPOSAL/BUDGET" ----
+    const docModeMatch = lower.match(
+        /(?:switch|change|set|make\s+it)\s+(?:to\s+|a\s+)?(?:an?\s+)?(loi|proposal|budget)/i
+    );
+    if (docModeMatch) {
+        actions.push({ action: "set_document_mode", value: docModeMatch[1].toUpperCase() });
+    }
+
+    // ---- "change intro to X" / "set intro text to X" ----
+    const introMatch = msg.match(
+        /(?:change|set|update|make)\s+(?:the\s+)?(?:intro(?:duction)?(?:\s*text)?)\s+(?:to\s*:?\s*)([\s\S]+)/i
+    );
+    if (introMatch) {
+        actions.push({ action: "set_field", field: "introductionText", value: introMatch[1].trim() });
+    }
+
+    // ---- "change payment terms to X" ----
+    const paymentMatch = msg.match(
+        /(?:change|set|update)\s+(?:the\s+)?(?:payment\s*terms?)\s+(?:to\s*:?\s*)([\s\S]+)/i
+    );
+    if (paymentMatch) {
+        actions.push({ action: "set_field", field: "paymentTerms", value: paymentMatch[1].trim() });
+    }
+
+    // ---- "set tax rate to X%" ----
+    const taxMatch = lower.match(
+        /(?:set|change|update|make)\s+(?:the\s+)?tax\s*(?:rate)?\s+(?:to\s+)?(\d+\.?\d*)\s*%/i
+    );
+    if (taxMatch) {
+        actions.push({ action: "set_field", field: "taxRateOverride", value: parseFloat(taxMatch[1]) / 100 });
+    }
+
+    // ---- "set location to X" ----
+    const locationMatch = msg.match(
+        /(?:set|change|update)\s+(?:the\s+)?(?:location|venue|project\s*location)\s+(?:to\s*:?\s*)([\w\s&'-]+)/i
+    );
+    if (locationMatch) {
+        actions.push({ action: "set_field", field: "location", value: locationMatch[1].trim() });
+    }
+
+    // ---- "hide/show X section" ----
+    const toggleMatch = lower.match(
+        /(?:hide|remove|turn\s+off|disable)\s+(?:the\s+)?(?:signature|payment|notes|specs|footer|intro|scope)/i
+    );
+    if (toggleMatch) {
+        const section = toggleMatch[0];
+        if (section.includes("signature")) actions.push({ action: "set_field", field: "showSignatureBlock", value: false });
+        else if (section.includes("payment")) actions.push({ action: "set_field", field: "showPaymentTerms", value: false });
+        else if (section.includes("notes")) actions.push({ action: "set_field", field: "showNotes", value: false });
+        else if (section.includes("specs")) actions.push({ action: "set_field", field: "showSpecifications", value: false });
+        else if (section.includes("footer")) actions.push({ action: "set_field", field: "showCompanyFooter", value: false });
+        else if (section.includes("intro")) actions.push({ action: "set_field", field: "showIntroText", value: false });
+        else if (section.includes("scope")) actions.push({ action: "set_field", field: "showScopeOfWork", value: false });
+    }
+
+    const showMatch = lower.match(
+        /(?:show|add|turn\s+on|enable)\s+(?:the\s+)?(?:signature|payment|notes|specs|footer|intro|scope)/i
+    );
+    if (showMatch) {
+        const section = showMatch[0];
+        if (section.includes("signature")) actions.push({ action: "set_field", field: "showSignatureBlock", value: true });
+        else if (section.includes("payment")) actions.push({ action: "set_field", field: "showPaymentTerms", value: true });
+        else if (section.includes("notes")) actions.push({ action: "set_field", field: "showNotes", value: true });
+        else if (section.includes("specs")) actions.push({ action: "set_field", field: "showSpecifications", value: true });
+        else if (section.includes("footer")) actions.push({ action: "set_field", field: "showCompanyFooter", value: true });
+        else if (section.includes("intro")) actions.push({ action: "set_field", field: "showIntroText", value: true });
+        else if (section.includes("scope")) actions.push({ action: "set_field", field: "showScopeOfWork", value: true });
+    }
+
+    // ---- "download pdf" / "export pdf" / "generate pdf" ----
+    if (/(?:download|export|generate|create)\s+(?:the\s+)?pdf/i.test(lower)) {
+        actions.push({ action: "download_pdf" });
+    }
+
+    // ---- "go to step N" / "next step" / "previous step" ----
+    const stepMatch = lower.match(/(?:go\s+to|navigate\s+to|switch\s+to)\s+step\s+(\d)/i);
+    if (stepMatch) {
+        actions.push({ action: "navigate_step", step: parseInt(stepMatch[1]) - 1 });
+    }
+
+    return actions;
 }
 
 // ============================================================================
