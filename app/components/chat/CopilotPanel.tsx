@@ -171,7 +171,103 @@ export default function CopilotPanel({
     };
 
     // ========================================================================
-    // SEND HANDLER (routes to guided or freeform)
+    // STREAMING FREEFORM HANDLER
+    // ========================================================================
+    const handleStreamingSend = async (text: string, userMsg: ChatMessage) => {
+        const assistantId = newId();
+        const assistantMsg: ChatMessage = {
+            id: assistantId,
+            role: "assistant",
+            content: "",
+            timestamp: Date.now(),
+        };
+
+        // Add empty assistant message that we'll fill via streaming
+        setMessages((prev) => [...prev, assistantMsg]);
+
+        try {
+            const res = await fetch("/api/copilot/stream", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    projectId,
+                    message: text,
+                    useAgent: text.startsWith("@agent"),
+                }),
+            });
+
+            if (!res.ok || !res.body) {
+                // Fall back to non-streaming
+                const data = await res.json().catch(() => null);
+                setMessages((prev) =>
+                    prev.map((m) =>
+                        m.id === assistantId
+                            ? { ...m, content: data?.error || "AI request failed. Try again." }
+                            : m
+                    )
+                );
+                return;
+            }
+
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let accumulated = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const text = decoder.decode(value, { stream: true });
+                const lines = text.split("\n");
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed || !trimmed.startsWith("data: ")) continue;
+
+                    try {
+                        const chunk = JSON.parse(trimmed.slice(6));
+                        if (chunk.textResponse) {
+                            accumulated += chunk.textResponse;
+                            // Update the message in place
+                            setMessages((prev) =>
+                                prev.map((m) =>
+                                    m.id === assistantId
+                                        ? { ...m, content: accumulated }
+                                        : m
+                                )
+                            );
+                        }
+                        if (chunk.close) break;
+                    } catch {
+                        // Skip non-JSON lines
+                    }
+                }
+            }
+
+            // If we got nothing, show a fallback
+            if (!accumulated) {
+                setMessages((prev) =>
+                    prev.map((m) =>
+                        m.id === assistantId
+                            ? { ...m, content: "No response received. Try again." }
+                            : m
+                    )
+                );
+            }
+        } catch (err) {
+            console.error("[Copilot] Stream error:", err);
+            setMessages((prev) =>
+                prev.map((m) =>
+                    m.id === assistantId
+                        ? { ...m, content: "Sorry, something went wrong. Please try again." }
+                        : m
+                )
+            );
+        }
+    };
+
+    // ========================================================================
+    // SEND HANDLER (routes to guided or streaming freeform)
     // ========================================================================
     const handleSend = async () => {
         const text = input.trim();
@@ -189,23 +285,38 @@ export default function CopilotPanel({
         setIsLoading(true);
 
         try {
-            let response: string;
-
             if (mode === "guided") {
-                response = await handleGuidedSend(text);
+                // Guided mode: non-streaming (fast regex processing)
+                const response = await handleGuidedSend(text);
+                const assistantMsg: ChatMessage = {
+                    id: newId(),
+                    role: "assistant",
+                    content: response,
+                    timestamp: Date.now(),
+                };
+                setMessages((prev) => [...prev, assistantMsg]);
+            } else if (projectId && projectId !== "new") {
+                // Freeform mode with valid project: use streaming
+                await handleStreamingSend(text, userMsg);
             } else if (onSendMessage) {
-                response = await onSendMessage(text, [...messages, userMsg]);
+                // Fallback: non-streaming
+                const response = await onSendMessage(text, [...messages, userMsg]);
+                const assistantMsg: ChatMessage = {
+                    id: newId(),
+                    role: "assistant",
+                    content: response,
+                    timestamp: Date.now(),
+                };
+                setMessages((prev) => [...prev, assistantMsg]);
             } else {
-                response = "AI backend not connected. Save the project first to enable AI chat.";
+                const assistantMsg: ChatMessage = {
+                    id: newId(),
+                    role: "assistant",
+                    content: "AI backend not connected. Save the project first to enable AI chat.",
+                    timestamp: Date.now(),
+                };
+                setMessages((prev) => [...prev, assistantMsg]);
             }
-
-            const assistantMsg: ChatMessage = {
-                id: newId(),
-                role: "assistant",
-                content: response,
-                timestamp: Date.now(),
-            };
-            setMessages((prev) => [...prev, assistantMsg]);
         } catch (err) {
             const errorMsg: ChatMessage = {
                 id: newId(),
