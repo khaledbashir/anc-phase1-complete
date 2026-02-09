@@ -125,30 +125,128 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
     ? tables.filter((_: any, idx: number) => idx !== masterTableIndex)
     : tables;
 
+  // Shared fragments used in multiple render paths
+  const headerBlock = (
+    <Header
+      documentMode={documentMode}
+      clientName={clientName}
+      projectName={projectName}
+    />
+  );
+
+  const introBlock = (
+    <IntroSection
+      documentMode={documentMode}
+      clientName={clientName}
+      purchaserLegalName={purchaserLegalName}
+      currency={currency}
+      purchaserAddress={purchaserAddress}
+      projectName={projectName}
+      customIntroText={introductionText}
+      displayTypeLabel={displayTypeLabel}
+    />
+  );
+
+  const detailTablesBlock = detailTables.map((table) => (
+    <React.Fragment key={table.id}>
+      <PricingTableSection
+        table={table}
+        currency={currency}
+        displayName={getTableDisplayName(table)}
+      />
+      {table.alternates.length > 0 && (
+        <AlternatesSection
+          alternates={table.alternates}
+          currency={currency}
+        />
+      )}
+    </React.Fragment>
+  ));
+
+  const specsBlock = showSpecifications && screens.length > 0 ? (
+    <TechnicalSpecsSection screens={screens} />
+  ) : null;
+
+  const pageBreak = (
+    <div style={{ pageBreakAfter: 'always', breakAfter: 'page' }} />
+  );
+
+  // ──────────────────────────────────────────────────────────────────────
+  // LOI MODE — Natalia's required page structure
+  // ──────────────────────────────────────────────────────────────────────
+  if (documentMode === "LOI") {
+    const hasMasterTable = masterTable !== null;
+
+    return (
+      <div className="bg-white min-h-screen font-sans">
+        <div className="max-w-[816px] mx-auto">
+          {/* ── Page 1: Header + Intro + Project Summary (Structure A) ── */}
+          {headerBlock}
+          {introBlock}
+
+          {hasMasterTable ? (
+            <>
+              {/* Structure A: Master table = project summary on page 1 */}
+              <MasterTableSection
+                table={masterTable}
+                currency={currency}
+                displayName={getTableDisplayName(masterTable)}
+              />
+
+              {/* ── Page 2: Payment Terms + Signatures ── */}
+              {pageBreak}
+              <PaymentTermsSection paymentTerms={(details as any)?.paymentTerms} />
+              {customProposalNotes && (
+                <CustomNotesSection notes={customProposalNotes} isLOI={true} />
+              )}
+              <SignatureSection clientName={clientName} />
+
+              {/* ── Page 3+: Detailed Breakdown ── */}
+              {detailTables.length > 0 && pageBreak}
+              {detailTablesBlock}
+
+              {/* ── Last pages: Technical Specifications ── */}
+              {specsBlock && pageBreak}
+              {specsBlock}
+            </>
+          ) : (
+            <>
+              {/* Structure B: No master table — detail tables first */}
+              {detailTables.length > 0 && (
+                <DocumentTotalSection total={documentTotal} currency={currency} isLOIPosition={true} />
+              )}
+              {detailTablesBlock}
+
+              {/* Then: Payment Terms + Signatures */}
+              <PaymentTermsSection paymentTerms={(details as any)?.paymentTerms} />
+              {customProposalNotes && (
+                <CustomNotesSection notes={customProposalNotes} isLOI={true} />
+              )}
+              <SignatureSection clientName={clientName} />
+
+              {/* ── Last pages: Technical Specifications ── */}
+              {specsBlock && pageBreak}
+              {specsBlock}
+            </>
+          )}
+
+          <StatementOfWorkSection details={details} />
+          <Footer />
+        </div>
+      </div>
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────────────────
+  // BUDGET / PROPOSAL MODE
+  // ──────────────────────────────────────────────────────────────────────
   return (
     <div className="bg-white min-h-screen font-sans">
-      {/* Page container */}
       <div className="max-w-[816px] mx-auto">
-        {/* Header */}
-        <Header
-          documentMode={documentMode}
-          clientName={clientName}
-          projectName={projectName}
-        />
+        {headerBlock}
+        {introBlock}
 
-        {/* Intro text */}
-        <IntroSection
-          documentMode={documentMode}
-          clientName={clientName}
-          purchaserLegalName={purchaserLegalName}
-          currency={currency}
-          purchaserAddress={purchaserAddress}
-          projectName={projectName}
-          customIntroText={introductionText}
-          displayTypeLabel={displayTypeLabel}
-        />
-
-        {/* Prompt 51: Master table renders FIRST when designated */}
+        {/* Master table (project summary) on page 1 */}
         {masterTable && (
           <MasterTableSection
             table={masterTable}
@@ -157,70 +255,27 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
           />
         )}
 
-        {/* FR-2.3 FIX: LOI shows Project Grand Total BEFORE pricing tables (fallback when no master table) */}
-        {documentMode === "LOI" && tables.length > 0 && masterTableIndex === null && (
-          <DocumentTotalSection total={documentTotal} currency={currency} isLOIPosition={true} />
-        )}
-
         {/* Page break: detail section breakdowns start on a new page */}
-        {detailTables.length > 0 && (
-          <div style={{ pageBreakAfter: 'always', breakAfter: 'page' }} />
-        )}
+        {detailTables.length > 0 && pageBreak}
 
         {/* Detail pricing tables (excludes master table if set) */}
-        {detailTables.map((table, idx) => (
-          <React.Fragment key={table.id}>
-            <PricingTableSection
-              table={table}
-              currency={currency}
-              displayName={getTableDisplayName(table)}
-            />
-            {table.alternates.length > 0 && (
-              <AlternatesSection
-                alternates={table.alternates}
-                currency={currency}
-              />
-            )}
-          </React.Fragment>
-        ))}
+        {detailTablesBlock}
 
-        {/* Document total (if multiple tables) - Budget/Proposal show at bottom */}
-        {documentMode !== "LOI" && detailTables.length > 1 && masterTableIndex === null && (
+        {/* Document total (if multiple tables and no master table) */}
+        {detailTables.length > 1 && masterTableIndex === null && (
           <DocumentTotalSection total={documentTotal} currency={currency} />
         )}
 
-        {/* Technical Specifications - reads from details.screens (form data) */}
-        {showSpecifications && screens.length > 0 && (
-          <TechnicalSpecsSection screens={screens} />
-        )}
+        {/* Technical Specifications */}
+        {specsBlock}
 
-        {/* FR-4.2: Custom Notes - Budget/Proposal shows after pricing */}
-        {documentMode !== "LOI" && customProposalNotes && (
+        {/* Custom Notes */}
+        {customProposalNotes && (
           <CustomNotesSection notes={customProposalNotes} />
         )}
 
-        {/* LOI-specific sections */}
-        {documentMode === "LOI" && (
-          <>
-            <PaymentTermsSection paymentTerms={(details as any)?.paymentTerms} />
-            {/* FR-4.2: Custom Notes - LOI shows in Additional Notes section */}
-            {customProposalNotes && (
-              <CustomNotesSection notes={customProposalNotes} isLOI={true} />
-            )}
-          </>
-        )}
-
-        {/* Statement of Work - MUST appear BEFORE signature */}
         <StatementOfWorkSection details={details} />
-
-        {/* Footer - MUST appear BEFORE signature */}
         <Footer />
-
-        {/* Signature Block - ABSOLUTE FINAL ELEMENT (Natalia requirement) */}
-        {/* Must be last so signature applies to all content above */}
-        {documentMode === "LOI" && (
-          <SignatureSection clientName={clientName} />
-        )}
       </div>
     </div>
   );

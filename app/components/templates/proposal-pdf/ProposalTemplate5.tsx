@@ -911,94 +911,165 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 </div>
             )}
 
-            {/* Prompt 51: Master Table — designated grand total table renders FIRST */}
-            {showPricingTables && masterTableIndex !== null && <MasterTableSummary />}
-
-            {/* LOI Master Table - Project Grand Total BEFORE detailed breakdown (fallback when no master table designated) */}
-            {isLOI && showPricingTables && masterTableIndex === null && <LOISummaryTable />}
-
-            {/* Page break: detail section breakdowns start on a new page */}
-            {showPricingTables && (masterTableIndex !== null || isLOI) && (
-                <div style={{ pageBreakAfter: 'always', breakAfter: 'page' }} />
-            )}
-
-            {/* Pricing tables — section headers on each table are self-explanatory */}
-            {showPricingTables && (
-                <div className="px-6 break-inside-avoid">
-                    <div className="break-inside-avoid">
-                        <PricingSection />
-                    </div>
-                </div>
-            )}
-
-            {/* LOI order (Prompt 45 fix): Pricing → Notes → Payment Terms → PAGE BREAK → Specs → PAGE BREAK → Exhibit A → PAGE BREAK → Signature (LAST) */}
+            {/* ════════════════════════════════════════════════════════════
+                LOI MODE — Natalia's required page structure (Prompt 41)
+                Structure A (master table): Intro → Summary → Payment/Sig → Breakdown → Specs
+                Structure B (no master):    Intro → Breakdown → Payment/Sig → Specs
+               ════════════════════════════════════════════════════════════ */}
             {isLOI ? (
+                masterTableIndex !== null ? (
+                    /* ── Structure A: Master table selected ── */
+                    <>
+                        {/* Page 1: Master Table (project summary) */}
+                        {showPricingTables && <MasterTableSummary />}
+
+                        {/* Page 2: Payment Terms + Notes + Signature Block */}
+                        <PageBreak />
+                        {showPaymentTerms && (
+                            <div className="px-6 break-inside-avoid">
+                                <PaymentTermsSection />
+                            </div>
+                        )}
+                        {showNotes && (
+                            <div className="px-6 break-inside-avoid">
+                                <NotesSection />
+                            </div>
+                        )}
+                        {showSignatureBlock && (
+                            <div className="px-6 break-inside-avoid">
+                                <SignatureBlock />
+                            </div>
+                        )}
+
+                        {/* Page 3+: Detailed Breakdown (all section pricing tables) */}
+                        {showPricingTables && <PageBreak />}
+                        {showPricingTables && (
+                            <div className="px-6 break-inside-avoid">
+                                <div className="break-inside-avoid">
+                                    <PricingSection />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Last pages: Technical Specifications */}
+                        {showSpecifications && screens.length > 0 && (
+                            <>
+                                <PageBreak />
+                                <div className="px-6 break-inside-avoid">
+                                    <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
+                                    <div className="break-inside-avoid">
+                                        {screens.map((screen: any, idx: number) => (
+                                            <SpecTable key={idx} screen={screen} />
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {showExhibitA && <PageBreak />}
+                        {showExhibitA && (
+                            <div className="px-6 break-inside-avoid">
+                                <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
+                            </div>
+                        )}
+
+                        {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
+                            <div className="px-6 break-inside-avoid">
+                                <ScopeOfWorkSection />
+                            </div>
+                        )}
+
+                        {showCompanyFooter && (
+                            <div className="px-6">
+                                <HybridFooter />
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    /* ── Structure B: No master table — detail tables first ── */
+                    <>
+                        {/* LOI fallback summary (document total) */}
+                        {showPricingTables && <LOISummaryTable />}
+
+                        {/* Pricing tables immediately after intro */}
+                        {showPricingTables && (
+                            <div className="px-6 break-inside-avoid">
+                                <div className="break-inside-avoid">
+                                    <PricingSection />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Then: Payment Terms + Notes + Signature Block */}
+                        {showPaymentTerms && (
+                            <div className="px-6 break-inside-avoid">
+                                <PaymentTermsSection />
+                            </div>
+                        )}
+                        {showNotes && (
+                            <div className="px-6 break-inside-avoid">
+                                <NotesSection />
+                            </div>
+                        )}
+                        {showSignatureBlock && (
+                            <div className="px-6 break-inside-avoid">
+                                <SignatureBlock />
+                            </div>
+                        )}
+
+                        {/* Last pages: Technical Specifications */}
+                        {showSpecifications && screens.length > 0 && (
+                            <>
+                                <PageBreak />
+                                <div className="px-6 break-inside-avoid">
+                                    <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
+                                    <div className="break-inside-avoid">
+                                        {screens.map((screen: any, idx: number) => (
+                                            <SpecTable key={idx} screen={screen} />
+                                        ))}
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {showExhibitA && <PageBreak />}
+                        {showExhibitA && (
+                            <div className="px-6 break-inside-avoid">
+                                <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
+                            </div>
+                        )}
+
+                        {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
+                            <div className="px-6 break-inside-avoid">
+                                <ScopeOfWorkSection />
+                            </div>
+                        )}
+
+                        {showCompanyFooter && (
+                            <div className="px-6">
+                                <HybridFooter />
+                            </div>
+                        )}
+                    </>
+                )
+            ) : (
+                /* Budget / Proposal order: Header → Intro → Master Table → Page Break → Pricing → Notes → Specs → Exhibit A */
                 <>
-                    {/* 4. Notes (hide if empty - NotesSection returns null when empty) */}
-                    {showNotes && (
-                        <div className="px-6 break-inside-avoid">
-                            <NotesSection />
-                        </div>
-                    )}
-                    {/* 5. Payment Terms */}
-                    {showPaymentTerms && (
-                        <div className="px-6 break-inside-avoid">
-                            <PaymentTermsSection />
-                        </div>
-                    )}
+                    {/* Master table (project summary) on page 1 */}
+                    {showPricingTables && masterTableIndex !== null && <MasterTableSummary />}
 
-                    {/* 6. Page break before Technical Specifications */}
-                    <PageBreak />
+                    {/* Page break: detail section breakdowns start on a new page */}
+                    {showPricingTables && masterTableIndex !== null && <PageBreak />}
 
-                    {/* 7. Technical Specifications (individual display spec cards) */}
-                    {showSpecifications && screens.length > 0 && (
+                    {/* Pricing tables */}
+                    {showPricingTables && (
                         <div className="px-6 break-inside-avoid">
-                            <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
                             <div className="break-inside-avoid">
-                                {screens.map((screen: any, idx: number) => (
-                                    <SpecTable key={idx} screen={screen} />
-                                ))}
+                                <PricingSection />
                             </div>
                         </div>
                     )}
 
-                    {/* 8. Page break before Exhibit A */}
-                    {showExhibitA && <PageBreak />}
-
-                    {/* 9. Exhibit A: Technical Specifications summary table */}
-                    {showExhibitA && (
-                        <div className="px-6 break-inside-avoid">
-                            <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
-                        </div>
-                    )}
-
-                    {/* 10. Exhibit B: Scope of Work (hide entirely if empty) */}
-                    {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
-                        <div className="px-6 break-inside-avoid">
-                            <ScopeOfWorkSection />
-                        </div>
-                    )}
-
-                    {/* 11. Page break before Signature (MUST be on its own final page) */}
-                    {showSignatureBlock && <PageBreak />}
-
-                    {/* 12. Signature Block — ABSOLUTE LAST ELEMENT (binding acceptance) */}
-                    {showSignatureBlock && (
-                        <div className="px-6 break-inside-avoid">
-                            <SignatureBlock />
-                        </div>
-                    )}
-
-                    {/* 13. Company Footer — appears on signature page */}
-                    {showCompanyFooter && (
-                        <div className="px-6">
-                            <HybridFooter />
-                        </div>
-                    )}
-                </>
-            ) : (
-                /* Budget / Proposal order: Header → Intro → Pricing → Notes → Specs → Exhibit A (no payment terms/signatures by default) */
-                <>
                     {showNotes && (
                         <div className="px-6 break-inside-avoid">
                             <NotesSection />

@@ -131,14 +131,6 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
             <section style={{ fontFamily: "'Inter', 'Work Sans', system-ui, sans-serif", position: 'relative' }}>
                 <div className="block p-4 sm:p-10 bg-white dark:bg-white !bg-white text-[#1a1a1a] dark:text-[#1a1a1a] !text-black relative overflow-hidden print:bg-white">
                     <BrandSlashes className="absolute -top-10 -right-10" width={220} height={220} opacity={0.18} count={10} />
-                    {/* Draft Watermark Safeguard */}
-                    {details.status === 'DRAFT' && (
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03] rotate-[-45deg] z-0">
-                            <span className="text-[120px] font-bold whitespace-nowrap border-[20px] border-gray-900 px-10 rounded-3xl">
-                                DRAFT - INTERNAL VALIDATION ONLY
-                            </span>
-                        </div>
-                    )}
                     <div className="relative z-10 mb-16">
                         {children}
                     </div>
