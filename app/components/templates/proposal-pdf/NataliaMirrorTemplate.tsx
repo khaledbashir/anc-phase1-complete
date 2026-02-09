@@ -1031,12 +1031,17 @@ function CustomNotesSection({
 
 function Footer() {
   return (
-    <div className="px-12 py-4 mt-8 border-t border-gray-200 text-center">
-      <div className="text-[10px] text-gray-500">
-        ANC SPORTS ENTERPRISES, LLC
-      </div>
-      <div className="text-[9px] text-gray-400">
-        2 Manhattanville Road, Suite 402 · Purchase, NY 10577 · anc.com
+    <div className="px-12 py-4 mt-8 border-t border-gray-200">
+      <div className="flex justify-between items-center">
+        <div className="text-[9px] text-gray-400">
+          ANC Sports Enterprises, LLC · 2 Manhattanville Road, Suite 402 · Purchase, NY 10577
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <div className="text-[9px] font-bold text-[#0A52EF] tracking-wide">www.anc.com/contact</div>
+            <div className="text-[7px] text-gray-500 tracking-wider">NY 914.696.2100  TX 940.464.2320</div>
+          </div>
+        </div>
       </div>
     </div>
   );

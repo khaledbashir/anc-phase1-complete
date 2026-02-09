@@ -627,7 +627,7 @@ export const ProposalContextProvider = ({
                     });
                 }
                 setValue("details.showExhibitB", true, { shouldDirty: true });
-                setValue("details.showSpecifications", false, {
+                setValue("details.showSpecifications", true, {
                     shouldDirty: true,
                 });
                 return;
