@@ -40,31 +40,49 @@ export async function POST(req: NextRequest) {
         // Look up workspace slug
         const workspaceSlug = await getWorkspaceSlug(projectId);
 
-        if (ANYTHING_LLM_BASE_URL && ANYTHING_LLM_KEY && workspaceSlug) {
-            // ---- DEMO MODE: detect bulk input and parse everything at once ----
-            if (isBulkInput(message) && stage !== ConversationStage.REVIEW && stage !== ConversationStage.DONE) {
-                console.log("[Copilot/Propose] Bulk input detected — activating demo mode");
-                const bulkResult = await bulkExtract(workspaceSlug, projectId, message, collected);
-                if (bulkResult) {
-                    return NextResponse.json(bulkResult);
-                }
-            }
+        if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) {
+            const missing = [
+                !ANYTHING_LLM_BASE_URL && "ANYTHING_LLM_URL",
+                !ANYTHING_LLM_KEY && "ANYTHING_LLM_KEY",
+            ].filter(Boolean);
+            console.error(`[Copilot/Propose] Missing env vars: ${missing.join(", ")}`);
+            return NextResponse.json({
+                reply: `AI backend not configured: ${missing.join(", ")} missing. Contact admin.`,
+                actions: [], nextStage: stage, collected,
+            }, { status: 503 });
+        }
 
-            // ---- Normal LLM-powered guided flow ----
-            const llmResult = await llmGuidedFlow(workspaceSlug, projectId, stage, message, collected);
-            if (llmResult) {
-                return NextResponse.json(llmResult);
+        if (!workspaceSlug) {
+            console.error(`[Copilot/Propose] No workspace slug for project ${projectId}`);
+            return NextResponse.json({
+                reply: "No AI workspace found for this project. Try saving the project first.",
+                actions: [], nextStage: stage, collected,
+            }, { status: 503 });
+        }
+
+        console.log(`[Copilot/Propose] projectId=${projectId || "none"}, slug=${workspaceSlug}, stage=${stage}`);
+
+        // ---- DEMO MODE: detect bulk input and parse everything at once ----
+        if (isBulkInput(message) && stage !== ConversationStage.REVIEW && stage !== ConversationStage.DONE) {
+            console.log("[Copilot/Propose] Bulk input detected — activating demo mode");
+            const bulkResult = await bulkExtract(workspaceSlug, projectId, message, collected);
+            if (bulkResult) {
+                return NextResponse.json(bulkResult);
             }
         }
 
-        // LLM is unavailable — tell the user the truth
-        console.error("[Copilot/Propose] LLM unavailable — no ANYTHING_LLM_BASE_URL, KEY, or workspace slug");
+        // ---- Normal LLM-powered guided flow ----
+        const llmResult = await llmGuidedFlow(workspaceSlug, projectId, stage, message, collected);
+        if (llmResult) {
+            return NextResponse.json(llmResult);
+        }
+
+        // LLM was reachable but returned an error
+        console.error(`[Copilot/Propose] llmGuidedFlow returned null for slug=${workspaceSlug}`);
         return NextResponse.json({
-            reply: "AI backend is not connected. Check that AnythingLLM is configured and the project has a workspace.",
-            actions: [],
-            nextStage: stage,
-            collected,
-        }, { status: 503 });
+            reply: "AI responded with an error. The workspace may need its LLM model configured. Try again or contact admin.",
+            actions: [], nextStage: stage, collected,
+        }, { status: 502 });
     } catch (error: any) {
         console.error("[Copilot/Propose] Error:", error);
         return NextResponse.json({
@@ -187,8 +205,9 @@ async function llmGuidedFlow(
         });
 
         if (!res.ok) {
-            console.error("[Copilot/Propose] LLM error:", res.status);
-            return null; // Fall back to regex
+            const errBody = await res.text().catch(() => "");
+            console.error(`[Copilot/Propose] LLM error ${res.status} for slug=${workspaceSlug}: ${errBody.slice(0, 300)}`);
+            return null;
         }
 
         const data = await res.json();
