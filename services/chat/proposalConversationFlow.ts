@@ -81,10 +81,53 @@ export interface StageResult {
 // PARSERS
 // ============================================================================
 
-/** Extract dollar amounts from text: "$213,690" → 213690 */
+/** Extract dollar amounts from text — handles many formats:
+ *  "$213,690" → 213690
+ *  "200k" or "200K" → 200000
+ *  "1.5M" or "1.5 million" → 1500000
+ *  "trillion dollars" → (rejected, too vague)
+ *  "200000" (bare number) → 200000
+ */
 export function parseDollarAmounts(text: string): number[] {
-    const matches = text.match(/\$[\d,]+(?:\.\d{1,2})?/g) || [];
-    return matches.map((m) => parseFloat(m.replace(/[$,]/g, ""))).filter(Number.isFinite);
+    const results: number[] = [];
+
+    // Pattern 1: $-prefixed amounts — "$213,690" or "$1.5M"
+    const dollarMatches = text.match(/\$[\d,]+(?:\.\d+)?\s*[kKmMbB]?/g) || [];
+    for (const m of dollarMatches) {
+        const val = parseAmountWithSuffix(m.replace(/[$,]/g, ""));
+        if (val && val > 0) results.push(val);
+    }
+
+    // Pattern 2: Number + word multiplier — "200 thousand", "1.5 million"
+    const wordPattern = /([\d,.]+)\s*(thousand|million|billion|mil|k|m|b)\b/gi;
+    let wm;
+    while ((wm = wordPattern.exec(text)) !== null) {
+        const val = parseAmountWithSuffix(wm[1].replace(/,/g, "") + wm[2][0]);
+        if (val && val > 0 && !results.includes(val)) results.push(val);
+    }
+
+    // Pattern 3: Bare large numbers (no $ sign) — "200000" or "213,690"
+    if (results.length === 0) {
+        const bareMatches = text.match(/\b[\d,]{4,}(?:\.\d{1,2})?\b/g) || [];
+        for (const m of bareMatches) {
+            const val = parseFloat(m.replace(/,/g, ""));
+            if (Number.isFinite(val) && val >= 100) results.push(val);
+        }
+    }
+
+    return results;
+}
+
+function parseAmountWithSuffix(s: string): number | null {
+    const cleaned = s.trim().toLowerCase();
+    const multipliers: Record<string, number> = { k: 1_000, m: 1_000_000, b: 1_000_000_000 };
+    const lastChar = cleaned[cleaned.length - 1];
+    if (multipliers[lastChar]) {
+        const num = parseFloat(cleaned.slice(0, -1));
+        return Number.isFinite(num) ? num * multipliers[lastChar] : null;
+    }
+    const num = parseFloat(cleaned);
+    return Number.isFinite(num) ? num : null;
 }
 
 /** Extract percentage: "13% HST" → 0.13 */
@@ -191,30 +234,31 @@ const STAGE_PROMPTS: Record<ConversationStage, string> = {
     [ConversationStage.CLIENT_NAME]:
         "What client is this proposal for?",
     [ConversationStage.DISPLAYS]:
-        "What displays are we quoting? Include dimensions (e.g. 4.05m x 10.20m), pixel pitch (e.g. 2.5mm), and quantity.",
+        "Nice. What displays are we quoting? Give me dimensions and pitch — like \"4m x 10m, 2.5mm pitch\". I can handle multiple.",
     [ConversationStage.DISPLAY_PRICING]:
         "", // Dynamic — depends on display count
     [ConversationStage.SERVICES]:
-        "What about installation, structural, and electrical costs? (e.g. \"Structural $114,625, Labor $183,199, Electrical $249,432\")",
+        "Now the services — installation, structural, electrical, rigging, etc. Just list them with prices, like \"Structural $114k, Labor $183k\".",
     [ConversationStage.PM_WARRANTY]:
-        "Project management, engineering, warranty? (e.g. \"PM $12,500, Engineering $69,513, Warranty $23,403\")",
+        "Any PM, engineering, or warranty costs? Same format works. Or say \"skip\" if there aren't any.",
     [ConversationStage.TAX_BOND]:
-        "Tax rate? Bond rate? (e.g. \"13% HST\" or \"8.25% tax, 2% bond\")",
+        "Last thing — tax and bond rates? Like \"13% HST\" or \"8.25% tax, 2% bond\". Say \"skip\" if none.",
     [ConversationStage.REVIEW]:
         "", // Dynamic — shows summary
     [ConversationStage.GENERATE]:
-        "What document type? Budget estimate, formal proposal, or LOI?",
+        "What are we generating — budget estimate, formal proposal, or LOI?",
     [ConversationStage.DONE]:
-        "All done! Your PDF is being generated.",
+        "Done! Your PDF is being generated now.",
 };
 
 export function getStagePrompt(stage: ConversationStage, collected: CollectedData): string {
     if (stage === ConversationStage.DISPLAY_PRICING) {
         const count = collected.displays.length;
         if (count === 1) {
-            return `Got ${count} display added. What's the selling price?`;
+            const d = collected.displays[0];
+            return `Got it — ${d.widthM}m × ${d.heightM}m display added. What's the sell price? You can say $200k, $200,000, or just 200000.`;
         }
-        return `Got ${count} displays added. What's the pricing on each? (e.g. "$213,690 each for the big ones, $41,948 for the small one")`;
+        return `${count} displays locked in. What's the pricing? You can say "$213k each" or list them individually.`;
     }
 
     if (stage === ConversationStage.REVIEW) {
@@ -289,46 +333,49 @@ function isFrustrated(text: string): boolean {
 
 function retryMessage(stage: ConversationStage, retryCount: number, collected: CollectedData): string {
     if (retryCount <= 1) {
-        // First fail — short hint
+        // First fail — casual nudge
         switch (stage) {
             case ConversationStage.DISPLAYS:
-                return "I need dimensions to add a display. Include width and height like: 4m x 8m";
+                return "I need dimensions — something like 4m x 8m. Just width × height and I'll handle the rest.";
             case ConversationStage.DISPLAY_PRICING:
-                return "I need a dollar amount. Just type something like: $200,000";
+                return "Just need a number — $200k, $200,000, or even just 200000 works.";
             case ConversationStage.SERVICES:
-                return "I need a service name and price. Example: Installation $115,000";
+                return "Give me a service name and price — like \"Installation $115k\". I'll add it.";
             case ConversationStage.TAX_BOND:
-                return "I need a percentage. Example: 13%";
+                return "Just the percentage — like 13% or 8.25%.";
             default:
-                return "I didn't catch that. Could you try again?";
+                return "Didn't quite get that — try again?";
         }
     } else if (retryCount === 2) {
-        // Second fail — detailed example
+        // Second fail — more detail + escape routes
         switch (stage) {
             case ConversationStage.DISPLAYS:
-                return "Let me help — here's exactly what I need:\n\n" +
-                    "\"One LED wall, 4.05m x 10.20m, 2.5mm pitch\"\n\n" +
-                    "Or simpler: \"4m x 8m\" — I just need two numbers with an 'x' between them.\n" +
-                    "You can also say \"skip\" to move on or \"go back\" to change the client name.";
+                return "Here's what works:\n\n" +
+                    "• \"4m x 8m\" — just two numbers with an x\n" +
+                    "• \"One LED wall, 4.05m x 10.20m, 2.5mm pitch\"\n" +
+                    "• \"13ft x 33ft\" — feet work too\n\n" +
+                    "Or say \"skip\" to move on, \"go back\" to change the client name.";
             case ConversationStage.DISPLAY_PRICING:
-                return "I need the sell price per display. Format:\n\n" +
-                    "\"$213,690 each\" — applies to all displays\n" +
-                    "\"$213,690, $41,948\" — one price per display\n\n" +
-                    "Or say \"skip\" to set prices later, or \"go back\" to redo displays.";
+                return "Any of these work:\n\n" +
+                    "• \"$213k each\" — same price for all\n" +
+                    "• \"$213,690, $41,948\" — one per display\n" +
+                    "• \"200000\" — bare number is fine\n\n" +
+                    "Or \"skip\" to set prices later.";
             case ConversationStage.SERVICES:
-                return "List services with prices like:\n\n" +
-                    "\"Installation $115,185, Structural $114,625\"\n\n" +
-                    "Or say \"skip\" to move on.";
+                return "Try something like:\n\n" +
+                    "• \"Installation $115k, Structural $114k\"\n" +
+                    "• \"Labor 183000, Electrical 249000\"\n\n" +
+                    "Or \"skip\" to move on.";
             default:
-                return "I'm having trouble understanding. Say \"skip\" to move on or \"go back\" to the previous step.";
+                return "Not sure what that means. Say \"skip\" to move on or \"go back\".";
         }
     } else {
-        // Third+ fail — offer escape routes
-        return "I keep getting stuck on this. Here are your options:\n\n" +
+        // Third+ fail — full escape menu
+        return "Let's try a different approach:\n\n" +
             "• \"skip\" — move to the next step\n" +
-            "• \"go back\" — return to the previous step\n" +
-            "• \"start over\" — restart from the beginning\n\n" +
-            "You can always fill in details manually in the form too.";
+            "• \"go back\" — redo the previous step\n" +
+            "• \"start over\" — fresh start\n\n" +
+            "You can always fill in the form directly too — I won't be offended.";
     }
 }
 
