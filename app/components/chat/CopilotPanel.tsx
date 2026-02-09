@@ -11,7 +11,9 @@ import {
     Sparkles,
     Trash2,
     ChevronDown,
+    ChevronRight,
     Wand2,
+    Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -32,6 +34,10 @@ export interface ChatMessage {
     role: "user" | "assistant" | "system";
     content: string;
     timestamp: number;
+    /** Reasoning/thinking content from thinking models (e.g. DeepSeek R1) */
+    thinking?: string;
+    /** Whether the thinking block is still streaming */
+    isThinking?: boolean;
 }
 
 export type CopilotMode = "guided" | "freeform";
@@ -49,6 +55,40 @@ export interface CopilotPanelProps {
     hasExistingData?: boolean;
     quickActions?: Array<{ label: string; prompt: string }>;
     className?: string;
+}
+
+// ============================================================================
+// THINKING BLOCK (collapsible reasoning display)
+// ============================================================================
+
+function ThinkingBlock({ thinking, isStreaming }: { thinking: string; isStreaming: boolean }) {
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <div className="mb-2">
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="flex items-center gap-1.5 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors"
+            >
+                {isStreaming ? (
+                    <Brain className="w-3 h-3 animate-pulse" style={{ color: "#8B5CF6" }} />
+                ) : (
+                    <Brain className="w-3 h-3" style={{ color: "#8B5CF6" }} />
+                )}
+                <span>{isStreaming ? "Reasoning..." : "Reasoning"}</span>
+                {expanded ? (
+                    <ChevronDown className="w-3 h-3" />
+                ) : (
+                    <ChevronRight className="w-3 h-3" />
+                )}
+            </button>
+            {expanded && thinking && (
+                <div className="mt-1.5 pl-4 border-l-2 border-purple-300 dark:border-purple-700 text-[10px] text-zinc-500 dark:text-zinc-400 leading-relaxed max-h-[200px] overflow-y-auto whitespace-pre-wrap">
+                    {thinking}
+                </div>
+            )}
+        </div>
+    );
 }
 
 // ============================================================================
@@ -171,7 +211,7 @@ export default function CopilotPanel({
     };
 
     // ========================================================================
-    // STREAMING FREEFORM HANDLER
+    // STREAMING FREEFORM HANDLER (with thinking model support)
     // ========================================================================
     const handleStreamingSend = async (text: string, userMsg: ChatMessage) => {
         const assistantId = newId();
@@ -179,10 +219,11 @@ export default function CopilotPanel({
             id: assistantId,
             role: "assistant",
             content: "",
+            thinking: "",
+            isThinking: false,
             timestamp: Date.now(),
         };
 
-        // Add empty assistant message that we'll fill via streaming
         setMessages((prev) => [...prev, assistantMsg]);
 
         try {
@@ -197,7 +238,6 @@ export default function CopilotPanel({
             });
 
             if (!res.ok || !res.body) {
-                // Fall back to non-streaming
                 const data = await res.json().catch(() => null);
                 setMessages((prev) =>
                     prev.map((m) =>
@@ -211,55 +251,87 @@ export default function CopilotPanel({
 
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
-            let accumulated = "";
+
+            // State machine: NORMAL → THINKING → NORMAL
+            let thinkBuf = "";
+            let answerBuf = "";
+            let inThink = false;
+
+            const updateMsg = (partial: Partial<ChatMessage>) => {
+                setMessages((prev) =>
+                    prev.map((m) => (m.id === assistantId ? { ...m, ...partial } : m))
+                );
+            };
 
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const text = decoder.decode(value, { stream: true });
-                const lines = text.split("\n");
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split("\n");
 
                 for (const line of lines) {
                     const trimmed = line.trim();
                     if (!trimmed || !trimmed.startsWith("data: ")) continue;
 
                     try {
-                        const chunk = JSON.parse(trimmed.slice(6));
-                        if (chunk.textResponse) {
-                            accumulated += chunk.textResponse;
-                            // Update the message in place
-                            setMessages((prev) =>
-                                prev.map((m) =>
-                                    m.id === assistantId
-                                        ? { ...m, content: accumulated }
-                                        : m
-                                )
-                            );
+                        const parsed = JSON.parse(trimmed.slice(6));
+                        if (!parsed.textResponse) {
+                            if (parsed.close) break;
+                            continue;
                         }
-                        if (chunk.close) break;
+
+                        let token = parsed.textResponse as string;
+
+                        // Process token through think-tag state machine
+                        while (token.length > 0) {
+                            if (!inThink) {
+                                const openIdx = token.indexOf("<think>");
+                                if (openIdx === -1) {
+                                    answerBuf += token;
+                                    token = "";
+                                } else {
+                                    answerBuf += token.slice(0, openIdx);
+                                    token = token.slice(openIdx + 7); // skip "<think>"
+                                    inThink = true;
+                                    updateMsg({ isThinking: true, content: answerBuf, thinking: thinkBuf });
+                                }
+                            } else {
+                                const closeIdx = token.indexOf("</think>");
+                                if (closeIdx === -1) {
+                                    thinkBuf += token;
+                                    token = "";
+                                } else {
+                                    thinkBuf += token.slice(0, closeIdx);
+                                    token = token.slice(closeIdx + 8); // skip "</think>"
+                                    inThink = false;
+                                    updateMsg({ isThinking: false, thinking: thinkBuf, content: answerBuf });
+                                }
+                            }
+                        }
+
+                        // Update UI after each token
+                        updateMsg({
+                            content: answerBuf,
+                            thinking: thinkBuf,
+                            isThinking: inThink,
+                        });
+
+                        if (parsed.close) break;
                     } catch {
-                        // Skip non-JSON lines
+                        // Skip non-JSON
                     }
                 }
             }
 
-            // If we got nothing, show a fallback
-            if (!accumulated) {
-                setMessages((prev) =>
-                    prev.map((m) =>
-                        m.id === assistantId
-                            ? { ...m, content: "No response received. Try again." }
-                            : m
-                    )
-                );
-            }
+            // Finalize
+            updateMsg({ content: answerBuf || "No response received.", thinking: thinkBuf, isThinking: false });
         } catch (err) {
             console.error("[Copilot] Stream error:", err);
             setMessages((prev) =>
                 prev.map((m) =>
                     m.id === assistantId
-                        ? { ...m, content: "Sorry, something went wrong. Please try again." }
+                        ? { ...m, content: "Sorry, something went wrong. Please try again.", isThinking: false }
                         : m
                 )
             );
@@ -531,6 +603,10 @@ export default function CopilotPanel({
                                     )}
                                     style={msg.role === "user" ? { backgroundColor: "#0A52EF" } : undefined}
                                 >
+                                    {/* Thinking block (collapsible) */}
+                                    {msg.role === "assistant" && (msg.thinking || msg.isThinking) && (
+                                        <ThinkingBlock thinking={msg.thinking || ""} isStreaming={!!msg.isThinking} />
+                                    )}
                                     <p className="whitespace-pre-wrap">{msg.content}</p>
                                 </div>
                                 {msg.role === "user" && (

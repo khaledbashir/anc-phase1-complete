@@ -97,7 +97,6 @@ export async function POST(req: NextRequest) {
                 }
 
                 let buffer = "";
-                let inThinkBlock = false;
 
                 try {
                     while (true) {
@@ -123,34 +122,12 @@ export async function POST(req: NextRequest) {
                             try {
                                 const chunk = JSON.parse(jsonStr);
 
-                                // Filter out <think> blocks
-                                if (chunk.textResponse) {
-                                    let text = chunk.textResponse;
-
-                                    // Handle <think> tag opening
-                                    if (text.includes("<think>")) {
-                                        inThinkBlock = true;
-                                        text = text.replace(/<think>[\s\S]*/, "");
-                                    }
-                                    // Handle <think> tag closing
-                                    if (inThinkBlock && text.includes("</think>")) {
-                                        inThinkBlock = false;
-                                        text = text.replace(/[\s\S]*<\/think>/, "");
-                                    }
-                                    // Skip content inside think blocks
-                                    if (inThinkBlock) continue;
-                                    // Skip empty chunks after filtering
-                                    if (!text) continue;
-
-                                    chunk.textResponse = text;
-                                }
-
-                                // Forward the chunk as SSE
+                                // Pass raw chunks to client — including <think> tags
+                                // Client-side state machine handles thinking UI
                                 controller.enqueue(
                                     encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`)
                                 );
 
-                                // If this is the final chunk, include sources
                                 if (chunk.close) {
                                     break;
                                 }
