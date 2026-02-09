@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { Wizard, useWizard } from "react-use-wizard";
 
@@ -189,6 +189,29 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
     </div>
   );
 
+  // Copilot: send messages via AnythingLLM workspace
+  const handleCopilotMessage = useCallback(async (message: string, _history: any[]) => {
+    const workspace =
+      (typeof window !== "undefined" && localStorage.getItem("aiWorkspaceSlug")) || "dashboard-vault";
+    const useAgent = message.startsWith("@agent");
+
+    const res = await fetch("/api/dashboard/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, workspace, useAgent }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "AI request failed");
+
+    let content = data.response || "No response received.";
+    // Strip <think> tags if present
+    if (content.includes("<think>")) {
+      content = content.replace(/<think>[\s\S]*?<\/think>/, "").trim();
+    }
+    return content;
+  }, []);
+
   // PDF Content (The Anchor)
   const PDFContent = (
     <div className="w-full h-full">
@@ -206,7 +229,7 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
         showAudit={!isMirrorMode}
         pdfContent={PDFContent}
       />
-      <CopilotPanel />
+      <CopilotPanel onSendMessage={handleCopilotMessage} />
     </>
   );
 };
