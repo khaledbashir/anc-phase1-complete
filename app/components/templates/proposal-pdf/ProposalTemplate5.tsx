@@ -485,7 +485,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                             </div>
                                             <div className="col-span-4 text-right font-semibold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
                                                 {item?.isIncluded
-                                                    ? <span style={{ color: '#10b981' }}>INCLUDED</span>
+                                                    ? <span style={{ color: colors.text }}>INCLUDED</span>
                                                     : formatCurrency(Number(item?.sellingPrice ?? 0))}
                                             </div>
                                         </div>
@@ -903,6 +903,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
             {/* LOI Master Table - Project Grand Total BEFORE detailed breakdown (fallback when no master table designated) */}
             {isLOI && showPricingTables && masterTableIndex === null && <LOISummaryTable />}
+
+            {/* Page break: detail section breakdowns start on a new page */}
+            {showPricingTables && (masterTableIndex !== null || isLOI) && (
+                <div style={{ pageBreakAfter: 'always', breakAfter: 'page' }} />
+            )}
 
             {/* Pricing tables — section headers on each table are self-explanatory */}
             {showPricingTables && (

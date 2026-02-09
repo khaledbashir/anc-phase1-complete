@@ -162,6 +162,11 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
           <DocumentTotalSection total={documentTotal} currency={currency} isLOIPosition={true} />
         )}
 
+        {/* Page break: detail section breakdowns start on a new page */}
+        {detailTables.length > 0 && (
+          <div style={{ pageBreakAfter: 'always', breakAfter: 'page' }} />
+        )}
+
         {/* Detail pricing tables (excludes master table if set) */}
         {detailTables.map((table, idx) => (
           <React.Fragment key={table.id}>
@@ -355,7 +360,7 @@ function MasterTableSection({
             </div>
             <div className="text-right font-medium text-gray-800 w-28">
               {item.isIncluded ? (
-                <span className="text-green-600">INCLUDED</span>
+                <span className="text-gray-800">INCLUDED</span>
               ) : (
                 formatPricingCurrency(item.sellingPrice, currency)
               )}
@@ -447,7 +452,7 @@ function PricingTableSection({
             </div>
             <div className="text-right font-medium text-gray-800 w-28">
               {item.isIncluded ? (
-                <span className="text-green-600">INCLUDED</span>
+                <span className="text-gray-800">INCLUDED</span>
               ) : (
                 formatPricingCurrency(item.sellingPrice, currency)
               )}
