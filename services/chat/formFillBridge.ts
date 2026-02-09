@@ -217,20 +217,40 @@ export interface ScreenAction {
  * the whitelist directly. If it sends a friendly name, we resolve it.
  */
 const EDITABLE_FIELDS: Record<string, string> = {
-    // Client / Receiver
+    // Client / Receiver (full names + short aliases Kimi commonly sends)
     "clientName":           "receiver.name",
+    "client_name":          "receiver.name",
+    "client":               "receiver.name",
     "receiver.name":        "receiver.name",
     "clientAddress":        "receiver.address",
+    "client_address":       "receiver.address",
+    "address":              "receiver.address",
     "receiver.address":     "receiver.address",
     "clientCity":           "receiver.city",
+    "client_city":          "receiver.city",
+    "city":                 "receiver.city",
     "receiver.city":        "receiver.city",
+    "clientState":          "receiver.state",
+    "client_state":         "receiver.state",
+    "state":                "receiver.state",
+    "receiver.state":       "receiver.state",
     "clientCountry":        "receiver.country",
+    "client_country":       "receiver.country",
+    "country":              "receiver.country",
     "receiver.country":     "receiver.country",
     "clientZip":            "receiver.zipCode",
+    "client_zip":           "receiver.zipCode",
+    "zip":                  "receiver.zipCode",
+    "zipCode":              "receiver.zipCode",
+    "zip_code":             "receiver.zipCode",
     "receiver.zipCode":     "receiver.zipCode",
     "clientEmail":          "receiver.email",
+    "client_email":         "receiver.email",
+    "email":                "receiver.email",
     "receiver.email":       "receiver.email",
     "clientPhone":          "receiver.phone",
+    "client_phone":         "receiver.phone",
+    "phone":                "receiver.phone",
     "receiver.phone":       "receiver.phone",
 
     // Sender
@@ -346,7 +366,8 @@ const EDITABLE_FIELDS: Record<string, string> = {
  * Returns null if not allowed.
  */
 function resolveFieldPath(field: string): string | null {
-    return EDITABLE_FIELDS[field] || null;
+    // Try exact match first, then lowercase (Kimi may send "City" or "city")
+    return EDITABLE_FIELDS[field] || EDITABLE_FIELDS[field.toLowerCase()] || null;
 }
 
 /**
