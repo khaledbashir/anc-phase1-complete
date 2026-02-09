@@ -293,6 +293,40 @@ function findColumnHeaders(data: any[][]): ColumnMap | null {
 }
 
 // ============================================================================
+// SUBTOTAL DETECTION
+// ============================================================================
+
+/**
+ * Detect rows that are subtotals / sub-section totals and should NEVER
+ * become line items.  Catches:
+ *   - "Subtotal", "Sub Total", "Sub-Total"
+ *   - Blank description with numeric data (common Excel subtotal pattern)
+ *   - "5yr Total", "5 Year Total" — period roll-ups
+ *   - Anything ending with "Total" (excluding grand/project totals)
+ *   - "Extended Warranty 5yr Total" — warranty sub-section totals
+ */
+function isSubtotalRow(labelNorm: string, hasNumericData: boolean): boolean {
+  // Blank row with numbers = subtotal
+  if (!labelNorm && hasNumericData) return true;
+  // Explicit subtotal patterns (but NOT "sub total (bid form)" which is grand total)
+  if (/sub\s*-?\s*total/.test(labelNorm) && !labelNorm.includes("bid form")) return true;
+  // "Xyr Total" or "X year Total" — period subtotals
+  if (/\d+\s*yr\s+total/.test(labelNorm)) return true;
+  if (/\d+\s*year\s+total/.test(labelNorm)) return true;
+  // Extended warranty totals
+  if (/^extend(ed)?\s+warranty.*total/.test(labelNorm)) return true;
+  // Ends with "total" but NOT grand total / project total / just "total"
+  if (
+    /total\s*$/.test(labelNorm) &&
+    !labelNorm.includes("grand") &&
+    !labelNorm.includes("project") &&
+    !labelNorm.includes("bid form") &&
+    labelNorm !== "total"
+  ) return true;
+  return false;
+}
+
+// ============================================================================
 // ROW PARSING
 // ============================================================================
 
@@ -329,7 +363,7 @@ function parseAllRows(
 
     // Detect row types
     const isHeader = !isEmpty && !hasNumericData && label.length > 0 && !labelNorm.includes("alternate");
-    const isSubtotal = labelNorm.includes("subtotal") || labelNorm.includes("sub total") || (labelNorm === "" && hasNumericData);
+    const isSubtotal = isSubtotalRow(labelNorm, hasNumericData);
     const isTax = labelNorm === "tax" || labelNorm.startsWith("tax ");
     const isBond = labelNorm === "bond";
     const isGrandTotal = labelNorm.includes("grand total") || labelNorm.includes("sub total (bid form)") || labelNorm === "total" || labelNorm === "project total";
@@ -620,21 +654,27 @@ function findGlobalDocumentTotal(
     // Scan backwards to find the last grand-total row in the summary block
     for (let i = first.endRow; i >= first.startRow; i--) {
       const row = rows[i];
-      if (row && row.isGrandTotal && Number.isFinite(row.sell)) {
-        console.log(
-          `[PRICING PARSER] Global total found inside summary table "${first.name}" at row ${row.rowIndex}: ${row.sell}`
-        );
-        return row.sell;
+      if (row && row.isGrandTotal) {
+        const val = Number.isFinite(row.sell) ? row.sell : Number.isFinite(row.cost) ? row.cost : NaN;
+        if (Number.isFinite(val)) {
+          console.log(
+            `[PRICING PARSER] Global total found inside summary table "${first.name}" at row ${row.rowIndex}: ${val}`
+          );
+          return val;
+        }
       }
     }
-    // Fallback: use subtotal row (blank-label row with sell value)
+    // Fallback: use subtotal row (blank-label row with sell or cost value)
     for (let i = first.endRow; i >= first.startRow; i--) {
       const row = rows[i];
-      if (row && row.isSubtotal && !row.label && Number.isFinite(row.sell)) {
-        console.log(
-          `[PRICING PARSER] Global total from subtotal row in summary table "${first.name}" at row ${row.rowIndex}: ${row.sell}`
-        );
-        return row.sell;
+      if (row && row.isSubtotal && !row.label) {
+        const val = Number.isFinite(row.sell) ? row.sell : Number.isFinite(row.cost) ? row.cost : NaN;
+        if (Number.isFinite(val)) {
+          console.log(
+            `[PRICING PARSER] Global total from subtotal row in summary table "${first.name}" at row ${row.rowIndex}: ${val}`
+          );
+          return val;
+        }
       }
     }
   }
@@ -651,12 +691,13 @@ function findGlobalDocumentTotal(
   const candidates = rows.filter(
     (r) =>
       r.isGrandTotal &&
-      Number.isFinite(r.sell) &&
+      (Number.isFinite(r.sell) || Number.isFinite(r.cost)) &&
       r.rowIndex < firstBoundaryStartRowIndex
   );
 
   if (!candidates.length) return null;
-  return candidates[candidates.length - 1].sell;
+  const last = candidates[candidates.length - 1];
+  return Number.isFinite(last.sell) ? last.sell : last.cost;
 }
 
 // ============================================================================
@@ -687,9 +728,12 @@ function extractTable(
     // Skip header row
     if (row.isHeader) continue;
 
-    // Capture subtotal (row with empty label but has sell value)
-    if (row.isSubtotal && !row.label && Number.isFinite(row.sell)) {
-      subtotal = row.sell;
+    // Subtotal rows — ALWAYS skip (never become line items)
+    if (row.isSubtotal) {
+      // Capture the subtotal value if this is a pure subtotal row
+      if (Number.isFinite(row.sell) && (!row.label || /sub\s*-?\s*total/.test(row.labelNorm))) {
+        subtotal = row.sell;
+      }
       continue;
     }
 
@@ -708,13 +752,15 @@ function extractTable(
 
     // Capture bond
     if (row.isBond) {
-      bond = row.sell || 0;
+      bond = Number.isFinite(row.sell) ? row.sell : 0;
       continue;
     }
 
-    // Capture grand total
+    // Capture grand total — try sell column first, fall back to cost column
     if (row.isGrandTotal) {
-      grandTotal = row.sell || 0;
+      grandTotal = Number.isFinite(row.sell) ? row.sell
+        : Number.isFinite(row.cost) ? row.cost
+        : 0;
       continue;
     }
 
