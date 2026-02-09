@@ -54,6 +54,15 @@ set_field — Change any form field:
   Signer: signerName, signerTitle
   PDF Toggles (boolean true/false): showPricingTables, showIntroText, showSpecifications, showPaymentTerms, showSignatureBlock, showNotes, showScopeOfWork, showCompanyFooter, showAssumptions, showExhibitA, showExhibitB, showBaseBidTable, includePricingBreakdown
 
+== CRITICAL FIELD MAPPING — READ CAREFULLY ==
+When the user says "city" they mean clientCity (the client's city field), NOT venue.
+When the user says "address" they mean clientAddress, NOT location.
+When the user says "zip" or "zip code" they mean clientZip.
+When the user says "name" or "client" they mean clientName.
+When the user says "project name" they mean proposalName.
+"venue" is a SEPARATE field — only use it when the user explicitly says "venue" or "stadium" or "arena".
+"location" is a SEPARATE field — only use it when the user explicitly says "location".
+
 set_document_mode — Switch document type:
   Values: "BUDGET", "PROPOSAL", "LOI"
 
@@ -178,6 +187,8 @@ export async function askKimiWithVision(
 
         // Extract actions from JSON block if present
         const actions = extractActions(rawContent);
+        console.log("[Kimi] Raw response:", rawContent);
+        console.log("[Kimi] Extracted actions:", JSON.stringify(actions, null, 2));
 
         // Clean reply — remove the JSON block from display text
         const reply = rawContent
