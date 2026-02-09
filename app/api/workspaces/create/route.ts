@@ -153,14 +153,16 @@ export async function POST(request: NextRequest) {
               });
             }
 
-            // 2. AUTOMATED CONFIGURATION (Ferrari Efficiency)
-            // System prompt is inherited from AnythingLLM admin default — don't override it here
-            // Only set: model, agent config, temperature (low for factual answers), chatMode
+            // 2. AUTOMATED CONFIGURATION
+            // Match the LLM provider/model to what's configured on the AnythingLLM instance.
+            // Env vars allow override; defaults match the working production config (groq).
+            const llmProvider = process.env.ANYTHING_LLM_CHAT_PROVIDER || "groq";
+            const llmModel = process.env.ANYTHING_LLM_CHAT_MODEL || "moonshotai/kimi-k2-instruct-0905";
             await updateWorkspaceSettings(slug, {
-              chatModel: process.env.Z_AI_MODEL_NAME || "glm-4.6v",
-              agent_provider: "openai",
-              agent_model: process.env.Z_AI_MODEL_NAME || "glm-4.6v",
-              web_search: true,
+              chatProvider: llmProvider,
+              chatModel: llmModel,
+              agentProvider: llmProvider,
+              agentModel: llmModel,
               openAiTemp: 0.2,
               chatMode: "chat",
             }).catch(e => console.error("AI Settings Provision Failed:", e));

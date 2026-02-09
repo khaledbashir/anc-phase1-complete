@@ -67,12 +67,15 @@ export async function POST(req: NextRequest) {
                     const created = await createRes.json();
                     const newSlug = created?.workspace?.slug || created?.slug || targetWorkspace;
                     
-                    // Configure the workspace with agent capabilities
+                    // Configure the workspace with correct LLM provider/model
+                    const llmProvider = process.env.ANYTHING_LLM_CHAT_PROVIDER || "groq";
+                    const llmModel = process.env.ANYTHING_LLM_CHAT_MODEL || "moonshotai/kimi-k2-instruct-0905";
                     await updateWorkspaceSettings(newSlug, {
-                        chatModel: process.env.Z_AI_MODEL_NAME || "glm-4.6v",
-                        agent_provider: "openai",
-                        agent_model: process.env.Z_AI_MODEL_NAME || "glm-4.6v",
-                        web_search: true
+                        chatProvider: llmProvider,
+                        chatModel: llmModel,
+                        agentProvider: llmProvider,
+                        agentModel: llmModel,
+                        chatMode: "chat",
                     }).catch(e => console.error("[Intelligence Core] Settings update failed:", e));
 
                     // Retry the chat call
