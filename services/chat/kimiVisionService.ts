@@ -83,11 +83,12 @@ Users will say: "do the same for project name" or "same thing" or "that too for 
 Look at the conversation history to understand what "the same" means and emit the right action.
 
 == READING THE SCREEN ==
-The screenshot shows you the actual form and preview. Use it to:
-- Read exact totals, section names, line items visible on screen
-- Spot typos the user mentions
-- Confirm changes happened after actions execute
-- Answer "what does section 3 say?" by reading it directly
+The screenshot shows you the actual form and preview. Use it for LAYOUT and VISUAL context.
+However, for exact field values, ALWAYS trust the "CURRENT FIELD VALUES" text block attached to each message.
+The text block contains the real form data read directly from the DOM — it is 100% accurate.
+The screenshot may be blurry or hard to read — NEVER guess field values from the image alone.
+Use the screenshot to understand: which step the user is on, what sections are visible, the general layout.
+Use the text block to know: exact field values, what's filled vs empty, current document mode.
 
 == ANC BUSINESS KNOWLEDGE ==
 ANC Sports Enterprises designs, prices, installs LED displays for stadiums/arenas.
@@ -116,7 +117,8 @@ For compound actions: "Done — updated client to Denver, switched to LOI, added
 export async function askKimiWithVision(
     userMessage: string,
     screenshotBase64: string,
-    conversationHistory: Array<{ role: "user" | "assistant"; content: string }>
+    conversationHistory: Array<{ role: "user" | "assistant"; content: string }>,
+    fieldValues?: Record<string, any>
 ): Promise<KimiResponse> {
     if (!window.puter) {
         console.error("[Kimi] Puter.js not loaded");
@@ -137,6 +139,20 @@ export async function askKimiWithVision(
         messages.push({ role: msg.role, content: msg.content });
     }
 
+    // Build the text part: user message + ground truth field values
+    let textContent = userMessage;
+    if (fieldValues && Object.keys(fieldValues).length > 0) {
+        const fieldLines = Object.entries(fieldValues)
+            .filter(([_, v]) => v !== undefined && v !== null && v !== "")
+            .map(([k, v]) => `  ${k}: ${v}`)
+            .join("\n");
+        const emptyFields = Object.entries(fieldValues)
+            .filter(([_, v]) => v === undefined || v === null || v === "")
+            .map(([k]) => k)
+            .join(", ");
+        textContent += `\n\n--- CURRENT FIELD VALUES (ground truth, trust this over the screenshot) ---\n${fieldLines || "(all fields empty)"}${emptyFields ? `\nEmpty fields: ${emptyFields}` : ""}`;
+    }
+
     // Add current message WITH screenshot
     messages.push({
         role: "user",
@@ -147,7 +163,7 @@ export async function askKimiWithVision(
             },
             {
                 type: "text",
-                text: userMessage,
+                text: textContent,
             },
         ],
     });

@@ -21,7 +21,7 @@ export async function captureScreen(): Promise<string> {
         document.body;
 
     const canvas = await html2canvas(target as HTMLElement, {
-        scale: 0.5, // half resolution — faster, smaller payload
+        scale: 1, // full resolution — Kimi needs readable text
         useCORS: true, // handle cross-origin images (logos etc)
         logging: false,
         backgroundColor: "#ffffff",
@@ -34,6 +34,6 @@ export async function captureScreen(): Promise<string> {
         },
     });
 
-    // Convert to base64 JPEG (much smaller than PNG)
-    return canvas.toDataURL("image/jpeg", 0.6);
+    // Convert to base64 JPEG — 0.85 quality balances readability vs size
+    return canvas.toDataURL("image/jpeg", 0.85);
 }

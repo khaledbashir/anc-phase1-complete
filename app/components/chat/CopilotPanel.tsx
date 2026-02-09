@@ -197,11 +197,18 @@ export default function CopilotPanel({
             const screenshot = await captureScreen();
             console.log(`[Copilot] Screenshot captured: ${(screenshot.length / 1024).toFixed(0)}KB`);
 
-            // 2. Send to Kimi with vision + conversation history
+            // 2. Read actual field values from form (ground truth — prevents hallucination)
+            const screenCtx = formFillContext
+                ? getScreenContext(formFillContext, currentStep)
+                : undefined;
+            const fieldValues = screenCtx?.fieldValues;
+
+            // 3. Send to Kimi with vision + field values + conversation history
             const kimiResponse = await askKimiWithVision(
                 text,
                 screenshot,
-                conversationHistory
+                conversationHistory,
+                fieldValues
             );
 
             // 3. Execute any actions returned by Kimi
