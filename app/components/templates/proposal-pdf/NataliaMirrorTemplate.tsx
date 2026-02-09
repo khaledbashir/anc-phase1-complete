@@ -15,6 +15,9 @@ import { ProposalType } from "@/types";
 import {
   PricingTable,
   PricingDocument,
+  RespMatrix,
+  RespMatrixCategory,
+  RespMatrixItem,
   formatPricingCurrency,
 } from "@/types/pricing";
 import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
@@ -167,8 +170,18 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
     <TechnicalSpecsSection screens={screens} />
   ) : null;
 
+  // Resp Matrix SOW (parsed from Excel "Resp Matrix" sheet)
+  const respMatrix = pricingDocument?.respMatrix ?? null;
+  const respMatrixBlock = respMatrix && respMatrix.categories.length > 0 ? (
+    <RespMatrixSOWSection respMatrix={respMatrix} clientName={clientName} />
+  ) : null;
+
   const pageBreak = (
     <div style={{ pageBreakAfter: 'always', breakAfter: 'page' }} />
+  );
+
+  const continuationHeader = (
+    <ContinuationHeader clientName={clientName} projectName={projectName} />
   );
 
   // ──────────────────────────────────────────────────────────────────────
@@ -195,6 +208,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
 
               {/* ── Page 2: Payment Terms + Signatures ── */}
               {pageBreak}
+              {continuationHeader}
               <PaymentTermsSection paymentTerms={(details as any)?.paymentTerms} />
               {customProposalNotes && (
                 <CustomNotesSection notes={customProposalNotes} isLOI={true} />
@@ -203,11 +217,16 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
 
               {/* ── Page 3+: Detailed Breakdown ── */}
               {detailTables.length > 0 && pageBreak}
+              {detailTables.length > 0 && continuationHeader}
               {detailTablesBlock}
 
               {/* ── Last pages: Technical Specifications ── */}
               {specsBlock && pageBreak}
+              {specsBlock && continuationHeader}
               {specsBlock}
+
+              {/* Resp Matrix SOW (if present in Excel) */}
+              {respMatrixBlock}
             </>
           ) : (
             <>
@@ -226,7 +245,11 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
 
               {/* ── Last pages: Technical Specifications ── */}
               {specsBlock && pageBreak}
+              {specsBlock && continuationHeader}
               {specsBlock}
+
+              {/* Resp Matrix SOW (if present in Excel) */}
+              {respMatrixBlock}
             </>
           )}
 
@@ -257,6 +280,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
 
         {/* Page break: detail section breakdowns start on a new page */}
         {detailTables.length > 0 && pageBreak}
+        {detailTables.length > 0 && continuationHeader}
 
         {/* Detail pricing tables (excludes master table if set) */}
         {detailTablesBlock}
@@ -274,9 +298,37 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
           <CustomNotesSection notes={customProposalNotes} />
         )}
 
+        {/* Resp Matrix SOW (if present in Excel) */}
+        {respMatrixBlock}
+
         <StatementOfWorkSection details={details} />
         <Footer />
       </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// CONTINUATION PAGE HEADER (appears on pages after page 1)
+// ============================================================================
+
+function ContinuationHeader({
+  clientName,
+  projectName,
+}: {
+  clientName: string;
+  projectName: string;
+}) {
+  const label = projectName
+    ? `${clientName} — ${projectName}`.toUpperCase()
+    : clientName.toUpperCase();
+
+  return (
+    <div
+      className="text-center py-2 text-[9px] font-bold uppercase tracking-widest break-inside-avoid"
+      style={{ background: '#0A52EF', color: '#ffffff' }}
+    >
+      {label}
     </div>
   );
 }
@@ -808,7 +860,7 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
 }
 
 // ============================================================================
-// STATEMENT OF WORK
+// STATEMENT OF WORK (Free-text from form field)
 // ============================================================================
 
 function StatementOfWorkSection({ details }: { details: any }) {
@@ -824,6 +876,124 @@ function StatementOfWorkSection({ details }: { details: any }) {
         className="text-[10px] text-gray-600 leading-relaxed whitespace-pre-wrap"
         dangerouslySetInnerHTML={{ __html: sow }}
       />
+    </div>
+  );
+}
+
+// ============================================================================
+// RESP MATRIX STATEMENT OF WORK (Parsed from Excel "Resp Matrix" sheet)
+// ============================================================================
+
+function RespMatrixSOWSection({
+  respMatrix,
+  clientName,
+}: {
+  respMatrix: RespMatrix;
+  clientName: string;
+}) {
+  if (!respMatrix || !respMatrix.categories || respMatrix.categories.length === 0) return null;
+
+  const isIncludeStatement = (anc: string) => {
+    const upper = anc.toUpperCase().trim();
+    return upper === "INCLUDE STATEMENT" || upper === "INCLUDED STATEMENT";
+  };
+
+  const isXMark = (val: string) => {
+    return val.trim().toUpperCase().startsWith("X");
+  };
+
+  // Render a category header bar
+  const CategoryHeader = ({ name, showColumns }: { name: string; showColumns: boolean }) => (
+    <div
+      className="grid grid-cols-12 px-4 py-2 text-[10px] font-bold uppercase tracking-wider break-inside-avoid"
+      style={{ background: '#6b7280', color: '#ffffff' }}
+    >
+      <div className={showColumns ? "col-span-8" : "col-span-12"}>{name}</div>
+      {showColumns && (
+        <>
+          <div className="col-span-2 text-center">ANC</div>
+          <div className="col-span-2 text-center">PURCHASER</div>
+        </>
+      )}
+    </div>
+  );
+
+  // Format 1: Paragraph items (Include Statement)
+  const ParagraphItems = ({ items }: { items: RespMatrixItem[] }) => (
+    <>
+      {items.filter(item => isIncludeStatement(item.anc)).map((item, idx) => (
+        <div
+          key={idx}
+          className="px-4 py-2.5 text-[10px] text-gray-700 leading-relaxed break-inside-avoid border-b border-gray-200"
+          style={{ background: idx % 2 === 1 ? '#f9fafb' : '#ffffff' }}
+        >
+          {item.description}
+        </div>
+      ))}
+    </>
+  );
+
+  // Format 2: Table rows with X marks
+  const TableItems = ({ items }: { items: RespMatrixItem[] }) => (
+    <>
+      {items.map((item, idx) => (
+        <div
+          key={idx}
+          className="grid grid-cols-12 px-4 py-2 text-[10px] break-inside-avoid border-b border-gray-200 items-start"
+          style={{ background: idx % 2 === 1 ? '#f9fafb' : '#ffffff' }}
+        >
+          <div className="col-span-8 text-gray-700 leading-relaxed pr-2">{item.description}</div>
+          <div className="col-span-2 text-center font-medium text-gray-800">
+            {item.anc && !isIncludeStatement(item.anc) && item.anc.toUpperCase() !== "NA" ? item.anc : ""}
+          </div>
+          <div className="col-span-2 text-center font-medium text-gray-800">
+            {item.purchaser && item.purchaser.toUpperCase() !== "EDITABLE" ? item.purchaser : ""}
+          </div>
+        </div>
+      ))}
+    </>
+  );
+
+  // Determine which categories are table-style vs paragraph-style
+  const categorizeSection = (cat: RespMatrixCategory): "table" | "paragraph" => {
+    const xItems = cat.items.filter(i => isXMark(i.anc) || isXMark(i.purchaser));
+    const includeItems = cat.items.filter(i => isIncludeStatement(i.anc));
+    return xItems.length >= includeItems.length ? "table" : "paragraph";
+  };
+
+  return (
+    <div className="px-12 py-6 break-before-page">
+      {/* Title block */}
+      <div className="text-center mb-6">
+        <div className="text-sm font-bold text-gray-800 uppercase tracking-wide">
+          {clientName}
+        </div>
+        <h2 className="text-lg font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-2 mt-1">
+          STATEMENT OF WORK
+        </h2>
+      </div>
+
+      {/* Render categories */}
+      <div className="border border-gray-300 rounded overflow-hidden">
+        {respMatrix.categories.map((cat, catIdx) => {
+          const sectionType = respMatrix.format === "short"
+            ? "paragraph"
+            : respMatrix.format === "long"
+            ? "table"
+            : categorizeSection(cat);
+
+          return (
+            <div key={catIdx} className="break-inside-avoid">
+              <CategoryHeader name={cat.name} showColumns={sectionType === "table"} />
+              {sectionType === "table" ? (
+                <TableItems items={cat.items} />
+              ) : (
+                <ParagraphItems items={cat.items} />
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

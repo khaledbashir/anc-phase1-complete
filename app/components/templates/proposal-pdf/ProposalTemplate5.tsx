@@ -26,6 +26,7 @@ import { resolveDocumentMode } from "@/lib/documentMode";
 
 // Types
 import { ProposalType } from "@/types";
+import { RespMatrix, RespMatrixCategory, RespMatrixItem } from "@/types/pricing";
 
 interface ProposalTemplate5Props extends ProposalType {
     forceWhiteLogo?: boolean;
@@ -844,6 +845,108 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         </div>
     );
 
+    // Continuation page header — slim blue bar with client + project name
+    const ContinuationPageHeader = () => {
+        const label = details?.proposalName
+            ? `${purchaserName} — ${details.proposalName}`.toUpperCase()
+            : purchaserName.toUpperCase();
+        return (
+            <div
+                className="text-center py-2 text-[9px] font-bold uppercase tracking-widest break-inside-avoid"
+                style={{ background: colors.primary, color: colors.white }}
+            >
+                {label}
+            </div>
+        );
+    };
+
+    // Resp Matrix Statement of Work (parsed from Excel "Resp Matrix" sheet)
+    const respMatrix: RespMatrix | null = pricingDocument?.respMatrix ?? null;
+
+    const RespMatrixSOW = () => {
+        if (!respMatrix || !respMatrix.categories || respMatrix.categories.length === 0) return null;
+
+        const isIncludeStatement = (anc: string) => {
+            const upper = anc.toUpperCase().trim();
+            return upper === "INCLUDE STATEMENT" || upper === "INCLUDED STATEMENT";
+        };
+        const isXMark = (val: string) => val.trim().toUpperCase().startsWith("X");
+
+        const categorizeSection = (cat: RespMatrixCategory): "table" | "paragraph" => {
+            const xItems = cat.items.filter(i => isXMark(i.anc) || isXMark(i.purchaser));
+            const includeItems = cat.items.filter(i => isIncludeStatement(i.anc));
+            return xItems.length >= includeItems.length ? "table" : "paragraph";
+        };
+
+        return (
+            <div className="px-6 break-before-page">
+                <div className="text-center mb-6">
+                    <div className="text-sm font-bold uppercase tracking-wide" style={{ color: colors.text }}>
+                        {receiver?.name || "Client"}
+                    </div>
+                    <h2 className="text-lg font-bold uppercase tracking-wide pb-2 mt-1 border-b-2" style={{ color: colors.primary, borderColor: colors.primary }}>
+                        STATEMENT OF WORK
+                    </h2>
+                </div>
+                <div className="border rounded overflow-hidden" style={{ borderColor: colors.border }}>
+                    {respMatrix.categories.map((cat, catIdx) => {
+                        const sectionType = respMatrix.format === "short"
+                            ? "paragraph"
+                            : respMatrix.format === "long"
+                            ? "table"
+                            : categorizeSection(cat);
+
+                        return (
+                            <div key={catIdx} className="break-inside-avoid">
+                                {/* Category header bar */}
+                                <div
+                                    className="grid grid-cols-12 px-4 py-2 text-[10px] font-bold uppercase tracking-wider break-inside-avoid"
+                                    style={{ background: '#6b7280', color: '#ffffff' }}
+                                >
+                                    <div className={sectionType === "table" ? "col-span-8" : "col-span-12"}>{cat.name}</div>
+                                    {sectionType === "table" && (
+                                        <>
+                                            <div className="col-span-2 text-center">ANC</div>
+                                            <div className="col-span-2 text-center">PURCHASER</div>
+                                        </>
+                                    )}
+                                </div>
+                                {/* Items */}
+                                {sectionType === "table" ? (
+                                    cat.items.map((item, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="grid grid-cols-12 px-4 py-2 text-[10px] break-inside-avoid border-b items-start"
+                                            style={{ borderColor: colors.borderLight, background: idx % 2 === 1 ? colors.surface : colors.white }}
+                                        >
+                                            <div className="col-span-8 leading-relaxed pr-2" style={{ color: colors.text }}>{item.description}</div>
+                                            <div className="col-span-2 text-center font-medium" style={{ color: colors.text }}>
+                                                {item.anc && !isIncludeStatement(item.anc) && item.anc.toUpperCase() !== "NA" ? item.anc : ""}
+                                            </div>
+                                            <div className="col-span-2 text-center font-medium" style={{ color: colors.text }}>
+                                                {item.purchaser && item.purchaser.toUpperCase() !== "EDITABLE" ? item.purchaser : ""}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    cat.items.filter(item => isIncludeStatement(item.anc)).map((item, idx) => (
+                                        <div
+                                            key={idx}
+                                            className="px-4 py-2.5 text-[10px] leading-relaxed break-inside-avoid border-b"
+                                            style={{ borderColor: colors.borderLight, color: colors.text, background: idx % 2 === 1 ? colors.surface : colors.white }}
+                                        >
+                                            {item.description}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
     // Bold-style Footer with dark blue slash
     const HybridFooter = () => (
         <div className="mt-16 pt-6 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
@@ -925,6 +1028,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                         {/* Page 2: Payment Terms + Notes + Signature Block */}
                         <PageBreak />
+                        <ContinuationPageHeader />
                         {showPaymentTerms && (
                             <div className="px-6 break-inside-avoid">
                                 <PaymentTermsSection />
@@ -943,6 +1047,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                         {/* Page 3+: Detailed Breakdown (all section pricing tables) */}
                         {showPricingTables && <PageBreak />}
+                        {showPricingTables && <ContinuationPageHeader />}
                         {showPricingTables && (
                             <div className="px-6 break-inside-avoid">
                                 <div className="break-inside-avoid">
@@ -955,6 +1060,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         {showSpecifications && screens.length > 0 && (
                             <>
                                 <PageBreak />
+                                <ContinuationPageHeader />
                                 <div className="px-6 break-inside-avoid">
                                     <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
                                     <div className="break-inside-avoid">
@@ -967,6 +1073,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         )}
 
                         {showExhibitA && <PageBreak />}
+                        {showExhibitA && <ContinuationPageHeader />}
                         {showExhibitA && (
                             <div className="px-6 break-inside-avoid">
                                 <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
@@ -978,6 +1085,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <ScopeOfWorkSection />
                             </div>
                         )}
+
+                        {/* Resp Matrix SOW (if present in Excel) */}
+                        <RespMatrixSOW />
 
                         {showCompanyFooter && (
                             <div className="px-6">
@@ -1021,6 +1131,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         {showSpecifications && screens.length > 0 && (
                             <>
                                 <PageBreak />
+                                <ContinuationPageHeader />
                                 <div className="px-6 break-inside-avoid">
                                     <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
                                     <div className="break-inside-avoid">
@@ -1033,6 +1144,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         )}
 
                         {showExhibitA && <PageBreak />}
+                        {showExhibitA && <ContinuationPageHeader />}
                         {showExhibitA && (
                             <div className="px-6 break-inside-avoid">
                                 <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
@@ -1044,6 +1156,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <ScopeOfWorkSection />
                             </div>
                         )}
+
+                        {/* Resp Matrix SOW (if present in Excel) */}
+                        <RespMatrixSOW />
 
                         {showCompanyFooter && (
                             <div className="px-6">
@@ -1060,6 +1175,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Page break: detail section breakdowns start on a new page */}
                     {showPricingTables && masterTableIndex !== null && <PageBreak />}
+                    {showPricingTables && masterTableIndex !== null && <ContinuationPageHeader />}
 
                     {/* Pricing tables */}
                     {showPricingTables && (
@@ -1083,6 +1199,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {showSpecifications && screens.length > 0 && (
                         <>
                             <PageBreak />
+                            <ContinuationPageHeader />
                             <div className="px-6 break-inside-avoid">
                                 <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
                                 <div className="break-inside-avoid">
@@ -1101,11 +1218,16 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {showExhibitA && (
                         <>
                             <PageBreak />
+                            <ContinuationPageHeader />
                             <div className="px-6 break-inside-avoid">
                                 <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
                             </div>
                         </>
                     )}
+
+                    {/* Resp Matrix SOW (if present in Excel) */}
+                    <RespMatrixSOW />
+
                     {showPaymentTerms && (
                         <div className="px-6 break-inside-avoid">
                             <PaymentTermsSection />
@@ -1114,6 +1236,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {showSignatureBlock && (
                         <>
                             <PageBreak />
+                            <ContinuationPageHeader />
                             <div className="px-6 break-inside-avoid">
                                 <SignatureBlock />
                             </div>

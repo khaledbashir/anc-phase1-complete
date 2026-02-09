@@ -92,6 +92,9 @@ export interface PricingDocument {
   /** Combined grand total across all tables */
   documentTotal: number;
 
+  /** Resp Matrix / Statement of Work (null if no sheet found) */
+  respMatrix?: RespMatrix | null;
+
   /** Import metadata */
   metadata: {
     importedAt: string;
@@ -101,6 +104,37 @@ export interface PricingDocument {
     alternatesCount: number;
     warnings?: string[];
   };
+}
+
+// ============================================================================
+// RESP MATRIX (Statement of Work)
+// ============================================================================
+
+export interface RespMatrixItem {
+  /** Full text from column B */
+  description: string;
+  /** "X", "Include Statement", "Included Statement", "NA", "", or custom text */
+  anc: string;
+  /** "X", "", "Editable", or custom text like "X (PCL)" */
+  purchaser: string;
+}
+
+export interface RespMatrixCategory {
+  /** Category name, e.g. "PHYSICAL INSTALLATION" */
+  name: string;
+  /** All items under this category */
+  items: RespMatrixItem[];
+}
+
+export interface RespMatrix {
+  /** Project name from row 1-2 */
+  projectName: string;
+  /** Date from row 2-3 */
+  date: string;
+  /** Detected rendering format */
+  format: "short" | "long" | "hybrid";
+  /** Parsed categories with items */
+  categories: RespMatrixCategory[];
 }
 
 /**

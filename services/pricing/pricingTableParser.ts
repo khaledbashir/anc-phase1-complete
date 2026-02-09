@@ -16,6 +16,7 @@ import {
   detectCurrency,
 } from "@/types/pricing";
 import { findMarginAnalysisSheet } from "@/lib/sheetDetection";
+import { parseRespMatrix } from "@/services/pricing/respMatrixParser";
 
 // ============================================================================
 // TYPES
@@ -163,7 +164,10 @@ function parsePricingTablesInner(
     ? (globalTotal as number)
     : tables.reduce((sum, t) => sum + t.grandTotal, 0);
 
-  // 9. Build metadata
+  // 9. Parse Resp Matrix (Statement of Work) if present
+  const respMatrix = parseRespMatrix(workbook);
+
+  // 10. Build metadata
   const metadata = {
     importedAt: new Date().toISOString(),
     fileName,
@@ -188,6 +192,7 @@ function parsePricingTablesInner(
     sourceSheet: sheetName,
     currency,
     documentTotal,
+    respMatrix: respMatrix ?? undefined,
     metadata,
   };
 }
