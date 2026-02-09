@@ -158,7 +158,7 @@ const Step2Intelligence = () => {
                     screen?.name ||
                     `Screen ${idx + 1}`
                 ).toString().trim();
-                const originalBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits ?? "";
+                const originalBrightness = screen?.brightnessNits ?? screen?.nits ?? screen?.brightness ?? "";
 
                 next[key] = {
                     displayName: originalDisplayName,
