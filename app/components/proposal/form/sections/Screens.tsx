@@ -188,9 +188,9 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
             <Subheading>{_t("form.steps.screens.heading")}:</Subheading>
 
             {mirrorMode && optionIndices.length > 0 && (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 flex items-center justify-between gap-3">
+                <div className="rounded-xl border border-amber-600/30 dark:border-amber-500/20 bg-amber-50 dark:bg-amber-500/5 px-4 py-3 flex items-center justify-between gap-3">
                     <div className="min-w-0">
-                        <div className="text-xs font-bold text-amber-200 uppercase tracking-widest">OPTION placeholder detected</div>
+                        <div className="text-xs font-bold text-amber-700 dark:text-amber-200 uppercase tracking-widest">OPTION placeholder detected</div>
                         <div className="mt-1 text-[11px] text-muted-foreground">
                             This is a header/placeholder row from the estimator sheet, not a real screen.
                         </div>
