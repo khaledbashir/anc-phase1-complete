@@ -46,6 +46,7 @@ function getPdfFingerprint(data: ProposalType): string {
             showPaymentTerms: d.showPaymentTerms,
             showSignatureBlock: d.showSignatureBlock,
             showPricingTables: d.showPricingTables,
+            pageLayout: (d as any).pageLayout,
             receiverName: r.name,
             receiverAddress: r.address,
             receiverCity: r.city,

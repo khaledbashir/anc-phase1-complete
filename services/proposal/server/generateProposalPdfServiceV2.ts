@@ -39,6 +39,16 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 	try {
 		const ReactDOMServer = (await import("react-dom/server")).default;
 
+		// Map pageLayout to Puppeteer PDF dimensions
+		const pageLayout = (body.details as any)?.pageLayout || "portrait-letter";
+		const PAGE_DIMENSIONS: Record<string, { width: string; height: string; landscape: boolean; viewportWidth: number }> = {
+			"portrait-letter":   { width: "8.5in",  height: "11in",  landscape: false, viewportWidth: 1200 },
+			"portrait-legal":    { width: "8.5in",  height: "14in",  landscape: false, viewportWidth: 1200 },
+			"landscape-letter":  { width: "11in",   height: "8.5in", landscape: true,  viewportWidth: 1600 },
+			"landscape-legal":   { width: "14in",   height: "8.5in", landscape: true,  viewportWidth: 2000 },
+		};
+		const pageDims = PAGE_DIMENSIONS[pageLayout] || PAGE_DIMENSIONS["portrait-letter"];
+
 		// Always use ProposalTemplate5 (Hybrid) — handles both Mirror Mode and Intelligence Mode
 		let templateId = body.details?.pdfTemplate ?? 5;
 		const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
@@ -123,7 +133,7 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		}
 
 		page = await browser.newPage();
-		await page.setViewport({ width: 1200, height: 1697, deviceScaleFactor: 1 });
+		await page.setViewport({ width: pageDims.viewportWidth, height: 1697, deviceScaleFactor: 1 });
 		try {
 			await page.emulateMediaType("screen");
 		} catch {
@@ -164,9 +174,10 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		}
 
 		const pdf: Uint8Array = await page.pdf({
-			format: "a4",
+			width: pageDims.width,
+			height: pageDims.height,
+			landscape: pageDims.landscape,
 			printBackground: true,
-			preferCSSPageSize: true,
 			displayHeaderFooter: true,
 			// Empty header (1px font hides default browser header)
 			headerTemplate: '<div style="font-size:1px;"></div>',

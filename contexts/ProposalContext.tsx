@@ -864,6 +864,7 @@ export const ProposalContextProvider = ({
                             showExhibitB: d?.showExhibitB,
                             showNotes: d?.showNotes,
                             showScopeOfWork: d?.showScopeOfWork,
+                            pageLayout: d?.pageLayout,
                         },
                         quoteItems: d?.quoteItems,
                         paymentTerms: d?.paymentTerms,
@@ -1927,6 +1928,7 @@ export const ProposalContextProvider = ({
                                 showExhibitB: d?.showExhibitB,
                                 showNotes: d?.showNotes,
                                 showScopeOfWork: d?.showScopeOfWork,
+                                pageLayout: d?.pageLayout,
                             },
                             quoteItems: d?.quoteItems,
                             paymentTerms: d?.paymentTerms,
@@ -2005,6 +2007,7 @@ export const ProposalContextProvider = ({
                     showNotes: (formValues as any)?.details?.showNotes,
                     showScopeOfWork: (formValues as any)?.details
                         ?.showScopeOfWork,
+                    pageLayout: (formValues as any)?.details?.pageLayout,
                 },
                 quoteItems: (formValues as any)?.details?.quoteItems,
                 paymentTerms: (formValues as any)?.details?.paymentTerms,

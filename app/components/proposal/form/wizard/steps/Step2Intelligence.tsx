@@ -208,6 +208,32 @@ const Step2Intelligence = () => {
                     <MasterTableSelector />
                 </>
             )}
+
+            {/* Page Layout Selector */}
+            <div className="flex flex-col gap-1.5 w-full">
+                <label className="text-xs font-medium text-muted-foreground">Page Layout</label>
+                <Select
+                    value={(details as any)?.pageLayout || "portrait-letter"}
+                    onValueChange={(val) => {
+                        setValue("details.pageLayout" as any, val, { shouldDirty: true });
+                    }}
+                >
+                    <SelectTrigger className="w-full bg-card border-border text-sm text-foreground">
+                        <SelectValue placeholder="Select page layout" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border text-foreground">
+                        <SelectItem value="portrait-letter" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — Letter</SelectItem>
+                        <SelectItem value="portrait-legal" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — Legal</SelectItem>
+                        <SelectItem value="landscape-letter" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — Letter</SelectItem>
+                        <SelectItem value="landscape-legal" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — Legal</SelectItem>
+                    </SelectContent>
+                </Select>
+                <span className="text-[10px] text-muted-foreground">
+                    {((details as any)?.pageLayout || "portrait-letter").startsWith("landscape")
+                        ? "Landscape: pricing sections render two per row"
+                        : "Standard single-column layout"}
+                </span>
+            </div>
         </div>
     );
 

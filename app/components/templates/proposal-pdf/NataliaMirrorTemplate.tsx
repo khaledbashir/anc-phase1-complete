@@ -79,6 +79,10 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   const screens = (details as any)?.screens || [];
   const showSpecifications = (details as any)?.showSpecifications ?? true;
 
+  // Page layout: landscape modes render detail tables in a two-column grid
+  const pageLayout: string = (details as any)?.pageLayout || "portrait-letter";
+  const isLandscape = pageLayout.startsWith("landscape");
+
   // Detect product type from screens to adjust header text
   const detectProductType = (): "LED" | "LCD" | "Display" => {
     if (!screens || screens.length === 0) return "Display";
@@ -150,21 +154,42 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
     />
   );
 
-  const detailTablesBlock = detailTables.map((table) => (
-    <React.Fragment key={table.id}>
-      <PricingTableSection
-        table={table}
-        currency={currency}
-        displayName={getTableDisplayName(table)}
-      />
-      {table.alternates.length > 0 && (
-        <AlternatesSection
-          alternates={table.alternates}
+  // Detail tables: single-column (portrait) or two-column grid (landscape)
+  const detailTablesBlock = isLandscape ? (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      {detailTables.map((table) => (
+        <div key={table.id} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+          <PricingTableSection
+            table={table}
+            currency={currency}
+            displayName={getTableDisplayName(table)}
+          />
+          {table.alternates.length > 0 && (
+            <AlternatesSection
+              alternates={table.alternates}
+              currency={currency}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  ) : (
+    detailTables.map((table) => (
+      <React.Fragment key={table.id}>
+        <PricingTableSection
+          table={table}
           currency={currency}
+          displayName={getTableDisplayName(table)}
         />
-      )}
-    </React.Fragment>
-  ));
+        {table.alternates.length > 0 && (
+          <AlternatesSection
+            alternates={table.alternates}
+            currency={currency}
+          />
+        )}
+      </React.Fragment>
+    ))
+  );
 
   const specsBlock = showSpecifications && screens.length > 0 ? (
     <TechnicalSpecsSection screens={screens} />
@@ -192,7 +217,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
 
     return (
       <div className="bg-white min-h-screen font-sans">
-        <div className="max-w-[816px] mx-auto">
+        <div style={{ maxWidth: isLandscape ? '1200px' : '816px', margin: '0 auto' }}>
           {/* ── Page 1: Header + Intro + Project Summary (Structure A) ── */}
           {headerBlock}
           {introBlock}
@@ -265,7 +290,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   // ──────────────────────────────────────────────────────────────────────
   return (
     <div className="bg-white min-h-screen font-sans">
-      <div className="max-w-[816px] mx-auto">
+      <div style={{ maxWidth: isLandscape ? '1200px' : '816px', margin: '0 auto' }}>
         {headerBlock}
         {introBlock}
 

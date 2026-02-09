@@ -130,6 +130,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const showCompanyFooter = (details as any)?.showCompanyFooter ?? true;
     const showExhibitA = (details as any)?.showExhibitA ?? false;
 
+    // Page layout: landscape modes render detail tables in a two-column grid
+    const pageLayout: string = (details as any)?.pageLayout || "portrait-letter";
+    const isLandscape = pageLayout.startsWith("landscape");
+
     // FR-4.3: Custom editable text fields
     const customIntroText = (details as any)?.additionalNotes || "";
     const customPaymentTerms = (details as any)?.paymentTerms || "";
@@ -442,9 +446,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 ? pricingDocument.documentTotal
                 : pricingTables.reduce((sum: number, t: any) => sum + (Number(t?.grandTotal ?? 0) || 0), 0);
 
-            return (
-                <>
-                    {detailTables.map(({ table, origIdx }) => {
+            // Render a single detail table card (reused in both portrait and landscape)
+            const renderDetailTable = ({ table, origIdx }: { table: any; origIdx: number }) => {
                         const tableName = (table?.name ?? "").toString().trim();
                         const tableId = table?.id;
                         const override = tableId ? tableHeaderOverrides[tableId] : undefined;
@@ -554,7 +557,22 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 )}
                             </div>
                         );
-                    })}
+            };
+
+            return (
+                <>
+                    {/* Landscape: two-column grid for detail tables. Portrait: single column */}
+                    {isLandscape ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                            {detailTables.map((entry) => (
+                                <div key={entry.table?.id || `table-${entry.origIdx}`} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                                    {renderDetailTable(entry)}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        detailTables.map((entry) => renderDetailTable(entry))
+                    )}
 
                     {/* Document total (when multiple detail tables and no master table) */}
                     {detailTables.length > 1 && masterTableIndex === null && (

@@ -91,6 +91,7 @@ export function mapDbProposalToFormSchema(dbProject: any) {
             showExhibitB: cfg.showExhibitB ?? false,
             showNotes: cfg.showNotes ?? true,
             showScopeOfWork: cfg.showScopeOfWork ?? false,
+            pageLayout: cfg.pageLayout ?? "portrait-letter",
             tableHeaderOverrides: dbProject.tableHeaderOverrides || {},
             customProposalNotes: dbProject.customProposalNotes || "",
             loiHeaderText: dbProject.loiHeaderText || "",
