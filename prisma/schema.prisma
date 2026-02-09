@@ -190,6 +190,9 @@ model Proposal {
   // Intelligence Brief (Prompt 37)
   intelligenceBrief      Json?               // Cached "Brief Me" AI-generated project intelligence
 
+  // P69: Copilot Chat History
+  chatHistory            Json?               // Array of { id, role, content, timestamp } messages
+
   // NEW: Manual overrides and versions
   manualOverrides       ManualOverride[]
   proposalVersions      ProposalVersion[]
