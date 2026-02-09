@@ -289,16 +289,37 @@ export default function CopilotPanel({
                 const chunk = decoder.decode(value, { stream: true });
                 const lines = chunk.split("\n");
 
+                let streamDone = false;
                 for (const line of lines) {
+                    if (streamDone) break;
                     const trimmed = line.trim();
                     if (!trimmed || !trimmed.startsWith("data: ")) continue;
 
                     try {
                         const parsed = JSON.parse(trimmed.slice(6));
-                        if (!parsed.textResponse) {
-                            if (parsed.close) break;
-                            continue;
+
+                        // Log first parsed chunk for debugging
+                        if (answerBuf === "" && thinkBuf === "") {
+                            console.log("[Copilot] First SSE chunk:", JSON.stringify(parsed).slice(0, 200));
                         }
+
+                        // Check for error in chunk
+                        if (parsed.error) {
+                            console.error("[Copilot] Stream error from AI:", parsed.error);
+                            answerBuf += `Error: ${parsed.error}`;
+                            streamDone = true;
+                            break;
+                        }
+
+                        // Check for close signal (final chunk — may have null textResponse)
+                        if (parsed.close) {
+                            console.log("[Copilot] Stream close received");
+                            streamDone = true;
+                            break;
+                        }
+
+                        // Skip chunks without text content
+                        if (!parsed.textResponse) continue;
 
                         let token = parsed.textResponse as string;
 
@@ -335,16 +356,18 @@ export default function CopilotPanel({
                             thinking: thinkBuf,
                             isThinking: inThink,
                         });
-
-                        if (parsed.close) break;
                     } catch {
-                        // Skip non-JSON
+                        // Skip non-JSON lines
                     }
                 }
+                if (streamDone) break;
             }
 
             // Finalize
-            updateMsg({ content: answerBuf || "No response received.", thinking: thinkBuf, isThinking: false });
+            console.log(`[Copilot] Stream finalized. answerBuf: ${answerBuf.length} chars, thinkBuf: ${thinkBuf.length} chars`);
+            const finalContent = answerBuf.trim()
+                || (thinkBuf ? "(The AI reasoned but didn't produce a visible answer. Try rephrasing.)" : "No response received.");
+            updateMsg({ content: finalContent, thinking: thinkBuf, isThinking: false });
         } catch (err) {
             console.error("[Copilot] Stream error:", err);
             setMessages((prev) =>

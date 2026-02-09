@@ -97,13 +97,23 @@ export async function POST(req: NextRequest) {
                 }
 
                 let buffer = "";
+                let chunkCount = 0;
 
                 try {
                     while (true) {
                         const { done, value } = await reader.read();
-                        if (done) break;
+                        if (done) {
+                            console.log(`[Copilot/Stream] Stream ended. Total chunks forwarded: ${chunkCount}`);
+                            break;
+                        }
 
-                        buffer += decoder.decode(value, { stream: true });
+                        const rawText = decoder.decode(value, { stream: true });
+                        buffer += rawText;
+
+                        // Log first chunk for debugging
+                        if (chunkCount === 0) {
+                            console.log(`[Copilot/Stream] First raw chunk: ${rawText.slice(0, 200)}`);
+                        }
 
                         // Process complete lines from the buffer
                         const lines = buffer.split("\n");
@@ -127,14 +137,33 @@ export async function POST(req: NextRequest) {
                                 controller.enqueue(
                                     encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`)
                                 );
+                                chunkCount++;
 
                                 if (chunk.close) {
+                                    console.log(`[Copilot/Stream] Close chunk received after ${chunkCount} chunks`);
                                     break;
                                 }
                             } catch {
-                                // Not valid JSON — skip
+                                // Not valid JSON — could be SSE comment or partial data
+                                if (chunkCount === 0) {
+                                    console.log(`[Copilot/Stream] Non-JSON line: ${trimmed.slice(0, 100)}`);
+                                }
                             }
                         }
+                    }
+
+                    // If we got zero chunks, send a diagnostic message
+                    if (chunkCount === 0) {
+                        console.error("[Copilot/Stream] No chunks parsed from upstream. Buffer remainder:", buffer.slice(0, 500));
+                        controller.enqueue(
+                            encoder.encode(`data: ${JSON.stringify({
+                                type: "textResponseChunk",
+                                textResponse: "The AI is thinking but the response format was unexpected. Try again or switch to non-streaming mode.",
+                                close: true,
+                                error: null,
+                                sources: [],
+                            })}\n\n`)
+                        );
                     }
                 } catch (err) {
                     console.error("[Copilot/Stream] Stream error:", err);
