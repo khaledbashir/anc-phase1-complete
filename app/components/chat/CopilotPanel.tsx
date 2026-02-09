@@ -13,6 +13,8 @@ import {
     ChevronDown,
     ChevronRight,
     Brain,
+    Mic,
+    MicOff,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,7 @@ import { captureScreen } from "@/services/chat/screenshotService";
 import { askKimiWithVision } from "@/services/chat/kimiVisionService";
 import type { KimiScreenAction } from "@/services/chat/kimiVisionService";
 import { routeMessage } from "@/services/chat/copilotRouter";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 // ============================================================================
 // TYPES
@@ -132,10 +135,36 @@ export default function CopilotPanel({
     const [collectedData, setCollectedData] = useState<CollectedData>(createInitialState().collected);
     const autoOpenedRef = useRef(false);
 
+    // Voice input via browser speech recognition
+    const {
+        start: startListening,
+        stop: stopListening,
+        transcript,
+        interimTranscript,
+        isListening,
+        isSupported: isMicSupported,
+        reset: resetTranscript,
+    } = useSpeechRecognition();
+
     // Conversation history for Kimi vision context (text-only, no images)
     const [conversationHistory, setConversationHistory] = useState<
         Array<{ role: "user" | "assistant"; content: string }>
     >([]);
+
+    // When speech recognition produces a final transcript, put it in the input
+    // and auto-send when the user stops recording
+    useEffect(() => {
+        if (transcript) {
+            setInput(transcript);
+        }
+    }, [transcript]);
+
+    // Show interim (live) transcript while speaking
+    useEffect(() => {
+        if (isListening && interimTranscript) {
+            setInput(transcript ? transcript + " " + interimTranscript : interimTranscript);
+        }
+    }, [interimTranscript, isListening, transcript]);
 
     // Notify parent and set body class when panel opens/closes
     useEffect(() => {
@@ -732,14 +761,41 @@ export default function CopilotPanel({
                 {/* Input */}
                 <div className="border-t-2 border-zinc-200 dark:border-zinc-700 p-3 bg-zinc-50 dark:bg-zinc-800/80">
                     <div className="flex items-end gap-2">
+                        {/* Mic button */}
+                        {isMicSupported && (
+                            <button
+                                onClick={() => {
+                                    if (isListening) {
+                                        stopListening();
+                                    } else {
+                                        resetTranscript();
+                                        setInput("");
+                                        startListening();
+                                    }
+                                }}
+                                disabled={isLoading}
+                                className={cn(
+                                    "p-2.5 rounded-xl transition-all shrink-0",
+                                    isListening
+                                        ? "bg-red-500 text-white animate-pulse"
+                                        : "bg-zinc-200 dark:bg-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-300 dark:hover:bg-zinc-600"
+                                )}
+                                title={isListening ? "Stop recording" : "Voice input"}
+                            >
+                                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                            </button>
+                        )}
                         <textarea
                             ref={inputRef}
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Ask anything..."
+                            placeholder={isListening ? "Listening..." : "Ask anything..."}
                             rows={1}
-                            className="flex-1 resize-none px-3 py-2.5 text-xs text-zinc-900 dark:text-white bg-white dark:bg-zinc-800 border-2 border-zinc-300 dark:border-zinc-600 rounded-xl focus:border-[#0A52EF] focus:ring-1 focus:ring-[#0A52EF]/30 transition-colors max-h-[120px] overflow-y-auto placeholder:text-zinc-400"
+                            className={cn(
+                                "flex-1 resize-none px-3 py-2.5 text-xs text-zinc-900 dark:text-white bg-white dark:bg-zinc-800 border-2 rounded-xl focus:border-[#0A52EF] focus:ring-1 focus:ring-[#0A52EF]/30 transition-colors max-h-[120px] overflow-y-auto placeholder:text-zinc-400",
+                                isListening ? "border-red-400 dark:border-red-500" : "border-zinc-300 dark:border-zinc-600"
+                            )}
                             style={{ minHeight: "40px" }}
                         />
                         <button
@@ -757,7 +813,7 @@ export default function CopilotPanel({
                         </button>
                     </div>
                     <p className="text-[9px] text-zinc-400 dark:text-zinc-500 mt-1.5 text-center">
-                        Powered by ANC Copilot • Press Enter to send
+                        Powered by ANC Copilot • {isMicSupported ? "Tap mic or type" : "Press Enter to send"}
                     </p>
                 </div>
             </div>
