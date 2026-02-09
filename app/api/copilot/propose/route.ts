@@ -99,8 +99,7 @@ async function forwardToAnythingLLM(projectId: string | undefined, message: stri
     }
 
     try {
-        const chatBase = ANYTHING_LLM_BASE_URL.replace("/api/v1", "/v1");
-        const res = await fetch(`${chatBase}/workspace/${workspaceSlug}/chat`, {
+        const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/chat`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

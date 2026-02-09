@@ -52,10 +52,8 @@ export async function POST(req: NextRequest) {
         console.log(`[Copilot] Project ${projectId} → workspace "${workspaceSlug}" (agent: ${useAgent ? "YES" : "NO"})`);
 
         // Call AnythingLLM chat endpoint for this project's workspace
-        // ANYTHING_LLM_BASE_URL ends with /api/v1 — chat endpoint is on /v1/
-        const chatBase = ANYTHING_LLM_BASE_URL.replace("/api/v1", "/v1");
-
-        const response = await fetch(`${chatBase}/workspace/${workspaceSlug}/chat`, {
+        // ANYTHING_LLM_BASE_URL already ends with /api/v1
+        const response = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/chat`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

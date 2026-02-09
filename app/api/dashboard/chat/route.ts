@@ -29,9 +29,8 @@ export async function POST(req: NextRequest) {
         console.log(`[Intelligence Core] Querying workspace: ${targetWorkspace} (Agent: ${useAgent ? 'YES' : 'NO'})`);
 
         // Try to call AnythingLLM - if workspace doesn't exist, create it
-        // Use /v1/ endpoint (not /api/v1/) for AnythingLLM chat API
-        const apiBase = ANYTHING_LLM_BASE_URL.replace('/api/v1', '/v1');
-        let response = await fetch(`${apiBase}/workspace/${targetWorkspace}/chat`, {
+        // ANYTHING_LLM_BASE_URL already ends with /api/v1
+        let response = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${targetWorkspace}/chat`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -76,7 +75,7 @@ export async function POST(req: NextRequest) {
                     }).catch(e => console.error("[Intelligence Core] Settings update failed:", e));
 
                     // Retry the chat call
-                    response = await fetch(`${apiBase}/workspace/${newSlug}/chat`, {
+                    response = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${newSlug}/chat`, {
                         method: "POST",
                         headers: {
                             "Content-Type": "application/json",
