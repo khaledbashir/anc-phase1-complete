@@ -43,6 +43,8 @@ export interface CollectedData {
     taxRate?: number;
     bondRate?: number;
     documentType?: "BUDGET" | "PROPOSAL" | "LOI";
+    /** Tracks consecutive parse failures per stage for escalating help */
+    retryCount?: number;
 }
 
 export interface ConversationState {
@@ -97,13 +99,8 @@ export function parsePercentage(text: string): number | null {
 export function parseDisplays(text: string): ParsedDisplay[] {
     const displays: ParsedDisplay[] = [];
 
-    // Pattern: quantity + description + dimensions + pitch
-    // "Two LED walls, 4.05m x 10.20m, 2.5mm pitch"
-    // "One LED wall, 4.05m x 10.20m, 2.5mm"
-    // "2x LED video wall 4.05 x 10.20m 2.5mm pitch"
-
-    // Split on "and", ";", or newlines for multiple displays
-    const segments = text.split(/\band\b|;|\n/i).map((s) => s.trim()).filter(Boolean);
+    // Split on "and", ";", "+", or newlines for multiple displays
+    const segments = text.split(/\band\b|[;+\n]/i).map((s) => s.trim()).filter(Boolean);
 
     for (const seg of segments) {
         // Extract quantity
@@ -117,30 +114,41 @@ export function parseDisplays(text: string): ParsedDisplay[] {
             quantity = wordMap[qtyMatch[1].toLowerCase()] || parseInt(qtyMatch[1]) || 1;
         }
 
-        // Extract dimensions: "4.05m x 10.20m" or "4.05 x 10.20" or "4.05mx10.20m"
-        const dimMatch = seg.match(/([\d.]+)\s*m?\s*[x×]\s*([\d.]+)\s*m?/i);
+        // Extract dimensions — supports many formats:
+        // "4.05m x 10.20m", "4m x 8m", "4x8m", "4 x 8", "13.3ft x 33.5ft"
+        // "4.05 x 10.20", "4.05mx10.20m", "13'4" x 33'6""
+        const dimMatch =
+            seg.match(/([\d.]+)\s*(?:m|ft|'|feet|meter|meters)?\s*[x×by]\s*([\d.]+)\s*(?:m|ft|'|feet|meter|meters)?/i);
         if (!dimMatch) continue; // Skip if no dimensions found
 
-        const dim1 = parseFloat(dimMatch[1]);
-        const dim2 = parseFloat(dimMatch[2]);
+        let dim1 = parseFloat(dimMatch[1]);
+        let dim2 = parseFloat(dimMatch[2]);
+
+        // If units are feet, convert to meters
+        const isFeet = /ft|feet|'/i.test(seg);
+        if (isFeet) {
+            dim1 = dim1 * 0.3048;
+            dim2 = dim2 * 0.3048;
+        }
+
         // Convention: smaller = height, larger = width (landscape)
         const widthM = Math.max(dim1, dim2);
         const heightM = Math.min(dim1, dim2);
 
-        // Extract pitch: "2.5mm" or "2.5 mm pitch"
-        const pitchMatch = seg.match(/([\d.]+)\s*mm/i);
+        // Extract pitch: "2.5mm" or "2.5 mm pitch" or "P2.5"
+        const pitchMatch = seg.match(/([\d.]+)\s*mm/i) || seg.match(/p\s*([\d.]+)/i);
         const pitchMm = pitchMatch ? parseFloat(pitchMatch[1]) : 0;
 
         // Build description
         const desc = seg
             .replace(/^\d+\s*x?\s*/i, "")
             .replace(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\b\s*/i, "")
-            .trim() || `LED Display ${widthM}m x ${heightM}m`;
+            .trim() || `LED Display ${widthM.toFixed(2)}m x ${heightM.toFixed(2)}m`;
 
         displays.push({
             description: desc,
-            widthM,
-            heightM,
+            widthM: parseFloat(widthM.toFixed(2)),
+            heightM: parseFloat(heightM.toFixed(2)),
             pitchMm,
             quantity,
         });
@@ -243,6 +251,91 @@ function buildReviewSummary(collected: CollectedData): string {
 // STAGE PROCESSOR
 // ============================================================================
 
+// ============================================================================
+// NAVIGATION & FRUSTRATION DETECTION
+// ============================================================================
+
+const STAGE_ORDER: ConversationStage[] = [
+    ConversationStage.CLIENT_NAME,
+    ConversationStage.DISPLAYS,
+    ConversationStage.DISPLAY_PRICING,
+    ConversationStage.SERVICES,
+    ConversationStage.PM_WARRANTY,
+    ConversationStage.TAX_BOND,
+    ConversationStage.REVIEW,
+];
+
+function getPreviousStage(current: ConversationStage): ConversationStage {
+    const idx = STAGE_ORDER.indexOf(current);
+    return idx > 0 ? STAGE_ORDER[idx - 1] : ConversationStage.CLIENT_NAME;
+}
+
+function getNextStage(current: ConversationStage): ConversationStage {
+    const idx = STAGE_ORDER.indexOf(current);
+    return idx < STAGE_ORDER.length - 1 ? STAGE_ORDER[idx + 1] : ConversationStage.REVIEW;
+}
+
+function isNavCommand(text: string): { type: "back" | "skip" | "restart" } | null {
+    const t = text.toLowerCase().trim();
+    if (/^(go\s*back|back|undo|redo|previous|prev)$/i.test(t)) return { type: "back" };
+    if (/^(skip|next|move on|continue|pass|n\/a|none)$/i.test(t)) return { type: "skip" };
+    if (/^(start\s*over|restart|reset|begin\s*again)$/i.test(t)) return { type: "restart" };
+    return null;
+}
+
+function isFrustrated(text: string): boolean {
+    return /listen to me|are you even|wtf|what the|this is broken|stupid|doesn'?t work|not working|help me|can you hear/i.test(text);
+}
+
+function retryMessage(stage: ConversationStage, retryCount: number, collected: CollectedData): string {
+    if (retryCount <= 1) {
+        // First fail — short hint
+        switch (stage) {
+            case ConversationStage.DISPLAYS:
+                return "I need dimensions to add a display. Include width and height like: 4m x 8m";
+            case ConversationStage.DISPLAY_PRICING:
+                return "I need a dollar amount. Just type something like: $200,000";
+            case ConversationStage.SERVICES:
+                return "I need a service name and price. Example: Installation $115,000";
+            case ConversationStage.TAX_BOND:
+                return "I need a percentage. Example: 13%";
+            default:
+                return "I didn't catch that. Could you try again?";
+        }
+    } else if (retryCount === 2) {
+        // Second fail — detailed example
+        switch (stage) {
+            case ConversationStage.DISPLAYS:
+                return "Let me help — here's exactly what I need:\n\n" +
+                    "\"One LED wall, 4.05m x 10.20m, 2.5mm pitch\"\n\n" +
+                    "Or simpler: \"4m x 8m\" — I just need two numbers with an 'x' between them.\n" +
+                    "You can also say \"skip\" to move on or \"go back\" to change the client name.";
+            case ConversationStage.DISPLAY_PRICING:
+                return "I need the sell price per display. Format:\n\n" +
+                    "\"$213,690 each\" — applies to all displays\n" +
+                    "\"$213,690, $41,948\" — one price per display\n\n" +
+                    "Or say \"skip\" to set prices later, or \"go back\" to redo displays.";
+            case ConversationStage.SERVICES:
+                return "List services with prices like:\n\n" +
+                    "\"Installation $115,185, Structural $114,625\"\n\n" +
+                    "Or say \"skip\" to move on.";
+            default:
+                return "I'm having trouble understanding. Say \"skip\" to move on or \"go back\" to the previous step.";
+        }
+    } else {
+        // Third+ fail — offer escape routes
+        return "I keep getting stuck on this. Here are your options:\n\n" +
+            "• \"skip\" — move to the next step\n" +
+            "• \"go back\" — return to the previous step\n" +
+            "• \"start over\" — restart from the beginning\n\n" +
+            "You can always fill in details manually in the form too.";
+    }
+}
+
+// ============================================================================
+// STAGE PROCESSOR
+// ============================================================================
+
 export function processStage(
     stage: ConversationStage,
     message: string,
@@ -253,9 +346,53 @@ export function processStage(
     let nextStage = stage;
     let reply = "";
 
+    // --- Global navigation commands (work at any stage) ---
+    const nav = isNavCommand(text);
+    if (nav) {
+        collected.retryCount = 0;
+        if (nav.type === "back") {
+            nextStage = getPreviousStage(stage);
+            reply = `OK, going back. ${getStagePrompt(nextStage, collected)}`;
+            return { reply, actions, nextStage, collected };
+        }
+        if (nav.type === "skip") {
+            nextStage = getNextStage(stage);
+            reply = `Skipped. ${getStagePrompt(nextStage, collected)}`;
+            return { reply, actions, nextStage, collected };
+        }
+        if (nav.type === "restart") {
+            const fresh = createInitialState().collected;
+            reply = "Starting over. " + getStagePrompt(ConversationStage.CLIENT_NAME, fresh);
+            return { reply, actions, nextStage: ConversationStage.CLIENT_NAME, collected: fresh };
+        }
+    }
+
+    // --- Frustration detection ---
+    if (isFrustrated(text)) {
+        collected.retryCount = 0;
+        reply = "Sorry about that — I know it's frustrating. Let me be clearer.\n\n";
+        reply += "Right now I need: ";
+        switch (stage) {
+            case ConversationStage.DISPLAYS:
+                reply += "display dimensions, like \"4m x 8m\".";
+                break;
+            case ConversationStage.DISPLAY_PRICING:
+                reply += "a dollar amount for each display, like \"$200,000\".";
+                break;
+            case ConversationStage.SERVICES:
+                reply += "service items with prices, like \"Installation $115,000\".";
+                break;
+            default:
+                reply += getStagePrompt(stage, collected);
+        }
+        reply += "\n\nOr say \"skip\" to move on, \"go back\" to redo the last step.";
+        return { reply, actions, nextStage: stage, collected };
+    }
+
     switch (stage) {
         case ConversationStage.GREETING:
         case ConversationStage.CLIENT_NAME: {
+            collected.retryCount = 0;
             // Any non-empty text is the client name
             const clientName = text.replace(/^(it's|its|for)\s+/i, "").trim();
             collected.clientName = clientName;
@@ -268,9 +405,11 @@ export function processStage(
         case ConversationStage.DISPLAYS: {
             const displays = parseDisplays(text);
             if (displays.length === 0) {
-                reply = "I couldn't parse display specs from that. Try something like: \"One LED wall, 4.05m x 10.20m, 2.5mm pitch\"";
+                collected.retryCount = (collected.retryCount || 0) + 1;
+                reply = retryMessage(stage, collected.retryCount, collected);
                 break;
             }
+            collected.retryCount = 0;
             collected.displays.push(...displays);
             for (const d of displays) {
                 actions.push({ type: "add_display", data: d });
@@ -283,9 +422,11 @@ export function processStage(
         case ConversationStage.DISPLAY_PRICING: {
             const prices = parseDollarAmounts(text);
             if (prices.length === 0) {
-                reply = "I need dollar amounts for the displays. Try: \"$213,690 each\" or \"$213,690 for the big ones, $41,948 for the small one\"";
+                collected.retryCount = (collected.retryCount || 0) + 1;
+                reply = retryMessage(stage, collected.retryCount, collected);
                 break;
             }
+            collected.retryCount = 0;
 
             // If "each" is mentioned and only one price, apply to all
             if (prices.length === 1 && /each|all|per/i.test(text)) {
@@ -307,11 +448,20 @@ export function processStage(
         }
 
         case ConversationStage.SERVICES: {
-            const services = parseServiceItems(text);
-            if (services.length === 0) {
-                reply = "I need service items with prices. Try: \"Installation $115,185, Structural $114,625\"";
+            // Allow skipping
+            if (/^(skip|none|no|n\/a)$/i.test(text.trim())) {
+                collected.retryCount = 0;
+                reply = `Skipped. ${getStagePrompt(ConversationStage.PM_WARRANTY, collected)}`;
+                nextStage = ConversationStage.PM_WARRANTY;
                 break;
             }
+            const services = parseServiceItems(text);
+            if (services.length === 0) {
+                collected.retryCount = (collected.retryCount || 0) + 1;
+                reply = retryMessage(stage, collected.retryCount, collected);
+                break;
+            }
+            collected.retryCount = 0;
             collected.services.push(...services);
             for (const s of services) {
                 actions.push({ type: "add_service", data: s });
@@ -322,17 +472,20 @@ export function processStage(
         }
 
         case ConversationStage.PM_WARRANTY: {
-            const services = parseServiceItems(text);
-            if (services.length === 0) {
-                // Allow skipping
-                if (/skip|none|no|n\/a/i.test(text)) {
-                    reply = getStagePrompt(ConversationStage.TAX_BOND, collected);
-                    nextStage = ConversationStage.TAX_BOND;
-                    break;
-                }
-                reply = "I need items with prices, or say \"skip\" to move on. Try: \"PM $12,500, Engineering $69,513\"";
+            // Allow skipping
+            if (/^(skip|none|no|n\/a)$/i.test(text.trim())) {
+                collected.retryCount = 0;
+                reply = getStagePrompt(ConversationStage.TAX_BOND, collected);
+                nextStage = ConversationStage.TAX_BOND;
                 break;
             }
+            const services = parseServiceItems(text);
+            if (services.length === 0) {
+                collected.retryCount = (collected.retryCount || 0) + 1;
+                reply = retryMessage(stage, collected.retryCount, collected);
+                break;
+            }
+            collected.retryCount = 0;
             collected.services.push(...services);
             for (const s of services) {
                 actions.push({ type: "add_service", data: s });
@@ -343,16 +496,20 @@ export function processStage(
         }
 
         case ConversationStage.TAX_BOND: {
-            const pct = parsePercentage(text);
-            if (pct === null) {
-                if (/skip|none|no|n\/a|0/i.test(text)) {
-                    nextStage = ConversationStage.REVIEW;
-                    reply = getStagePrompt(ConversationStage.REVIEW, collected);
-                    break;
-                }
-                reply = "I need a percentage. Try: \"13% HST\" or \"8.25% tax, 2% bond\"";
+            // Allow skipping
+            if (/^(skip|none|no|n\/a|0|0%)$/i.test(text.trim())) {
+                collected.retryCount = 0;
+                nextStage = ConversationStage.REVIEW;
+                reply = getStagePrompt(ConversationStage.REVIEW, collected);
                 break;
             }
+            const pct = parsePercentage(text);
+            if (pct === null) {
+                collected.retryCount = (collected.retryCount || 0) + 1;
+                reply = retryMessage(stage, collected.retryCount, collected);
+                break;
+            }
+            collected.retryCount = 0;
 
             // Check if there's a bond rate too
             const allPcts = text.match(/([\d.]+)\s*%/g) || [];
@@ -422,6 +579,7 @@ export function createInitialState(): ConversationState {
             displays: [],
             displayPrices: [],
             services: [],
+            retryCount: 0,
         },
     };
 }
