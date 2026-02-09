@@ -218,3 +218,28 @@
     0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
     40% { opacity: 1; transform: scale(1); }
 }
+
+/* ── Copilot Panel Layout Adjustment ── */
+/* When copilot is open, shrink main content to make room */
+body.copilot-open #main-content,
+body.copilot-open .proposal-layout,
+body.copilot-open main {
+    transition: margin-right 0.3s ease, padding-right 0.3s ease;
+}
+
+@media (min-width: 1024px) {
+    body.copilot-open #main-content,
+    body.copilot-open .proposal-layout,
+    body.copilot-open main {
+        margin-right: 400px;
+    }
+}
+
+/* On narrow screens, panel goes full-width overlay (no margin shift) */
+@media (max-width: 1023px) {
+    body.copilot-open #main-content,
+    body.copilot-open .proposal-layout,
+    body.copilot-open main {
+        margin-right: 0;
+    }
+}

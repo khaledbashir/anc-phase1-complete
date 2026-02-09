@@ -55,7 +55,12 @@ export interface CopilotPanelProps {
     hasExistingData?: boolean;
     quickActions?: Array<{ label: string; prompt: string }>;
     className?: string;
+    /** Callback when panel opens/closes — allows parent to adjust layout */
+    onOpenChange?: (isOpen: boolean) => void;
 }
+
+/** Width of the copilot panel in pixels */
+export const COPILOT_PANEL_WIDTH = 400;
 
 // ============================================================================
 // THINKING BLOCK (collapsible reasoning display)
@@ -103,6 +108,7 @@ export default function CopilotPanel({
     hasExistingData,
     quickActions,
     className,
+    onOpenChange,
 }: CopilotPanelProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -116,6 +122,19 @@ export default function CopilotPanel({
     const [conversationStage, setConversationStage] = useState<ConversationStage>(ConversationStage.GREETING);
     const [collectedData, setCollectedData] = useState<CollectedData>(createInitialState().collected);
     const autoOpenedRef = useRef(false);
+
+    // Notify parent and set body class when panel opens/closes
+    useEffect(() => {
+        onOpenChange?.(isOpen);
+        if (isOpen) {
+            document.body.classList.add("copilot-open");
+        } else {
+            document.body.classList.remove("copilot-open");
+        }
+        return () => {
+            document.body.classList.remove("copilot-open");
+        };
+    }, [isOpen, onOpenChange]);
 
     // Auto-open and start guided flow for new empty projects
     useEffect(() => {
@@ -474,10 +493,13 @@ export default function CopilotPanel({
             {/* Panel */}
             <div
                 className={cn(
-                    "fixed top-0 right-0 z-50 h-full w-[400px] max-w-[90vw] bg-white dark:bg-zinc-900 border-l-2 border-zinc-300 dark:border-zinc-700 shadow-2xl flex flex-col transition-transform duration-300 ease-out",
+                    "fixed top-0 right-0 z-50 h-full w-[400px] max-w-[90vw] bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-700 flex flex-col transition-transform duration-300 ease-out",
                     isOpen ? "translate-x-0" : "translate-x-full",
                     className
                 )}
+                style={{
+                    boxShadow: isOpen ? "-8px 0 30px rgba(0,0,0,0.15), -2px 0 8px rgba(0,0,0,0.08)" : "none",
+                }}
             >
                 {/* Header */}
                 <div className="flex items-center justify-between px-4 py-3 border-b-2 border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80">
@@ -665,13 +687,6 @@ export default function CopilotPanel({
                 </div>
             </div>
 
-            {/* Backdrop */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm"
-                    onClick={() => setIsOpen(false)}
-                />
-            )}
         </>
     );
 }
