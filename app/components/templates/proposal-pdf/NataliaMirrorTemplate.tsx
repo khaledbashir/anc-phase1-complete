@@ -698,7 +698,7 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
         {/* Table Body */}
         <div className="text-[9px] text-gray-900">
           {screens.map((screen: any, idx: number) => {
-            const rawName = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
+            const rawName = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
             const name = rawName.replace(/\s*nits\b/gi, " Brightness").replace(/\bnits\b/gi, "Brightness").trim();
             const h = screen?.heightFt ?? screen?.height ?? 0;
             const w = screen?.widthFt ?? screen?.width ?? 0;

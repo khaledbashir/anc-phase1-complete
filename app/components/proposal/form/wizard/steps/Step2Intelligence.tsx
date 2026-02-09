@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { Calculator, Info, ChevronDown, ChevronUp } from "lucide-react";
+import { Calculator, Info, ChevronDown, ChevronUp, RotateCcw, Tv } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Screens } from "@/app/components";
@@ -125,10 +125,11 @@ const ColumnHeaderStyleToggle = () => {
 const Step2Intelligence = () => {
     const { aiWorkspaceSlug } = useProposalContext();
     const { control, setValue, getValues, register } = useFormContext();
-    const screens = useWatch({
+    const watchedScreens = useWatch({
         name: "details.screens",
         control
-    }) || [];
+    });
+    const screens = useMemo(() => (Array.isArray(watchedScreens) ? watchedScreens : []), [watchedScreens]);
     const details = useWatch({ name: "details", control });
     const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
     const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
@@ -138,9 +139,35 @@ const Step2Intelligence = () => {
 
     const screenCount = screens.length;
     const hasData = aiWorkspaceSlug || screenCount > 0;
+    const [originalScreenDetails, setOriginalScreenDetails] = useState<Record<string, { displayName: string; brightness: number | string | "" }>>({});
     
     // Intelligence section collapsed by default
     const [showIntelligence, setShowIntelligence] = useState(false);
+
+    useEffect(() => {
+        if (!Array.isArray(screens) || screens.length === 0) return;
+
+        setOriginalScreenDetails((prev) => {
+            const next = { ...prev };
+            (screens as any[]).forEach((screen: any, idx: number) => {
+                const key = screen?.id ? `id:${screen.id}` : `idx:${idx}`;
+                if (next[key]) return;
+
+                const originalDisplayName = (
+                    screen?.externalName ||
+                    screen?.name ||
+                    `Screen ${idx + 1}`
+                ).toString().trim();
+                const originalBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits ?? "";
+
+                next[key] = {
+                    displayName: originalDisplayName,
+                    brightness: originalBrightness,
+                };
+            });
+            return next;
+        });
+    }, [screens]);
 
     // Shared Document Mode Selector (used by both modes)
     const DocumentModeSelector = (
@@ -251,25 +278,102 @@ const Step2Intelligence = () => {
                 {/* Brightness Editor — minimal per-screen brightness input */}
                 {screenCount > 0 && (
                     <div className="flex flex-col gap-3 px-4 py-3 rounded-lg border border-border bg-card/50">
-                        <label className="text-xs font-medium text-muted-foreground">Screen Brightness (nits)</label>
-                        <div className="space-y-2">
-                            {(screens as any[]).map((s: any, idx: number) => (
-                                <div key={idx} className="flex items-center gap-3">
-                                    <span className="text-xs text-foreground min-w-[180px] truncate">
-                                        {s.externalName || s.name || `Screen ${idx + 1}`}
-                                    </span>
-                                    <input
-                                        type="number"
-                                        placeholder="e.g., 6000"
-                                        defaultValue={s.brightness || ""}
-                                        onChange={(e) => {
-                                            const val = e.target.value ? parseFloat(e.target.value) : "";
-                                            setValue(`details.screens.${idx}.brightness` as any, val, { shouldDirty: true });
-                                        }}
-                                        className="w-[120px] h-8 px-2 text-sm bg-background border border-input rounded-md focus:ring-1 focus:ring-[#0A52EF] focus:outline-none"
-                                    />
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-start gap-2">
+                                <Tv className="w-4 h-4 text-muted-foreground mt-0.5" />
+                                <div className="space-y-0.5">
+                                    <h4 className="text-sm font-semibold text-foreground">Screen Details for Exhibit A</h4>
+                                    <p className="text-xs text-muted-foreground">Edit display names and brightness for the specs table</p>
                                 </div>
-                            ))}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    (screens as any[]).forEach((screen: any, idx: number) => {
+                                        const key = screen?.id ? `id:${screen.id}` : `idx:${idx}`;
+                                        const original = originalScreenDetails[key];
+                                        const originalBrightness = original?.brightness ?? "";
+                                        setValue(`details.screens.${idx}.customDisplayName` as any, "", { shouldDirty: true, shouldValidate: true });
+                                        setValue(`details.screens.${idx}.brightness` as any, originalBrightness, { shouldDirty: true, shouldValidate: true });
+                                    });
+                                }}
+                                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                            >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                                Reset All
+                            </button>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_10rem_auto] gap-3 px-1">
+                                <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Display Name</span>
+                                <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Brightness (nits)</span>
+                                <span />
+                            </div>
+
+                            {(screens as any[]).map((screen: any, idx: number) => {
+                                const key = screen?.id ? `id:${screen.id}` : `idx:${idx}`;
+                                const original = originalScreenDetails[key];
+                                const fallbackName = (original?.displayName || screen?.externalName || screen?.name || `Screen ${idx + 1}`).toString();
+                                const customDisplayName = (screen?.customDisplayName || "").toString();
+                                const currentDisplayName = customDisplayName.trim() !== "" ? customDisplayName : fallbackName;
+                                const isNameEdited = customDisplayName.trim() !== "" && customDisplayName.trim() !== fallbackName.trim();
+
+                                return (
+                                    <div key={key} className="rounded-md border border-border/70 bg-background/40 p-3">
+                                        <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_10rem_auto] gap-2 md:gap-3 items-start">
+                                            <input
+                                                type="text"
+                                                value={currentDisplayName}
+                                                onChange={(e) => {
+                                                    const nextValue = e.target.value;
+                                                    const normalized = nextValue.trim();
+                                                    const shouldClearOverride = normalized === "" || normalized === fallbackName.trim();
+                                                    setValue(
+                                                        `details.screens.${idx}.customDisplayName` as any,
+                                                        shouldClearOverride ? "" : nextValue,
+                                                        { shouldDirty: true, shouldValidate: true }
+                                                    );
+                                                }}
+                                                className="w-full h-9 px-3 text-sm bg-background border border-input rounded-md focus:ring-1 focus:ring-[#0A52EF] focus:outline-none"
+                                            />
+                                            <input
+                                                type="number"
+                                                placeholder="e.g., 6000"
+                                                value={screen?.brightness ?? ""}
+                                                onChange={(e) => {
+                                                    const nextValue = e.target.value;
+                                                    setValue(
+                                                        `details.screens.${idx}.brightness` as any,
+                                                        nextValue === "" ? "" : Number(nextValue),
+                                                        { shouldDirty: true, shouldValidate: true }
+                                                    );
+                                                }}
+                                                className="w-full h-9 px-3 text-sm bg-background border border-input rounded-md focus:ring-1 focus:ring-[#0A52EF] focus:outline-none"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const originalBrightness = original?.brightness ?? "";
+                                                    setValue(`details.screens.${idx}.customDisplayName` as any, "", { shouldDirty: true, shouldValidate: true });
+                                                    setValue(`details.screens.${idx}.brightness` as any, originalBrightness, { shouldDirty: true, shouldValidate: true });
+                                                }}
+                                                className="inline-flex items-center justify-center h-9 w-9 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                                                title="Reset this screen"
+                                                aria-label="Reset this screen"
+                                            >
+                                                <RotateCcw className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+
+                                        {isNameEdited && (
+                                            <p className="mt-2 text-[11px] text-muted-foreground truncate">
+                                                Original: {fallbackName}
+                                            </p>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
