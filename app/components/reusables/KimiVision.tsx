@@ -10,7 +10,7 @@ declare global {
   interface Window {
     puter?: {
       ai: {
-        chat: (message: string, options?: { model?: string; stream?: boolean }) => Promise<any>;
+        chat: (message: string | any[], options?: { model?: string; stream?: boolean }) => Promise<any>;
       };
     };
   }

@@ -201,11 +201,13 @@ function setDocumentType(ctx: FormFillContext, docType: "BUDGET" | "PROPOSAL" | 
 // ============================================================================
 
 export interface ScreenAction {
-    action: string;
+    action?: string;  // AnythingLLM path uses "action"
+    type?: string;    // Kimi vision path uses "type"
     field?: string;
     value?: any;
     sectionIndex?: number;
     step?: number;
+    reason?: string;  // Kimi sometimes includes reasoning
 }
 
 /**
@@ -361,7 +363,10 @@ export function executeScreenActions(
     let navigateStep: number | undefined;
 
     for (const sa of screenActions) {
-        switch (sa.action) {
+        // Normalize: Kimi sends "type", AnythingLLM sends "action" — accept both
+        const actionType = sa.action || sa.type || "";
+
+        switch (actionType) {
             // ---- GENERIC FIELD SETTER (the big one) ----
             case "set_field": {
                 if (!sa.field) {
@@ -399,12 +404,17 @@ export function executeScreenActions(
                 break;
             }
 
-            case "append_intro_text": {
+            case "append_intro_text":
+            case "append_text": {
+                // Generic append — works for any text field
                 if (typeof sa.value === "string") {
-                    const current = ctx.getValues("details.introductionText") || "";
-                    const separator = current ? "\n\n" : "";
-                    ctx.setValue("details.introductionText", current + separator + sa.value, { shouldDirty: true });
-                    log.push("Appended to intro text");
+                    const appendField = sa.field ? resolveFieldPath(sa.field) : "details.introductionText";
+                    if (appendField) {
+                        const current = ctx.getValues(appendField as any) || "";
+                        const separator = current ? "\n" : "";
+                        ctx.setValue(appendField as any, current + separator + sa.value, { shouldDirty: true });
+                        log.push(`Appended to ${sa.field || "introductionText"}`);
+                    }
                 }
                 break;
             }
@@ -434,12 +444,13 @@ export function executeScreenActions(
             }
 
             case "fix_section_header": {
-                if (typeof sa.sectionIndex === "number" && typeof sa.value === "string") {
+                const idx = sa.sectionIndex ?? (typeof sa.value === "object" ? undefined : undefined);
+                if (typeof idx === "number" && typeof sa.value === "string") {
                     const overrides = ctx.getValues("details.tableHeaderOverrides") || {};
-                    const key = String(sa.sectionIndex);
+                    const key = String(idx);
                     overrides[key] = sa.value;
                     ctx.setValue("details.tableHeaderOverrides", { ...overrides }, { shouldDirty: true });
-                    log.push(`Fixed section ${sa.sectionIndex + 1} header → "${sa.value}"`);
+                    log.push(`Fixed section ${idx + 1} header → "${sa.value}"`);
                 }
                 break;
             }
@@ -451,15 +462,17 @@ export function executeScreenActions(
             }
 
             case "navigate_step": {
-                if (typeof sa.step === "number" && sa.step >= 0 && sa.step <= 3) {
-                    navigateStep = sa.step;
-                    log.push(`Navigating to step ${sa.step + 1}`);
+                // Kimi sends value, AnythingLLM sends step — accept both
+                const stepNum = sa.step ?? (typeof sa.value === "number" ? sa.value : undefined);
+                if (typeof stepNum === "number" && stepNum >= 0 && stepNum <= 3) {
+                    navigateStep = stepNum;
+                    log.push(`Navigating to step ${stepNum + 1}`);
                 }
                 break;
             }
 
             default:
-                log.push(`Unknown screen action: ${sa.action}`);
+                if (actionType) log.push(`Unknown screen action: ${actionType}`);
         }
     }
 

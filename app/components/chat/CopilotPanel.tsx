@@ -26,6 +26,10 @@ import { executeActions, executeScreenActions } from "@/services/chat/formFillBr
 import type { FormFillContext, ScreenAction } from "@/services/chat/formFillBridge";
 import { getScreenContext } from "@/services/chat/screenContext";
 import type { ScreenContext } from "@/services/chat/screenContext";
+import { captureScreen } from "@/services/chat/screenshotService";
+import { askKimiWithVision } from "@/services/chat/kimiVisionService";
+import type { KimiScreenAction } from "@/services/chat/kimiVisionService";
+import { routeMessage } from "@/services/chat/copilotRouter";
 
 // ============================================================================
 // TYPES
@@ -128,6 +132,11 @@ export default function CopilotPanel({
     const [collectedData, setCollectedData] = useState<CollectedData>(createInitialState().collected);
     const autoOpenedRef = useRef(false);
 
+    // Conversation history for Kimi vision context (text-only, no images)
+    const [conversationHistory, setConversationHistory] = useState<
+        Array<{ role: "user" | "assistant"; content: string }>
+    >([]);
+
     // Notify parent and set body class when panel opens/closes
     useEffect(() => {
         onOpenChange?.(isOpen);
@@ -179,11 +188,62 @@ export default function CopilotPanel({
     const newId = () => `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 
     // ========================================================================
-    // GUIDED FLOW HANDLER
+    // KIMI VISION HANDLER (primary brain — sees the screen)
     // ========================================================================
-    const handleGuidedSend = async (text: string) => {
+    const handleKimiSend = async (text: string): Promise<string> => {
         try {
-            // Build screen context from current form state
+            // 1. Capture screenshot of the proposal UI
+            console.log("[Copilot] Capturing screenshot for Kimi vision...");
+            const screenshot = await captureScreen();
+            console.log(`[Copilot] Screenshot captured: ${(screenshot.length / 1024).toFixed(0)}KB`);
+
+            // 2. Send to Kimi with vision + conversation history
+            const kimiResponse = await askKimiWithVision(
+                text,
+                screenshot,
+                conversationHistory
+            );
+
+            // 3. Execute any actions returned by Kimi
+            if (kimiResponse.actions.length > 0 && formFillContext) {
+                console.log(`[Copilot] Executing ${kimiResponse.actions.length} Kimi actions`);
+                const result = executeScreenActions(
+                    formFillContext,
+                    kimiResponse.actions as ScreenAction[]
+                );
+                console.log("[Copilot] Action log:", result.log);
+
+                if (result.downloadPdf) {
+                    setTimeout(() => {
+                        const exportBtn = document.querySelector('[data-copilot-export]') as HTMLButtonElement;
+                        if (exportBtn) exportBtn.click();
+                    }, 1000);
+                }
+                if (result.navigateStep !== undefined && onNavigateStep) {
+                    onNavigateStep(result.navigateStep);
+                }
+            }
+
+            // 4. Update conversation history for context
+            setConversationHistory(prev => [
+                ...prev,
+                { role: "user", content: text },
+                { role: "assistant", content: kimiResponse.reply },
+            ]);
+
+            return kimiResponse.reply;
+        } catch (err: any) {
+            console.error("[Copilot] Kimi vision error:", err);
+            return `Vision error: ${err?.message || String(err)}`;
+        }
+    };
+
+    // ========================================================================
+    // ANYTHINGLLM HANDLER (knowledge brain — database, RAG, product lookups)
+    // ========================================================================
+    const handleAnythingLLMSend = async (text: string): Promise<string> => {
+        try {
+            // Build screen context from current form state (text-based for AnythingLLM)
             const screenContext: ScreenContext | undefined = formFillContext
                 ? getScreenContext(formFillContext, currentStep)
                 : undefined;
@@ -207,7 +267,7 @@ export default function CopilotPanel({
                 executeActions(formFillContext, data.actions as StageAction[]);
             }
 
-            // Execute screen-aware actions (doc type switch, intro text, PDF download, navigate, etc.)
+            // Execute screen-aware actions
             if (data.screenActions && data.screenActions.length > 0 && formFillContext) {
                 const result = executeScreenActions(formFillContext, data.screenActions as ScreenAction[]);
                 if (result.downloadPdf) {
@@ -237,9 +297,17 @@ export default function CopilotPanel({
                 setCollectedData(data.collected);
             }
 
-            return data.reply || data.error || "No reply from AI backend.";
+            // Update conversation history
+            const reply = data.reply || data.error || "No reply from AI backend.";
+            setConversationHistory(prev => [
+                ...prev,
+                { role: "user", content: text },
+                { role: "assistant", content: reply },
+            ]);
+
+            return reply;
         } catch (err: any) {
-            console.error("[Copilot] Guided flow error:", err);
+            console.error("[Copilot] AnythingLLM error:", err);
             return `Error: ${err?.message || String(err)}`;
         }
     };
@@ -391,7 +459,8 @@ export default function CopilotPanel({
     };
 
     // ========================================================================
-    // SEND HANDLER — single smart mode (no guided/freeform split)
+    // SEND HANDLER — Dual-Brain Router
+    // Routes to Kimi (vision) or AnythingLLM (knowledge) based on message content
     // ========================================================================
     const handleSend = async () => {
         const text = input.trim();
@@ -409,39 +478,36 @@ export default function CopilotPanel({
         setIsLoading(true);
 
         try {
-            if (formFillContext && conversationStage !== ConversationStage.DONE) {
-                // Smart mode: LLM-powered proposal builder via /api/copilot/propose
-                // Handles both structured extraction AND conversational responses
-                const response = await handleGuidedSend(text);
-                const assistantMsg: ChatMessage = {
-                    id: newId(),
-                    role: "assistant",
-                    content: response,
-                    timestamp: Date.now(),
-                };
-                setMessages((prev) => [...prev, assistantMsg]);
+            // Route to the right brain
+            const brain = formFillContext ? routeMessage(text) : "anythingllm";
+            console.log(`[Copilot] Routing to: ${brain}`);
+
+            let response: string;
+
+            if (brain === "kimi" && formFillContext) {
+                // === KIMI PATH: Vision + Actions (primary for UI commands) ===
+                response = await handleKimiSend(text);
+            } else if (formFillContext && conversationStage !== ConversationStage.DONE) {
+                // === ANYTHINGLLM PATH: Knowledge queries ===
+                response = await handleAnythingLLMSend(text);
             } else if (projectId && projectId !== "new") {
                 // Streaming chat with project's AI workspace
                 await handleStreamingSend(text);
+                setIsLoading(false);
+                return; // handleStreamingSend manages its own messages
             } else if (onSendMessage) {
-                // Fallback: non-streaming
-                const response = await onSendMessage(text, [...messages, userMsg]);
-                const assistantMsg: ChatMessage = {
-                    id: newId(),
-                    role: "assistant",
-                    content: response,
-                    timestamp: Date.now(),
-                };
-                setMessages((prev) => [...prev, assistantMsg]);
+                response = await onSendMessage(text, [...messages, userMsg]);
             } else {
-                const assistantMsg: ChatMessage = {
-                    id: newId(),
-                    role: "assistant",
-                    content: "AI backend not connected. Save the project first to enable AI chat.",
-                    timestamp: Date.now(),
-                };
-                setMessages((prev) => [...prev, assistantMsg]);
+                response = "AI backend not connected. Save the project first to enable AI chat.";
             }
+
+            const assistantMsg: ChatMessage = {
+                id: newId(),
+                role: "assistant",
+                content: response!,
+                timestamp: Date.now(),
+            };
+            setMessages((prev) => [...prev, assistantMsg]);
         } catch (err: any) {
             const errorMsg: ChatMessage = {
                 id: newId(),
@@ -464,6 +530,7 @@ export default function CopilotPanel({
 
     const clearChat = () => {
         setMessages([]);
+        setConversationHistory([]);
         setConversationStage(ConversationStage.GREETING);
         setCollectedData(createInitialState().collected);
     };
@@ -498,8 +565,9 @@ export default function CopilotPanel({
 
             {/* Panel */}
             <div
+                data-copilot-panel
                 className={cn(
-                    "fixed top-0 right-0 z-50 h-full w-[400px] max-w-[90vw] bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-700 flex flex-col transition-transform duration-300 ease-out",
+                    "fixed top-0 right-0 z-50 h-full w-[400px] max-w-[90vw] bg-white dark:bg-zinc-900 border-l border-zinc-200 dark:border-zinc-700 flex flex-col transition-transform duration-300 ease-out copilot-panel",
                     isOpen ? "translate-x-0" : "translate-x-full",
                     className
                 )}
