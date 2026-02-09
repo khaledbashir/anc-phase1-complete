@@ -593,23 +593,61 @@ const Step3Math = () => {
                                     <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Strategic Presets</Label>
                                     <div className="flex flex-wrap gap-2">
                                         {[
-                                            { label: "Std", value: 0.25 },
-                                            { label: "Agg", value: 0.35 },
-                                            { label: "Prem", value: 0.50 },
+                                            { label: "Aggressive", value: 0.15, desc: "15% — Competitive bid" },
+                                            { label: "Standard", value: 0.25, desc: "25% — Default ANC" },
+                                            { label: "Premium", value: 0.35, desc: "35% — High-value" },
+                                            { label: "Strategic", value: 0.40, desc: "40% — Full services" },
                                         ].map((preset) => (
-                                            <button
-                                                key={preset.value}
-                                                onClick={() => applyGlobalMargin(preset.value)}
-                                                className={cn(
-                                                    "px-3 py-1 text-[10px] font-bold uppercase rounded border transition-all",
-                                                    globalMargin === preset.value
-                                                        ? "bg-brand-blue border-brand-blue text-white shadow-lg shadow-brand-blue/20"
-                                                        : "bg-muted border-border text-muted-foreground hover:border-border"
-                                                )}
-                                            >
-                                                {preset.label}
-                                            </button>
+                                            <Tooltip key={preset.value}>
+                                                <TooltipTrigger asChild>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => applyGlobalMargin(preset.value)}
+                                                        className={cn(
+                                                            "px-3 py-1.5 text-[10px] font-bold uppercase rounded border transition-all",
+                                                            globalMargin === preset.value
+                                                                ? "bg-brand-blue border-brand-blue text-white shadow-lg shadow-brand-blue/20"
+                                                                : "bg-muted border-border text-muted-foreground hover:border-brand-blue/30"
+                                                        )}
+                                                    >
+                                                        {preset.label}
+                                                    </button>
+                                                </TooltipTrigger>
+                                                <TooltipContent side="top" className="text-xs">{preset.desc}</TooltipContent>
+                                            </Tooltip>
                                         ))}
+                                    </div>
+                                </div>
+
+                                {/* B&O Tax Override */}
+                                <div className="flex flex-col gap-3 p-4 bg-card rounded-xl border border-border shadow-sm">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                                            <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+                                            B&O Tax (WV)
+                                        </Label>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <Info className="w-3.5 h-3.5 text-muted-foreground hover:text-brand-blue transition-colors cursor-help" />
+                                            </TooltipTrigger>
+                                            <TooltipContent side="top" className="max-w-xs bg-popover border-border text-popover-foreground p-3">
+                                                <p className="text-xs leading-relaxed">
+                                                    West Virginia Business & Occupation Tax (2%). Auto-detected for Morgantown/WVU projects. Toggle to override.
+                                                </p>
+                                            </TooltipContent>
+                                        </Tooltip>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Switch
+                                            checked={!!watch("details.forceBoTax")}
+                                            onCheckedChange={(checked) => {
+                                                setValue("details.forceBoTax", checked, { shouldDirty: true });
+                                            }}
+                                            className="data-[state=checked]:bg-amber-500"
+                                        />
+                                        <span className="text-xs text-muted-foreground">
+                                            {watch("details.forceBoTax") ? "2% B&O Tax applied" : "Auto-detect (address-based)"}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
