@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
     Plus,
@@ -31,7 +31,7 @@ export default function ProjectsPage() {
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [statusFilter, setStatusFilter] = useState("all");
 
-    const fetchProjects = async () => {
+    const fetchProjects = useCallback(async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
@@ -46,12 +46,12 @@ export default function ProjectsPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [searchQuery, statusFilter]);
 
     useEffect(() => {
         const timer = setTimeout(fetchProjects, 300);
         return () => clearTimeout(timer);
-    }, [searchQuery, statusFilter]);
+    }, [fetchProjects]);
 
     const summary = useMemo(() => {
         const projectCount = projects.length;
