@@ -1,41 +1,47 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-    Layers,
     Trash2,
     ArrowUpRight,
-    FileDigit,
     Clock,
-    DollarSign,
-    MonitorPlay
+    FileSpreadsheet,
+    MonitorPlay,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
-interface Project {
+export interface ProjectCardData {
     id: string;
     clientName: string;
-    proposalName: string | null;
-    clientLogo?: string | null;
+    clientCity: string | null;
+    clientAddress: string | null;
+    venue: string | null;
+    documentMode: "BUDGET" | "PROPOSAL" | "LOI";
+    mirrorMode: boolean;
+    currency: string;
+    sectionCount: number;
+    hasExcel: boolean;
     status: string;
-    documentType?: string;
-    documentMode?: "BUDGET" | "PROPOSAL" | "LOI";
-    pricingType?: string;
     createdAt: string;
     updatedAt: string;
-    lastSavedAt: string | null;
-    screenCount?: number;
-    documentCount?: number;
-    totalAmount?: number;
+    screenCount: number;
+    totalAmount: number;
 }
 
 interface ProjectCardProps {
-    project: Project;
+    project: ProjectCardData;
     onImport: (id: string) => void;
     onDelete: (id: string) => void;
 }
+
+const modeBadgeConfig: Record<ProjectCardData["documentMode"], { label: string; bg: string; text: string }> = {
+    BUDGET: { label: "Budget", bg: "bg-amber-100", text: "text-amber-700" },
+    PROPOSAL: { label: "Proposal", bg: "bg-blue-100", text: "text-blue-700" },
+    LOI: { label: "LOI", bg: "bg-green-100", text: "text-green-700" },
+};
+
+const getDocModeLabel = (mode: ProjectCardData["documentMode"]) => modeBadgeConfig[mode].label;
 
 const getStatusConfig = (status: string) => {
     const configs: Record<string, { label: string; color: string }> = {
@@ -47,9 +53,28 @@ const getStatusConfig = (status: string) => {
     return configs[status] || { label: status, color: "#71717a" };
 };
 
-const ProjectCard = ({ project, onDelete }: ProjectCardProps) => {
+const truncateText = (value: string, maxChars: number): string => {
+    if (value.length <= maxChars) return value;
+    return `${value.slice(0, maxChars - 1)}...`;
+};
+
+const ProjectCard = ({ project, onImport: _onImport, onDelete }: ProjectCardProps) => {
     const router = useRouter();
     const status = getStatusConfig(project.status);
+    const modeBadge = modeBadgeConfig[project.documentMode];
+    const workflowBadge = project.mirrorMode
+        ? { label: "Mirror", bg: "bg-gray-100", text: "text-gray-600" }
+        : { label: "Intelligence", bg: "bg-purple-100", text: "text-purple-700" };
+    const subtitle = [project.venue ? truncateText(project.venue, 25) : null, project.clientCity].filter(Boolean).join(" · ")
+        || getDocModeLabel(project.documentMode);
+    const title = truncateText(project.clientName, 30);
+    const formattedTotal = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: project.currency || "USD",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(project.totalAmount);
+    const totalDisplay = project.totalAmount === 0 && !project.hasExcel ? "—" : formattedTotal;
 
     const handleClick = () => {
         router.push(`/projects/${project.id}`);
@@ -60,22 +85,15 @@ const ProjectCard = ({ project, onDelete }: ProjectCardProps) => {
             onClick={handleClick}
             className="group relative bg-card border border-border overflow-hidden transition-all duration-300 hover:border-foreground/20 p-6 flex flex-col h-full min-h-[220px]"
         >
-            {/* Minimal Icon Area */}
-            <div className="flex items-start justify-between mb-8">
-                <div className="w-10 h-10 bg-muted border border-border rounded flex items-center justify-center">
-                    {project.clientLogo ? (
-                        <Image 
-                            src={project.clientLogo} 
-                            alt={project.clientName} 
-                            width={24}
-                            height={24}
-                            className="w-6 h-6 object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" 
-                        />
-                    ) : (
-                        <Layers className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    )}
+            <div className="flex items-start justify-between mb-5 gap-3">
+                <div className="flex items-center gap-2 min-w-0">
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wide ${modeBadge.bg} ${modeBadge.text}`}>
+                        {modeBadge.label}
+                    </span>
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-semibold ${workflowBadge.bg} ${workflowBadge.text}`}>
+                        {workflowBadge.label}
+                    </span>
                 </div>
-
                 <div className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: status.color, boxShadow: `0 0 8px ${status.color}80` }} />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground group-hover:text-foreground/80 transition-colors">
@@ -84,46 +102,38 @@ const ProjectCard = ({ project, onDelete }: ProjectCardProps) => {
                 </div>
             </div>
 
-            {/* Title Section */}
-            <div className="space-y-1 py-4 flex-1">
-                <h3 className="text-xl font-normal text-card-foreground serif-vault group-hover:text-brand-blue transition-colors leading-tight">
-                    {project.clientName}
+            <div className="space-y-1 pb-5 flex-1">
+                <h3 className="text-xl font-normal text-card-foreground serif-vault group-hover:text-brand-blue transition-colors leading-tight truncate">
+                    {title}
                 </h3>
-                <p className="text-xs text-muted-foreground group-hover:text-card-foreground/70 transition-colors">
-                    {project.proposalName || (project.documentMode === "LOI" ? "LOI" : project.documentMode === "PROPOSAL" ? "Proposal" : "Budget")}
+                <p className="text-xs text-muted-foreground group-hover:text-card-foreground/70 transition-colors truncate">
+                    {subtitle}
                 </p>
             </div>
 
-            {/* Quick Stats Row */}
-            <div className="flex items-center gap-4 mt-4 mb-3">
-                {project.documentCount !== undefined && project.documentCount > 0 && (
+            <div className="border-y border-border/40 py-3 flex items-center gap-4">
+                {project.sectionCount > 0 && (
                     <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                        <FileDigit className="w-3.5 h-3.5" />
-                        <span>{project.documentCount} doc{project.documentCount !== 1 ? 's' : ''}</span>
+                        {project.hasExcel && <FileSpreadsheet className="w-3.5 h-3.5" />}
+                        <span>{project.sectionCount} section{project.sectionCount !== 1 ? "s" : ""}</span>
                     </div>
                 )}
-                {project.screenCount !== undefined && project.screenCount > 0 && (
+                {project.screenCount > 0 && (
                     <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                         <MonitorPlay className="w-3.5 h-3.5" />
-                        <span>{project.screenCount} screen{project.screenCount !== 1 ? 's' : ''}</span>
+                        <span>{project.screenCount} screen{project.screenCount !== 1 ? "s" : ""}</span>
                     </div>
                 )}
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground ml-auto">
                     <Clock className="w-3.5 h-3.5" />
                     <span>{formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}</span>
                 </div>
             </div>
 
-            {/* Footer Metrics */}
             <div className="flex items-end justify-between mt-auto pt-3 border-t border-border/40">
-                <div className="space-y-1">
-                    <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter">Budget</div>
-                    <div className="text-sm font-medium text-foreground flex items-center gap-1">
-                        <DollarSign className="w-3.5 h-3.5" />
-                        {project.totalAmount ? project.totalAmount.toLocaleString() : '0.00'}
-                    </div>
+                <div className="text-2xl font-semibold text-foreground tracking-tight">
+                    {totalDisplay}
                 </div>
-
                 <div className="flex items-center gap-3">
                     <button
                         onClick={(e) => { e.stopPropagation(); onDelete(project.id); }}
@@ -135,7 +145,6 @@ const ProjectCard = ({ project, onDelete }: ProjectCardProps) => {
                 </div>
             </div>
 
-            {/* Subtle Hover Gradient */}
             <div className="absolute inset-x-0 bottom-0 h-[1px] bg-gradient-to-r from-transparent via-[#0A52EF]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
     );

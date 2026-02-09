@@ -1,40 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
     Plus,
     Search,
-    Loader2,
     LayoutGrid,
     List,
-    Filter,
-    Download,
-    ChevronDown,
     Bell,
     Settings
 } from "lucide-react";
 import NewProjectModal from "@/app/components/modals/NewProjectModal";
-import ProjectCard from "@/app/components/ProjectCard";
+import ProjectCard, { type ProjectCardData } from "@/app/components/ProjectCard";
 import DashboardChat from "@/app/components/DashboardChat";
 import DashboardSidebar from "@/app/components/layout/DashboardSidebar";
 import { FEATURES } from "@/lib/featureFlags";
 import { cn } from "@/lib/utils";
-
-interface Project {
-    id: string;
-    clientName: string;
-    proposalName: string | null;
-    clientLogo?: string | null;
-    status: string;
-    documentType: string;
-    pricingType: string;
-    createdAt: string;
-    updatedAt: string;
-    lastSavedAt: string | null;
-    screenCount?: number;
-    totalAmount?: number;
-}
 
 const statusFilters = [
     { key: "all", label: "Overview" },
@@ -44,7 +25,7 @@ const statusFilters = [
 ];
 
 export default function ProjectsPage() {
-    const [projects, setProjects] = useState<Project[]>([]);
+    const [projects, setProjects] = useState<ProjectCardData[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -71,6 +52,26 @@ export default function ProjectsPage() {
         const timer = setTimeout(fetchProjects, 300);
         return () => clearTimeout(timer);
     }, [searchQuery, statusFilter]);
+
+    const summary = useMemo(() => {
+        const projectCount = projects.length;
+        const mirrorCount = projects.filter((project) => project.mirrorMode).length;
+        const intelligenceCount = projectCount - mirrorCount;
+        const totalPipeline = projects.reduce((sum, project) => sum + (project.totalAmount || 0), 0);
+        const formattedPipeline = new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+        }).format(totalPipeline);
+
+        return {
+            projectCount,
+            mirrorCount,
+            intelligenceCount,
+            formattedPipeline,
+        };
+    }, [projects]);
 
     return (
         <div className="flex min-h-screen min-w-0 bg-background text-muted-foreground selection:bg-brand-blue/30 overflow-x-hidden">
@@ -185,18 +186,39 @@ export default function ProjectsPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className={cn(
-                                "grid",
-                                viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "grid-cols-1 gap-1 bg-card border border-border"
-                            )}>
-                                {projects.map((project) => (
-                                    <ProjectCard
-                                        key={project.id}
-                                        project={project}
-                                        onImport={() => { }}
-                                        onDelete={() => { }}
-                                    />
-                                ))}
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                                    <div className="border border-border rounded-lg bg-card px-4 py-3">
+                                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Projects</div>
+                                        <div className="text-2xl font-semibold text-foreground">{summary.projectCount}</div>
+                                    </div>
+                                    <div className="border border-border rounded-lg bg-card px-4 py-3">
+                                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Mirror</div>
+                                        <div className="text-2xl font-semibold text-foreground">{summary.mirrorCount}</div>
+                                    </div>
+                                    <div className="border border-border rounded-lg bg-card px-4 py-3">
+                                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Intelligence</div>
+                                        <div className="text-2xl font-semibold text-foreground">{summary.intelligenceCount}</div>
+                                    </div>
+                                    <div className="border border-border rounded-lg bg-card px-4 py-3">
+                                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Total Pipeline</div>
+                                        <div className="text-2xl font-semibold text-foreground">{summary.formattedPipeline}</div>
+                                    </div>
+                                </div>
+
+                                <div className={cn(
+                                    "grid",
+                                    viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "grid-cols-1 gap-1 bg-card border border-border"
+                                )}>
+                                    {projects.map((project) => (
+                                        <ProjectCard
+                                            key={project.id}
+                                            project={project}
+                                            onImport={() => { }}
+                                            onDelete={() => { }}
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>

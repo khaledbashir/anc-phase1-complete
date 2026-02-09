@@ -107,7 +107,7 @@ export function getScreenContext(
         return s.length > max ? s.slice(0, max) + "..." : s;
     };
 
-    const introText = truncate(g("details.introductionText"));
+    const introText = truncate(g("details.additionalNotes"));
     const paymentTerms = truncate(g("details.paymentTerms"));
     const signatureText = truncate(g("details.signatureBlockText"));
     const additionalNotes = truncate(g("details.additionalNotes"));
@@ -175,7 +175,7 @@ export function getScreenContext(
     fieldValues.documentMode = documentMode;
 
     // Text fields (full values for AI to see and modify)
-    fieldValues.introductionText = truncate(safeGet("details.introductionText"), 500);
+    fieldValues.introductionText = truncate(safeGet("details.additionalNotes"), 500);
     fieldValues.paymentTerms = truncate(safeGet("details.paymentTerms"), 500);
     fieldValues.signatureBlockText = truncate(safeGet("details.signatureBlockText"), 500);
     fieldValues.additionalNotes = truncate(safeGet("details.additionalNotes"), 500);

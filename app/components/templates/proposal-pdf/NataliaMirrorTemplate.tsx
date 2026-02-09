@@ -47,8 +47,8 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   // FR-4.2: Custom proposal notes
   const customProposalNotes: string = (details as any)?.customProposalNotes || "";
 
-  // FR-4.3: Custom introduction text
-  const introductionText: string = (details as any)?.introductionText || "";
+  // FR-4.3: Custom introduction text (stored as additionalNotes in form/DB)
+  const introductionText: string = (details as any)?.additionalNotes || "";
 
   // Document mode - FIX: Read documentMode, not documentType (legacy field)
   const documentMode: DocumentMode =

@@ -286,9 +286,9 @@ const EDITABLE_FIELDS: Record<string, string> = {
     "details.purchaseOrderNumber":      "details.purchaseOrderNumber",
 
     // Text fields
-    "introductionText":                 "details.introductionText",
-    "introText":                        "details.introductionText",
-    "details.introductionText":         "details.introductionText",
+    "introductionText":                 "details.additionalNotes",
+    "introText":                        "details.additionalNotes",
+    "details.introductionText":         "details.additionalNotes",
     "paymentTerms":                     "details.paymentTerms",
     "details.paymentTerms":             "details.paymentTerms",
     "signatureBlockText":               "details.signatureBlockText",
@@ -419,7 +419,7 @@ export function executeScreenActions(
 
             case "set_intro_text": {
                 if (typeof sa.value === "string") {
-                    ctx.setValue("details.introductionText", sa.value, { shouldDirty: true });
+                    ctx.setValue("details.additionalNotes", sa.value, { shouldDirty: true });
                     log.push("Updated intro text");
                 }
                 break;
@@ -429,12 +429,12 @@ export function executeScreenActions(
             case "append_text": {
                 // Generic append — works for any text field
                 if (typeof sa.value === "string") {
-                    const appendField = sa.field ? resolveFieldPath(sa.field) : "details.introductionText";
+                    const appendField = sa.field ? resolveFieldPath(sa.field) : "details.additionalNotes";
                     if (appendField) {
                         const current = ctx.getValues(appendField as any) || "";
                         const separator = current ? "\n" : "";
                         ctx.setValue(appendField as any, current + separator + sa.value, { shouldDirty: true });
-                        log.push(`Appended to ${sa.field || "introductionText"}`);
+                        log.push(`Appended to ${sa.field || "additionalNotes"}`);
                     }
                 }
                 break;

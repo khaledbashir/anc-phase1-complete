@@ -131,7 +131,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const showExhibitA = (details as any)?.showExhibitA ?? false;
 
     // FR-4.3: Custom editable text fields
-    const customIntroText = (details as any)?.introductionText || "";
+    const customIntroText = (details as any)?.additionalNotes || "";
     const customPaymentTerms = (details as any)?.paymentTerms || "";
 
     // ===== HELPERS =====

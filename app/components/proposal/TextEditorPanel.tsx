@@ -24,9 +24,9 @@ export function TextEditorPanel() {
     const [isExpanded, setIsExpanded] = useState(false);
 
     // Watch values for character counts
-    const introText = watch("details.introductionText") || "";
+    const introText = watch("details.additionalNotes") || "";
     const paymentTerms = watch("details.paymentTerms") || "";
-    const additionalNotes = watch("details.additionalNotes") || "";
+    const additionalNotes = watch("details.customProposalNotes") || "";
     const purchaserLegalName = watch("details.purchaserLegalName") || "";
     const documentMode = watch("details.documentMode") || "BUDGET";
 
@@ -61,7 +61,7 @@ export function TextEditorPanel() {
                 <CardContent className="p-6 space-y-6">
                     {/* Introduction Text */}
                     <div className="space-y-2">
-                        <Label htmlFor="introductionText" className="text-xs font-semibold text-foreground flex items-center gap-2">
+                        <Label htmlFor="additionalNotes" className="text-xs font-semibold text-foreground flex items-center gap-2">
                             <FileText className="w-3.5 h-3.5 text-brand-blue" />
                             Introduction Text
                             <span className="text-[10px] text-muted-foreground font-normal">
@@ -69,8 +69,8 @@ export function TextEditorPanel() {
                             </span>
                         </Label>
                         <Textarea
-                            id="introductionText"
-                            {...register("details.introductionText")}
+                            id="additionalNotes"
+                            {...register("details.additionalNotes")}
                             placeholder="ANC is pleased to present the following LED Display proposal... (Leave blank for default)"
                             className="min-h-[100px] text-xs resize-y"
                         />
@@ -99,9 +99,9 @@ export function TextEditorPanel() {
                         </p>
                     </div>
 
-                    {/* Additional Notes */}
+                    {/* Additional Notes (renders after pricing tables in PDF) */}
                     <div className="space-y-2">
-                        <Label htmlFor="additionalNotes" className="text-xs font-semibold text-foreground flex items-center gap-2">
+                        <Label htmlFor="customProposalNotes" className="text-xs font-semibold text-foreground flex items-center gap-2">
                             <MessageSquare className="w-3.5 h-3.5 text-amber-500" />
                             Additional Notes
                             <span className="text-[10px] text-muted-foreground font-normal">
@@ -109,8 +109,8 @@ export function TextEditorPanel() {
                             </span>
                         </Label>
                         <Textarea
-                            id="additionalNotes"
-                            {...register("details.additionalNotes")}
+                            id="customProposalNotes"
+                            {...register("details.customProposalNotes")}
                             placeholder="Project-specific notes, constraints, or disclaimers... (Optional - only shows if text is entered)"
                             className="min-h-[100px] text-xs resize-y"
                         />
