@@ -363,11 +363,13 @@ export default function CopilotPanel({
                 if (streamDone) break;
             }
 
-            // Finalize
+            // Finalize — only show thinking block if real <think> tags were in the stream
             console.log(`[Copilot] Stream finalized. answerBuf: ${answerBuf.length} chars, thinkBuf: ${thinkBuf.length} chars`);
-            const finalContent = answerBuf.trim()
-                || (thinkBuf ? "(The AI reasoned but didn't produce a visible answer. Try rephrasing.)" : "No response received.");
-            updateMsg({ content: finalContent, thinking: thinkBuf, isThinking: false });
+            updateMsg({
+                content: answerBuf.trim() || "No response received.",
+                thinking: thinkBuf || undefined,
+                isThinking: false,
+            });
         } catch (err) {
             console.error("[Copilot] Stream error:", err);
             setMessages((prev) =>
