@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
                 message: useAgent ? `@agent ${message}` : message,
                 mode: "chat",
+                sessionId: `dashboard-${targetWorkspace}`,
             }),
         });
 
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
                         body: JSON.stringify({
                             message: useAgent ? `@agent ${message}` : message,
                             mode: "chat",
+                            sessionId: `dashboard-${newSlug}`,
                         }),
                     });
                 } else {

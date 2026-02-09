@@ -8,6 +8,10 @@ import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
  * NOT the dashboard aggregator.
  *
  * Body: { projectId: string, message: string, useAgent?: boolean }
+ * 
+ * Features:
+ * - sessionId: passed to AnythingLLM for conversation memory
+ * - Thread-scoped chat: uses /thread/{threadSlug}/chat when aiThreadId exists
  */
 export async function POST(req: NextRequest) {
     try {
@@ -30,10 +34,14 @@ export async function POST(req: NextRequest) {
             }, { status: 500 });
         }
 
-        // Look up the project's AnythingLLM workspace slug from the database
+        // Look up the project's AnythingLLM workspace slug + thread from the database
         const proposal = await prisma.proposal.findUnique({
             where: { id: projectId },
-            select: { aiWorkspaceSlug: true, workspace: { select: { aiWorkspaceSlug: true } } },
+            select: {
+                aiWorkspaceSlug: true,
+                aiThreadId: true,
+                workspace: { select: { aiWorkspaceSlug: true } },
+            },
         });
 
         // Prefer proposal-level slug, fall back to workspace-level slug
@@ -41,6 +49,7 @@ export async function POST(req: NextRequest) {
             proposal?.aiWorkspaceSlug ||
             proposal?.workspace?.aiWorkspaceSlug ||
             null;
+        const threadSlug = proposal?.aiThreadId || null;
 
         if (!workspaceSlug) {
             return NextResponse.json({
@@ -49,11 +58,15 @@ export async function POST(req: NextRequest) {
             }, { status: 404 });
         }
 
-        console.log(`[Copilot] Project ${projectId} → workspace "${workspaceSlug}" (agent: ${useAgent ? "YES" : "NO"})`);
+        // Build the chat URL — use thread-scoped endpoint when available
+        const chatPath = threadSlug
+            ? `${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/thread/${threadSlug}/chat`
+            : `${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/chat`;
 
-        // Call AnythingLLM chat endpoint for this project's workspace
-        // ANYTHING_LLM_BASE_URL already ends with /api/v1
-        const response = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/chat`, {
+        console.log(`[Copilot] Project ${projectId} → workspace "${workspaceSlug}" thread: ${threadSlug || "(main)"} (agent: ${useAgent ? "YES" : "NO"})`);
+
+        // Call AnythingLLM chat endpoint
+        const response = await fetch(chatPath, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -62,6 +75,7 @@ export async function POST(req: NextRequest) {
             body: JSON.stringify({
                 message: useAgent ? `@agent ${message}` : message,
                 mode: "chat",
+                sessionId: `copilot-${projectId}`,
             }),
         });
 

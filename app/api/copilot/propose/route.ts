@@ -105,7 +105,7 @@ async function forwardToAnythingLLM(projectId: string | undefined, message: stri
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
             },
-            body: JSON.stringify({ message, mode: "chat" }),
+            body: JSON.stringify({ message, mode: "chat", sessionId: `propose-${projectId || "anon"}` }),
         });
 
         if (!res.ok) {
