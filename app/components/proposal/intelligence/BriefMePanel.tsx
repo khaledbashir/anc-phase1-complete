@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X, Sparkles, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import InsightCard, { type Insight } from "./InsightCard";
@@ -71,6 +72,12 @@ export default function BriefMePanel({
     const [showBottomLine, setShowBottomLine] = useState(false);
     const [showTypingDots, setShowTypingDots] = useState(false);
     const [loadingMessages, setLoadingMessages] = useState<string[]>([]);
+    const [mounted, setMounted] = useState(false);
+    
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
     const [loadingFadingOut, setLoadingFadingOut] = useState(false);
     const revealTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
     const hasFetchedRef = useRef(false);
@@ -223,9 +230,9 @@ export default function BriefMePanel({
         setBrief(null);
     }, [proposalId]);
 
-    if (!open) return null;
+    if (!open || !mounted) return null;
 
-    return (
+    const panelContent = (
         <>
             {/* Backdrop */}
             <div
@@ -396,4 +403,6 @@ export default function BriefMePanel({
             </div>
         </>
     );
+    
+    return createPortal(panelContent, document.body);
 }
