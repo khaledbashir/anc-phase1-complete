@@ -64,6 +64,14 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     // Prompt 51: Master table index — designates which pricing table is the "Project Grand Total"
     const masterTableIndex: number | null = (details as any)?.masterTableIndex ?? null;
 
+    // Prompt 42: Description overrides for inline typo editing (Mirror Mode)
+    const descriptionOverrides: Record<string, string> = (details as any)?.descriptionOverrides || {};
+
+    // Prompt 43: Column header style toggle — WORK/PRICING (default) or DESCRIPTION/AMOUNT
+    const columnHeaderStyle: "WORK_PRICING" | "DESCRIPTION_AMOUNT" = (details as any)?.columnHeaderStyle || "WORK_PRICING";
+    const colHeaderLeft = columnHeaderStyle === "DESCRIPTION_AMOUNT" ? "DESCRIPTION" : "WORK";
+    const colHeaderRight = columnHeaderStyle === "DESCRIPTION_AMOUNT" ? "AMOUNT" : "PRICING";
+
     // Detect product type from screens to adjust header text
     const detectProductType = (): "LED" | "LCD" | "Display" => {
         if (!screens || screens.length === 0) return "Display";
@@ -287,7 +295,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
             ];
 
-        return lineItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+        return lineItems.filter((it) => !it.isAlternate).reduce((sum, it) => sum + (Number(it.price) || 0), 0);
     };
 
     // LOI Master Table Summary - Shows BEFORE detailed pricing tables per Natalia requirement
@@ -348,8 +356,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
                         style={{ background: colors.primaryDark, color: colors.white }}
                     >
-                        <div className="col-span-8">WORK</div>
-                        <div className="col-span-4 text-right">PRICING</div>
+                        <div className="col-span-8">{colHeaderLeft}</div>
+                        <div className="col-span-4 text-right">{colHeaderRight}</div>
                     </div>
 
                     {/* Rows */}
@@ -485,7 +493,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                             }}
                                         >
                                             <div className="col-span-8 pr-2 text-xs" style={{ color: colors.text }}>
-                                                {(item?.description || "Item").toString()}
+                                                {(descriptionOverrides[`${tableId}:${idx}`] || item?.description || "Item").toString()}
                                             </div>
                                             <div className="col-span-4 text-right font-semibold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
                                                 {item?.isIncluded
@@ -500,7 +508,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         <>
                                             <div className="grid grid-cols-12 px-4 py-2 border-t text-xs font-semibold uppercase tracking-wider" style={{ borderColor: colors.border, background: colors.surface, color: colors.textMuted }}>
                                                 <div className="col-span-8">ALTERNATES</div>
-                                                <div className="col-span-4 text-right">PRICING</div>
+                                                <div className="col-span-4 text-right">{colHeaderRight}</div>
                                             </div>
                                             {alternates.map((alt: any, aidx: number) => (
                                                 <div key={`alt-${aidx}`} className="grid grid-cols-12 px-4 py-1.5 border-t text-xs italic" style={{ borderColor: colors.borderLight, color: colors.textMuted }}>
@@ -641,7 +649,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
                 ];
 
-        const subtotal = lineItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
+        const primaryItems = lineItems.filter((it) => !it.isAlternate);
+        const alternateItems = lineItems.filter((it) => it.isAlternate);
+        const subtotal = primaryItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
 
         return (
             <div className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
@@ -652,12 +662,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
                         style={{ background: colors.primary, color: colors.white }}
                     >
-                        <div className="col-span-8">WORK</div>
-                        <div className="col-span-4 text-right">PRICING</div>
+                        <div className="col-span-8">{colHeaderLeft}</div>
+                        <div className="col-span-4 text-right">{colHeaderRight}</div>
                     </div>
 
-                    {/* Items - Classic hierarchy: UPPERCASE BOLD name, smaller specs (tight rows) */}
-                    {lineItems.map((item, idx) => (
+                    {/* Primary Items - Classic hierarchy: UPPERCASE BOLD name, smaller specs (tight rows) */}
+                    {primaryItems.map((item, idx) => (
                         <div
                             key={item.key}
                             className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
@@ -687,7 +697,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         </div>
                     ))}
 
-                    {/* PROJECT TOTAL = sum of all table/line grandTotals (show for both LOI and Budget/Proposal) */}
+                    {/* PROJECT TOTAL = sum of primary items only (alternates excluded) */}
                     <div
                         className="grid grid-cols-12 px-4 py-3 border-t-2 break-inside-avoid"
                         style={{ borderColor: colors.border, background: colors.white }}
@@ -699,6 +709,48 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             {formatCurrency(subtotal, Math.abs(subtotal) < 0.01 ? "—" : undefined)}
                         </div>
                     </div>
+
+                    {/* Alternate Items — shown below total, visually distinct */}
+                    {alternateItems.length > 0 && (
+                        <>
+                            <div
+                                className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid"
+                                style={{ borderColor: colors.border, background: colors.surface }}
+                            >
+                                <div className="col-span-12 text-[9px] font-bold uppercase tracking-widest" style={{ color: colors.textMuted }}>
+                                    Alternates (not included in total)
+                                </div>
+                            </div>
+                            {alternateItems.map((item, idx) => (
+                                <div
+                                    key={item.key}
+                                    className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
+                                    style={{
+                                        borderColor: colors.borderLight,
+                                        background: colors.surface,
+                                        minHeight: '36px',
+                                        pageBreakInside: 'avoid',
+                                        breakInside: 'avoid',
+                                        opacity: 0.75,
+                                    }}
+                                >
+                                    <div className="col-span-8 pr-2">
+                                        <div className="text-xs tracking-wide uppercase italic" style={{ color: colors.textMuted }}>
+                                            {item.name}
+                                        </div>
+                                        {item.description && (
+                                            <div className="text-xs leading-none mt-0.5 italic" style={{ color: colors.textMuted, fontSize: '9px' }}>
+                                                {item.description}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="col-span-4 text-right text-sm whitespace-nowrap italic" style={{ color: colors.textMuted }}>
+                                        {formatCurrency(item.price, Math.abs(Number(item.price)) < 0.01 ? "—" : undefined)}
+                                    </div>
+                                </div>
+                            ))}
+                        </>
+                    )}
                 </div>
             </div>
         );

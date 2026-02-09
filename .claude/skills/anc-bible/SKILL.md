@@ -176,12 +176,18 @@ ZONE 2 — Detail Sections (repeats for each section):
 | Indiana Audit (`Cost-Analysis---Indiana-Fever...xlsx`) | 1 | $507,262.53 | Fallback parser |
 | Scotia CAD (`Copy of Cost Analysis - SBA PH4...xlsx`) | 7 | CAD currency, 13% tax | CAD + tax |
 
-## Phase 2 Roadmap
-- **A: Mirror Polish** — Done (prompts 40-48)
-- **B: Product Catalog** — In progress (current branch)
-- **C: Intelligence Mode** — Planned
-- **D: AI Chat** — Planned (Kimi K2.5 via Puter.js, free inference)
-- **E: RFP Extraction** — Planned
+## Phase 2 Roadmap & Prompt Tracker
+**Source:** `i18n/ANC_Phase2_Prompt_Playbook.docx.pdf` | **Live tracker:** `.claude/projects/-root-rag2/memory/prompt-tracker.md`
+
+| Phase | Prompts | Status | Score |
+|-------|---------|--------|-------|
+| A: Mirror Polish | P40-48 | 4 done, 2 partial, 3 todo | 4/9 |
+| B: Product Catalog | P49-55 | 1 done, 1 partial, 5 todo | 1/7 |
+| C: Intelligence Mode | P56-62 | Not started | 0/7 |
+| D: AI Copilot Chat | P63-70 | Not started (Kimi K2.5 via Puter.js) | 0/8 |
+| E: RFP Extraction | P71-78 | Not started | 0/8 |
+
+**RULE:** After completing any prompt, update `prompt-tracker.md` with ✅, date, and commit hash.
 
 ## Things That Will Bite You
 1. `ProposalContext.tsx` is 119KB. Read it carefully before changing it.

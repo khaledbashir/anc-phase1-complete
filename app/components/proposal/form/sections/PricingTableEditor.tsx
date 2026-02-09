@@ -120,6 +120,11 @@ export default function PricingTableEditor() {
         name: "details.customProposalNotes" as any,
     }) || "";
 
+    const descriptionOverrides: Record<string, string> = useWatch({
+        control,
+        name: "details.descriptionOverrides" as any,
+    }) || {};
+
     const documentMode = useWatch({
         control,
         name: "details.documentMode",
@@ -137,6 +142,19 @@ export default function PricingTableEditor() {
 
     const handleNotesChange = (notes: string) => {
         setValue("details.customProposalNotes" as any, notes, { shouldDirty: true });
+    };
+
+    const handleDescriptionChange = (tableId: string, itemIndex: number, newDesc: string) => {
+        const key = `${tableId}:${itemIndex}`;
+        const updated = { ...descriptionOverrides, [key]: newDesc };
+        setValue("details.descriptionOverrides" as any, updated, { shouldDirty: true });
+    };
+
+    const handleDescriptionReset = (tableId: string, itemIndex: number) => {
+        const key = `${tableId}:${itemIndex}`;
+        const updated = { ...descriptionOverrides };
+        delete updated[key];
+        setValue("details.descriptionOverrides" as any, updated, { shouldDirty: true });
     };
 
     return (
@@ -208,6 +226,66 @@ export default function PricingTableEditor() {
                                 );
                             })}
                         </div>
+                    </div>
+
+                    {/* Divider */}
+                    <div className="border-t border-border" />
+
+                    {/* P42: Inline Description Editing */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Edit3 className="w-4 h-4 text-muted-foreground" />
+                            <Label className="text-sm font-semibold text-foreground">
+                                Line Item Descriptions
+                            </Label>
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mb-3">
+                            Click any description to fix typos. Changes appear instantly in the PDF.
+                        </p>
+
+                        {pricingDocument.tables.map((table) => {
+                            const items = (table as any)?.items || [];
+                            if (items.length === 0) return null;
+                            const headerLabel = tableHeaderOverrides[table.id] || table.name;
+                            return (
+                                <div key={`desc-${table.id}`} className="space-y-1">
+                                    <div className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                                        {headerLabel}
+                                    </div>
+                                    <div className="space-y-1">
+                                        {items.map((item: any, idx: number) => {
+                                            const key = `${table.id}:${idx}`;
+                                            const original = (item?.description || "Item").toString();
+                                            const override = descriptionOverrides[key];
+                                            const isOverridden = override !== undefined && override !== "";
+                                            return (
+                                                <div key={key} className="flex items-center gap-2">
+                                                    <DebouncedInput
+                                                        placeholder={original}
+                                                        value={isOverridden ? override : original}
+                                                        onChange={(val) => handleDescriptionChange(table.id, idx, val)}
+                                                        className={`flex-1 min-w-0 px-2 py-1.5 text-xs bg-background border rounded-md transition-colors ${
+                                                            isOverridden
+                                                                ? "border-amber-500/40 bg-amber-500/5"
+                                                                : "border-border"
+                                                        } focus:border-[#0A52EF] focus:ring-1 focus:ring-[#0A52EF]/20`}
+                                                    />
+                                                    {isOverridden && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleDescriptionReset(table.id, idx)}
+                                                            className="text-[10px] text-muted-foreground hover:text-foreground px-1.5 py-1 rounded hover:bg-muted transition-colors shrink-0"
+                                                        >
+                                                            Reset
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
 
                     {/* Divider */}

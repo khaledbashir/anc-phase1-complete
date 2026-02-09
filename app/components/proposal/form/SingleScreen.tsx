@@ -66,6 +66,7 @@ const SingleScreen = ({
     const pitch = useWatch({ name: `${name}[${index}].pitchMm`, control });
     const desiredMargin = useWatch({ name: `${name}[${index}].desiredMargin`, control });
     const isManualLineItem = useWatch({ name: `${name}[${index}].isManualLineItem`, control });
+    const isAlternate = useWatch({ name: `${name}[${index}].isAlternate`, control });
     const manualCost = useWatch({ name: `${name}[${index}].manualCost`, control });
     const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
     const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
@@ -182,6 +183,11 @@ const SingleScreen = ({
                             </Tooltip>
                         </TooltipProvider>
                     )}
+                    {isAlternate && (
+                        <span className="px-2 py-0.5 bg-orange-500/10 text-orange-400 text-[10px] font-medium rounded-full border border-orange-500/20">
+                            ALT
+                        </span>
+                    )}
                     {hasLowMargin && !hasErrors && (
                         <span className="px-2 py-0.5 bg-yellow-500/10 text-yellow-600 text-[10px] font-medium rounded-full">
                             Low Margin
@@ -294,14 +300,26 @@ const SingleScreen = ({
                                 <Copy className="w-4 h-4" />
                             </BaseButton>
                         </div>
-                        <BaseButton
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => removeField(index)}
-                        >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Remove
-                        </BaseButton>
+                        <div className="flex items-center gap-3">
+                            <label className="flex items-center gap-1.5 cursor-pointer" title="Mark as alternate (excluded from grand total)">
+                                <Checkbox
+                                    checked={!!isAlternate}
+                                    onCheckedChange={(checked) => setValue(`${name}[${index}].isAlternate`, !!checked, { shouldDirty: true })}
+                                />
+                                <span className={cn(
+                                    "text-[10px] font-medium",
+                                    isAlternate ? "text-orange-400" : "text-muted-foreground"
+                                )}>Alternate</span>
+                            </label>
+                            <BaseButton
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => removeField(index)}
+                            >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                Remove
+                            </BaseButton>
+                        </div>
                     </div>
 
                     {/* Primary Fields */}
