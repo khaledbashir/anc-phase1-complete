@@ -75,7 +75,7 @@ export const MirrorPricingSection = ({
 }) => {
     const docTotal = computeDocumentTotal(document, priceOverrides);
     return (
-        <div className="px-4 mt-8 break-inside-avoid">
+        <div className="px-4 mt-4 break-inside-avoid">
             {document.tables.map((table, idx) => (
                 <ClassicMirrorTable
                     key={table.id || idx}
@@ -88,7 +88,7 @@ export const MirrorPricingSection = ({
 
             {/* Document Total - Only show if there are multiple tables to verify total */}
             {document.tables.length > 1 && (
-                <div className="mt-8 border-t-4 border-[#0A52EF] pt-4 flex justify-end">
+                <div className="mt-4 border-t-4 border-[#0A52EF] pt-2 flex justify-end">
                     <div className="w-1/2">
                         <div className="flex justify-between items-center py-2 border-b-2 border-black">
                             <span className="font-bold text-sm uppercase text-black">Project Grand Total</span>
@@ -118,16 +118,16 @@ const ClassicMirrorTable = ({
     const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
 
     return (
-        <div className="mb-10 break-inside-avoid">
+        <div className="mb-5 break-inside-avoid">
             {/* Table Name */}
             {headerName && (
-                <div className="flex justify-between items-center border-b-2 border-black pb-1 mb-4">
+                <div className="flex justify-between items-center border-b-2 border-black pb-1 mb-2">
                     <h3 className="font-bold text-lg uppercase text-black font-sans">{headerName}</h3>
                 </div>
             )}
 
             {/* Items */}
-            <div className="space-y-4 mb-6">
+            <div className="space-y-1.5 mb-3">
                 {table.items.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-start">
                         <div className="flex-1 pr-4">
@@ -147,7 +147,7 @@ const ClassicMirrorTable = ({
             </div>
 
             {/* Subtotal */}
-            <div className="flex justify-end border-t border-gray-200 pt-2 mb-2">
+            <div className="flex justify-end border-t border-gray-200 pt-1 mb-1">
                 <div className="w-1/2 flex justify-between items-center">
                     <span className="text-xs font-bold uppercase text-gray-500">Subtotal</span>
                     <span className="font-bold text-sm text-black">{formatCurrency(effectiveSub)}</span>
@@ -156,7 +156,7 @@ const ClassicMirrorTable = ({
 
             {/* Tax */}
             {table.tax && (
-                <div className="flex justify-end mb-2">
+                <div className="flex justify-end mb-1">
                     <div className="w-1/2 flex justify-between items-center">
                         <span className="text-xs font-bold uppercase text-gray-500">{table.tax.label}</span>
                         <span className="font-bold text-sm text-black">{formatCurrency(effectiveTax)}</span>
@@ -166,7 +166,7 @@ const ClassicMirrorTable = ({
 
             {/* Bond */}
             {table.bond > 0 && (
-                <div className="flex justify-end mb-2">
+                <div className="flex justify-end mb-1">
                     <div className="w-1/2 flex justify-between items-center">
                         <span className="text-xs font-bold uppercase text-gray-500">Bond</span>
                         <span className="font-bold text-sm text-black">{formatCurrency(table.bond)}</span>
@@ -175,7 +175,7 @@ const ClassicMirrorTable = ({
             )}
 
             {/* Table Total */}
-            <div className="flex justify-end border-t-2 border-gray-900 pt-2 mb-6">
+            <div className="flex justify-end border-t-2 border-gray-900 pt-1 mb-3">
                 <div className="w-1/2 flex justify-between items-center">
                     <span className="text-sm font-bold uppercase text-black">Total</span>
                     <span className="font-bold text-lg text-black">{formatCurrency(effectiveGrand)}</span>
@@ -184,9 +184,9 @@ const ClassicMirrorTable = ({
 
             {/* Alternates */}
             {table.alternates.length > 0 && (
-                <div className="mt-6 bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-bold text-xs uppercase text-gray-500 mb-3 border-b border-gray-200 pb-1">Alternates / Options</h4>
-                    <div className="space-y-3">
+                <div className="mt-3 bg-gray-50 p-3 rounded-lg">
+                    <h4 className="font-bold text-xs uppercase text-gray-500 mb-2 border-b border-gray-200 pb-1">Alternates / Options</h4>
+                    <div className="space-y-1.5">
                         {table.alternates.map((alt, idx) => (
                             <div key={idx} className="flex justify-between items-start">
                                 <div className="flex-1 pr-4">
@@ -224,7 +224,7 @@ export const PremiumMirrorPricingSection = ({
 }) => {
     const docTotal = computeDocumentTotal(document, priceOverrides);
     return (
-        <div className="mt-8 break-inside-avoid">
+        <div className="mt-4 break-inside-avoid">
             {document.tables.map((table, idx) => (
                 <PremiumMirrorTable
                     key={table.id || idx}
@@ -237,7 +237,7 @@ export const PremiumMirrorPricingSection = ({
 
             {/* Document Total */}
             {document.tables.length > 1 && (
-                <div className="mt-10 flex justify-end items-center gap-10 border-t-2 border-black pt-4">
+                <div className="mt-4 flex justify-end items-center gap-10 border-t-2 border-black pt-2">
                     <span className="font-bold text-lg uppercase tracking-widest text-[#6B7280]">Project Total:</span>
                     <span className="font-bold text-3xl text-[#002C73]">{formatCurrency(docTotal)}</span>
                 </div>
@@ -263,9 +263,9 @@ const PremiumMirrorTable = ({
     const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
 
     return (
-        <div className="mb-12">
+        <div className="mb-6">
             {/* Header */}
-            <div className="flex justify-between border-b-2 border-black pb-2 mb-4">
+            <div className="flex justify-between border-b-2 border-black pb-1 mb-2">
                 <h2 className="text-xl font-bold tracking-tight text-[#002C73] font-sans">
                     {headerName}
                 </h2>
@@ -277,7 +277,7 @@ const PremiumMirrorTable = ({
             {/* Line Items */}
             <div className="space-y-0">
                 {table.items.map((it, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-6 border-b border-gray-100 last:border-0">
+                    <div key={idx} className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
                         <div className="flex-1">
                             <h3 className="font-bold text-sm uppercase text-[#002C73] font-sans">
                                 {getEffectiveDescription(descriptionOverrides, table.id, idx, it.description)}
@@ -295,7 +295,7 @@ const PremiumMirrorTable = ({
             </div>
 
             {/* Subtotal & Extras */}
-            <div className="mt-6 flex flex-col items-end gap-2">
+            <div className="mt-3 flex flex-col items-end gap-1">
                 <div className="flex justify-end items-center gap-10">
                     <span className="font-bold text-sm uppercase tracking-widest text-[#6B7280]">Subtotal:</span>
                     <span className="font-bold text-2xl text-[#002C73]">{formatCurrency(effectiveSub)}</span>
@@ -315,7 +315,7 @@ const PremiumMirrorTable = ({
                     </div>
                 )}
 
-                <div className="mt-4 pt-4 border-t border-gray-200 w-full flex justify-end items-center gap-10">
+                <div className="mt-2 pt-2 border-t border-gray-200 w-full flex justify-end items-center gap-10">
                     <span className="font-bold text-base uppercase tracking-widest text-[#6B7280]">Total:</span>
                     <span className="font-bold text-3xl text-[#002C73]">{formatCurrency(effectiveGrand)}</span>
                 </div>
@@ -323,9 +323,9 @@ const PremiumMirrorTable = ({
 
             {/* Alternates */}
             {table.alternates.length > 0 && (
-                <div className="mt-10 bg-[#F3F4F6] p-6 rounded-xl">
-                    <h4 className="font-bold text-sm uppercase text-[#002C73] mb-4 border-b border-white pb-2">Alternates / Options</h4>
-                    <div className="space-y-4">
+                <div className="mt-4 bg-[#F3F4F6] p-4 rounded-xl">
+                    <h4 className="font-bold text-sm uppercase text-[#002C73] mb-2 border-b border-white pb-1">Alternates / Options</h4>
+                    <div className="space-y-2">
                         {table.alternates.map((alt, idx) => (
                             <div key={idx} className="flex justify-between items-center">
                                 <div className="flex-1 pr-6">

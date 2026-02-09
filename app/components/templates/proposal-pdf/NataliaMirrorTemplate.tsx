@@ -415,7 +415,7 @@ function Header({
       : "LETTER OF INTENT";
 
   return (
-    <div className="px-12 pt-8 pb-6 border-b-2 border-[#0A52EF]">
+    <div className="px-12 pt-6 pb-3 border-b-2 border-[#0A52EF]">
       <div className="flex justify-between items-start">
         <LogoSelectorServer theme="light" width={120} height={60} />
         <div className="text-right">
@@ -480,7 +480,7 @@ function IntroSection({
   }
 
   return (
-    <div className="px-12 py-6">
+    <div className="px-12 py-3">
       <p className="text-[11px] text-gray-600 leading-relaxed text-justify">
         {intro}
       </p>
@@ -528,9 +528,9 @@ function MasterTableSection({
   const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
 
   return (
-    <div className="px-12 py-4 break-inside-avoid">
+    <div className="px-12 py-2 break-inside-avoid">
       {/* Darker French Blue header to distinguish as summary */}
-      <div className="flex justify-between items-center pb-2 mb-0" style={{ borderBottom: '3px solid #002C73' }}>
+      <div className="flex justify-between items-center pb-1 mb-0" style={{ borderBottom: '3px solid #002C73' }}>
         <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#002C73' }}>
           {headerName}
         </h2>
@@ -544,7 +544,7 @@ function MasterTableSection({
         {table.items.map((item, idx) => (
           <div
             key={`master-item-${idx}`}
-            className="flex justify-between py-2 border-b border-gray-100 text-[11px]"
+            className="flex justify-between py-1 border-b border-gray-100 text-[11px]"
           >
             <div className="flex-1 pr-4">
               <span className="text-gray-700">{_getDesc(idx, item.description)}</span>
@@ -563,7 +563,7 @@ function MasterTableSection({
       {/* Footer rows */}
       <div style={{ borderTop: '3px solid #002C73' }} className="mt-0">
         {/* Subtotal */}
-        <div className="flex justify-between py-2 text-[11px] font-bold">
+        <div className="flex justify-between py-1 text-[11px] font-bold">
           <span className="text-gray-800">SUBTOTAL:</span>
           <span className="text-gray-800 w-28 text-right">
             {formatPricingCurrency(effectiveSub, currency)}
@@ -572,7 +572,7 @@ function MasterTableSection({
 
         {/* Tax */}
         {table.tax && (
-          <div className="flex justify-between py-1 text-[11px]">
+          <div className="flex justify-between py-0.5 text-[11px]">
             <span className="text-gray-600">{table.tax.label}</span>
             <span className="text-gray-800 w-28 text-right">
               {formatPricingCurrency(effectiveTax, currency)}
@@ -582,7 +582,7 @@ function MasterTableSection({
 
         {/* Bond */}
         {(table.bond !== 0 || table.tax) && (
-          <div className="flex justify-between py-1 text-[11px]">
+          <div className="flex justify-between py-0.5 text-[11px]">
             <span className="text-gray-600">BOND</span>
             <span className="text-gray-800 w-28 text-right">
               {formatPricingCurrency(table.bond, currency)}
@@ -591,7 +591,7 @@ function MasterTableSection({
         )}
 
         {/* Grand Total - prominent */}
-        <div className="flex justify-between py-2 text-sm font-bold border-t border-gray-300">
+        <div className="flex justify-between py-1 text-sm font-bold border-t border-gray-300">
           <span style={{ color: '#002C73' }}>GRAND TOTAL:</span>
           <span className="w-28 text-right" style={{ color: '#002C73', fontSize: '14px' }}>
             {formatPricingCurrency(effectiveGrand, currency)}
@@ -640,9 +640,9 @@ function PricingTableSection({
   const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
 
   return (
-    <div className="px-12 py-4 break-inside-avoid">
+    <div className="px-12 py-2 break-inside-avoid">
       {/* Table header */}
-      <div className="flex justify-between items-center border-b-2 border-gray-800 pb-2 mb-0">
+      <div className="flex justify-between items-center border-b-2 border-gray-800 pb-1 mb-0">
         <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
           {headerName}
         </h2>
@@ -656,7 +656,7 @@ function PricingTableSection({
         {table.items.map((item, idx) => (
           <div
             key={`${table.id}-item-${idx}`}
-            className="flex justify-between py-2 border-b border-gray-100 text-[11px]"
+            className="flex justify-between py-1 border-b border-gray-100 text-[11px]"
           >
             <div className="flex-1 pr-4">
               <span className="text-gray-700">{_getDesc(idx, item.description)}</span>
@@ -675,7 +675,7 @@ function PricingTableSection({
       {/* Footer rows */}
       <div className="border-t-2 border-gray-800 mt-0">
         {/* Subtotal */}
-        <div className="flex justify-between py-2 text-[11px] font-bold">
+        <div className="flex justify-between py-1 text-[11px] font-bold">
           <span className="text-gray-800">SUBTOTAL:</span>
           <span className="text-gray-800 w-28 text-right">
             {formatPricingCurrency(effectiveSub, currency)}
@@ -684,7 +684,7 @@ function PricingTableSection({
 
         {/* Tax */}
         {table.tax && (
-          <div className="flex justify-between py-1 text-[11px]">
+          <div className="flex justify-between py-0.5 text-[11px]">
             <span className="text-gray-600">{table.tax.label}</span>
             <span className="text-gray-800 w-28 text-right">
               {formatPricingCurrency(effectiveTax, currency)}
@@ -694,7 +694,7 @@ function PricingTableSection({
 
         {/* Bond (only show if non-zero or if tax exists) */}
         {(table.bond !== 0 || table.tax) && (
-          <div className="flex justify-between py-1 text-[11px]">
+          <div className="flex justify-between py-0.5 text-[11px]">
             <span className="text-gray-600">BOND</span>
             <span className="text-gray-800 w-28 text-right">
               {formatPricingCurrency(table.bond, currency)}
@@ -703,7 +703,7 @@ function PricingTableSection({
         )}
 
         {/* Grand Total */}
-        <div className="flex justify-between py-2 text-sm font-bold border-t border-gray-300">
+        <div className="flex justify-between py-1 text-sm font-bold border-t border-gray-300">
           <span className="text-gray-800">GRAND TOTAL:</span>
           <span className="text-[#0A52EF] w-28 text-right">
             {formatPricingCurrency(effectiveGrand, currency)}
@@ -728,9 +728,9 @@ function AlternatesSection({
   const currencyLabel = `PRICING (${currency})`;
 
   return (
-    <div className="px-12 pt-4 pb-2 break-inside-avoid">
+    <div className="px-12 pt-2 pb-1 break-inside-avoid">
       {/* Table header — matches main pricing table header styling */}
-      <div className="flex justify-between items-center border-b-2 border-gray-800 pb-2 mb-0">
+      <div className="flex justify-between items-center border-b-2 border-gray-800 pb-1 mb-0">
         <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
           ALTERNATES — ADD TO COST ABOVE
         </h2>
@@ -744,7 +744,7 @@ function AlternatesSection({
         {alternates.map((alt, idx) => (
           <div
             key={`alt-${idx}`}
-            className="flex justify-between py-2 border-b border-gray-100 text-[11px]"
+            className="flex justify-between py-1 border-b border-gray-100 text-[11px]"
           >
             <div className="flex-1 pr-4">
               <span className="text-gray-700">{alt.description}</span>
@@ -774,8 +774,8 @@ function DocumentTotalSection({
 }) {
   // FR-2.3: Different styling for LOI (top position) vs Budget/Proposal (bottom)
   const containerClass = isLOIPosition
-    ? "px-12 py-6 mb-4 bg-[#0A52EF]/10 border-2 border-[#0A52EF] rounded-lg"
-    : "px-12 py-6 mt-4 bg-[#0A52EF]/5 border-t-2 border-[#0A52EF]";
+    ? "px-12 py-3 mb-2 bg-[#0A52EF]/10 border-2 border-[#0A52EF] rounded-lg"
+    : "px-12 py-3 mt-2 bg-[#0A52EF]/5 border-t-2 border-[#0A52EF]";
 
   return (
     <div className={containerClass}>
@@ -804,8 +804,8 @@ function PaymentTermsSection({ paymentTerms }: { paymentTerms?: string }) {
   const isBulletStyle = terms.includes("•") || terms.includes("-");
 
   return (
-    <div className="px-12 py-6 break-inside-avoid">
-      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-2 mb-4">
+    <div className="px-12 py-3 break-inside-avoid">
+      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-2">
         PAYMENT TERMS
       </h3>
       {isBulletStyle ? (
@@ -825,41 +825,41 @@ function PaymentTermsSection({ paymentTerms }: { paymentTerms?: string }) {
 
 function SignatureSection({ clientName }: { clientName: string }) {
   return (
-    <div className="px-12 py-6 break-inside-avoid">
-      <p className="text-[10px] text-gray-500 mb-8">
-        Please sign below to indicate Purchaser's agreement to purchase the
+    <div className="px-12 py-3 break-inside-avoid">
+      <p className="text-[10px] text-gray-500 mb-4">
+        Please sign below to indicate Purchaser&apos;s agreement to purchase the
         Display System as described herein and to authorize ANC to commence
         production.
       </p>
 
-      <div className="grid grid-cols-2 gap-12">
+      <div className="grid grid-cols-2 gap-8">
         {/* ANC Signature */}
         <div>
           <div className="text-xs font-semibold text-gray-600 mb-1">
             AGREED TO AND ACCEPTED:
           </div>
-          <div className="text-xs font-bold text-gray-800 mb-4">
+          <div className="text-xs font-bold text-gray-800 mb-2">
             ANC Sports Enterprises, LLC
           </div>
-          <div className="border-b border-gray-400 mb-1 h-8" />
+          <div className="border-b border-gray-400 mb-1 h-6" />
           <div className="text-[10px] text-gray-500">SIGNATURE</div>
-          <div className="border-b border-gray-400 mb-1 h-6 mt-4" />
+          <div className="border-b border-gray-400 mb-1 h-5 mt-3" />
           <div className="text-[10px] text-gray-500">NAME</div>
-          <div className="border-b border-gray-400 mb-1 h-6 mt-4" />
+          <div className="border-b border-gray-400 mb-1 h-5 mt-3" />
           <div className="text-[10px] text-gray-500">DATE</div>
         </div>
 
         {/* Client Signature */}
         <div>
           <div className="text-xs font-semibold text-gray-600 mb-1">&nbsp;</div>
-          <div className="text-xs font-bold text-gray-800 mb-4">
+          <div className="text-xs font-bold text-gray-800 mb-2">
             {clientName}
           </div>
-          <div className="border-b border-gray-400 mb-1 h-8" />
+          <div className="border-b border-gray-400 mb-1 h-6" />
           <div className="text-[10px] text-gray-500">SIGNATURE</div>
-          <div className="border-b border-gray-400 mb-1 h-6 mt-4" />
+          <div className="border-b border-gray-400 mb-1 h-5 mt-3" />
           <div className="text-[10px] text-gray-500">NAME</div>
-          <div className="border-b border-gray-400 mb-1 h-6 mt-4" />
+          <div className="border-b border-gray-400 mb-1 h-5 mt-3" />
           <div className="text-[10px] text-gray-500">DATE</div>
         </div>
       </div>
@@ -896,8 +896,8 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
   };
 
   return (
-    <div className="px-12 py-6 break-before-page">
-      <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-2 mb-4">
+    <div className="px-12 py-3 break-before-page">
+      <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mb-2">
         SPECIFICATIONS
       </h2>
 
@@ -972,8 +972,8 @@ function StatementOfWorkSection({ details }: { details: any }) {
   if (!sow) return null;
 
   return (
-    <div className="px-12 py-6 break-before-page">
-      <h2 className="text-lg font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-2 mb-6">
+    <div className="px-12 py-3 break-before-page">
+      <h2 className="text-lg font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mb-3">
         STATEMENT OF WORK
       </h2>
       <div
@@ -1066,13 +1066,13 @@ function RespMatrixSOWSection({
   };
 
   return (
-    <div className="px-12 py-6 break-before-page">
+    <div className="px-12 py-3 break-before-page">
       {/* Title block */}
-      <div className="text-center mb-6">
+      <div className="text-center mb-3">
         <div className="text-sm font-bold text-gray-800 uppercase tracking-wide">
           {clientName}
         </div>
-        <h2 className="text-lg font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-2 mt-1">
+        <h2 className="text-lg font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mt-1">
           STATEMENT OF WORK
         </h2>
       </div>
@@ -1118,8 +1118,8 @@ function CustomNotesSection({
   const title = isLOI ? "ADDITIONAL NOTES" : "NOTES";
 
   return (
-    <div className="px-12 py-6 break-inside-avoid">
-      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-2 mb-4">
+    <div className="px-12 py-3 break-inside-avoid">
+      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-2">
         {title}
       </h3>
       <div className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-wrap">
@@ -1135,7 +1135,7 @@ function CustomNotesSection({
 
 function Footer() {
   return (
-    <div className="px-12 py-4 mt-8 border-t border-gray-200">
+    <div className="px-12 py-2 mt-4 border-t border-gray-200">
       <div className="flex justify-between items-center">
         <div className="text-[9px] text-gray-400">
           ANC Sports Enterprises, LLC · 2 Manhattanville Road, Suite 402 · Purchase, NY 10577
