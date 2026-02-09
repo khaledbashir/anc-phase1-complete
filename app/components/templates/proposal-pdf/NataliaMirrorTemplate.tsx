@@ -243,7 +243,7 @@ function Header({
     documentMode === "BUDGET"
       ? "BUDGET ESTIMATE"
       : documentMode === "PROPOSAL"
-      ? "PROPOSAL"
+      ? "SALES QUOTATION"
       : "LETTER OF INTENT";
 
   return (

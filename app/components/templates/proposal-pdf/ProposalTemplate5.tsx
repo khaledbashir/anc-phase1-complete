@@ -39,7 +39,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const internalAudit = details?.internalAudit as any;
 
     const documentMode = resolveDocumentMode(details);
-    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "PROPOSAL" : "LETTER OF INTENT";
+    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "SALES QUOTATION" : "LETTER OF INTENT";
     const isLOI = documentMode === "LOI";
 
     const purchaserName = receiver?.name || "Client";
