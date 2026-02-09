@@ -13,11 +13,12 @@ const prisma = new PrismaClient();
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const product = await prisma.manufacturerProduct.findUnique({
-            where: { id: params.id },
+            where: { id },
         });
 
         if (!product) {
@@ -33,13 +34,14 @@ export async function GET(
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const body = await request.json();
 
         const existing = await prisma.manufacturerProduct.findUnique({
-            where: { id: params.id },
+            where: { id },
         });
 
         if (!existing) {
@@ -76,7 +78,7 @@ export async function PUT(
         if (body.extendedSpecs !== undefined) data.extendedSpecs = body.extendedSpecs;
 
         const product = await prisma.manufacturerProduct.update({
-            where: { id: params.id },
+            where: { id },
             data,
         });
 
@@ -92,11 +94,12 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        const { id } = await params;
         const existing = await prisma.manufacturerProduct.findUnique({
-            where: { id: params.id },
+            where: { id },
         });
 
         if (!existing) {
@@ -105,7 +108,7 @@ export async function DELETE(
 
         // Soft delete
         await prisma.manufacturerProduct.update({
-            where: { id: params.id },
+            where: { id },
             data: { isActive: false },
         });
 
