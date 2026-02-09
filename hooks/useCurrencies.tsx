@@ -29,7 +29,7 @@ const useCurrencies = () => {
 
             setCurrencies(currencyOptions);
         } catch (err) {
-            console.log(err);
+            // silently ignore currency fetch errors
         } finally {
             setCurrenciesLoading(false);
         }

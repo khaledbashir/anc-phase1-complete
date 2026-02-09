@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -47,9 +47,8 @@ const getStatusConfig = (status: string) => {
     return configs[status] || { label: status, color: "#71717a" };
 };
 
-const ProjectCard = ({ project, onImport, onDelete }: ProjectCardProps) => {
+const ProjectCard = ({ project, onDelete }: ProjectCardProps) => {
     const router = useRouter();
-    const [isHovered, setIsHovered] = useState(false);
     const status = getStatusConfig(project.status);
 
     const handleClick = () => {
@@ -59,8 +58,6 @@ const ProjectCard = ({ project, onImport, onDelete }: ProjectCardProps) => {
     return (
         <div
             onClick={handleClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
             className="group relative bg-card border border-border overflow-hidden transition-all duration-300 hover:border-foreground/20 p-6 flex flex-col h-full min-h-[220px]"
         >
             {/* Minimal Icon Area */}

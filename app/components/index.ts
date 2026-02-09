@@ -7,7 +7,6 @@ import BaseFooter from "./layout/BaseFooter";
 /* =========================
    * Proposal
    ========================= */
-import ProposalActions from "./proposal/ProposalActions";
 import ActionToolbar from "./ActionToolbar";
 
 /* =========================
@@ -113,7 +112,6 @@ import { KimiVision } from "./reusables/KimiVision";
 export {
    BaseNavbar,
    BaseFooter,
-   ProposalActions,
    ActionToolbar,
    BillFromSection,
    BillToSection,

@@ -283,9 +283,6 @@ function IntroSection({
   // FR-4.3: Use custom intro text if provided, otherwise generate default
   let intro: string;
 
-  // Debug logging
-  console.log('[NataliaMirrorTemplate IntroSection] displayTypeLabel:', displayTypeLabel);
-
   if (customIntroText?.trim()) {
     intro = customIntroText.trim();
   } else {

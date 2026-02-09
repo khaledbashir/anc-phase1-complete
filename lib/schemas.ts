@@ -1,8 +1,5 @@
 import { z } from "zod";
 
-// Helpers
-import { formatNumberWithCommas } from "@/lib/helpers";
-
 // Variables
 import { DATE_OPTIONS } from "@/lib/variables";
 
@@ -70,15 +67,6 @@ const fieldValidators = {
     nonNegativeNumber: z.coerce.number().nonnegative({
         message: "Must be a positive number",
     }),
-    // ! This is unused
-    numWithCommas: z.coerce
-        .number()
-        .nonnegative({
-            message: "Must be a positive number",
-        })
-        .transform((value) => {
-            return formatNumberWithCommas(value);
-        }),
 };
 
 const CustomInputSchema = z.object({

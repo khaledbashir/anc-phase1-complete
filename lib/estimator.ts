@@ -43,39 +43,9 @@ export function calculateTotalWithBond(cost: number, marginPct: number) {
   };
 }
 
-/**
- * calculateScreenPrice (Internal Logic Replacement Check)
- * Note: Base calculations are now handled by calculatePerScreenAudit for ANC Master Logic.
- * This function remains for legacy compatibility but is updated to use new pricing constants.
- */
-export function calculateScreenPrice(
-  width: number,
-  height: number,
-  pitch: number,
-  isOutdoor: boolean = false
-): ScreenPriceBreakdown {
-  const dWidth = new Decimal(width);
-  const dHeight = new Decimal(height);
-
-  // LED Cost calculation basis
-  const area = dWidth.times(dHeight);
-  const pricePerSquareMeter = isOutdoor ? 150 : 80;
-  const ledCost = area.times(pricePerSquareMeter);
-
-  const structureCost = ledCost.times(0.20);
-  const installCost = new Decimal(5000);
-  const powerCost = ledCost.times(0.15);
-
-  const total = ledCost.plus(structureCost).plus(installCost).plus(powerCost);
-
-  return {
-    led: Math.round(ledCost.toNumber()),
-    structure: Math.round(structureCost.toNumber()),
-    install: Math.round(installCost.toNumber()),
-    power: Math.round(powerCost.toNumber()),
-    total: Math.round(total.toNumber()),
-  };
-}
+// RESERVED: Intelligence Mode Phase C — calculateScreenPrice
+// Legacy screen pricing logic kept for future Intelligence Mode build-out.
+// Do not delete. See: calculatePerScreenAudit for current ANC Master Logic.
 
 export const MORGANTOWN_BO_TAX = 0.02; // 2% West Virginia B&O Tax (REQ-81)
 export const STEEL_PRICE_PER_TON = 3000; // REQ-86: Thornton Tomasetti rate $3,000/ton
@@ -97,9 +67,6 @@ export const PERMITS_FIXED = 500;
 export const CMS_PCT = 0.02;
 export const DEMOLITION_FIXED = 5000;
 export const DEFAULT_REGIONAL_LABOR_MULTIPLIER = 1.0; // Base multiplier (1.0 = 100%)
-
-// Supported Pixel Pitches (REQ: 1.56, 1.83, 0.94, 4, 6, 10, 13, 15, 16)
-export const SUPPORTED_PITCHES = [0.94, 1.56, 1.83, 4, 6, 10, 13, 15, 16];
 
 // Venue Specific Constraints (REQ-81)
 export const VENUE_CONSTRAINTS = {
@@ -126,43 +93,8 @@ function shouldApplyMorgantownBoTax(input?: { projectAddress?: string; venue?: s
   return false;
 }
 
-/**
- * Calculate multiple screens in a proposal
- * @param screens Array of screen configurations
- * @returns Total breakdown across all screens
- */
-export function calculateProposalTotal(
-  screens: Array<{
-    width: number;
-    height: number;
-    pitch: number;
-    isOutdoor: boolean;
-  }>
-): ScreenPriceBreakdown {
-  const totals: ScreenPriceBreakdown = {
-    led: 0,
-    structure: 0,
-    install: 0,
-    power: 0,
-    total: 0,
-  };
-
-  screens.forEach((screen) => {
-    const breakdown = calculateScreenPrice(
-      screen.width,
-      screen.height,
-      screen.pitch,
-      screen.isOutdoor
-    );
-    totals.led += breakdown.led;
-    totals.structure += breakdown.structure;
-    totals.install += breakdown.install;
-    totals.power += breakdown.power;
-    totals.total += breakdown.total;
-  });
-
-  return totals;
-}
+// RESERVED: Intelligence Mode Phase C — calculateProposalTotal
+// Multi-screen aggregation logic kept for future Intelligence Mode build-out.
 
 /* ======================================================
    ANC Project estimator (from Master Excel Logic) - Hardened Audit Engine
@@ -848,239 +780,8 @@ export interface ExcelPricingSheet {
   };
 }
 
-/**
- * Calculate Excel-based pricing for a screen configuration
- * Follows the ANC proposal Excel template logic:
- * - Display Cost = Total SQ FT × Cost Per Sq Ft
- * - Shipping = fixed amount (default $500) or per-screen calculation
- * - Total Cost = Display Cost + Shipping
- * - Margin = percentage (default 10% per Excel example)
- * - Price = Total Cost ÷ (1 - Margin)
- * - Bond = Price × 1.5% (from Excel: 10% margin, $16.67 bond on $1,111.11 price)
- * - Total with Bond = Price + Bond Cost
- */
-export function calculateExcelPricing(
-  screens: Array<{
-    name: string;
-    product: string;
-    pitchMm: number;
-    widthFeet: number;
-    heightFeet: number;
-    quantity?: number;
-    costPerSqFt?: number;
-    shipping?: number;
-    margin?: number;
-  }>,
-  options?: {
-    defaultMargin?: number;
-    bondRate?: number;
-    shippingFlat?: number;
-  }
-): ExcelPricingSheet {
-  const DEFAULT_MARGIN = options?.defaultMargin ?? 0.10; // 10% per Excel example
-  const BOND_RATE = options?.bondRate ?? 0.015; // 1.5% bond rate
-  const SHIPPING_FLAT = options?.shippingFlat ?? 500;
+// RESERVED: Intelligence Mode Phase C — calculateExcelPricing
+// Excel-based pricing calculation logic kept for future Intelligence Mode build-out.
 
-  const rows: ExcelPricingRow[] = [];
-  let totals = {
-    totalDisplayCost: new Decimal(0),
-    totalShipping: new Decimal(0),
-    totalCost: new Decimal(0),
-    totalPrice: new Decimal(0),
-    totalAncMargin: new Decimal(0),
-    totalBond: new Decimal(0),
-    grandTotal: new Decimal(0),
-    totalSqFt: new Decimal(0),
-  };
-
-  screens.forEach((screen, index) => {
-    const quantity = new Decimal(screen.quantity ?? 1);
-    const widthFeet = new Decimal(screen.widthFeet);
-    const heightFeet = new Decimal(screen.heightFeet);
-
-    const sqFt = widthFeet.times(heightFeet);
-    const totalSqFt = sqFt.times(quantity);
-
-    // Calculate pixel dimensions
-    const pitchFeet = new Decimal(screen.pitchMm).div(304.8);
-    const heightPixels = Math.round(screen.heightFeet / pitchFeet.toNumber());
-    const widthPixels = Math.round(screen.widthFeet / pitchFeet.toNumber());
-
-    // Display Cost = Total SQ FT × Cost Per Sq Ft
-    const costPerSqFt = new Decimal(screen.costPerSqFt ?? 120);
-    const displayCost = roundToCents(totalSqFt.times(costPerSqFt));
-
-    // Shipping (flat fee per location or configurable)
-    const shipping = roundToCents(screen.shipping ?? SHIPPING_FLAT);
-
-    // Total Cost = Display Cost + Shipping
-    const totalCost = roundToCents(displayCost.plus(shipping));
-
-    // Apply margin
-    const margin = new Decimal(screen.margin ?? DEFAULT_MARGIN);
-    // Price = Total Cost ÷ (1 - margin) for margin-based pricing
-    const price = roundToCents(totalCost.div(new Decimal(1).minus(margin)));
-
-    // ANC Margin = Price - Total Cost
-    const ancMargin = roundToCents(price.minus(totalCost));
-
-    // Bond = Price × Bond Rate (1.5%)
-    const bondCost = roundToCents(price.times(BOND_RATE));
-
-    // Total with Bond = Price + Bond Cost
-    const totalWithBond = roundToCents(price.plus(bondCost));
-
-    // Selling Price per Sq Ft = Total with Bond ÷ Total SQ FT
-    const sellingSqFt = roundToCents(totalWithBond.div(totalSqFt));
-
-    // REQ-124: Shipping uses Divisor Model (NOT markup) per Master Truth mandate
-    // Natalia Math: ALL costs use P = C / (1 - M), shipping is NOT exempt
-    const shippingSalePrice = roundToCents(shipping.div(new Decimal(1).minus(margin)));
-
-    const row: ExcelPricingRow = {
-      option: `${index + 1}`,
-      issue: screen.name,
-      vendor: "ANC",
-      product: screen.product,
-      pitch: `${screen.pitchMm}mm`,
-      heightFeet: roundToCents(heightFeet).toNumber(),
-      widthFeet: roundToCents(widthFeet).toNumber(),
-      heightPixels,
-      widthPixels,
-      squareFeet: roundToCents(sqFt).toNumber(),
-      quantity: quantity.toNumber(),
-      totalSqFt: roundToCents(totalSqFt).toNumber(),
-      ledNitRequirement: 3500, // Default from Westfield RFP
-      ledServiceRequirement: "Front / Rear",
-      ledCostPerSqFt: costPerSqFt.toNumber(),
-      displayCost: displayCost.toNumber(),
-      shipping: shipping.toNumber(),
-      totalCost: totalCost.toNumber(),
-      margin: margin.times(100).toNumber(), // Convert to percentage
-      price: price.toNumber(),
-      ancMargin: ancMargin.toNumber(),
-      bondCost: bondCost.toNumber(),
-      totalWithBond: totalWithBond.toNumber(),
-      sellingSqFt: sellingSqFt.toNumber(),
-      shippingSalePrice: shippingSalePrice.toNumber(),
-    };
-
-    rows.push(row);
-
-    // Accumulate totals
-    totals.totalDisplayCost = totals.totalDisplayCost.plus(displayCost);
-    totals.totalShipping = totals.totalShipping.plus(shipping);
-    totals.totalCost = totals.totalCost.plus(totalCost);
-    totals.totalPrice = totals.totalPrice.plus(price);
-    totals.totalAncMargin = totals.totalAncMargin.plus(ancMargin);
-    totals.totalBond = totals.totalBond.plus(bondCost);
-    totals.grandTotal = totals.grandTotal.plus(totalWithBond);
-    totals.totalSqFt = totals.totalSqFt.plus(totalSqFt);
-  });
-
-  return {
-    rows,
-    totals: {
-      totalDisplayCost: roundToCents(totals.totalDisplayCost).toNumber(),
-      totalShipping: roundToCents(totals.totalShipping).toNumber(),
-      totalCost: roundToCents(totals.totalCost).toNumber(),
-      totalPrice: roundToCents(totals.totalPrice).toNumber(),
-      totalAncMargin: roundToCents(totals.totalAncMargin).toNumber(),
-      totalBond: roundToCents(totals.totalBond).toNumber(),
-      grandTotal: roundToCents(totals.grandTotal).toNumber(),
-      totalSqFt: roundToCents(totals.totalSqFt).toNumber(),
-    },
-  };
-}
-
-/**
- * Convert Excel pricing to CSV format for export
- */
-export function exportExcelPricingToCSV(pricing: ExcelPricingSheet): string {
-  const headers = [
-    'OPTION',
-    'Issue',
-    'VENDOR',
-    'PRODUCT',
-    'PITCH',
-    'H (ft)',
-    'W (ft)',
-    'H (pixels)',
-    'W (pixels)',
-    'SQ FT',
-    'Quantity',
-    'Total SQ FT',
-    'LED NIT Req',
-    'LED Service Req',
-    'LED Cost/Sq Ft',
-    'Display Cost',
-    'Shipping',
-    'Total Cost',
-    'Margin %',
-    'Price',
-    'ANC Margin',
-    'Bond Cost',
-    'Total with Bond',
-    'Selling/Sq Ft',
-    'Shipping Sale Price',
-  ];
-
-  const rows = pricing.rows.map(row => [
-    row.option,
-    row.issue,
-    row.vendor,
-    row.product,
-    row.pitch,
-    row.heightFeet,
-    row.widthFeet,
-    row.heightPixels,
-    row.widthPixels,
-    row.squareFeet,
-    row.quantity,
-    row.totalSqFt,
-    row.ledNitRequirement,
-    row.ledServiceRequirement,
-    row.ledCostPerSqFt.toFixed(2),
-    row.displayCost.toFixed(2),
-    row.shipping.toFixed(2),
-    row.totalCost.toFixed(2),
-    row.margin.toFixed(2),
-    row.price.toFixed(2),
-    row.ancMargin.toFixed(2),
-    row.bondCost.toFixed(2),
-    row.totalWithBond.toFixed(2),
-    row.sellingSqFt.toFixed(2),
-    row.shippingSalePrice.toFixed(2),
-  ]);
-
-  // Add totals row
-  rows.push([
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    '',
-    pricing.rows.length,
-    pricing.totals.totalSqFt.toFixed(2),
-    '',
-    '',
-    '',
-    pricing.totals.totalDisplayCost.toFixed(2),
-    pricing.totals.totalShipping.toFixed(2),
-    pricing.totals.totalCost.toFixed(2),
-    '',
-    pricing.totals.totalPrice.toFixed(2),
-    pricing.totals.totalAncMargin.toFixed(2),
-    pricing.totals.totalBond.toFixed(2),
-    pricing.totals.grandTotal.toFixed(2),
-    (pricing.totals.totalSqFt > 0 ? (pricing.totals.grandTotal / pricing.totals.totalSqFt).toFixed(2) : '0.00'),
-    '',
-  ]);
-
-  return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-}
+// RESERVED: Intelligence Mode Phase C — exportExcelPricingToCSV
+// CSV export logic kept for future Intelligence Mode build-out.

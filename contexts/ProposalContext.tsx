@@ -70,31 +70,6 @@ export type ExcelPreview = {
 // ExcelPreview is only kept in memory for new projects until first save
 // For existing projects, form data (screens, pricingDocument, marginAnalysis) is hydrated from database
 
-function computeExcelValidationOkFromSheets(sheets: ExcelPreviewSheet[]) {
-    const ledSheet = sheets.find((s) => {
-        const n = (s?.name || "").toLowerCase();
-        return (
-            (n.includes("led") && n.includes("sheet")) ||
-            n.includes("led cost sheet")
-        );
-    });
-    return !!ledSheet?.hasNumericDimensions && !ledSheet?.validationIssue;
-}
-
-function isExcelPreviewCandidate(value: unknown): value is ExcelPreview {
-    if (!value || typeof value !== "object") return false;
-    const v = value as any;
-    if (typeof v.fileName !== "string") return false;
-    if (!Array.isArray(v.sheets)) return false;
-    if (typeof v.loadedAt !== "number") return false;
-    for (const s of v.sheets) {
-        if (!s || typeof s !== "object") return false;
-        if (typeof (s as any).name !== "string") return false;
-        if (!Array.isArray((s as any).grid)) return false;
-    }
-    return true;
-}
-
 const defaultProposalContext = {
     proposalPdf: new Blob(),
     proposalPdfLoading: false,
@@ -263,7 +238,6 @@ export const ProposalContextProvider = ({
         sendPdfError,
         importProposalError,
         aiExtractionSuccess,
-        aiExtractionError,
         error: showError,
     } = useToasts();
 
@@ -305,8 +279,6 @@ export const ProposalContextProvider = ({
 
     // PROMPT 55: Removed localStorage persistence - database is source of truth
     // ExcelPreview is kept in memory only for new projects until first save
-    const hasExcelPreview = !!excelPreview;
-
     // PROMPT 55: Database-only hydration for existing projects
     // ExcelPreview (visual grid) is not persisted - form data (screens, pricingDocument) is what matters
     useEffect(() => {
@@ -509,7 +481,6 @@ export const ProposalContextProvider = ({
                 }
 
                 const data = await res.json();
-                console.log("Verification synced to DB:", data);
             } catch (error) {
                 console.error("Verification sync failed:", error);
                 // Revert on error if necessary, but for now we'll just log
@@ -1064,9 +1035,6 @@ export const ProposalContextProvider = ({
      * @param {ProposalType} data - The form values used to generate the PDF.
      */
     const onFormSubmit = (data: ProposalType) => {
-        console.log("VALUE");
-        console.log(data);
-
         // Call generate pdf method
         generatePdf(data);
     };
@@ -1294,16 +1262,13 @@ export const ProposalContextProvider = ({
      * Generates a preview of a PDF file and opens it in a new browser tab.
      */
     const previewPdfInTab = async () => {
-        console.log("Previewing PDF in tab...");
         let pdfBlob: Blob | null = proposalPdf;
         if (!(pdfBlob instanceof Blob) || pdfBlob.size === 0) {
-            console.log("No existing PDF blob, generating new one...");
             pdfBlob = await generatePdf(getValues());
         }
 
         if (pdfBlob instanceof Blob && pdfBlob.size > 0) {
             const url = pdfUrl ?? window.URL.createObjectURL(pdfBlob);
-            console.log("Opening blob URL:", url);
 
             const link = document.createElement("a");
             link.href = url;
@@ -2557,7 +2522,6 @@ export const ProposalContextProvider = ({
                                 method: "POST",
                             });
                             const json = await res.json();
-                            console.log("SYNC_CATALOG server response", json);
                         } catch (e) {
                             console.error("SYNC_CATALOG failed", e);
                         }

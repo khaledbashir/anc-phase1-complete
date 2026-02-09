@@ -272,8 +272,6 @@ const Step3Math = () => {
             // but calculateProposalAudit should handle it based on inputs
         }));
 
-        console.log("Applying Global Margin:", margin, "to", updatedScreens.length, "screens");
-
         // Update screens in form - Use object with timestamp to force change detection if needed
         setValue("details.screens", updatedScreens, { shouldValidate: true, shouldDirty: true });
         setValue("details.globalMargin", margin, { shouldValidate: true, shouldDirty: true });

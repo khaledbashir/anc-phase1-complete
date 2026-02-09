@@ -25,7 +25,6 @@ export async function POST(req: NextRequest) {
       }
 
       case "medianCostPerSqFt": {
-        const productId = body.productId;
         // Search CostLineItems for category 'LED Hardware' and compute median
         const items = await prisma.costLineItem.findMany({ where: { category: "Hardware" }, take: 1000 });
         const costs = items.map((i) => Number(i.cost));

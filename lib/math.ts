@@ -68,24 +68,6 @@ export function calculateArea(width: number, height: number): number {
 }
 
 /**
- * Calculate margin using Divisor Model
- * Formula: Cost / (1 - Margin)
- * Example: Cost $100, Margin 25% → $133.33
- */
-export function calculateSellPrice(cost: number, margin: number): number {
-    if (!cost || cost <= 0) return 0;
-    if (!margin || margin < 0 || margin >= 1) return cost;
-    
-    const c = new Decimal(formatCurrencyInternal(cost));
-    const m = new Decimal(margin);
-    const divisor = new Decimal(1).minus(m);
-    
-    if (divisor.isZero()) return cost;
-    
-    return parseFloat(c.div(divisor).toFixed(2));
-}
-
-/**
  * Safe number parsing - returns 0 for invalid inputs
  */
 export function safeNumber(value: any): number {
@@ -94,20 +76,3 @@ export function safeNumber(value: any): number {
     return isNaN(num) ? 0 : num;
 }
 
-/**
- * Check if value is a valid positive number
- */
-export function isValidNumber(value: any): boolean {
-    if (value === null || value === undefined || value === '') return false;
-    const num = Number(value);
-    return !isNaN(num) && isFinite(num) && num > 0;
-}
-
-/**
- * Format for display - removes trailing zeros after decimal
- * Example: 22.00 → 22, 22.50 → 22.5, 22.56 → 22.56
- */
-export function formatDisplay(value: number): string {
-    if (isNaN(value) || !isFinite(value)) return '0';
-    return parseFloat(value.toFixed(2)).toString();
-}

@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { prepareCloneData, isImmutable } from "@/lib/proposal-lifecycle";
+import { prepareCloneData } from "@/lib/proposal-lifecycle";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(

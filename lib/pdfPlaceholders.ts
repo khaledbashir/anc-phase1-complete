@@ -19,28 +19,3 @@ export const PDF_PLACEHOLDERS = {
     SCREEN_TOTAL: "[SCREEN TOTAL]",
 };
 
-/**
- * Returns the value or a branded placeholder if the value is null/empty.
- */
-export function withPlaceholder(value: string | number | null | undefined, placeholderKey: keyof typeof PDF_PLACEHOLDERS): string {
-    if (value === null || value === undefined || value === "") {
-        return PDF_PLACEHOLDERS[placeholderKey];
-    }
-    return String(value);
-}
-
-/**
- * Formats a date or returns the [DATE] placeholder.
- */
-export function withDatePlaceholder(date: Date | string | null | undefined): string {
-    if (!date) return PDF_PLACEHOLDERS.DATE;
-    
-    const d = typeof date === 'string' ? new Date(date) : date;
-    if (isNaN(d.getTime())) return PDF_PLACEHOLDERS.DATE;
-    
-    return d.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-    });
-}

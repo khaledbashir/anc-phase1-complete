@@ -75,8 +75,6 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
     if (hydrationCompleteRef.current) return;
 
     // PROMPT 56: ONE function that sets EVERYTHING from database
-    console.log("[HYDRATE] Loading project from database:", projectId || "new");
-    
     // Apply form data
     reset(initialData);
     
@@ -84,13 +82,6 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
     if (normalizedProjectId) {
       setValue("details.proposalId" as any, normalizedProjectId);
     }
-
-    // Log what was hydrated
-    const data = initialData as any;
-    console.log("[HYDRATE] Complete. Screens:", data.details?.screens?.length || 0, 
-                "Tables:", data.details?.pricingDocument?.tables?.length || 0,
-                "HasMarginAnalysis:", !!data.marginAnalysis,
-                "HasPricingDoc:", !!data.details?.pricingDocument);
 
     // Mark as complete - prevents any other hydration paths from running
     hydrationCompleteRef.current = true;

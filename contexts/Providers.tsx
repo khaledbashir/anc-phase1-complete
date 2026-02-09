@@ -72,14 +72,12 @@ const Providers = ({ children }: ProvidersProps) => {
     
     if (projectIdFromUrl && projectIdFromUrl !== "new") {
       // Existing project - database is source of truth, skip localStorage
-      console.log("[HYDRATE] Skipping localStorage draft - existing project:", projectIdFromUrl);
       return;
     }
     
     // Only for unsaved drafts (no projectId in URL)
     const draft = readDraftFromLocalStorage();
     if (draft) {
-      console.log("[HYDRATE] Loading unsaved draft from localStorage");
       form.reset(draft, { keepDefaultValues: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -9,10 +9,6 @@ const defaultTranslationContext = {
 
 export const TranslationContext = createContext(defaultTranslationContext);
 
-export const useTranslation = () => {
-    return useContext(TranslationContext);
-};
-
 export const useTranslationContext = () => {
     return useContext(TranslationContext);
 };

@@ -6,7 +6,7 @@ const ANYTHING_LLM_WORKSPACE = process.env.ANYTHING_LLM_WORKSPACE;
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { message, history, threadSlug, workspace, documentText, proposalId } = body;
+    const { message, threadSlug, workspace, proposalId } = body;
 
     if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) {
       return NextResponse.json({ error: "LLM not configured" }, { status: 500 });
@@ -28,58 +28,6 @@ export async function POST(req: NextRequest) {
       if (p?.aiWorkspaceSlug) effectiveWorkspaceSlug = p.aiWorkspaceSlug;
     }
 
-    // System prompt instructing the model to output JSON actions when appropriate
-    const systemPrompt = `You are the ANC Engine Controller. You have tools to modify the proposal. When the user asks for something, output a JSON object with the action. Available Actions:
-- { type: 'ADD_SCREEN', payload: { name, width, height, pitch, productType, quantity } }
-- { type: 'UPDATE_CLIENT', payload: { name, address } }
-- { type: 'SET_MARGIN', payload: { value } }
-- { type: 'SPEC_QUERY', payload: { pixelPitch?, environment?, brightnessMin?, manufacturer?, targetWidthFt?, targetHeightFt?, quantity?, serviceType? } }
-
-Use SPEC_QUERY when the user asks about LED product specs, wants to find a product, or describes screen requirements (e.g. "I need a 6mm outdoor display 11x21ft 7500 nits"). Parse their natural language into the structured payload fields. For environment, use "indoor" or "outdoor". For serviceType, use "front", "rear", or "front_rear".
-
-If no action is needed, reply with plain text. When returning an action, output only the JSON object and nothing else.
-
-Proactive Recommendations: When you detect specific specs from an RFP or document, proactively suggest products from the ANC Catalog.`;
-    // validateDocumentGaps: Analyze document and detect missing required fields for ADD_SCREEN action
-    const validateDocumentGaps = (docText: string | null | undefined) => {
-      if (!docText) return { hasGaps: false, missingFields: [] };
-
-      const missingFields: string[] = [];
-      const docLower = docText.toLowerCase();
-
-      // Check for pitch specification
-      const pitchMatch = docLower.match(/(\d+)\s*mm|pitch\s*:\s*(\d+)/i);
-      if (!pitchMatch) missingFields.push('pitch');
-
-      // Check for dimensions
-      const dimensionMatch = docLower.match(/\d+[\s']?\s*[x×]\s*\d+[\s']?|height\s*:.*width|active\s*display/i);
-      if (!dimensionMatch) missingFields.push('dimensions');
-
-      // Check for environment
-      const envMatch = docLower.match(/(indoor|outdoor)/i);
-      if (!envMatch) missingFields.push('environment');
-
-      // Check for quantity
-      const qtyMatch = docLower.match(/(qty|quantity|\d+\s*units?|\d+\s*displays)/i);
-      if (!qtyMatch) missingFields.push('quantity');
-
-      // Check for Spare Parts (Ferrari Requirement)
-      const spareMatch = docLower.includes("spare parts") || docLower.includes("5% spares");
-
-      // Check for Brightness
-      const brightMatch = docLower.match(/(\d+)\s*nits|brightness/i);
-
-      return {
-        hasGaps: missingFields.length > 0,
-        missingFields,
-        detectedSpecs: {
-          pitch: pitchMatch ? pitchMatch[1] || pitchMatch[2] : null,
-          environment: envMatch ? envMatch[1] : null,
-          includeSpareParts: spareMatch,
-          brightness: brightMatch ? (brightMatch[1] || null) : null,
-        }
-      };
-    };
     // We'll prefer workspace from request, else from env
     const workspaceSlug = effectiveWorkspaceSlug;
     // Note: threadSlug is optional - if not provided, we'll create one

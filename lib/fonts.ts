@@ -1,6 +1,5 @@
 // Next Google Fonts
 import {
-    Alex_Brush,
     Dancing_Script,
     Great_Vibes,
     Work_Sans,
@@ -49,10 +48,3 @@ export const greatVibes = Great_Vibes({
     display: "swap",
 });
 
-export const alexBrush = Alex_Brush({
-    subsets: ["latin"],
-    weight: "400",
-    variable: "--font-alex-brush",
-    preload: true,
-    display: "swap",
-});

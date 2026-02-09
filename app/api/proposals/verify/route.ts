@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { computeManifest, generateReconciliationReport } from '@/lib/verification';
 import { detectExceptions } from '@/lib/exceptions';
 // import { executeAutoFixBatch } from '@/lib/autoFix'; // Disabled — auto-fix stubs not implemented
-import { verifyRoundingContract } from '@/lib/roundingAudit';
+import { getRoundingAuditSummary } from '@/lib/roundingAudit';
 
 export async function POST(req: NextRequest) {
     try {
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
         const report = generateReconciliationReport(manifest, exceptions, options);
         
         // Step 5: Verify rounding contract
-        const roundingCompliance = verifyRoundingContract();
+        const roundingCompliance = getRoundingAuditSummary();
         
         // Step 6: Save to database (TODO: Implement in Phase 2)
         // await saveVerification(proposalId, { manifest, report, exceptions, autoFixResults });
