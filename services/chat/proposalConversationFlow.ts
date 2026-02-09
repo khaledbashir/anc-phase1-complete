@@ -58,9 +58,12 @@ export interface StageAction {
         | "add_display"
         | "set_display_price"
         | "add_service"
+        | "update_service"
+        | "remove_service"
         | "set_tax"
         | "set_bond"
-        | "generate_pdf";
+        | "generate_pdf"
+        | "reset";
     data: any;
 }
 
