@@ -4,7 +4,7 @@
   "hubId": "create-anc-proposal",
   "schema": "skill-1.0.0",
   "version": "1.0.0",
-  "description": "Creates a proposal/budget in the ANC Proposal Engine from line items collected during the estimator conversation. Takes a client name, line items with descriptions and prices, and document type. Returns a link to the project where the user can view and download the PDF.",
+  "description": "Creates a proposal or budget document in the ANC Proposal Engine. ONLY use when the user explicitly asks to CREATE, GENERATE, or MAKE a proposal/budget/LOI. Requires a client name and at least one priced line item. Do NOT invoke when the user merely mentions a client name or discusses pricing without requesting document creation.",
   "author": "@basheer",
   "author_url": "https://github.com/khaledbashir",
   "license": "MIT",

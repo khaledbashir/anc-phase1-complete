@@ -5,8 +5,10 @@ import { prisma } from "@/lib/prisma";
  * POST /api/agent-skill/create-proposal
  *
  * Bridge endpoint for AnythingLLM agent skill → ANC Proposal Engine.
- * Creates a workspace + proposal from simplified line items collected
- * during estimator chat sessions.
+ * Creates a DB workspace record + proposal from simplified line items
+ * collected during estimator chat sessions.
+ * NOTE: Does NOT provision an AnythingLLM workspace — the estimator
+ * is already chatting inside one when they trigger this skill.
  *
  * Auth: x-api-key header (AGENT_SKILL_API_KEY env var)
  *
