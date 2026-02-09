@@ -298,7 +298,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
         return (
             <div className="px-6 mt-6 break-inside-avoid">
-                <SectionHeader title="Project Summary" subtitle="Letter of Intent - Grand Total" />
+                <SectionHeader title="Project Summary" />
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     <div
                         className="grid grid-cols-12 px-4 py-4 break-inside-avoid"
@@ -312,9 +312,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         </div>
                     </div>
                 </div>
-                <p className="text-xs mt-2" style={{ color: colors.textMuted }}>
-                    Detailed breakdown follows below. This total represents the complete project investment.
-                </p>
             </div>
         );
     };
@@ -343,7 +340,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
         return (
             <div className="px-6 mt-6 break-inside-avoid">
-                <SectionHeader title="Project Pricing" subtitle="Summary" />
+                <SectionHeader title="Project Pricing" />
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     {/* Darker French Blue header to distinguish from detail tables */}
                     <div
@@ -421,9 +418,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         </div>
                     </div>
                 </div>
-                <p className="text-xs mt-2" style={{ color: colors.textMuted }}>
-                    Detailed breakdown follows below. This total represents the complete project investment.
-                </p>
             </div>
         );
     };
@@ -910,13 +904,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             {/* LOI Master Table - Project Grand Total BEFORE detailed breakdown (fallback when no master table designated) */}
             {isLOI && showPricingTables && masterTableIndex === null && <LOISummaryTable />}
 
-            {/* Pricing / Detailed Breakdown */}
+            {/* Pricing tables — section headers on each table are self-explanatory */}
             {showPricingTables && (
                 <div className="px-6 break-inside-avoid">
-                    <SectionHeader
-                        title={masterTableIndex !== null ? "Detailed Breakdown" : (isLOI ? "Detailed Breakdown" : "Project Pricing")}
-                        subtitle={currency === "CAD" ? "All amounts in Canadian Dollars (CAD)" : undefined}
-                    />
                     <div className="break-inside-avoid">
                         <PricingSection />
                     </div>

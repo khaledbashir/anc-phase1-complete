@@ -403,9 +403,6 @@ function MasterTableSection({
         </div>
       </div>
 
-      <p className="text-[9px] text-gray-400 mt-2">
-        Detailed breakdown follows below. This total represents the complete project investment.
-      </p>
     </div>
   );
 }
