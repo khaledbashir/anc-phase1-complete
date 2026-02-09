@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormContext } from "react-hook-form";
+import { useFieldArray, useFormContext } from "react-hook-form";
 import {
     Upload,
     FileSpreadsheet,
@@ -16,10 +16,12 @@ import {
     ChevronUp,
     Settings2,
     RefreshCw,
+    Plus,
 } from "lucide-react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { FEATURES } from "@/lib/featureFlags";
 import { useState, useEffect } from "react";
+import { useWizard } from "react-use-wizard";
 import ExcelGridViewer from "@/app/components/ExcelGridViewer";
 import ScreensGridEditor from "@/app/components/proposal/form/ScreensGridEditor";
 import ActivityLog from "@/app/components/proposal/ActivityLog";
@@ -43,7 +45,12 @@ const Step1Ingestion = () => {
         aiWorkspaceSlug,
     } = useProposalContext();
 
-    const { getValues, watch } = useFormContext();
+    const { getValues, watch, control } = useFormContext();
+    const { nextStep } = useWizard();
+    const { fields: screenFields, append: appendScreen } = useFieldArray({
+        control,
+        name: "details.screens",
+    });
     const proposalId = watch("details.proposalId");
     const [address, city, zipCode] = watch(["receiver.address", "receiver.city", "receiver.zipCode"]);
     const [rfpUploading, setRfpUploading] = useState(false);
@@ -238,6 +245,41 @@ const Step1Ingestion = () => {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+
+                            {/* P45: Or start manually — no Excel required */}
+                            <div className="mt-4 flex flex-col items-center gap-2">
+                                <div className="flex items-center gap-3 w-full">
+                                    <div className="flex-1 h-px bg-border" />
+                                    <span className="text-xs text-muted-foreground">or</span>
+                                    <div className="flex-1 h-px bg-border" />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (screenFields.length === 0) {
+                                            appendScreen({
+                                                name: "",
+                                                productType: "Manual Item",
+                                                quantity: 1,
+                                                desiredMargin: 0.25,
+                                                isManualLineItem: true,
+                                                manualCost: 0,
+                                                widthFt: 0,
+                                                heightFt: 0,
+                                                pitchMm: 0,
+                                                isReplacement: false,
+                                                useExistingStructure: false,
+                                                includeSpareParts: false,
+                                            });
+                                        }
+                                        nextStep();
+                                    }}
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:text-foreground bg-muted/50 hover:bg-muted border border-transparent hover:border-border transition-all"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    Start manually — no Excel needed
+                                </button>
                             </div>
 
                             {/* RFP Upload - Phase 2: hidden; when ready set FEATURES.DOCUMENT_INTELLIGENCE true and restore second card */}
