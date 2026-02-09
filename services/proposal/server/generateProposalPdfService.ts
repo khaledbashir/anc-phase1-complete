@@ -42,13 +42,14 @@ export async function generateProposalPdfService(req: NextRequest) {
 
 	try {
 		const ReactDOMServer = (await import("react-dom/server")).default;
+		// For landscape, use portrait dimensions - the landscape:true flag rotates the page
 		const pageLayoutMap: Record<string, { width: string; height: string }> = {
 			"portrait-letter": { width: "8.5in", height: "11in" },
 			"portrait-legal": { width: "8.5in", height: "14in" },
 			"portrait-a4": { width: "8.27in", height: "11.69in" },
-			"landscape-letter": { width: "11in", height: "8.5in" },
-			"landscape-legal": { width: "14in", height: "8.5in" },
-			"landscape-a4": { width: "11.69in", height: "8.27in" },
+			"landscape-letter": { width: "8.5in", height: "11in" },
+			"landscape-legal": { width: "8.5in", height: "14in" },
+			"landscape-a4": { width: "8.27in", height: "11.69in" },
 		};
 		const requestedLayout = (body.details as any)?.pageLayout;
 		const pageLayout = pageLayoutMap[requestedLayout] ? requestedLayout : "portrait-letter";
