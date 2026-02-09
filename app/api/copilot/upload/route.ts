@@ -76,21 +76,26 @@ export async function POST(req: NextRequest) {
             }, { status: 500 });
         }
 
-        // Extract the document path from the upload response
-        const docPath =
-            uploadResult.data?.documents?.[0]?.location ||
-            uploadResult.data?.document?.location ||
-            uploadResult.data?.document?.path ||
-            uploadResult.data?.path ||
-            null;
+        // Extract the document path from the confirmed response format:
+        // { success, documents: [{ location, name, title, token_count_estimate }] }
+        const firstDoc = uploadResult.data?.documents?.[0];
+        const docPath = firstDoc?.location || null;
+        const tokenEstimate = firstDoc?.token_count_estimate || 0;
 
-        console.log(`[Copilot/Upload] Uploaded successfully. docPath: ${docPath}`);
+        console.log(`[Copilot/Upload] Uploaded successfully. docPath: ${docPath}, tokens: ~${tokenEstimate}`);
 
-        // Step 2: If we got a docPath and pinning is enabled, pin in project workspace
+        // Step 2: Pin in project workspace if enabled
+        // IMPORTANT: Only pin docs under 50k tokens to avoid blowing the context window.
+        // Large docs (RFPs, 100+ page specs) should stay embedded-only for RAG retrieval.
         let pinResult = null;
+        const PIN_TOKEN_LIMIT = 50000;
         if (shouldPin && docPath) {
-            pinResult = await updatePin(workspaceSlug, docPath, true);
-            console.log(`[Copilot/Upload] Pin result: ${pinResult.success ? "OK" : "FAILED"}`);
+            if (tokenEstimate > PIN_TOKEN_LIMIT) {
+                console.log(`[Copilot/Upload] Skipping pin — doc too large (${tokenEstimate} tokens > ${PIN_TOKEN_LIMIT} limit). Will use RAG instead.`);
+            } else {
+                pinResult = await updatePin(workspaceSlug, docPath, true);
+                console.log(`[Copilot/Upload] Pin result: ${pinResult.success ? "OK" : "FAILED"}`);
+            }
         }
 
         // Step 3: If addToWorkspaces didn't auto-embed, manually trigger embedding
@@ -107,13 +112,19 @@ export async function POST(req: NextRequest) {
             }
         }
 
+        const wasPinned = shouldPin && !!docPath && tokenEstimate <= PIN_TOKEN_LIMIT && !!pinResult?.success;
+
         return NextResponse.json({
             success: true,
             file: file.name,
             size: file.size,
+            tokenEstimate,
             workspace: workspaceSlug,
             docPath,
-            pinned: shouldPin && !!docPath,
+            pinned: wasPinned,
+            pinnedSkipped: shouldPin && tokenEstimate > PIN_TOKEN_LIMIT
+                ? `Document too large (${tokenEstimate} tokens) — using RAG instead of pinning`
+                : undefined,
             crossSynced: shouldCrossSync,
         });
     } catch (error: any) {
