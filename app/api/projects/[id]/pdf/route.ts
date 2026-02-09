@@ -1,15 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { mapDbProposalToFormSchema } from "@/lib/proposals/mapDbProposalToForm";
-
-function getRequestOrigin(req: NextRequest): string {
-    const xfProto = req.headers.get("x-forwarded-proto");
-    const xfHost = req.headers.get("x-forwarded-host");
-    const host = xfHost || req.headers.get("host");
-    const proto = (xfProto || req.nextUrl.protocol.replace(":", "") || "http").split(",")[0].trim() || "http";
-    if (host) return `${proto}://${host.split(",")[0].trim()}`;
-    return req.nextUrl.origin;
-}
+import { generateProposalPdfServiceV2 } from "@/services/proposal/server/generateProposalPdfServiceV2";
 
 function safeFilenamePart(value: string): string {
     return value
@@ -40,24 +32,40 @@ export async function POST(
         }
 
         const formPayload = mapDbProposalToFormSchema(project);
-        const origin = getRequestOrigin(req).replace(/\/+$/, "");
-        const exportRes = await fetch(`${origin}/api/proposal/generate`, {
+        
+        // Create a mock request to call the PDF service directly
+        // This avoids the internal HTTP fetch which can fail in some environments
+        const mockReq = new NextRequest("http://localhost/api/proposal/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(formPayload),
-            cache: "no-store",
         });
-
-        if (!exportRes.ok) {
-            const errorText = await exportRes.text();
+        
+        const pdfResponse = await generateProposalPdfServiceV2(mockReq);
+        
+        // Check if the response is an error (non-200 status or JSON content type)
+        if (pdfResponse.status !== 200) {
+            const errorBody = await pdfResponse.json().catch(() => ({ error: "Unknown error" }));
+            console.error("PDF generation failed:", errorBody);
             return NextResponse.json(
-                { error: "Failed to generate PDF", details: errorText },
-                { status: exportRes.status }
+                { error: "Failed to generate PDF", details: errorBody },
+                { status: pdfResponse.status }
+            );
+        }
+        
+        // Get the PDF bytes
+        const bytes = await pdfResponse.arrayBuffer();
+        
+        // Verify we got actual PDF content
+        if (bytes.byteLength === 0) {
+            return NextResponse.json(
+                { error: "Generated PDF is empty" },
+                { status: 500 }
             );
         }
 
-        const bytes = await exportRes.arrayBuffer();
-        const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+        const now = new Date();
+        const datePart = `${now.getMonth() + 1}-${now.getDate()}-${now.getFullYear()}`;
         const clientPart = safeFilenamePart(project.clientName || "Project");
         const filename = `ANC_${clientPart}_${project.documentMode}_${datePart}.pdf`;
 

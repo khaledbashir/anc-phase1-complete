@@ -81,7 +81,10 @@ const formatCurrency = (amount: number, currency: string = "USD") =>
         maximumFractionDigits: 0,
     }).format(amount);
 
-const formatDateStamp = () => new Date().toISOString().slice(0, 10).replace(/-/g, "");
+const formatDateStamp = () => {
+    const now = new Date();
+    return `${now.getMonth() + 1}-${now.getDate()}-${now.getFullYear()}`;
+};
 
 const safeFileName = (value: string) =>
     value.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_").slice(0, 80) || "Project";
@@ -139,11 +142,32 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe }: Proj
         try {
             setIsExporting(true);
             const res = await fetch(`/api/projects/${project.id}/pdf`, { method: "POST" });
+            
+            // Check if response is OK
             if (!res.ok) {
-                const text = await res.text();
-                throw new Error(text || "PDF export failed");
+                const errorText = await res.text();
+                console.error("PDF export failed:", errorText);
+                alert("PDF export failed. Please try opening the project and exporting from there.");
+                return;
             }
+            
+            // Verify the response is actually a PDF
+            const contentType = res.headers.get("content-type");
+            if (!contentType?.includes("application/pdf")) {
+                console.error("Response is not a PDF:", contentType);
+                alert("PDF export failed — unexpected response format.");
+                return;
+            }
+            
             const blob = await res.blob();
+            
+            // Verify blob has content
+            if (blob.size === 0) {
+                console.error("PDF blob is empty");
+                alert("PDF export failed — generated PDF is empty.");
+                return;
+            }
+            
             const url = URL.createObjectURL(blob);
             const anchor = document.createElement("a");
             anchor.href = url;
@@ -154,6 +178,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe }: Proj
             URL.revokeObjectURL(url);
         } catch (err) {
             console.error("Quick PDF export failed:", err);
+            alert("PDF export failed. Please try again or export from the project page.");
         } finally {
             setIsExporting(false);
         }
