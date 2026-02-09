@@ -14,7 +14,6 @@ import {
     Bell,
     Settings
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import NewProjectModal from "@/app/components/modals/NewProjectModal";
 import ProjectCard from "@/app/components/ProjectCard";
 import DashboardChat from "@/app/components/DashboardChat";

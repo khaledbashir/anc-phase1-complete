@@ -99,7 +99,7 @@ export async function POST(req: NextRequest) {
             console.error("AnythingLLM error:", errorText);
             return NextResponse.json({
                 error: "Failed to get response from AI",
-                response: "I'm having trouble accessing the knowledge vault. The workspace may need to be configured."
+                response: `AnythingLLM error (${response.status}): ${errorText.slice(0, 200)}`
             }, { status: response.status });
         }
 
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
         console.error("Dashboard chat error:", error);
         return NextResponse.json({
             error: error.message,
-            response: "An error occurred while processing your request. The Intelligence Core may be unreachable."
+            response: `Dashboard chat error: ${error.message}`
         }, { status: 500 });
     }
 }

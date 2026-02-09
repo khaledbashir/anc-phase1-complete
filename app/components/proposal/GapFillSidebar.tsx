@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { useFormContext } from "react-hook-form";
 import { generateGapFillQuestions, formatGapFillQuestion, type GapFillQuestion } from "@/lib/gap-fill-questions";
-import { MessageSquare, CheckCircle2, AlertCircle, Loader2, Send, X } from "lucide-react";
+import { MessageSquare, CheckCircle2, AlertCircle, Loader2, Send } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 /**
  * Gap Fill Sidebar Component
@@ -20,15 +19,14 @@ import { cn } from "@/lib/utils";
  * React lifecycle lag when toggling between Drafting Table and Chat.
  */
 export function GapFillSidebar() {
-    const { watch, setValue, getValues } = useFormContext();
+    const { watch, setValue } = useFormContext();
     const {
         aiFields,
         verifiedFields,
-        setFieldVerified,
     } = useProposalContext();
 
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [answers, setAnswers] = useState<Record<string, string>>({});
+    const [_answers, setAnswers] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Get proposal data

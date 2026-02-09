@@ -6,10 +6,7 @@ import {
     Sparkles,
     X,
     Minimize2,
-    Command,
-    Mic,
     Brain,
-    ChevronDown,
     Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

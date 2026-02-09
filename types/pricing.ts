@@ -99,6 +99,7 @@ export interface PricingDocument {
     tablesCount: number;
     itemsCount: number;
     alternatesCount: number;
+    warnings?: string[];
   };
 }
 

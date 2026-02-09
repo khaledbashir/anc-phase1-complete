@@ -4,10 +4,6 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
-    Sparkles,
-    Monitor,
-    FileText,
-    Briefcase,
     Layers,
     Trash2,
     ArrowUpRight,
@@ -16,7 +12,6 @@ import {
     DollarSign,
     MonitorPlay
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
 interface Project {

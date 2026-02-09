@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { uploadDocument, addToWorkspace, queryVault } from "@/lib/anything-llm";
+import { uploadDocument, queryVault } from "@/lib/anything-llm";
 import { prisma } from "@/lib/prisma";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { smartFilterPdf } from "@/services/ingest/smart-filter";
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "No file provided" }, { status: 400 });
     }
 
+    const warnings: string[] = [];
     let workspaceSlug = process.env.ANYTHING_LLM_WORKSPACE || "researcher";
 
     if (proposalId && proposalId !== "new") {
@@ -99,11 +100,15 @@ export async function POST(req: NextRequest) {
             }
           } else {
             const text = await res.text();
-            console.warn(`[RFP Upload] AnythingLLM workspace creation failed: ${res.status} ${text}`);
+            const msg = `AnythingLLM workspace creation failed (${res.status}): ${text.slice(0, 200)}`;
+            console.warn(`[RFP Upload] ${msg}`);
+            warnings.push(msg);
           }
         }
       } catch (e) {
-        console.warn("[RFP Upload] Failed to resolve per-project workspace, falling back to default.", e);
+        const msg = `Failed to resolve per-project workspace: ${e instanceof Error ? e.message : String(e)}`;
+        console.warn(`[RFP Upload] ${msg}`);
+        warnings.push(msg);
       }
     }
 
@@ -155,7 +160,9 @@ ${excelExtractedData.lineItems.map((li: any) => `- ${li.description}: $${li.sell
           // Fall through to normal upload
         }
       } catch (excelErr) {
-        console.warn('[RFP Upload] Excel parsing failed:', excelErr);
+        const msg = `Excel parsing failed: ${excelErr instanceof Error ? excelErr.message : String(excelErr)}`;
+        console.warn(`[RFP Upload] ${msg}`);
+        warnings.push(msg);
         // Continue with normal upload
       }
     }
@@ -303,7 +310,9 @@ ${excelExtractedData.lineItems.map((li: any) => `- ${li.description}: $${li.sell
       try {
         await updatePin(workspaceSlug, docPath, true);
       } catch (pinErr) {
-        console.warn(`[RFP Upload] Pinning failed for ${workspaceSlug}`, pinErr);
+        const pinMsg = `Document pinning failed for ${workspaceSlug}: ${pinErr instanceof Error ? pinErr.message : String(pinErr)}`;
+        console.warn(`[RFP Upload] ${pinMsg}`);
+        warnings.push(pinMsg);
       }
     }
 
@@ -366,7 +375,9 @@ Include extractionSummary with totalFields, extractedFields, completionRate, hig
         try {
           extractedData = JSON.parse(jsonText);
         } catch (parseErr) {
-          console.warn("[RFP Upload] JSON Parse Warning:", parseErr);
+          const parseMsg = `AI extraction JSON parse failed: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`;
+          console.warn(`[RFP Upload] ${parseMsg}`);
+          warnings.push(parseMsg);
           // Try to repair common JSON issues if needed, or just proceed without data
           // Attempt simple repair for truncated JSON
           try {
@@ -411,7 +422,9 @@ Include extractionSummary with totalFields, extractedFields, completionRate, hig
         console.log("[RFP Upload] No TTE report detected in upload");
       }
     } catch (tteErr) {
-      console.warn("[RFP Upload] TTE extraction failed:", tteErr);
+      const tteMsg = `TTE extraction failed: ${tteErr instanceof Error ? tteErr.message : String(tteErr)}`;
+      console.warn(`[RFP Upload] ${tteMsg}`);
+      warnings.push(tteMsg);
     }
 
     // If we have Excel data, use it instead of AI-extracted data
@@ -429,11 +442,12 @@ Include extractionSummary with totalFields, extractedFields, completionRate, hig
       excelData: excelExtractedData, // Include raw Excel data for UI
       tonnageData,
       filterStats,
+      warnings: warnings.length > 0 ? warnings : undefined,
       visionWarning: filterStats?.visionDisabled
         ? "Vision disabled: Drawing analysis skipped. Please manually verify structural constraints."
         : undefined,
-      message: excelExtractedData 
-        ? "Excel proposal imported successfully with exact pricing" 
+      message: excelExtractedData
+        ? "Excel proposal imported successfully with exact pricing"
         : "RFP uploaded and analyzed successfully"
     });
 

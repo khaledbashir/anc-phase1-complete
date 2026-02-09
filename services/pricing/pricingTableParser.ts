@@ -79,6 +79,8 @@ function parsePricingTablesInner(
   workbook: any,
   fileName: string = "import.xlsx"
 ): PricingDocument | null {
+  const parserWarnings: string[] = [];
+
   // 1. Find Margin Analysis sheet (fuzzy: Margin-Analysis, Margin Analysis (CAD), etc.)
   const sheetName = findMarginAnalysisSheet(workbook);
   if (!sheetName) {
@@ -119,6 +121,7 @@ function parsePricingTablesInner(
   // Fallback: if no boundaries detected, attempt flexible column shift + single-table mode.
   if (boundaries.length === 0) {
     console.warn("[PRICING PARSER] No section headers detected. Attempting fallback parsing...");
+    parserWarnings.push("No section headers detected — used fallback parsing");
 
     const shiftedMap = deriveBestShiftedColumnMap(data, headerRowIdx, columnMap);
     if (shiftedMap) {
@@ -128,9 +131,9 @@ function parsePricingTablesInner(
         shiftedMap.sell !== columnMap.sell;
 
       if (isShifted) {
-        console.warn(
-          `[PRICING PARSER] Applying column shift fallback: label@${shiftedMap.label}, cost@${shiftedMap.cost}, sell@${shiftedMap.sell}`
-        );
+        const shiftMsg = `Column shift applied: label@${shiftedMap.label}, cost@${shiftedMap.cost}, sell@${shiftedMap.sell}`;
+        console.warn(`[PRICING PARSER] ${shiftMsg}`);
+        parserWarnings.push(shiftMsg);
         columnMap = shiftedMap;
         rows = parseAllRows(data, columnMap, headerRowIdx);
       }
@@ -167,6 +170,7 @@ function parsePricingTablesInner(
     tablesCount: tables.length,
     itemsCount: tables.reduce((sum, t) => sum + t.items.length, 0),
     alternatesCount: tables.reduce((sum, t) => sum + t.alternates.length, 0),
+    warnings: parserWarnings.length > 0 ? parserWarnings : undefined,
   };
 
   // Diagnostic: log each table's breakdown

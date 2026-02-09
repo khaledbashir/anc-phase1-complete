@@ -17,7 +17,6 @@ import {
   AlertTriangle,
   FileWarning,
   Scale,
-  Truck,
   type LucideIcon
 } from "lucide-react";
 

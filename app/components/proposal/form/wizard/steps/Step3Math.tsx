@@ -13,7 +13,6 @@ import {
     Hammer,
     Truck,
     Sparkles,
-    ArrowRight,
     Receipt,
     Plus,
     Trash2,

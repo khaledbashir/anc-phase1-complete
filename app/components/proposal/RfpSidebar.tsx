@@ -2,13 +2,11 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useProposalContext } from "@/contexts/ProposalContext";
-import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { BaseButton } from "@/app/components";
 import { Send, Sparkles, MessageSquare, Info, History, X, AlertCircle, Upload, FileText, Loader2, Trash2, Eye, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFormContext } from "react-hook-form";
 import { analyzeGaps, calculateCompletionRate } from "@/lib/gap-analysis";
-import { DrawingService } from "@/services/vision/drawing-service";
 import GapFillSidebar from "./GapFillSidebar";
 import { generateGapFillQuestions } from "@/lib/gap-fill-questions";
 

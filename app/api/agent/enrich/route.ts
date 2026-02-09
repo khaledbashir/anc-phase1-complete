@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { queryVault, queryAgent } from "@/lib/anything-llm";
+import { queryAgent } from "@/lib/anything-llm";
 import { extractJson } from "@/lib/json-utils";
 import { searchVenueAddress } from "@/lib/serper";
 
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
                     console.log(`[AI Wand] No project workspace found for ${proposalId}, using fallback: ${workspace}`);
                 }
             } catch (e) {
-                console.warn(`[AI Wand] Failed to lookup project workspace:`, e);
+                console.warn(`[AI Wand] Failed to lookup project workspace for ${proposalId}: ${e instanceof Error ? e.message : String(e)}`);
             }
         }
 
@@ -145,7 +145,7 @@ Search target: "${normalizedQuery}"`;
             try {
                 parsed = JSON.parse(safeJsonText);
             } catch (e) {
-                console.warn("[Enrich] JSON parse failed, trying to repair...", safeJsonText);
+                console.warn(`[Enrich] JSON parse failed (${e instanceof Error ? e.message : 'unknown'}), trying to repair. First 200 chars: ${safeJsonText.slice(0, 200)}`);
                 // Try appending braces if it looks like it's missing them
                 try {
                     parsed = JSON.parse(safeJsonText + "}");

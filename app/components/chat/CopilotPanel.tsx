@@ -232,7 +232,7 @@ export default function CopilotPanel({
     // ========================================================================
     // STREAMING FREEFORM HANDLER (with thinking model support)
     // ========================================================================
-    const handleStreamingSend = async (text: string, userMsg: ChatMessage) => {
+    const handleStreamingSend = async (text: string) => {
         const assistantId = newId();
         const assistantMsg: ChatMessage = {
             id: assistantId,
@@ -413,7 +413,7 @@ export default function CopilotPanel({
                 setMessages((prev) => [...prev, assistantMsg]);
             } else if (projectId && projectId !== "new") {
                 // Freeform mode with valid project: use streaming
-                await handleStreamingSend(text, userMsg);
+                await handleStreamingSend(text);
             } else if (onSendMessage) {
                 // Fallback: non-streaming
                 const response = await onSendMessage(text, [...messages, userMsg]);

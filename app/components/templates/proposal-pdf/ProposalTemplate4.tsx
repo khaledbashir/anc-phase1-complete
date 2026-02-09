@@ -33,7 +33,6 @@ const ProposalTemplate4 = (data: ProposalTemplate4Props) => {
     const { sender, receiver, details, forceWhiteLogo, screens: screensProp, isSharedView = false } = data;
     const screens = screensProp || details?.screens || [];
     const internalAudit = details?.internalAudit as any;
-    const totals = internalAudit?.totals;
 
     const documentMode = resolveDocumentMode(details);
     const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "PROPOSAL" : "LETTER OF INTENT";

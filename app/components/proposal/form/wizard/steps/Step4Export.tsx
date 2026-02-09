@@ -30,7 +30,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { BaseButton, TextEditorPanel } from "@/app/components";
+import { TextEditorPanel } from "@/app/components";
 import { formatCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";

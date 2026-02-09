@@ -6,7 +6,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateReconciliationReport } from '@/lib/verification';
 import { detectExceptions } from '@/lib/exceptions';
-import { VerificationManifest, VerificationConfig } from '@/types/verification';
 
 export async function POST(req: NextRequest) {
     try {

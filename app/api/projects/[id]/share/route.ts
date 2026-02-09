@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ProposalType } from "@/types";
 import bcrypt from "bcrypt";
-import Decimal from "decimal.js";
 
 import { prisma } from "@/lib/prisma";
 
@@ -130,7 +129,7 @@ export async function POST(
                 paymentInformation: { bankName: "", accountName: "", accountNumber: "" },
                 additionalNotes: (project as any).additionalNotes || clientSummary?.additionalNotes || "",
                 paymentTerms: (project as any).paymentTerms || clientSummary?.paymentTerms || "50% on Deposit, 40% on Mobilization, 10% on Substantial Completion",
-                pdfTemplate: 1,
+                pdfTemplate: 5,
                 quoteItems: ((project as any).quoteItems || []) as any,
                 screens: project.screens.map(s => ({
                     id: s.id,

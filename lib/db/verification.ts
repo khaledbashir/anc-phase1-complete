@@ -31,8 +31,14 @@ export async function saveVerification(
         },
     });
     
-    // TODO: Save exceptions to database when Exception model is added
-    // TODO: Save auto-fix results to database
+    // Exceptions and auto-fix results are not persisted — no DB models yet.
+    // Only manifest + status are saved above.
+    if (data.exceptions?.length) {
+        console.info(`[Verification] ${data.exceptions.length} exceptions detected but not persisted (no Exception model yet)`);
+    }
+    if (data.autoFixResults) {
+        console.info(`[Verification] Auto-fix summary not persisted (no DB model yet)`);
+    }
 }
 
 /**

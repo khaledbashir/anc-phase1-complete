@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
         console.error("[Copilot] Error:", error);
         return NextResponse.json({
             error: error.message,
-            response: "An error occurred while processing your request.",
+            response: `Copilot error: ${error.message}`,
         }, { status: 500 });
     }
 }

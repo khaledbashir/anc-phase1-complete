@@ -112,8 +112,9 @@ export class Glm4VisionClient {
             return ArchitecturalLabelSchema.parse(parsed);
         } catch (parseError) {
             // Return safe default so pipeline does not fail; caller can still use text-only context
-            console.warn("Vision Extraction parse/validation failed, returning empty labels:", parseError);
-            return { labels: [], notes: "" };
+            const errMsg = parseError instanceof Error ? parseError.message : String(parseError);
+            console.warn("Vision Extraction parse/validation failed, returning empty labels:", errMsg);
+            return { labels: [], notes: `Vision extraction failed: ${errMsg}` };
         }
     }
 
@@ -160,8 +161,9 @@ export class Glm4VisionClient {
             const text = (data.choices?.[0]?.message?.content ?? "").trim();
             return text || "(Drawing page — no description extracted)";
         } catch (e) {
-            console.warn("Vision describeForSearch failed:", e);
-            return "(Drawing page — vision description unavailable)";
+            const errMsg = e instanceof Error ? e.message : String(e);
+            console.warn("Vision describeForSearch failed:", errMsg);
+            return `(Drawing page — vision description unavailable: ${errMsg})`;
         }
     }
 }

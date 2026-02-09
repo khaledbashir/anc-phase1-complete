@@ -18,47 +18,22 @@ export async function POST(req: NextRequest) {
                 { status: 400 }
             );
         }
-        
-        // Get exceptions from proposal or database
-        // TODO: Implement in Phase 2 - fetch exceptions from database
-        const exceptions: Exception[] = proposal?.exceptions || [];
-        
-        // Filter exceptions to auto-fix
-        const exceptionsToFix = exceptions.filter(exc => exceptionIds.includes(exc.id));
-        
-        // Execute auto-fix on each exception
-        const actions = [];
-        const failed = [];
-        
-        for (const exception of exceptionsToFix) {
-            try {
-                const action = await executeAutoFix(exception, proposal);
-                
-                if (action) {
-                    actions.push(action);
-                } else {
-                    failed.push({
-                        exceptionId: exception.id,
-                        reason: 'No auto-fix rule found or not auto-fixable',
-                    });
-                }
-            } catch (error) {
-                failed.push({
-                    exceptionId: exception.id,
-                    reason: error instanceof Error ? error.message : 'Unknown error',
-                });
-            }
-        }
-        
+
+        // Auto-fix is not yet implemented — all rules have stub implementations
+        // (updateProposalField, estimateFromSimilarScreens, detectHeaderRowStrict are no-ops)
+        // TODO: Implement real auto-fix when database-backed field updates are built
         return NextResponse.json({
             success: true,
             proposalId,
             results: {
                 total: exceptionIds.length,
-                applied: actions.length,
-                failed: failed.length,
-                actions,
-                failedActions: failed,
+                applied: 0,
+                failed: exceptionIds.length,
+                actions: [],
+                failedActions: exceptionIds.map((id: string) => ({
+                    exceptionId: id,
+                    reason: 'Auto-fix not yet implemented. Manual resolution required.',
+                })),
             },
         });
     } catch (error) {

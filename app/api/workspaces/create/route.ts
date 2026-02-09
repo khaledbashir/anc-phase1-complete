@@ -3,12 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { updateWorkspaceSettings } from "@/lib/anything-llm";
 import { findClientLogo } from "@/lib/brand-discovery";
-import type { Workspace, User } from "@prisma/client";
-
-// Define the intersection type that includes the users relation
-type WorkspaceWithUsers = Workspace & {
-  users: User[];
-};
 
 export interface CreateWorkspaceRequest {
   name: string;
@@ -140,7 +134,7 @@ export async function POST(request: NextRequest) {
           try {
             created = JSON.parse(text);
           } catch (e) {
-            console.warn("AI Provisioning: Server returned non-JSON response:", text.slice(0, 100));
+            console.error("[Workspace/Create] AI provisioning returned non-JSON:", text.slice(0, 100));
             return;
           }
           const slug = created?.workspace?.slug || created?.slug;
@@ -180,7 +174,7 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (e) {
-        console.warn("AI Strategic Provisioning Failed:", e);
+        console.error("[Workspace/Create] AI provisioning failed:", e instanceof Error ? e.message : e);
       }
     };
 

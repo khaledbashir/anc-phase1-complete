@@ -11,19 +11,15 @@ import ExhibitB_CostSchedule from "@/app/components/templates/proposal-pdf/exhib
 import { MirrorPricingSection, PremiumMirrorPricingSection } from "./MirrorPricingSection";
 
 // Helpers
-import { formatNumberWithCommas, isDataUrl, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText, normalizePitch } from "@/lib/helpers";
+import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText, normalizePitch } from "@/lib/helpers";
 import { resolveDocumentMode } from "@/lib/documentMode";
 
-// Variables
-import { DATE_OPTIONS } from "@/lib/variables";
 import { VENUE_CONSTRAINTS } from "@/lib/estimator";
 import { Venue } from "@/types";
 
 // Types
 import { ProposalType } from "@/types";
 
-// Styles
-import { PDF_COLORS, PDF_STYLES } from "./PdfStyles";
 import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
 
 interface ProposalTemplate2Props extends ProposalType {

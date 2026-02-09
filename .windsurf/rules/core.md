@@ -99,4 +99,7 @@ not an apology for not doing the work.
 
 Build it right.
 Or build it clever.
-But never build it fake.
+But never build it fake.---
+trigger: manual
+---
+

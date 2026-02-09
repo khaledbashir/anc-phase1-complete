@@ -283,26 +283,18 @@ const getProposalTemplate = async (templateId: number) => {
     // Templates 1, 2 (Classic), and 4 (Premium) are deprecated and map to 5 (Hybrid)
     const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
     const actualId = DEPRECATED_TEMPLATES.includes(templateId) ? 5 : templateId;
+    if (templateId !== actualId) {
+        console.info(`[PDF] Remapping deprecated template ${templateId} → ${actualId} (Hybrid)`);
+    }
     const templateName = `ProposalTemplate${actualId}`;
-    
+
     try {
         const module = await import(
             `@/app/components/templates/proposal-pdf/${templateName}`
         );
         return module.default;
     } catch (err) {
-        console.error(`Error importing ${templateName}: ${err}`);
-        // Fallback to ProposalTemplate2 if the requested template fails
-        if (actualId !== 2) {
-            try {
-                const fallback = await import(
-                    `@/app/components/templates/proposal-pdf/ProposalTemplate2`
-                );
-                return fallback.default;
-            } catch (fallbackErr) {
-                console.error(`Fallback to ProposalTemplate2 also failed: ${fallbackErr}`);
-            }
-        }
+        console.error(`[PDF] Error importing ${templateName}: ${err}`);
         return null;
     }
 };

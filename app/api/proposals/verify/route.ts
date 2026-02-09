@@ -6,9 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { computeManifest, generateReconciliationReport } from '@/lib/verification';
 import { detectExceptions } from '@/lib/exceptions';
-import { executeAutoFixBatch } from '@/lib/autoFix';
+// import { executeAutoFixBatch } from '@/lib/autoFix'; // Disabled — auto-fix stubs not implemented
 import { verifyRoundingContract } from '@/lib/roundingAudit';
-import { VerificationStatus } from '@/types/verification';
 
 export async function POST(req: NextRequest) {
     try {
@@ -28,18 +27,9 @@ export async function POST(req: NextRequest) {
         // Step 2: Detect exceptions
         let exceptions = detectExceptions(manifest);
         
-        // Step 3: Run auto-fix (if enabled)
-        const enableAutoFix = options?.enableAutoFix !== false; // Default: true
-        let autoFixResults = null;
-        
-        if (enableAutoFix) {
-            autoFixResults = await executeAutoFixBatch(exceptions, { proposalId, excelData, internalAudit });
-            
-            // Re-detect exceptions after auto-fix
-            if (autoFixResults.autoFixed > 0) {
-                exceptions = detectExceptions(manifest);
-            }
-        }
+        // Step 3: Auto-fix is disabled — all fix rules are stubs (no real field updates)
+        // TODO: Re-enable when updateProposalField() and related stubs are implemented
+        const autoFixResults = null;
         
         // Step 4: Generate reconciliation report
         const report = generateReconciliationReport(manifest, exceptions, options);

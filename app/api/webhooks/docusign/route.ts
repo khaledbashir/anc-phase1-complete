@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { createDocuSignService, DocuSignService } from "@/lib/signatures/docusign";
+import { createDocuSignService } from "@/lib/signatures/docusign";
 import crypto from "crypto";
 
 /**

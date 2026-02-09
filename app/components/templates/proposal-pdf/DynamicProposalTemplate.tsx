@@ -19,6 +19,7 @@ const DynamicProposalTemplate = (props: ProposalType) => {
     const rawId = props.details?.pdfTemplate || 5;
     const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
     const templateId = DEPRECATED_TEMPLATES.includes(rawId) ? 5 : rawId;
+    if (rawId !== templateId) console.info(`[Template] Remapping deprecated template ${rawId} → ${templateId} (Hybrid)`);
     const templateName = `ProposalTemplate${templateId}`;
 
     const DynamicProposal = useMemo(

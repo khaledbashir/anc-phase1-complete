@@ -9,7 +9,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { 
   prepareSignatureTransition, 
   isImmutable,
-  generateDocumentHash 
 } from "@/lib/proposal-lifecycle";
 import { prisma } from "@/lib/prisma";
 

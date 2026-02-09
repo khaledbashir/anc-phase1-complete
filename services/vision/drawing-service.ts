@@ -75,26 +75,4 @@ export class DrawingService {
             return `Page ${pageNumber}: (Drawing — description unavailable)`;
         }
     }
-
-    /**
-     * MOCK Method for testing without burning tokens
-     */
-    async mockProcess(): Promise<ExtractionResult[]> {
-        return [
-            {
-                field: "displayId",
-                value: "A",
-                confidence: 0.95,
-                needsVerification: false, // High confidence, no glow
-                sourceCoordinates: { x: 100, y: 200 }
-            },
-            {
-                field: "displayId",
-                value: "AV-1",
-                confidence: 0.65,
-                needsVerification: true, // Low confidence, BLUE GLOW ON
-                sourceCoordinates: { x: 450, y: 300 }
-            }
-        ];
-    }
 }

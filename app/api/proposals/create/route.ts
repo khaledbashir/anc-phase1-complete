@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { calculateANCProject, calculateProposalAudit, ScreenInput } from "@/lib/estimator";
+import { calculateProposalAudit, ScreenInput } from "@/lib/estimator";
 import { logActivity } from "@/services/proposal/server/activityLogService";
 
 export interface CreateProposalRequest {

@@ -82,15 +82,6 @@ export async function POST(req: NextRequest) {
 // ============================================================================
 
 function buildSystemPrompt(stage: ConversationStage, collected: CollectedData): string {
-    const collectedSummary = JSON.stringify({
-        clientName: collected.clientName || null,
-        displays: collected.displays,
-        displayPrices: collected.displayPrices,
-        services: collected.services,
-        taxRate: collected.taxRate || null,
-        bondRate: collected.bondRate || null,
-    });
-
     // Build display summary for context
     const displayList = collected.displays.length > 0
         ? collected.displays.map((d, i) => {
@@ -170,16 +161,6 @@ If the user says "skip" → advance nextStage, extracted can be null.
 If the user says "go back" → set nextStage to the previous stage.
 If the user says "start over" → set "extracted": { "reset": true }, "nextStage": "CLIENT_NAME".`;
 }
-
-const STAGE_ORDER: ConversationStage[] = [
-    ConversationStage.CLIENT_NAME,
-    ConversationStage.DISPLAYS,
-    ConversationStage.DISPLAY_PRICING,
-    ConversationStage.SERVICES,
-    ConversationStage.PM_WARRANTY,
-    ConversationStage.TAX_BOND,
-    ConversationStage.REVIEW,
-];
 
 async function llmGuidedFlow(
     workspaceSlug: string,

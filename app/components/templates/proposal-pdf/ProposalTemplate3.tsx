@@ -33,7 +33,6 @@ const ProposalTemplate3 = (data: ProposalTemplate3Props) => {
     const { sender, receiver, details, forceWhiteLogo, screens: screensProp, isSharedView = false } = data;
     const screens = screensProp || details?.screens || [];
     const internalAudit = details?.internalAudit as any;
-    const totals = internalAudit?.totals;
 
     const documentMode = resolveDocumentMode(details);
     const docLabel = documentMode === "BUDGET" ? "Budget Estimate" : documentMode === "PROPOSAL" ? "Proposal" : "Letter of Intent";
@@ -49,7 +48,6 @@ const ProposalTemplate3 = (data: ProposalTemplate3Props) => {
         return parts.join(", ");
     })();
 
-    const ancAddress = sender?.address || "2 Manhattanville Road, Suite 402, Purchase, NY 10577";
     const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "Specifications";
 
     // Modern color palette

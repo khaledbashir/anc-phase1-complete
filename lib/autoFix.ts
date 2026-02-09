@@ -16,7 +16,7 @@ const autoFixRules: AutoFixRule[] = [
     {
         id: 'missing-field-default',
         exceptionType: ExceptionType.MISSING_FIELD,
-        autoFixable: true,
+        autoFixable: false, // Not implemented — updateProposalField() is a stub
         detect: (exception) => exception.type === ExceptionType.MISSING_FIELD,
         fix: async (exception, proposal) => {
             const { fieldName, screenName } = exception;
@@ -43,7 +43,7 @@ const autoFixRules: AutoFixRule[] = [
     {
         id: 'non-numeric-cost',
         exceptionType: ExceptionType.NON_NUMERIC_COST,
-        autoFixable: true,
+        autoFixable: false, // Not implemented — updateProposalField() is a stub
         detect: (exception) => exception.type === ExceptionType.NON_NUMERIC_COST,
         fix: async (exception, proposal) => {
             const { actual, fieldName, screenName } = exception;
@@ -70,11 +70,11 @@ const autoFixRules: AutoFixRule[] = [
     {
         id: 'invalid-value-normalize',
         exceptionType: ExceptionType.INVALID_VALUE,
-        autoFixable: true,
+        autoFixable: false, // Not implemented — updateProposalField() is a stub
         detect: (exception) => exception.type === ExceptionType.INVALID_VALUE,
         fix: async (exception, proposal) => {
             const { actual, fieldName, screenName } = exception;
-            
+
             // Normalize the value
             const normalizedValue = normalizeValue(actual);
             
@@ -97,7 +97,7 @@ const autoFixRules: AutoFixRule[] = [
     {
         id: 'trim-whitespace',
         exceptionType: ExceptionType.INVALID_VALUE,
-        autoFixable: true,
+        autoFixable: false, // Not implemented — updateProposalField() is a stub
         detect: (exception) => {
             // Check if the issue is whitespace
             return exception.type === ExceptionType.INVALID_VALUE && 
@@ -129,7 +129,7 @@ const autoFixRules: AutoFixRule[] = [
     {
         id: 'normalize-decimals',
         exceptionType: ExceptionType.INVALID_VALUE,
-        autoFixable: true,
+        autoFixable: false, // Not implemented — updateProposalField() is a stub
         detect: (exception) => {
             // Check if the issue is inconsistent decimal places
             return exception.type === ExceptionType.INVALID_VALUE &&
@@ -160,7 +160,7 @@ const autoFixRules: AutoFixRule[] = [
     {
         id: 'detect-header',
         exceptionType: ExceptionType.HEADER_NOT_FOUND,
-        autoFixable: true,
+        autoFixable: false, // Not implemented — detectHeaderRowStrict() is a stub
         detect: (exception) => exception.type === ExceptionType.HEADER_NOT_FOUND,
         fix: async (exception, proposal) => {
             // Re-run header detection with stricter rules

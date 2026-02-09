@@ -118,7 +118,6 @@ interface CalculatedSpec {
 
 const MM_PER_FT = 304.8;
 const MM_PER_INCH = 25.4;
-const KG_PER_LB = 0.453592;
 const LB_PER_KG = 2.20462;
 
 // ============================================================================

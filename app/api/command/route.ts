@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 
 const ANYTHING_LLM_WORKSPACE = process.env.ANYTHING_LLM_WORKSPACE;

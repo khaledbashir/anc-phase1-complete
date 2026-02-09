@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useWizard } from "react-use-wizard";
-import { Download, Share2, Upload, Loader2, CheckCircle2, FileSpreadsheet, Save, AlertTriangle, ChevronDown, FileText, Receipt, FileSignature } from "lucide-react";
+import { Share2, Loader2, CheckCircle2, FileSpreadsheet, Save, ChevronDown, FileText, Receipt, FileSignature } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import LogoSelector from "@/app/components/reusables/LogoSelector";
 import SaveIndicator from "@/app/components/reusables/SaveIndicator";

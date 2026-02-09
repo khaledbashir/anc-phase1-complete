@@ -3,11 +3,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { useFormContext } from "react-hook-form";
-import { BaseButton } from "@/app/components";
 import {
     Send,
     Sparkles,
-    MessageSquare,
     AlertCircle,
     CheckCircle2,
     ChevronUp,

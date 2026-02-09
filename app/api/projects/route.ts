@@ -150,6 +150,15 @@ export async function POST(req: NextRequest) {
         }
 
 
+        // Track warnings for honest response
+        const warnings: string[] = [];
+
+        if (!aiWorkspaceSlug && ANYTHING_LLM_BASE_URL && ANYTHING_LLM_KEY) {
+            warnings.push("AI workspace creation failed — project created without AI features");
+        } else if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) {
+            warnings.push("AnythingLLM not configured — AI features unavailable");
+        }
+
         // Create the project in the database
         const project = await prisma.proposal.create({
             data: {
@@ -160,7 +169,7 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        return NextResponse.json({ project }, { status: 201 });
+        return NextResponse.json({ project, warnings }, { status: 201 });
     } catch (error) {
         console.error("POST /api/projects error:", error);
         return NextResponse.json(

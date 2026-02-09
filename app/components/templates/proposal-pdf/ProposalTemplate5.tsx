@@ -27,9 +27,6 @@ import { resolveDocumentMode } from "@/lib/documentMode";
 // Types
 import { ProposalType } from "@/types";
 
-// Styles
-import { PDF_COLORS } from "./PdfStyles";
-
 interface ProposalTemplate5Props extends ProposalType {
     forceWhiteLogo?: boolean;
     screens?: any[];
@@ -40,7 +37,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const { sender, receiver, details, forceWhiteLogo, screens: screensProp, isSharedView = false } = data;
     const screens = screensProp || details?.screens || [];
     const internalAudit = details?.internalAudit as any;
-    const totals = internalAudit?.totals;
 
     const documentMode = resolveDocumentMode(details);
     const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "PROPOSAL" : "LETTER OF INTENT";
@@ -54,7 +50,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         return parts.length > 0 ? parts.join(", ") : "";
     })();
 
-    const ancAddress = sender?.address || "2 Manhattanville Road, Suite 402, Purchase, NY 10577";
     const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "TECHNICAL SPECIFICATIONS";
 
     // Prompt 43: Currency detection from pricingDocument

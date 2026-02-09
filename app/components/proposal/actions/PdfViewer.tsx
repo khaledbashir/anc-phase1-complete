@@ -14,7 +14,7 @@ import { ProposalType } from "@/types";
 
 // Debounce
 import { useDebounce } from "use-debounce";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Switch } from "@/components/ui/switch";
 
 /** Stable fingerprint of form data so we only regenerate PDF when data actually changed. */

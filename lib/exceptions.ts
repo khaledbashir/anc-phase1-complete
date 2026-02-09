@@ -105,20 +105,16 @@ function detectLayer3Exceptions(manifest: VerificationManifest): Exception[] {
     // Check for rounding inconsistencies
     // This will be implemented with roundingAudit.ts in Phase 1
     
-    // Placeholder: check if any rounding drift exceeds threshold
-    const maxDrift = 0.01; // 1 cent
-    
-    // Will be enhanced when roundingAudit.ts is created
+    // Rounding audit not yet implemented — always returns INFO
     exceptions.push({
         id: generateId('exc'),
         type: ExceptionType.ROUNDING_DRIFT,
-        severity: maxDrift > 0.01 ? ExceptionSeverity.WARNING : ExceptionSeverity.INFO,
+        severity: ExceptionSeverity.INFO,
         category: ExceptionCategory.CALC_MISMATCH,
         autoFixable: false,
         resolved: false,
-        message: 'Rounding audit not yet implemented - will be added in Phase 1',
-        description: `Max rounding drift: $${maxDrift.toFixed(2)}`,
-        variance: maxDrift,
+        message: 'Rounding audit not yet implemented',
+        description: 'Will be added when roundingAudit.ts detection is built',
     });
     
     return exceptions;

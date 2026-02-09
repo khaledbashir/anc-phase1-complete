@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { useProposalContext } from "@/contexts/ProposalContext";
 import { RiskAwareSOWGenerator } from "@/services/sow/sowGenerator";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

@@ -45,7 +45,10 @@ export async function generateProposalPdfService(req: NextRequest) {
 		// Always use ProposalTemplate5 (Hybrid) — handles both Mirror Mode and Intelligence Mode
 		let templateId = body.details?.pdfTemplate ?? 5;
 		const DEPRECATED_TEMPLATES = [1, 2, 3, 4];
-		if (DEPRECATED_TEMPLATES.includes(templateId)) templateId = 5;
+		if (DEPRECATED_TEMPLATES.includes(templateId)) {
+			console.info(`[PDF] Remapping deprecated template ${templateId} → 5 (Hybrid)`);
+			templateId = 5;
+		}
 		const ProposalTemplate = await getProposalTemplate(templateId);
 
 		if (!ProposalTemplate) {
