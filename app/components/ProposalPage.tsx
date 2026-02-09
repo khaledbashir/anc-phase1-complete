@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { Wizard, useWizard } from "react-use-wizard";
 
@@ -43,7 +43,7 @@ interface ProposalPageProps {
  * PROMPT 56: Single hydration authority - this is the ONLY place that sets form state on load
  */
 const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
-  const { handleSubmit, setValue, reset, control } = useFormContext<ProposalType>();
+  const { handleSubmit, setValue, getValues, reset, control } = useFormContext<ProposalType>();
   const { onFormSubmit, importANCExcel, excelImportLoading, setInitialDataApplied } = useProposalContext();
   const wizard = useWizard();
   const { activeStep } = wizard;
@@ -189,7 +189,15 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
     </div>
   );
 
-  // Copilot: send messages via THIS PROJECT's AnythingLLM workspace
+  // Copilot: form fill context for guided mode
+  const formFillContext = useMemo(() => ({ setValue, getValues }), [setValue, getValues]);
+
+  // Copilot: detect if project has existing data (Excel uploaded / screens exist)
+  const screens = useWatch({ name: "details.screens", control }) as any[] | undefined;
+  const hasExistingData = isMirrorMode || ((screens?.length ?? 0) > 0);
+  const isNewProject = !projectId || projectId === "new";
+
+  // Copilot: send messages via THIS PROJECT's AnythingLLM workspace (freeform mode)
   const handleCopilotMessage = useCallback(async (message: string, _history: any[]) => {
     if (!projectId || projectId === "new") {
       return "Save this project first to enable AI Copilot. The AI workspace is created when the project is saved.";
@@ -231,7 +239,13 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
         showAudit={!isMirrorMode}
         pdfContent={PDFContent}
       />
-      <CopilotPanel onSendMessage={handleCopilotMessage} />
+      <CopilotPanel
+        onSendMessage={handleCopilotMessage}
+        formFillContext={formFillContext}
+        projectId={projectId}
+        isNewProject={isNewProject}
+        hasExistingData={hasExistingData}
+      />
     </>
   );
 };

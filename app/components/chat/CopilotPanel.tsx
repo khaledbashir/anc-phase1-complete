@@ -11,8 +11,17 @@ import {
     Sparkles,
     Trash2,
     ChevronDown,
+    Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+    ConversationStage,
+    getStagePrompt,
+    createInitialState,
+} from "@/services/chat/proposalConversationFlow";
+import type { CollectedData, StageAction } from "@/services/chat/proposalConversationFlow";
+import { executeActions } from "@/services/chat/formFillBridge";
+import type { FormFillContext } from "@/services/chat/formFillBridge";
 
 // ============================================================================
 // TYPES
@@ -25,8 +34,19 @@ export interface ChatMessage {
     timestamp: number;
 }
 
+export type CopilotMode = "guided" | "freeform";
+
 export interface CopilotPanelProps {
+    /** Freeform chat handler — calls project's AnythingLLM workspace */
     onSendMessage?: (message: string, history: ChatMessage[]) => Promise<string>;
+    /** Form context for guided mode — allows copilot to fill form fields */
+    formFillContext?: FormFillContext;
+    /** Project ID for guided flow API calls */
+    projectId?: string;
+    /** Whether this is a new empty project (triggers guided mode + auto-open) */
+    isNewProject?: boolean;
+    /** Whether the project already has data (Excel uploaded / Mirror Mode) */
+    hasExistingData?: boolean;
     quickActions?: Array<{ label: string; prompt: string }>;
     className?: string;
 }
@@ -35,13 +55,56 @@ export interface CopilotPanelProps {
 // COMPONENT
 // ============================================================================
 
-export default function CopilotPanel({ onSendMessage, quickActions, className }: CopilotPanelProps) {
+export default function CopilotPanel({
+    onSendMessage,
+    formFillContext,
+    projectId,
+    isNewProject,
+    hasExistingData,
+    quickActions,
+    className,
+}: CopilotPanelProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+
+    // Guided flow state
+    const [mode, setMode] = useState<CopilotMode>("freeform");
+    const [conversationStage, setConversationStage] = useState<ConversationStage>(ConversationStage.GREETING);
+    const [collectedData, setCollectedData] = useState<CollectedData>(createInitialState().collected);
+    const autoOpenedRef = useRef(false);
+
+    // Auto-open and start guided flow for new empty projects
+    useEffect(() => {
+        if (isNewProject && !hasExistingData && !autoOpenedRef.current) {
+            autoOpenedRef.current = true;
+            setMode("guided");
+            setIsOpen(true);
+
+            // Add greeting message after a short delay
+            const timer = setTimeout(() => {
+                const greeting = getStagePrompt(ConversationStage.GREETING, createInitialState().collected);
+                setMessages([{
+                    id: `greeting-${Date.now()}`,
+                    role: "assistant",
+                    content: greeting,
+                    timestamp: Date.now(),
+                }]);
+                setConversationStage(ConversationStage.CLIENT_NAME);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isNewProject, hasExistingData]);
+
+    // If project already has data, ensure freeform mode
+    useEffect(() => {
+        if (hasExistingData && mode === "guided" && messages.length === 0) {
+            setMode("freeform");
+        }
+    }, [hasExistingData, mode, messages.length]);
 
     const scrollToBottom = useCallback(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -59,6 +122,57 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
 
     const newId = () => `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
 
+    // ========================================================================
+    // GUIDED FLOW HANDLER
+    // ========================================================================
+    const handleGuidedSend = async (text: string) => {
+        try {
+            const res = await fetch("/api/copilot/propose", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    projectId,
+                    message: text,
+                    conversationStage,
+                    collectedData,
+                }),
+            });
+
+            const data = await res.json();
+
+            // Execute form fill actions if we have form context
+            if (data.actions && data.actions.length > 0 && formFillContext) {
+                const actionLog = executeActions(formFillContext, data.actions as StageAction[]);
+                console.log("[Copilot] Form actions executed:", actionLog);
+            }
+
+            // Handle PDF generation action
+            if (data.actions?.some((a: any) => a.type === "generate_pdf") && formFillContext) {
+                // Trigger PDF generation after a short delay to let form state settle
+                setTimeout(() => {
+                    const exportBtn = document.querySelector('[data-copilot-export]') as HTMLButtonElement;
+                    if (exportBtn) exportBtn.click();
+                }, 1000);
+            }
+
+            // Update conversation state
+            if (data.nextStage) {
+                setConversationStage(data.nextStage as ConversationStage);
+            }
+            if (data.collected) {
+                setCollectedData(data.collected);
+            }
+
+            return data.reply || "I didn't understand that. Could you try again?";
+        } catch (err) {
+            console.error("[Copilot] Guided flow error:", err);
+            return "Something went wrong. Try again, or type your answer differently.";
+        }
+    };
+
+    // ========================================================================
+    // SEND HANDLER (routes to guided or freeform)
+    // ========================================================================
     const handleSend = async () => {
         const text = input.trim();
         if (!text || isLoading) return;
@@ -76,11 +190,13 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
 
         try {
             let response: string;
-            if (onSendMessage) {
+
+            if (mode === "guided") {
+                response = await handleGuidedSend(text);
+            } else if (onSendMessage) {
                 response = await onSendMessage(text, [...messages, userMsg]);
             } else {
-                // Echo mode fallback
-                response = `Echo: ${text}`;
+                response = "AI backend not connected. Save the project first to enable AI chat.";
             }
 
             const assistantMsg: ChatMessage = {
@@ -112,15 +228,49 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
 
     const clearChat = () => {
         setMessages([]);
+        if (mode === "guided") {
+            setConversationStage(ConversationStage.GREETING);
+            setCollectedData(createInitialState().collected);
+        }
     };
 
-    const handleQuickAction = (prompt: string) => {
-        setInput(prompt);
-        // Auto-send after a tick
-        setTimeout(() => {
-            const fakeEvent = { key: "Enter", shiftKey: false, preventDefault: () => {} } as React.KeyboardEvent;
-            handleSend();
-        }, 50);
+    const switchToFreeform = () => {
+        setMode("freeform");
+        const msg: ChatMessage = {
+            id: newId(),
+            role: "assistant",
+            content: "Switched to freeform mode. Ask me anything about this project.",
+            timestamp: Date.now(),
+        };
+        setMessages((prev) => [...prev, msg]);
+    };
+
+    const switchToGuided = () => {
+        setMode("guided");
+        setConversationStage(ConversationStage.GREETING);
+        setCollectedData(createInitialState().collected);
+        const greeting = getStagePrompt(ConversationStage.GREETING, createInitialState().collected);
+        setMessages([{
+            id: newId(),
+            role: "assistant",
+            content: greeting,
+            timestamp: Date.now(),
+        }]);
+        setConversationStage(ConversationStage.CLIENT_NAME);
+    };
+
+    // Stage indicator for guided mode
+    const stageLabels: Record<string, string> = {
+        GREETING: "Getting started",
+        CLIENT_NAME: "Client info",
+        DISPLAYS: "Display specs",
+        DISPLAY_PRICING: "Display pricing",
+        SERVICES: "Services & installation",
+        PM_WARRANTY: "PM & warranty",
+        TAX_BOND: "Tax & bond",
+        REVIEW: "Review & generate",
+        GENERATE: "Generating...",
+        DONE: "Complete",
     };
 
     return (
@@ -154,10 +304,20 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
                         </div>
                         <div>
                             <h3 className="text-sm font-bold text-zinc-900 dark:text-white">ANC Copilot</h3>
-                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">AI-powered proposal assistant</p>
+                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                                {mode === "guided" ? `Guided • ${stageLabels[conversationStage] || "Building proposal"}` : "AI-powered proposal assistant"}
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-1">
+                        {/* Mode toggle */}
+                        <button
+                            onClick={mode === "guided" ? switchToFreeform : switchToGuided}
+                            className="p-1.5 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
+                            title={mode === "guided" ? "Switch to freeform chat" : "Start guided proposal builder"}
+                        >
+                            <Wand2 className="w-3.5 h-3.5" />
+                        </button>
                         <button
                             onClick={clearChat}
                             className="p-1.5 rounded-md text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"
@@ -175,6 +335,29 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
                     </div>
                 </div>
 
+                {/* Guided mode progress bar */}
+                {mode === "guided" && conversationStage !== ConversationStage.DONE && (
+                    <div className="px-4 py-2 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-700">
+                        <div className="flex items-center gap-1.5">
+                            {["CLIENT_NAME", "DISPLAYS", "DISPLAY_PRICING", "SERVICES", "PM_WARRANTY", "TAX_BOND", "REVIEW"].map((s, i) => {
+                                const stages = ["CLIENT_NAME", "DISPLAYS", "DISPLAY_PRICING", "SERVICES", "PM_WARRANTY", "TAX_BOND", "REVIEW"];
+                                const currentIdx = stages.indexOf(conversationStage);
+                                const isComplete = i < currentIdx;
+                                const isCurrent = s === conversationStage;
+                                return (
+                                    <div
+                                        key={s}
+                                        className={cn(
+                                            "h-1.5 flex-1 rounded-full transition-colors",
+                                            isComplete ? "bg-green-500" : isCurrent ? "bg-[#0A52EF]" : "bg-zinc-200 dark:bg-zinc-700"
+                                        )}
+                                    />
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-white dark:bg-zinc-900">
                     {messages.length === 0 ? (
@@ -184,17 +367,29 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
                             </div>
                             <h4 className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">How can I help?</h4>
                             <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-6">
-                                Ask me about pricing, products, proposal formatting, or anything about this project.
+                                {mode === "guided"
+                                    ? "I'll walk you through building a proposal step by step."
+                                    : "Ask me about pricing, products, proposal formatting, or anything about this project."}
                             </p>
 
                             {/* Quick Actions */}
-                            {quickActions && quickActions.length > 0 && (
+                            {mode === "freeform" && (
                                 <div className="w-full space-y-2">
-                                    {quickActions.map((action, idx) => (
+                                    <button
+                                        onClick={switchToGuided}
+                                        className="w-full text-left px-3 py-2.5 text-xs rounded-xl border-2 border-[#0A52EF]/30 bg-[#0A52EF]/5 hover:bg-[#0A52EF]/10 text-zinc-700 dark:text-zinc-300 transition-all font-medium"
+                                    >
+                                        <Wand2 className="w-3.5 h-3.5 inline mr-2" style={{ color: "#0A52EF" }} />
+                                        Start guided proposal builder
+                                    </button>
+                                    {quickActions && quickActions.map((action, idx) => (
                                         <button
                                             key={idx}
-                                            onClick={() => handleQuickAction(action.prompt)}
-                                            className="w-full text-left px-3 py-2.5 text-xs rounded-xl border border-border bg-card hover:bg-muted hover:border-brand-blue/30 transition-all"
+                                            onClick={() => {
+                                                setInput(action.prompt);
+                                                setTimeout(handleSend, 50);
+                                            }}
+                                            className="w-full text-left px-3 py-2.5 text-xs rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 transition-all"
                                         >
                                             {action.label}
                                         </button>
@@ -212,23 +407,24 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
                                 )}
                             >
                                 {msg.role === "assistant" && (
-                                    <div className="shrink-0 p-1 rounded-md bg-brand-blue/10 h-fit mt-0.5">
-                                        <Bot className="w-3.5 h-3.5 text-brand-blue" />
+                                    <div className="shrink-0 p-1 rounded-md h-fit mt-0.5" style={{ backgroundColor: "rgba(10,82,239,0.1)" }}>
+                                        <Bot className="w-3.5 h-3.5" style={{ color: "#0A52EF" }} />
                                     </div>
                                 )}
                                 <div
                                     className={cn(
                                         "max-w-[80%] px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed",
                                         msg.role === "user"
-                                            ? "bg-brand-blue text-white rounded-br-md"
-                                            : "bg-muted text-foreground rounded-bl-md"
+                                            ? "text-white rounded-br-md"
+                                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 rounded-bl-md"
                                     )}
+                                    style={msg.role === "user" ? { backgroundColor: "#0A52EF" } : undefined}
                                 >
                                     <p className="whitespace-pre-wrap">{msg.content}</p>
                                 </div>
                                 {msg.role === "user" && (
-                                    <div className="shrink-0 p-1 rounded-md bg-muted h-fit mt-0.5">
-                                        <User className="w-3.5 h-3.5 text-muted-foreground" />
+                                    <div className="shrink-0 p-1 rounded-md bg-zinc-200 dark:bg-zinc-700 h-fit mt-0.5">
+                                        <User className="w-3.5 h-3.5 text-zinc-500 dark:text-zinc-400" />
                                     </div>
                                 )}
                             </div>
@@ -237,11 +433,11 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
 
                     {isLoading && (
                         <div className="flex gap-2.5">
-                            <div className="shrink-0 p-1 rounded-md bg-brand-blue/10 h-fit mt-0.5">
-                                <Bot className="w-3.5 h-3.5 text-brand-blue" />
+                            <div className="shrink-0 p-1 rounded-md h-fit mt-0.5" style={{ backgroundColor: "rgba(10,82,239,0.1)" }}>
+                                <Bot className="w-3.5 h-3.5" style={{ color: "#0A52EF" }} />
                             </div>
-                            <div className="bg-muted px-3.5 py-2.5 rounded-2xl rounded-bl-md">
-                                <Loader2 className="w-4 h-4 text-brand-blue animate-spin" />
+                            <div className="bg-zinc-100 dark:bg-zinc-800 px-3.5 py-2.5 rounded-2xl rounded-bl-md">
+                                <Loader2 className="w-4 h-4 animate-spin" style={{ color: "#0A52EF" }} />
                             </div>
                         </div>
                     )}
@@ -257,7 +453,7 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Ask anything..."
+                            placeholder={mode === "guided" ? "Type your answer..." : "Ask anything..."}
                             rows={1}
                             className="flex-1 resize-none px-3 py-2.5 text-xs text-zinc-900 dark:text-white bg-white dark:bg-zinc-800 border-2 border-zinc-300 dark:border-zinc-600 rounded-xl focus:border-[#0A52EF] focus:ring-1 focus:ring-[#0A52EF]/30 transition-colors max-h-[120px] overflow-y-auto placeholder:text-zinc-400"
                             style={{ minHeight: "40px" }}
@@ -277,7 +473,7 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
                         </button>
                     </div>
                     <p className="text-[9px] text-zinc-400 dark:text-zinc-500 mt-1.5 text-center">
-                        Powered by ANC Copilot • Press Enter to send
+                        {mode === "guided" ? "Guided mode • Type naturally" : "Powered by ANC Copilot • Press Enter to send"}
                     </p>
                 </div>
             </div>
