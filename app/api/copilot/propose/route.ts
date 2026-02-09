@@ -247,7 +247,17 @@ SPECIAL ACTIONS (use these for non-field operations):
   { "action": "download_pdf" }
   { "action": "navigate_step", "step": 0-3 }
 
-IMPORTANT: When the user says "change X to Y" or "set X to Y" or "make X be Y" — ALWAYS emit a set_field screenAction. Do it immediately, no confirmation. Tell them what you changed.
+CRITICAL RULE — FIELD CHANGES:
+When the user asks to change ANY field, you MUST include screenActions in your JSON block.
+This is NOT optional. If the user says "change X to Y", "set X to Y", "make X be Y", "do the same for X" — you MUST emit set_field actions.
+The user expects to see changes happen INSTANTLY on screen. If you respond without screenActions, NOTHING changes and the user gets frustrated.
+
+COMPOUND COMMANDS — handle ALL parts in ONE response:
+"change client to Denver and set city to Denver and hide the footer" → emit 3 screenActions
+"change project name to Denver, set payment to Net 45, add a note saying preliminary" → emit 3 screenActions
+"do the same for project name" → use the SAME value from the previous action on the new field
+
+ALWAYS emit screenActions. NEVER just say "Done" without them.
 
 BEHAVIOR BY STAGE:
 - GREETING/CLIENT_NAME: Get the client name. "Dallas Cowboys" → fill it, move to DISPLAYS.
@@ -490,133 +500,294 @@ async function llmGuidedFlow(
 // ============================================================================
 
 /**
+ * Natural language → field name mapping.
+ * Covers every way a user might refer to a field in casual speech.
+ */
+const FIELD_ALIASES: Record<string, string> = {
+    // Client / Receiver
+    "client name":      "clientName",
+    "client":           "clientName",
+    "company name":     "clientName",
+    "company":          "clientName",
+    "receiver name":    "clientName",
+    "receiver":         "clientName",
+    "client address":   "clientAddress",
+    "address":          "clientAddress",
+    "client city":      "clientCity",
+    "city":             "clientCity",
+    "client country":   "clientCountry",
+    "country":          "clientCountry",
+    "client zip":       "clientZip",
+    "zip":              "clientZip",
+    "zip code":         "clientZip",
+    "client email":     "clientEmail",
+    "email":            "clientEmail",
+    "client phone":     "clientPhone",
+    "phone":            "clientPhone",
+
+    // Project / Document
+    "project name":     "proposalName",
+    "proposal name":    "proposalName",
+    "name":             "proposalName",  // bare "name" → project name (client name uses "client name")
+    "location":         "location",
+    "project location": "location",
+    "venue":            "venue",
+    "currency":         "currency",
+    "language":         "language",
+    "proposal date":    "proposalDate",
+    "date":             "proposalDate",
+    "due date":         "dueDate",
+    "po number":        "purchaseOrderNumber",
+    "purchase order":   "purchaseOrderNumber",
+    "doc type":         "documentMode",
+    "document type":    "documentMode",
+    "document mode":    "documentMode",
+
+    // Text fields
+    "intro":            "introductionText",
+    "intro text":       "introductionText",
+    "introduction":     "introductionText",
+    "introduction text":"introductionText",
+    "payment terms":    "paymentTerms",
+    "payment":          "paymentTerms",
+    "terms":            "paymentTerms",
+    "signature":        "signatureBlockText",
+    "signature text":   "signatureBlockText",
+    "signature block":  "signatureBlockText",
+    "notes":            "additionalNotes",
+    "additional notes": "additionalNotes",
+    "custom notes":     "customProposalNotes",
+    "proposal notes":   "customProposalNotes",
+    "loi header":       "loiHeaderText",
+    "loi text":         "loiHeaderText",
+    "scope of work":    "scopeOfWorkText",
+    "scope":            "scopeOfWorkText",
+    "sow":              "scopeOfWorkText",
+    "specs title":      "specsSectionTitle",
+    "specifications title": "specsSectionTitle",
+
+    // Rates
+    "tax rate":         "taxRateOverride",
+    "tax":              "taxRateOverride",
+    "bond rate":        "bondRateOverride",
+    "bond":             "bondRateOverride",
+    "insurance rate":   "insuranceRateOverride",
+    "insurance":        "insuranceRateOverride",
+    "overhead":         "overheadRate",
+    "overhead rate":    "overheadRate",
+    "profit rate":      "profitRate",
+    "profit":           "profitRate",
+    "margin":           "globalMargin",
+    "global margin":    "globalMargin",
+
+    // Signer
+    "signer name":      "signerName",
+    "signer":           "signerName",
+    "signer title":     "signerTitle",
+
+    // Sender
+    "sender name":      "senderName",
+    "sender":           "senderName",
+    "sender address":   "senderAddress",
+    "sender city":      "senderCity",
+    "sender email":     "senderEmail",
+    "sender phone":     "senderPhone",
+};
+
+/**
+ * PDF section toggle aliases → field name + boolean value
+ */
+const TOGGLE_ALIASES: Record<string, string> = {
+    "pricing tables":   "showPricingTables",
+    "pricing":          "showPricingTables",
+    "intro text":       "showIntroText",
+    "intro":            "showIntroText",
+    "specifications":   "showSpecifications",
+    "specs":            "showSpecifications",
+    "payment terms":    "showPaymentTerms",
+    "payment":          "showPaymentTerms",
+    "signature block":  "showSignatureBlock",
+    "signature":        "showSignatureBlock",
+    "notes":            "showNotes",
+    "scope of work":    "showScopeOfWork",
+    "scope":            "showScopeOfWork",
+    "footer":           "showCompanyFooter",
+    "company footer":   "showCompanyFooter",
+    "assumptions":      "showAssumptions",
+    "exhibit a":        "showExhibitA",
+    "exhibit b":        "showExhibitB",
+    "base bid":         "showBaseBidTable",
+};
+
+/**
+ * Resolve a natural language field reference to a field name.
+ * Tries longest match first so "client name" beats "client".
+ */
+function resolveFieldAlias(text: string): string | null {
+    const t = text.toLowerCase().trim();
+    // Sort by length descending so "client name" matches before "client"
+    const sorted = Object.entries(FIELD_ALIASES).sort((a, b) => b[0].length - a[0].length);
+    for (const [alias, field] of sorted) {
+        if (t === alias || t.startsWith(alias + " ") || t.endsWith(" " + alias)) return field;
+        // Also check if the alias appears as a substring bounded by word boundaries
+        const re = new RegExp(`\\b${alias.replace(/\s+/g, "\\s+")}\\b`, "i");
+        if (re.test(t)) return field;
+    }
+    return null;
+}
+
+// Track last action for contextual follow-ups ("do the same for X")
+let _lastIntentValue: string | null = null;
+
+/**
  * When the LLM doesn't emit screenActions in its JSON (common with thinking models),
  * detect "change X to Y" intent from the user's raw message and generate actions.
+ *
+ * Handles:
+ * - Single commands: "change client name to Denver"
+ * - Compound commands: "change client to Denver and set city to Denver and hide the footer"
+ * - Contextual follow-ups: "do the same for project name" / "same thing for project name"
+ * - Toggle commands: "hide the signature block" / "show the footer"
+ * - Special commands: "download pdf", "go to step 2", "switch to LOI"
  */
 function detectFieldChangeIntent(message: string, screenContext?: any): any[] {
     const actions: any[] = [];
     const msg = message.trim();
     const lower = msg.toLowerCase();
 
-    // ---- "change/set/update CLIENT NAME to X" ----
-    const clientNameMatch = lower.match(
-        /(?:change|set|update|make|rename)\s+(?:the\s+)?(?:client(?:\s*name)?|receiver(?:\s*name)?|company(?:\s*name)?)\s+(?:to|=|:)\s*(.+)/i
+    // ---- CONTEXTUAL FOLLOW-UP: "do the same for X" / "same for X" / "same thing for X" ----
+    const sameMatch = lower.match(
+        /(?:do\s+(?:the\s+)?same|same\s+(?:thing|for)|do\s+(?:that|it)\s+(?:for|to|with))\s+(?:the\s+)?(?:for\s+(?:the\s+)?)?([\w\s]+)/i
     );
-    if (clientNameMatch) {
-        const val = msg.slice(msg.toLowerCase().indexOf(clientNameMatch[1].toLowerCase()), msg.length).trim().replace(/[.!?]+$/, "");
-        if (val) actions.push({ action: "set_field", field: "clientName", value: val });
+    if (sameMatch && _lastIntentValue) {
+        const targetField = resolveFieldAlias(sameMatch[1].trim());
+        if (targetField) {
+            actions.push({ action: "set_field", field: targetField, value: _lastIntentValue });
+            console.log(`[Intent] Contextual follow-up: set ${targetField} = "${_lastIntentValue}"`);
+            return actions;
+        }
     }
 
-    // ---- "change X to just Y" / "change X to Y" (generic with known current value) ----
-    if (actions.length === 0 && screenContext?.clientName) {
-        const currentClient = screenContext.clientName.toLowerCase();
-        // "change Denver Gold Diggers to just Denver" or "change the name to Denver"
-        if (lower.includes(currentClient.split(" ")[0]) || lower.includes("client") || lower.includes("name")) {
-            const toMatch = msg.match(/(?:to\s+(?:just\s+)?)([\w\s&'-]+?)(?:\s*$|[.!?])/i);
+    // ---- SPLIT COMPOUND COMMANDS on "and", "then", "also", "," ----
+    // "change client to Denver and set city to Denver and hide the footer"
+    const clauses = msg
+        .split(/\s*(?:,\s*(?:and\s+)?|\s+and\s+|\s+then\s+|\s+also\s+)/i)
+        .map(c => c.trim())
+        .filter(c => c.length > 2);
+
+    for (const clause of clauses) {
+        const cl = clause.toLowerCase();
+
+        // ---- "switch to LOI/PROPOSAL/BUDGET" ----
+        const docModeMatch = cl.match(
+            /(?:switch|change|set|make\s+it)\s+(?:to\s+|a\s+)?(?:an?\s+)?(loi|proposal|budget)/i
+        );
+        if (docModeMatch) {
+            actions.push({ action: "set_document_mode", value: docModeMatch[1].toUpperCase() });
+            continue;
+        }
+
+        // ---- "hide/show X" (toggle) ----
+        const hideMatch = cl.match(/(?:hide|remove|turn\s+off|disable)\s+(?:the\s+)?([\w\s]+)/i);
+        if (hideMatch) {
+            const target = hideMatch[1].trim().toLowerCase();
+            const sortedToggles = Object.entries(TOGGLE_ALIASES).sort((a, b) => b[0].length - a[0].length);
+            for (const [alias, field] of sortedToggles) {
+                if (target.includes(alias)) {
+                    actions.push({ action: "set_field", field, value: false });
+                    break;
+                }
+            }
+            continue;
+        }
+
+        const showMatch = cl.match(/(?:show|enable|turn\s+on|display)\s+(?:the\s+)?([\w\s]+)/i);
+        if (showMatch) {
+            const target = showMatch[1].trim().toLowerCase();
+            const sortedToggles = Object.entries(TOGGLE_ALIASES).sort((a, b) => b[0].length - a[0].length);
+            for (const [alias, field] of sortedToggles) {
+                if (target.includes(alias)) {
+                    actions.push({ action: "set_field", field, value: true });
+                    break;
+                }
+            }
+            continue;
+        }
+
+        // ---- "download pdf" / "export pdf" ----
+        if (/(?:download|export|generate|create)\s+(?:the\s+)?pdf/i.test(cl)) {
+            actions.push({ action: "download_pdf" });
+            continue;
+        }
+
+        // ---- "go to step N" ----
+        const stepMatch = cl.match(/(?:go\s+to|navigate\s+to|switch\s+to)\s+step\s+(\d)/i);
+        if (stepMatch) {
+            actions.push({ action: "navigate_step", step: parseInt(stepMatch[1]) - 1 });
+            continue;
+        }
+
+        // ---- GENERIC: "change/set/update FIELD to VALUE" ----
+        // This is the big one — handles any field via the alias map
+        const changeMatch = clause.match(
+            /(?:change|set|update|make|rename|put)\s+(?:the\s+)?([\w\s]+?)\s+(?:to|=|:)\s*(.+)/i
+        );
+        if (changeMatch) {
+            const fieldRef = changeMatch[1].trim();
+            let value: any = changeMatch[2].trim().replace(/[.!?]+$/, "");
+            const fieldName = resolveFieldAlias(fieldRef);
+
+            if (fieldName) {
+                // Handle percentage values for rate fields
+                if (fieldName.includes("Rate") || fieldName.includes("Margin") || fieldName.includes("rate") || fieldName.includes("margin")) {
+                    const pctMatch = value.match(/^(\d+\.?\d*)\s*%?$/);
+                    if (pctMatch) value = parseFloat(pctMatch[1]) / 100;
+                }
+                actions.push({ action: "set_field", field: fieldName, value });
+                _lastIntentValue = typeof value === "string" ? value : null;
+                continue;
+            }
+        }
+
+        // ---- FALLBACK: "add FIELD VALUE" / "FIELD: VALUE" ----
+        const addMatch = clause.match(
+            /(?:add|put)\s+(?:the\s+)?(?:a\s+)?([\w\s]+?)\s+(?:of\s+|as\s+|:?\s*)([\w\s&'.,!-]+)/i
+        );
+        if (addMatch) {
+            const fieldName = resolveFieldAlias(addMatch[1].trim());
+            if (fieldName) {
+                const value = addMatch[2].trim().replace(/[.!?]+$/, "");
+                actions.push({ action: "set_field", field: fieldName, value });
+                _lastIntentValue = value;
+                continue;
+            }
+        }
+
+        // ---- CURRENT VALUE REFERENCE: "change Denver Gold Diggers to just Denver" ----
+        // When user references a current value without naming the field
+        if (screenContext?.fieldValues) {
+            const toMatch = clause.match(/(?:to\s+(?:just\s+)?)([\w\s&'-]+?)(?:\s*$|[.!?])/i);
             if (toMatch) {
                 const newVal = toMatch[1].trim();
-                if (newVal && newVal.toLowerCase() !== currentClient) {
-                    actions.push({ action: "set_field", field: "clientName", value: newVal });
+                // Check if any current field value is mentioned in the clause
+                for (const [key, currentVal] of Object.entries(screenContext.fieldValues)) {
+                    if (typeof currentVal === "string" && currentVal.length > 2) {
+                        const currentLower = currentVal.toLowerCase();
+                        if (cl.includes(currentLower) || cl.includes(currentLower.split(" ")[0])) {
+                            actions.push({ action: "set_field", field: key, value: newVal });
+                            _lastIntentValue = newVal;
+                            break;
+                        }
+                    }
                 }
             }
         }
     }
 
-    // ---- "add city X" / "set city to X" / "city: X" ----
-    const cityMatch = lower.match(
-        /(?:add|set|change|update|make)\s+(?:the\s+)?(?:city|client\s*city|location)\s+(?:to\s+|=\s*|:\s*)?(.+)/i
-    );
-    if (cityMatch) {
-        const val = msg.slice(msg.toLowerCase().indexOf(cityMatch[1].toLowerCase())).trim().replace(/[.!?]+$/, "");
-        if (val) actions.push({ action: "set_field", field: "clientCity", value: val });
-    }
-
-    // ---- "set currency to X" ----
-    const currencyMatch = lower.match(
-        /(?:change|set|switch|update)\s+(?:the\s+)?currency\s+(?:to\s+)?(\w{3})/i
-    );
-    if (currencyMatch) {
-        actions.push({ action: "set_field", field: "currency", value: currencyMatch[1].toUpperCase() });
-    }
-
-    // ---- "switch to LOI/PROPOSAL/BUDGET" ----
-    const docModeMatch = lower.match(
-        /(?:switch|change|set|make\s+it)\s+(?:to\s+|a\s+)?(?:an?\s+)?(loi|proposal|budget)/i
-    );
-    if (docModeMatch) {
-        actions.push({ action: "set_document_mode", value: docModeMatch[1].toUpperCase() });
-    }
-
-    // ---- "change intro to X" / "set intro text to X" ----
-    const introMatch = msg.match(
-        /(?:change|set|update|make)\s+(?:the\s+)?(?:intro(?:duction)?(?:\s*text)?)\s+(?:to\s*:?\s*)([\s\S]+)/i
-    );
-    if (introMatch) {
-        actions.push({ action: "set_field", field: "introductionText", value: introMatch[1].trim() });
-    }
-
-    // ---- "change payment terms to X" ----
-    const paymentMatch = msg.match(
-        /(?:change|set|update)\s+(?:the\s+)?(?:payment\s*terms?)\s+(?:to\s*:?\s*)([\s\S]+)/i
-    );
-    if (paymentMatch) {
-        actions.push({ action: "set_field", field: "paymentTerms", value: paymentMatch[1].trim() });
-    }
-
-    // ---- "set tax rate to X%" ----
-    const taxMatch = lower.match(
-        /(?:set|change|update|make)\s+(?:the\s+)?tax\s*(?:rate)?\s+(?:to\s+)?(\d+\.?\d*)\s*%/i
-    );
-    if (taxMatch) {
-        actions.push({ action: "set_field", field: "taxRateOverride", value: parseFloat(taxMatch[1]) / 100 });
-    }
-
-    // ---- "set location to X" ----
-    const locationMatch = msg.match(
-        /(?:set|change|update)\s+(?:the\s+)?(?:location|venue|project\s*location)\s+(?:to\s*:?\s*)([\w\s&'-]+)/i
-    );
-    if (locationMatch) {
-        actions.push({ action: "set_field", field: "location", value: locationMatch[1].trim() });
-    }
-
-    // ---- "hide/show X section" ----
-    const toggleMatch = lower.match(
-        /(?:hide|remove|turn\s+off|disable)\s+(?:the\s+)?(?:signature|payment|notes|specs|footer|intro|scope)/i
-    );
-    if (toggleMatch) {
-        const section = toggleMatch[0];
-        if (section.includes("signature")) actions.push({ action: "set_field", field: "showSignatureBlock", value: false });
-        else if (section.includes("payment")) actions.push({ action: "set_field", field: "showPaymentTerms", value: false });
-        else if (section.includes("notes")) actions.push({ action: "set_field", field: "showNotes", value: false });
-        else if (section.includes("specs")) actions.push({ action: "set_field", field: "showSpecifications", value: false });
-        else if (section.includes("footer")) actions.push({ action: "set_field", field: "showCompanyFooter", value: false });
-        else if (section.includes("intro")) actions.push({ action: "set_field", field: "showIntroText", value: false });
-        else if (section.includes("scope")) actions.push({ action: "set_field", field: "showScopeOfWork", value: false });
-    }
-
-    const showMatch = lower.match(
-        /(?:show|add|turn\s+on|enable)\s+(?:the\s+)?(?:signature|payment|notes|specs|footer|intro|scope)/i
-    );
-    if (showMatch) {
-        const section = showMatch[0];
-        if (section.includes("signature")) actions.push({ action: "set_field", field: "showSignatureBlock", value: true });
-        else if (section.includes("payment")) actions.push({ action: "set_field", field: "showPaymentTerms", value: true });
-        else if (section.includes("notes")) actions.push({ action: "set_field", field: "showNotes", value: true });
-        else if (section.includes("specs")) actions.push({ action: "set_field", field: "showSpecifications", value: true });
-        else if (section.includes("footer")) actions.push({ action: "set_field", field: "showCompanyFooter", value: true });
-        else if (section.includes("intro")) actions.push({ action: "set_field", field: "showIntroText", value: true });
-        else if (section.includes("scope")) actions.push({ action: "set_field", field: "showScopeOfWork", value: true });
-    }
-
-    // ---- "download pdf" / "export pdf" / "generate pdf" ----
-    if (/(?:download|export|generate|create)\s+(?:the\s+)?pdf/i.test(lower)) {
-        actions.push({ action: "download_pdf" });
-    }
-
-    // ---- "go to step N" / "next step" / "previous step" ----
-    const stepMatch = lower.match(/(?:go\s+to|navigate\s+to|switch\s+to)\s+step\s+(\d)/i);
-    if (stepMatch) {
-        actions.push({ action: "navigate_step", step: parseInt(stepMatch[1]) - 1 });
+    // Update last value for follow-ups
+    if (actions.length > 0) {
+        const lastSetField = [...actions].reverse().find(a => a.action === "set_field" && typeof a.value === "string");
+        if (lastSetField) _lastIntentValue = lastSetField.value;
     }
 
     return actions;
