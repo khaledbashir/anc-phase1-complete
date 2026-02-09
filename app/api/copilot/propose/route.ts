@@ -142,9 +142,19 @@ function buildSystemPrompt(stage: ConversationStage, collected: CollectedData, s
             lines.push("\nNo pricing sections or screens configured yet.");
         }
 
-        if (sc.introText) lines.push(`\nCurrent Intro Text: "${sc.introText}"`);
-        if (sc.paymentTerms) lines.push(`Payment Terms: "${sc.paymentTerms}"`);
-        if (sc.additionalNotes) lines.push(`Notes: "${sc.additionalNotes}"`);
+        // Dump current field values so AI can see and reference them
+        if (sc.fieldValues && Object.keys(sc.fieldValues).length > 0) {
+            lines.push("\n== CURRENT FIELD VALUES ==");
+            for (const [key, val] of Object.entries(sc.fieldValues)) {
+                if (typeof val === "boolean") {
+                    lines.push(`  ${key}: ${val ? "ON" : "OFF"}`);
+                } else if (typeof val === "number") {
+                    lines.push(`  ${key}: ${val}`);
+                } else if (typeof val === "string" && val.length > 0) {
+                    lines.push(`  ${key}: "${val.length > 120 ? val.slice(0, 120) + "..." : val}"`);
+                }
+            }
+        }
 
         if (sc.editableFields) {
             lines.push(`\nEditable right now: [${sc.editableFields.join(", ")}]`);
@@ -204,19 +214,40 @@ REFERENCING THE SCREEN:
 - When user says "what's the total" → give the grand total from screen state
 - When user says "how many sections" → count from screen state
 
-SCREEN-AWARE ACTIONS — include in your JSON when the user requests UI changes:
+SCREEN-AWARE ACTIONS — include in your JSON when the user requests ANY field change or UI action:
 - "screenActions" array in your JSON response (alongside "extracted", "corrections", "nextStage")
-- Available screen actions:
+
+PRIMARY ACTION — set_field (use this for ANY field change):
+  { "action": "set_field", "field": "<fieldName>", "value": "<newValue>" }
+
+FIELD REFERENCE TABLE (use these exact field names):
+  Client:       clientName, clientAddress, clientCity, clientCountry, clientZip, clientEmail, clientPhone
+  Sender:       senderName, senderAddress, senderCity, senderCountry, senderEmail, senderPhone
+  Document:     proposalName, location, currency, language, proposalDate, dueDate, purchaseOrderNumber, documentMode, venue
+  Text:         introductionText, paymentTerms, signatureBlockText, additionalNotes, customProposalNotes, loiHeaderText, scopeOfWorkText, specsSectionTitle
+  Rates:        taxRateOverride (decimal, e.g. 0.095), bondRateOverride, insuranceRateOverride, overheadRate, profitRate, globalMargin
+  Signer:       signerName, signerTitle
+  PDF Toggles:  showPricingTables, showIntroText, showSpecifications, showPaymentTerms, showSignatureBlock, showNotes, showScopeOfWork, showCompanyFooter, showAssumptions, showExhibitA, showExhibitB, showBaseBidTable, includePricingBreakdown
+  (PDF toggles are boolean: true = show, false = hide)
+
+EXAMPLES of set_field usage:
+  "change client name to Lakers" → { "action": "set_field", "field": "clientName", "value": "Los Angeles Lakers" }
+  "set currency to CAD" → { "action": "set_field", "field": "currency", "value": "CAD" }
+  "change the intro to: We are pleased..." → { "action": "set_field", "field": "introductionText", "value": "We are pleased..." }
+  "set tax rate to 8.25%" → { "action": "set_field", "field": "taxRateOverride", "value": 0.0825 }
+  "hide the signature block" → { "action": "set_field", "field": "showSignatureBlock", "value": false }
+  "change signer to John Smith, VP Sales" → two actions: { "action": "set_field", "field": "signerName", "value": "John Smith" }, { "action": "set_field", "field": "signerTitle", "value": "VP Sales" }
+  "set location to Dodger Stadium" → { "action": "set_field", "field": "location", "value": "Dodger Stadium" }
+  "change the payment terms to Net 60" → { "action": "set_field", "field": "paymentTerms", "value": "Net 60" }
+
+SPECIAL ACTIONS (use these for non-field operations):
   { "action": "set_document_mode", "value": "BUDGET" | "PROPOSAL" | "LOI" }
-  { "action": "set_intro_text", "value": "new intro text" }
   { "action": "append_intro_text", "value": "text to append" }
-  { "action": "set_payment_terms", "value": "new payment terms" }
-  { "action": "set_notes", "value": "new notes text" }
-  { "action": "set_signature_text", "value": "new signature block text" }
   { "action": "fix_section_header", "sectionIndex": 0, "value": "corrected name" }
   { "action": "download_pdf" }
   { "action": "navigate_step", "step": 0-3 }
-  { "action": "summarize_project" }
+
+IMPORTANT: When the user says "change X to Y" or "set X to Y" or "make X be Y" — ALWAYS emit a set_field screenAction. Do it immediately, no confirmation. Tell them what you changed.
 
 BEHAVIOR BY STAGE:
 - GREETING/CLIENT_NAME: Get the client name. "Dallas Cowboys" → fill it, move to DISPLAYS.

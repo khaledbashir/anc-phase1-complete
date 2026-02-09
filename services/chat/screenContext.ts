@@ -53,6 +53,9 @@ export interface ScreenContext {
     // What's editable right now
     editableFields: string[];
     readOnlyReason: string;
+
+    // Current values of all editable fields (for AI reference)
+    fieldValues: Record<string, any>;
 }
 
 // ============================================================================
@@ -140,6 +143,82 @@ export function getScreenContext(
         ? "Mirror Mode — prices come from Excel and are read-only. To change pricing, update the Excel and re-upload."
         : "";
 
+    // Collect current values of all key editable fields
+    const fieldValues: Record<string, any> = {};
+    const safeGet = (path: string) => { try { return g(path as any); } catch { return undefined; } };
+
+    // Client / Receiver
+    fieldValues.clientName = safeGet("receiver.name") || "";
+    fieldValues.clientAddress = safeGet("receiver.address") || "";
+    fieldValues.clientCity = safeGet("receiver.city") || "";
+    fieldValues.clientCountry = safeGet("receiver.country") || "";
+    fieldValues.clientZip = safeGet("receiver.zipCode") || "";
+    fieldValues.clientEmail = safeGet("receiver.email") || "";
+    fieldValues.clientPhone = safeGet("receiver.phone") || "";
+
+    // Sender
+    fieldValues.senderName = safeGet("sender.name") || "";
+    fieldValues.senderAddress = safeGet("sender.address") || "";
+    fieldValues.senderCity = safeGet("sender.city") || "";
+    fieldValues.senderCountry = safeGet("sender.country") || "";
+    fieldValues.senderEmail = safeGet("sender.email") || "";
+    fieldValues.senderPhone = safeGet("sender.phone") || "";
+
+    // Document settings
+    fieldValues.proposalName = safeGet("details.proposalName") || "";
+    fieldValues.location = safeGet("details.location") || "";
+    fieldValues.currency = currency;
+    fieldValues.language = safeGet("details.language") || "";
+    fieldValues.proposalDate = safeGet("details.proposalDate") || "";
+    fieldValues.dueDate = safeGet("details.dueDate") || "";
+    fieldValues.purchaseOrderNumber = safeGet("details.purchaseOrderNumber") || "";
+    fieldValues.documentMode = documentMode;
+
+    // Text fields (full values for AI to see and modify)
+    fieldValues.introductionText = truncate(safeGet("details.introductionText"), 500);
+    fieldValues.paymentTerms = truncate(safeGet("details.paymentTerms"), 500);
+    fieldValues.signatureBlockText = truncate(safeGet("details.signatureBlockText"), 500);
+    fieldValues.additionalNotes = truncate(safeGet("details.additionalNotes"), 500);
+    fieldValues.customProposalNotes = truncate(safeGet("details.customProposalNotes"), 500);
+    fieldValues.loiHeaderText = truncate(safeGet("details.loiHeaderText"), 500);
+    fieldValues.scopeOfWorkText = truncate(safeGet("details.scopeOfWorkText"), 500);
+    fieldValues.specsSectionTitle = safeGet("details.specsSectionTitle") || "";
+
+    // Rates
+    fieldValues.taxRateOverride = safeGet("details.taxRateOverride");
+    fieldValues.bondRateOverride = safeGet("details.bondRateOverride");
+    fieldValues.insuranceRateOverride = safeGet("details.insuranceRateOverride");
+    fieldValues.overheadRate = safeGet("details.overheadRate");
+    fieldValues.profitRate = safeGet("details.profitRate");
+    fieldValues.globalMargin = safeGet("details.globalMargin");
+
+    // Signer
+    fieldValues.signerName = safeGet("details.signerName") || "";
+    fieldValues.signerTitle = safeGet("details.signerTitle") || "";
+
+    // Venue
+    fieldValues.venue = safeGet("details.venue") || "";
+
+    // PDF toggles (booleans)
+    fieldValues.showPricingTables = safeGet("details.showPricingTables");
+    fieldValues.showIntroText = safeGet("details.showIntroText");
+    fieldValues.showSpecifications = safeGet("details.showSpecifications");
+    fieldValues.showPaymentTerms = safeGet("details.showPaymentTerms");
+    fieldValues.showSignatureBlock = safeGet("details.showSignatureBlock");
+    fieldValues.showNotes = safeGet("details.showNotes");
+    fieldValues.showScopeOfWork = safeGet("details.showScopeOfWork");
+    fieldValues.showCompanyFooter = safeGet("details.showCompanyFooter");
+    fieldValues.showAssumptions = safeGet("details.showAssumptions");
+    fieldValues.showExhibitA = safeGet("details.showExhibitA");
+    fieldValues.showExhibitB = safeGet("details.showExhibitB");
+
+    // Strip out empty/undefined values to keep payload small
+    for (const key of Object.keys(fieldValues)) {
+        if (fieldValues[key] === undefined || fieldValues[key] === "" || fieldValues[key] === null) {
+            delete fieldValues[key];
+        }
+    }
+
     return {
         currentStep,
         currentStepName: STEP_NAMES[currentStep] || `Step ${currentStep}`,
@@ -159,6 +238,7 @@ export function getScreenContext(
         screenCount,
         editableFields,
         readOnlyReason,
+        fieldValues,
     };
 }
 

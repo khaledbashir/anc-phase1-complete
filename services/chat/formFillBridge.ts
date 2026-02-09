@@ -202,9 +202,149 @@ function setDocumentType(ctx: FormFillContext, docType: "BUDGET" | "PROPOSAL" | 
 
 export interface ScreenAction {
     action: string;
+    field?: string;
     value?: any;
     sectionIndex?: number;
     step?: number;
+}
+
+/**
+ * Whitelist of form field paths the AI is allowed to write to via set_field.
+ * Maps friendly names → react-hook-form paths.
+ * If the AI sends a path that's already a valid form path, we check it against
+ * the whitelist directly. If it sends a friendly name, we resolve it.
+ */
+const EDITABLE_FIELDS: Record<string, string> = {
+    // Client / Receiver
+    "clientName":           "receiver.name",
+    "receiver.name":        "receiver.name",
+    "clientAddress":        "receiver.address",
+    "receiver.address":     "receiver.address",
+    "clientCity":           "receiver.city",
+    "receiver.city":        "receiver.city",
+    "clientCountry":        "receiver.country",
+    "receiver.country":     "receiver.country",
+    "clientZip":            "receiver.zipCode",
+    "receiver.zipCode":     "receiver.zipCode",
+    "clientEmail":          "receiver.email",
+    "receiver.email":       "receiver.email",
+    "clientPhone":          "receiver.phone",
+    "receiver.phone":       "receiver.phone",
+
+    // Sender
+    "senderName":           "sender.name",
+    "sender.name":          "sender.name",
+    "senderAddress":        "sender.address",
+    "sender.address":       "sender.address",
+    "senderCity":           "sender.city",
+    "sender.city":          "sender.city",
+    "senderCountry":        "sender.country",
+    "sender.country":       "sender.country",
+    "senderEmail":          "sender.email",
+    "sender.email":         "sender.email",
+    "senderPhone":          "sender.phone",
+    "sender.phone":         "sender.phone",
+
+    // Document settings
+    "documentMode":                     "details.documentMode",
+    "details.documentMode":             "details.documentMode",
+    "proposalName":                     "details.proposalName",
+    "details.proposalName":             "details.proposalName",
+    "location":                         "details.location",
+    "details.location":                 "details.location",
+    "currency":                         "details.currency",
+    "details.currency":                 "details.currency",
+    "language":                         "details.language",
+    "details.language":                 "details.language",
+    "proposalDate":                     "details.proposalDate",
+    "details.proposalDate":             "details.proposalDate",
+    "dueDate":                          "details.dueDate",
+    "details.dueDate":                  "details.dueDate",
+    "purchaseOrderNumber":              "details.purchaseOrderNumber",
+    "details.purchaseOrderNumber":      "details.purchaseOrderNumber",
+
+    // Text fields
+    "introductionText":                 "details.introductionText",
+    "introText":                        "details.introductionText",
+    "details.introductionText":         "details.introductionText",
+    "paymentTerms":                     "details.paymentTerms",
+    "details.paymentTerms":             "details.paymentTerms",
+    "signatureBlockText":               "details.signatureBlockText",
+    "signatureText":                    "details.signatureBlockText",
+    "details.signatureBlockText":       "details.signatureBlockText",
+    "additionalNotes":                  "details.additionalNotes",
+    "notes":                            "details.additionalNotes",
+    "details.additionalNotes":          "details.additionalNotes",
+    "customProposalNotes":              "details.customProposalNotes",
+    "details.customProposalNotes":      "details.customProposalNotes",
+    "loiHeaderText":                    "details.loiHeaderText",
+    "details.loiHeaderText":            "details.loiHeaderText",
+    "scopeOfWorkText":                  "details.scopeOfWorkText",
+    "details.scopeOfWorkText":          "details.scopeOfWorkText",
+    "specsSectionTitle":                "details.specsSectionTitle",
+    "details.specsSectionTitle":        "details.specsSectionTitle",
+
+    // Rates & margins
+    "taxRate":                          "details.taxRateOverride",
+    "taxRateOverride":                  "details.taxRateOverride",
+    "details.taxRateOverride":          "details.taxRateOverride",
+    "bondRate":                         "details.bondRateOverride",
+    "bondRateOverride":                 "details.bondRateOverride",
+    "details.bondRateOverride":         "details.bondRateOverride",
+    "insuranceRate":                    "details.insuranceRateOverride",
+    "details.insuranceRateOverride":    "details.insuranceRateOverride",
+    "overheadRate":                     "details.overheadRate",
+    "details.overheadRate":             "details.overheadRate",
+    "profitRate":                       "details.profitRate",
+    "details.profitRate":               "details.profitRate",
+    "globalMargin":                     "details.globalMargin",
+    "details.globalMargin":             "details.globalMargin",
+
+    // Signer
+    "signerName":                       "details.signerName",
+    "details.signerName":               "details.signerName",
+    "signerTitle":                      "details.signerTitle",
+    "details.signerTitle":              "details.signerTitle",
+
+    // PDF section toggles
+    "showPricingTables":                "details.showPricingTables",
+    "details.showPricingTables":        "details.showPricingTables",
+    "showIntroText":                    "details.showIntroText",
+    "details.showIntroText":            "details.showIntroText",
+    "showSpecifications":               "details.showSpecifications",
+    "details.showSpecifications":       "details.showSpecifications",
+    "showPaymentTerms":                 "details.showPaymentTerms",
+    "details.showPaymentTerms":         "details.showPaymentTerms",
+    "showSignatureBlock":               "details.showSignatureBlock",
+    "details.showSignatureBlock":       "details.showSignatureBlock",
+    "showNotes":                        "details.showNotes",
+    "details.showNotes":                "details.showNotes",
+    "showScopeOfWork":                  "details.showScopeOfWork",
+    "details.showScopeOfWork":          "details.showScopeOfWork",
+    "showCompanyFooter":                "details.showCompanyFooter",
+    "details.showCompanyFooter":        "details.showCompanyFooter",
+    "showAssumptions":                  "details.showAssumptions",
+    "details.showAssumptions":          "details.showAssumptions",
+    "showExhibitA":                     "details.showExhibitA",
+    "details.showExhibitA":             "details.showExhibitA",
+    "showExhibitB":                     "details.showExhibitB",
+    "details.showExhibitB":             "details.showExhibitB",
+    "showBaseBidTable":                 "details.showBaseBidTable",
+    "details.showBaseBidTable":         "details.showBaseBidTable",
+    "includePricingBreakdown":          "details.includePricingBreakdown",
+    "details.includePricingBreakdown":  "details.includePricingBreakdown",
+
+    // Venue
+    "venue":                            "details.venue",
+    "details.venue":                    "details.venue",
+};
+
+/**
+ * Resolve a field name (friendly or form path) to a whitelisted form path.
+ * Returns null if not allowed.
+ */
+function resolveFieldPath(field: string): string | null {
+    return EDITABLE_FIELDS[field] || null;
 }
 
 /**
@@ -222,6 +362,26 @@ export function executeScreenActions(
 
     for (const sa of screenActions) {
         switch (sa.action) {
+            // ---- GENERIC FIELD SETTER (the big one) ----
+            case "set_field": {
+                if (!sa.field) {
+                    log.push("set_field: missing field name");
+                    break;
+                }
+                const formPath = resolveFieldPath(sa.field);
+                if (!formPath) {
+                    log.push(`set_field: "${sa.field}" is not an editable field`);
+                    break;
+                }
+                if (sa.value === undefined || sa.value === null) {
+                    log.push(`set_field: no value provided for "${sa.field}"`);
+                    break;
+                }
+                ctx.setValue(formPath as any, sa.value, { shouldDirty: true });
+                log.push(`Set ${sa.field} → ${typeof sa.value === "string" ? `"${sa.value.slice(0, 80)}"` : sa.value}`);
+                break;
+            }
+
             case "set_document_mode": {
                 const mode = String(sa.value).toUpperCase() as "BUDGET" | "PROPOSAL" | "LOI";
                 if (["BUDGET", "PROPOSAL", "LOI"].includes(mode)) {
