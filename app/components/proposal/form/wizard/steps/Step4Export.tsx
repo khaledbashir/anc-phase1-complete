@@ -117,8 +117,13 @@ const Step4Export = () => {
     };
 
     const screenCount = screens.length;
-    const hasErrors = screens.some((s: any) => !s.widthFt || !s.heightFt || !s.name);
-    const allScreensValid = screenCount > 0 && !hasErrors;
+    // In Mirror Mode, screens come from Excel and may use width/height instead of widthFt/heightFt
+    const hasErrors = screens.some((s: any) => {
+        const w = s.widthFt ?? s.width;
+        const h = s.heightFt ?? s.height;
+        return !w || !h || !s.name;
+    });
+    const allScreensValid = mirrorMode ? screenCount > 0 : (screenCount > 0 && !hasErrors);
     const hasOptionPlaceholder = screens.some((s: any) => {
         const name = (s?.name ?? "").toString().trim().toUpperCase();
         const w = Number(s?.widthFt ?? s?.width ?? 0);
