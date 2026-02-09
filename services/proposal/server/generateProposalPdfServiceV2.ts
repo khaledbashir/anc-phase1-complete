@@ -185,6 +185,7 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 			width: layout.width,
 			height: layout.height,
 			landscape: isLandscapeLayout,
+			preferCSSPageSize: false,
 			printBackground: true,
 			displayHeaderFooter: true,
 			// Empty header (1px font hides default browser header)

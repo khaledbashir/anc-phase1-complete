@@ -148,6 +148,7 @@ export async function generateProposalPdfService(req: NextRequest) {
 			width: layout.width,
 			height: layout.height,
 			landscape: isLandscapeLayout,
+			preferCSSPageSize: false,
 			printBackground: true,
 			displayHeaderFooter: true,
 			footerTemplate: `

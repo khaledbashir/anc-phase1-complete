@@ -39,14 +39,13 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                 </>
             )}
             {/* Global print styles for proper page breaks and clean PDF output */}
-            <style dangerouslySetInnerHTML={{
-                __html: `
-                    @media print {
-                        /* Suppress browser print headers/footers (timestamps, URLs) */
-                        @page {
-                            margin: 0;
-                            size: auto;
-                        }
+	            <style dangerouslySetInnerHTML={{
+	                __html: `
+	                    @media print {
+	                        /* Suppress browser print headers/footers (timestamps, URLs) */
+	                        @page {
+	                            margin: 0;
+	                        }
                         
                         /* Hide browser default headers/footers */
                         html, body {
