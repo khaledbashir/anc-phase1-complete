@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { formatCurrency } from "@/lib/helpers";
 import { Input } from "@/components/ui/input";
-import { Check, Pencil, X } from "lucide-react";
+import { Check, Pencil, X, Download } from "lucide-react";
 
 const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) => {
   const { control, setValue, getValues } = useFormContext();
@@ -19,6 +19,31 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
 
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
+
+  // P59: Export Audit CSV
+  const exportAuditCSV = () => {
+    if (!internalAudit?.perScreen) return;
+    const headers = ["Screen Name","Qty","Area (sqft)","Hardware","Structure","Install","Labor","Power","Shipping","PM","Gen Conditions","Travel","Submittals","Engineering","Permits","CMS","Demolition","Total Cost","Sell Price","Bond","Margin $","Margin %","B&O Tax","Sales Tax","Final Client Total"];
+    const rows = internalAudit.perScreen.map((s: any, idx: number) => {
+      const b = s.breakdown;
+      const screenForm = screens?.[idx] || {};
+      const name = (screenForm?.customDisplayName || screenForm?.externalName || screenForm?.name || s?.name || "").toString().replace(/,/g, " ");
+      const marginPct = b.sellPrice > 0 ? ((b.ancMargin / b.sellPrice) * 100).toFixed(2) : "0";
+      return [name, s.quantity, s.areaSqFt?.toFixed(2), b.hardware, b.structure, b.install, b.labor, b.power, b.shipping, b.pm, b.generalConditions, b.travel, b.submittals, b.engineering, b.permits, b.cms, b.demolition, b.totalCost, b.sellPrice, b.bondCost, b.ancMargin, marginPct, b.boTaxCost, b.salesTaxCost, b.finalClientTotal].join(",");
+    });
+    // Totals row
+    const t = internalAudit.totals;
+    const totalMarginPct = t.sellPrice > 0 ? ((t.ancMargin / t.sellPrice) * 100).toFixed(2) : "0";
+    rows.push(["TOTALS","","",t.hardware,t.structure,t.install,t.labor,t.power,t.shipping,t.pm,t.generalConditions,t.travel,t.submittals,t.engineering,t.permits,t.cms,t.demolition,t.totalCost,t.sellPrice,t.bondCost,t.ancMargin || t.margin,totalMarginPct,t.boTaxCost,"",t.finalClientTotal].join(","));
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ANC_Audit_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   if (!internalAudit || !internalAudit.perScreen) {
     return (
@@ -79,6 +104,17 @@ const AuditTable = ({ bondRateOverride = 1.5 }: { bondRateOverride?: number }) =
 
   return (
     <div className="min-w-[1000px] min-h-[200px] text-xs font-mono rounded-lg overflow-hidden border border-border bg-card/50">
+      {/* P59: Export CSV Button */}
+      <div className="flex justify-end p-2 border-b border-border bg-muted/30">
+        <button
+          type="button"
+          onClick={exportAuditCSV}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-foreground bg-muted hover:bg-accent border border-border rounded-md transition-colors"
+        >
+          <Download className="w-3 h-3" />
+          Export Audit CSV
+        </button>
+      </div>
       {/* Header Row */}
       <div className="grid grid-cols-12 gap-2 bg-muted p-3 rounded-t-lg border-b border-border text-muted-foreground font-bold">
         <div className="col-span-2">Screen Name</div>
