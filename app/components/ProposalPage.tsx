@@ -236,6 +236,8 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
         projectId={projectId}
         isNewProject={isNewProject}
         hasExistingData={hasExistingData}
+        currentStep={activeStep}
+        onNavigateStep={(step) => wizard.goToStep(step)}
       />
     </>
   );

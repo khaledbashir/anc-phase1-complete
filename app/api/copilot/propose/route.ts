@@ -23,11 +23,13 @@ export async function POST(req: NextRequest) {
             message,
             conversationStage,
             collectedData,
+            screenContext,
         } = body as {
             projectId?: string;
             message: string;
             conversationStage: string;
             collectedData: CollectedData;
+            screenContext?: any;
         };
 
         if (!message) {
@@ -72,7 +74,7 @@ export async function POST(req: NextRequest) {
         }
 
         // ---- Normal LLM-powered guided flow ----
-        const llmResult = await llmGuidedFlow(workspaceSlug, projectId, stage, message, collected);
+        const llmResult = await llmGuidedFlow(workspaceSlug, projectId, stage, message, collected, screenContext);
         if (llmResult) {
             return NextResponse.json(llmResult);
         }
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
 // LLM-POWERED GUIDED FLOW
 // ============================================================================
 
-function buildSystemPrompt(stage: ConversationStage, collected: CollectedData): string {
+function buildSystemPrompt(stage: ConversationStage, collected: CollectedData, screenContext?: any): string {
     // Build display summary for context
     const displayList = collected.displays.length > 0
         ? collected.displays.map((d, i) => {
@@ -111,6 +113,47 @@ function buildSystemPrompt(stage: ConversationStage, collected: CollectedData): 
     const serviceList = collected.services.length > 0
         ? collected.services.map(s => `  ${s.description}: $${s.price.toLocaleString()}`).join("\n")
         : "  (none yet)";
+
+    // Build screen context block if available
+    let screenBlock = "";
+    if (screenContext) {
+        const sc = screenContext;
+        const lines: string[] = [];
+        lines.push("\n== CURRENT SCREEN STATE ==");
+        lines.push(`Step: ${sc.currentStepName || `Step ${sc.currentStep}`}`);
+        lines.push(`Mode: ${sc.isMirrorMode ? "Mirror Mode (Excel uploaded — prices are READ-ONLY)" : "Intelligence Mode (full editing)"}`);
+        lines.push(`Document Type: ${sc.documentMode || "BUDGET"}`);
+        lines.push(`Client: ${sc.clientName || "(not set)"}`);
+        lines.push(`Currency: ${sc.currency || "USD"}`);
+
+        if (sc.sections && sc.sections.length > 0) {
+            lines.push("");
+            lines.push(`Pricing Sections (${sc.sections.length} total):`);
+            for (const s of sc.sections) {
+                const price = (s.subtotal || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                const alt = s.hasAlternates ? " — has alternates" : "";
+                lines.push(`  ${(s.index ?? 0) + 1}. ${s.name} — ${s.lineItemCount} items — $${price}${alt}`);
+            }
+            const gt = (sc.grandTotal || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            lines.push(`Grand Total: $${gt}`);
+        } else if (sc.screenCount > 0) {
+            lines.push(`\nScreens: ${sc.screenCount} display(s) configured`);
+        } else {
+            lines.push("\nNo pricing sections or screens configured yet.");
+        }
+
+        if (sc.introText) lines.push(`\nCurrent Intro Text: "${sc.introText}"`);
+        if (sc.paymentTerms) lines.push(`Payment Terms: "${sc.paymentTerms}"`);
+        if (sc.additionalNotes) lines.push(`Notes: "${sc.additionalNotes}"`);
+
+        if (sc.editableFields) {
+            lines.push(`\nEditable right now: [${sc.editableFields.join(", ")}]`);
+        }
+        if (sc.readOnlyReason) {
+            lines.push(`NOT editable: ${sc.readOnlyReason}`);
+        }
+        screenBlock = lines.join("\n");
+    }
 
     return `You are an AI copilot helping an ANC Sports estimator build an LED display proposal. You are a confident, knowledgeable colleague — not a form, not a chatbot.
 
@@ -130,6 +173,50 @@ WHAT'S BEEN COLLECTED:
 - Services:\n${serviceList}
 - Tax: ${collected.taxRate ? `${(collected.taxRate * 100).toFixed(1)}%` : "(not set)"}
 - Bond: ${collected.bondRate ? `${(collected.bondRate * 100).toFixed(1)}%` : "(not set)"}
+${screenBlock}
+
+== SCREEN-AWARE BEHAVIOR ==
+
+You can see what the user sees. Use this to give specific, contextual help.
+
+MIRROR MODE RULES (when Mode = Mirror Mode):
+- You CAN change: document type, intro text, payment terms, signature text, notes, section headers (typo fixes)
+- You CANNOT change: prices, subtotals, margins, tax, bond, grand total, line item amounts
+- If user asks to change a price: "In Mirror Mode, prices come directly from your Excel file. To change pricing, update the Excel and re-upload. Want me to help with anything else?"
+- If user asks to fix a typo in a section name or line item description: do it (this IS allowed)
+- If user asks to switch doc type: do it immediately, no confirmation needed
+- If user asks to add/change intro text: do it immediately
+
+INTELLIGENCE MODE RULES (when Mode = Intelligence Mode):
+- You CAN change: everything — prices, margins, line items, doc type, text fields
+- Proactively suggest services and realistic pricing
+- Use ANC business knowledge for suggestions
+
+STEP-AWARE RESPONSES:
+- If user is on Step 1 (Ingestion) and asks about pricing: "I can see the pricing once you move to the next step. Want me to tell you what I know about the project so far?"
+- If user is on Step 2 (Intelligence) or Step 4 (Export): reference specific section names and numbers from the screen
+- If user is on Step 3 (Math): help with margin calculations and pricing adjustments
+
+REFERENCING THE SCREEN:
+- When user says "section 3" → look up the 3rd section by name and reference it
+- When user says "the first one" → reference section 1 by name
+- When user says "the cheap one" → find the lowest-priced section and reference it
+- When user says "what's the total" → give the grand total from screen state
+- When user says "how many sections" → count from screen state
+
+SCREEN-AWARE ACTIONS — include in your JSON when the user requests UI changes:
+- "screenActions" array in your JSON response (alongside "extracted", "corrections", "nextStage")
+- Available screen actions:
+  { "action": "set_document_mode", "value": "BUDGET" | "PROPOSAL" | "LOI" }
+  { "action": "set_intro_text", "value": "new intro text" }
+  { "action": "append_intro_text", "value": "text to append" }
+  { "action": "set_payment_terms", "value": "new payment terms" }
+  { "action": "set_notes", "value": "new notes text" }
+  { "action": "set_signature_text", "value": "new signature block text" }
+  { "action": "fix_section_header", "sectionIndex": 0, "value": "corrected name" }
+  { "action": "download_pdf" }
+  { "action": "navigate_step", "step": 0-3 }
+  { "action": "summarize_project" }
 
 BEHAVIOR BY STAGE:
 - GREETING/CLIENT_NAME: Get the client name. "Dallas Cowboys" → fill it, move to DISPLAYS.
@@ -153,6 +240,7 @@ RESPONSE FORMAT — always end with a JSON block:
 {
   "extracted": { ... },
   "corrections": [],
+  "screenActions": [],
   "nextStage": "SERVICES"
 }
 \`\`\`
@@ -186,9 +274,10 @@ async function llmGuidedFlow(
     stage: ConversationStage,
     message: string,
     collected: CollectedData,
+    screenContext?: any,
 ): Promise<any | null> {
     try {
-        const systemPrompt = buildSystemPrompt(stage, collected);
+        const systemPrompt = buildSystemPrompt(stage, collected, screenContext);
         const fullMessage = `[System Context: ${systemPrompt}]\n\nUser: ${message}`;
 
         const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/chat`, {
@@ -328,6 +417,18 @@ async function llmGuidedFlow(
             }
         }
 
+        // Extract screenActions from LLM response (pass through to client)
+        let screenActions: any[] = [];
+        if (jsonMatch) {
+            try {
+                const jsonStr = jsonMatch[1] || jsonMatch[0];
+                const parsed = JSON.parse(jsonStr);
+                if (Array.isArray(parsed.screenActions)) {
+                    screenActions = parsed.screenActions;
+                }
+            } catch { /* already parsed above */ }
+        }
+
         // Clean the reply — remove the JSON block from what the user sees
         let reply = content.replace(/```json[\s\S]*?```/, "").trim();
         if (!reply) reply = content.split("{")[0].trim() || "Got it.";
@@ -335,6 +436,7 @@ async function llmGuidedFlow(
         return {
             reply,
             actions,
+            screenActions,
             nextStage,
             collected,
         };

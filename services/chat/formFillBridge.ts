@@ -195,3 +195,113 @@ function setDocumentType(ctx: FormFillContext, docType: "BUDGET" | "PROPOSAL" | 
         ctx.setValue("details.pricingType", "Hard Quoted", { shouldDirty: true });
     }
 }
+
+// ============================================================================
+// SCREEN-AWARE ACTION EXECUTOR
+// ============================================================================
+
+export interface ScreenAction {
+    action: string;
+    value?: any;
+    sectionIndex?: number;
+    step?: number;
+}
+
+/**
+ * Execute screen-aware actions returned by the LLM.
+ * These modify form state directly based on what the user asked the copilot to do.
+ * Returns a log of what was changed + any special flags (e.g. downloadPdf, navigateStep).
+ */
+export function executeScreenActions(
+    ctx: FormFillContext,
+    screenActions: ScreenAction[]
+): { log: string[]; downloadPdf?: boolean; navigateStep?: number } {
+    const log: string[] = [];
+    let downloadPdf = false;
+    let navigateStep: number | undefined;
+
+    for (const sa of screenActions) {
+        switch (sa.action) {
+            case "set_document_mode": {
+                const mode = String(sa.value).toUpperCase() as "BUDGET" | "PROPOSAL" | "LOI";
+                if (["BUDGET", "PROPOSAL", "LOI"].includes(mode)) {
+                    setDocumentType(ctx, mode);
+                    log.push(`Switched document type to ${mode}`);
+                }
+                break;
+            }
+
+            case "set_intro_text": {
+                if (typeof sa.value === "string") {
+                    ctx.setValue("details.introductionText", sa.value, { shouldDirty: true });
+                    log.push("Updated intro text");
+                }
+                break;
+            }
+
+            case "append_intro_text": {
+                if (typeof sa.value === "string") {
+                    const current = ctx.getValues("details.introductionText") || "";
+                    const separator = current ? "\n\n" : "";
+                    ctx.setValue("details.introductionText", current + separator + sa.value, { shouldDirty: true });
+                    log.push("Appended to intro text");
+                }
+                break;
+            }
+
+            case "set_payment_terms": {
+                if (typeof sa.value === "string") {
+                    ctx.setValue("details.paymentTerms", sa.value, { shouldDirty: true });
+                    log.push("Updated payment terms");
+                }
+                break;
+            }
+
+            case "set_notes": {
+                if (typeof sa.value === "string") {
+                    ctx.setValue("details.additionalNotes", sa.value, { shouldDirty: true });
+                    log.push("Updated notes");
+                }
+                break;
+            }
+
+            case "set_signature_text": {
+                if (typeof sa.value === "string") {
+                    ctx.setValue("details.signatureBlockText", sa.value, { shouldDirty: true });
+                    log.push("Updated signature block text");
+                }
+                break;
+            }
+
+            case "fix_section_header": {
+                if (typeof sa.sectionIndex === "number" && typeof sa.value === "string") {
+                    const overrides = ctx.getValues("details.tableHeaderOverrides") || {};
+                    const key = String(sa.sectionIndex);
+                    overrides[key] = sa.value;
+                    ctx.setValue("details.tableHeaderOverrides", { ...overrides }, { shouldDirty: true });
+                    log.push(`Fixed section ${sa.sectionIndex + 1} header → "${sa.value}"`);
+                }
+                break;
+            }
+
+            case "download_pdf": {
+                downloadPdf = true;
+                log.push("Triggering PDF download");
+                break;
+            }
+
+            case "navigate_step": {
+                if (typeof sa.step === "number" && sa.step >= 0 && sa.step <= 3) {
+                    navigateStep = sa.step;
+                    log.push(`Navigating to step ${sa.step + 1}`);
+                }
+                break;
+            }
+
+            default:
+                log.push(`Unknown screen action: ${sa.action}`);
+        }
+    }
+
+    return { log, downloadPdf, navigateStep };
+}

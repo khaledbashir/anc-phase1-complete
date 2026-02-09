@@ -22,8 +22,10 @@ import {
     createInitialState,
 } from "@/services/chat/proposalConversationFlow";
 import type { CollectedData, StageAction } from "@/services/chat/proposalConversationFlow";
-import { executeActions } from "@/services/chat/formFillBridge";
-import type { FormFillContext } from "@/services/chat/formFillBridge";
+import { executeActions, executeScreenActions } from "@/services/chat/formFillBridge";
+import type { FormFillContext, ScreenAction } from "@/services/chat/formFillBridge";
+import { getScreenContext } from "@/services/chat/screenContext";
+import type { ScreenContext } from "@/services/chat/screenContext";
 
 // ============================================================================
 // TYPES
@@ -51,10 +53,14 @@ export interface CopilotPanelProps {
     isNewProject?: boolean;
     /** Whether the project already has data (Excel uploaded / Mirror Mode) */
     hasExistingData?: boolean;
+    /** Current wizard step index (0=Ingestion, 1=Intelligence, 2=Math, 3=Export) */
+    currentStep?: number;
     quickActions?: Array<{ label: string; prompt: string }>;
     className?: string;
     /** Callback when panel opens/closes — allows parent to adjust layout */
     onOpenChange?: (isOpen: boolean) => void;
+    /** Callback to navigate wizard steps (triggered by copilot screen actions) */
+    onNavigateStep?: (step: number) => void;
 }
 
 /** Width of the copilot panel in pixels */
@@ -104,9 +110,11 @@ export default function CopilotPanel({
     projectId,
     isNewProject,
     hasExistingData,
+    currentStep = 0,
     quickActions,
     className,
     onOpenChange,
+    onNavigateStep,
 }: CopilotPanelProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -175,6 +183,11 @@ export default function CopilotPanel({
     // ========================================================================
     const handleGuidedSend = async (text: string) => {
         try {
+            // Build screen context from current form state
+            const screenContext: ScreenContext | undefined = formFillContext
+                ? getScreenContext(formFillContext, currentStep)
+                : undefined;
+
             const res = await fetch("/api/copilot/propose", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -183,6 +196,7 @@ export default function CopilotPanel({
                     message: text,
                     conversationStage,
                     collectedData,
+                    screenContext,
                 }),
             });
 
@@ -193,9 +207,22 @@ export default function CopilotPanel({
                 executeActions(formFillContext, data.actions as StageAction[]);
             }
 
-            // Handle PDF generation action
+            // Execute screen-aware actions (doc type switch, intro text, PDF download, navigate, etc.)
+            if (data.screenActions && data.screenActions.length > 0 && formFillContext) {
+                const result = executeScreenActions(formFillContext, data.screenActions as ScreenAction[]);
+                if (result.downloadPdf) {
+                    setTimeout(() => {
+                        const exportBtn = document.querySelector('[data-copilot-export]') as HTMLButtonElement;
+                        if (exportBtn) exportBtn.click();
+                    }, 1000);
+                }
+                if (result.navigateStep !== undefined && onNavigateStep) {
+                    onNavigateStep(result.navigateStep);
+                }
+            }
+
+            // Handle PDF generation action (legacy path)
             if (data.actions?.some((a: any) => a.type === "generate_pdf") && formFillContext) {
-                // Trigger PDF generation after a short delay to let form state settle
                 setTimeout(() => {
                     const exportBtn = document.querySelector('[data-copilot-export]') as HTMLButtonElement;
                     if (exportBtn) exportBtn.click();
