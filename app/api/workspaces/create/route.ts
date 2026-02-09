@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
-import { updateWorkspaceSettings } from "@/lib/anything-llm";
+import { updateWorkspaceSettings, getSystemLLMConfig } from "@/lib/anything-llm";
 import { findClientLogo } from "@/lib/brand-discovery";
 
 export interface CreateWorkspaceRequest {
@@ -154,18 +154,21 @@ export async function POST(request: NextRequest) {
             }
 
             // 2. AUTOMATED CONFIGURATION
-            // Match the LLM provider/model to what's configured on the AnythingLLM instance.
-            // Env vars allow override; defaults match the working production config (groq).
-            const llmProvider = process.env.ANYTHING_LLM_CHAT_PROVIDER || "groq";
-            const llmModel = process.env.ANYTHING_LLM_CHAT_MODEL || "moonshotai/kimi-k2-instruct-0905";
-            await updateWorkspaceSettings(slug, {
-              chatProvider: llmProvider,
-              chatModel: llmModel,
-              agentProvider: llmProvider,
-              agentModel: llmModel,
-              openAiTemp: 0.2,
-              chatMode: "chat",
-            }).catch(e => console.error("AI Settings Provision Failed:", e));
+            // Query AnythingLLM system settings at runtime — mirrors whatever
+            // provider/model is configured in the admin UI. Zero hardcoding.
+            const llmConfig = await getSystemLLMConfig();
+            if (llmConfig.provider && llmConfig.model) {
+              await updateWorkspaceSettings(slug, {
+                chatProvider: llmConfig.provider,
+                chatModel: llmConfig.model,
+                agentProvider: llmConfig.provider,
+                agentModel: llmConfig.model,
+                openAiTemp: 0.2,
+                chatMode: "chat",
+              }).catch(e => console.error("AI Settings Provision Failed:", e));
+            } else {
+              console.warn("[Workspace/Create] Could not fetch system LLM config — new workspace will use AnythingLLM defaults");
+            }
 
             // 3. Provision Master Catalog (Background)
             const masterUrl = process.env.ANYTHING_LLM_MASTER_CATALOG_URL;

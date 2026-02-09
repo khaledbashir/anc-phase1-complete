@@ -248,6 +248,59 @@ export async function queryAgent(
 }
 
 /**
+ * Provider → model preference key mapping for AnythingLLM system settings.
+ * When LLMProvider is "groq", the model is in "GroqModelPref", etc.
+ */
+const PROVIDER_MODEL_KEYS: Record<string, string> = {
+    groq: "GroqModelPref",
+    openai: "OpenAiModelPref",
+    anthropic: "AnthropicModelPref",
+    gemini: "GeminiLLMModelPref",
+    openrouter: "OpenRouterModelPref",
+    "generic-openai": "GenericOpenAiModelPref",
+    ollama: "OllamaLLMModelPref",
+    mistral: "MistralModelPref",
+    deepseek: "DeepSeekModelPref",
+    cohere: "CohereModelPref",
+    togetherai: "TogetherAiModelPref",
+    fireworksai: "FireworksAiLLMModelPref",
+    perplexity: "PerplexityModelPref",
+    lmstudio: "LMStudioModelPref",
+    litellm: "LiteLLMModelPref",
+};
+
+/**
+ * Query AnythingLLM system settings to get the current LLM provider and model.
+ * Returns whatever is configured in the admin UI — zero hardcoding.
+ * Falls back gracefully if the system endpoint is unreachable.
+ */
+export async function getSystemLLMConfig(): Promise<{
+    provider: string;
+    model: string;
+}> {
+    try {
+        const res = await fetch(`${ANYTHING_LLM_BASE_URL}/system`, {
+            headers: { Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
+        });
+        if (!res.ok) throw new Error(`System endpoint returned ${res.status}`);
+
+        const data = await res.json();
+        const settings = data?.settings || data;
+
+        const provider = settings.LLMProvider || "groq";
+        const modelKey = PROVIDER_MODEL_KEYS[provider] || "LLMModel";
+        const model = settings[modelKey] || settings.LLMModel || "";
+
+        console.log(`[AnythingLLM] System LLM config: provider=${provider}, model=${model}`);
+        return { provider, model };
+    } catch (error: any) {
+        console.error("[AnythingLLM] Failed to fetch system LLM config:", error.message);
+        // No fallback to hardcoded values — caller decides what to do
+        return { provider: "", model: "" };
+    }
+}
+
+/**
  * Update Workspace Settings (Automate Agent & LLM config)
  * @param slug The workspace slug
  * @param settings Settings object (chatModel, web_search, etc.)
