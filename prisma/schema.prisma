@@ -291,10 +291,15 @@ model ScreenConfig {
   proposalId              String
   name                    String
   externalName            String?
+  customDisplayName       String?               // PDF override name (user-editable, takes priority over externalName)
   group                   String?               // Excel Margin Analysis section header (key for screenNameMap)
   pixelPitch              Float
   width                   Float
   height                  Float
+  brightness              Float?                // Nits (e.g., 6000)
+  quantity                Int?                  @default(1)
+  serviceType             String?               // "Front/Rear" | "Top"
+  formFactor              String?               // "Straight" | "Curved"
   manufacturerProductId   String?               // Phase 2: linked product from spec query
   manufacturerProduct     ManufacturerProduct?  @relation(fields: [manufacturerProductId], references: [id])
   lineItems               CostLineItem[]

@@ -274,10 +274,15 @@ export async function PATCH(
                             proposalId: id,
                             name: screen.name || "Unnamed Screen",
                             externalName: screen.externalName || null,
+                            customDisplayName: screen.customDisplayName || null,
                             group: screen.group || null,
                             pixelPitch: toNum(screen.pixelPitch || screen.pitchMm, 10),
                             width: toNum(screen.width || screen.widthFt, 0),
                             height: toNum(screen.height || screen.heightFt, 0),
+                            brightness: screen.brightness ? toNum(screen.brightness) : null,
+                            quantity: screen.quantity ? parseInt(String(screen.quantity), 10) : 1,
+                            serviceType: screen.serviceType || null,
+                            formFactor: screen.formFactor || null,
                             lineItems: {
                                 create: (screen.lineItems || []).map((li: any) => ({
                                     category: li.category || "Other",
