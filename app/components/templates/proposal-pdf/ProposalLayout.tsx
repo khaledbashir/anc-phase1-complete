@@ -18,6 +18,21 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
         ? `https://fonts.googleapis.com/css2?family=${details?.signature?.fontFamily}&display=swap`
         : "";
 
+    // Read page layout from details to apply correct @page CSS
+    const pageLayout = (details as any)?.pageLayout || "portrait-letter";
+    const isLandscape = pageLayout.startsWith("landscape");
+
+    // Map pageLayout to CSS dimensions
+    const pageLayoutMap: Record<string, { width: string; height: string }> = {
+        "portrait-letter": { width: "8.5in", height: "11in" },
+        "portrait-legal": { width: "8.5in", height: "14in" },
+        "portrait-a4": { width: "8.27in", height: "11.69in" },
+        "landscape-letter": { width: "11in", height: "8.5in" },
+        "landscape-legal": { width: "14in", height: "8.5in" },
+        "landscape-a4": { width: "11.69in", height: "8.27in" },
+    };
+    const layout = pageLayoutMap[pageLayout] || pageLayoutMap["portrait-letter"];
+
     const head = (
         <>
             {/* eslint-disable-next-line @next/next/no-page-custom-font */}
@@ -39,11 +54,12 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                 </>
             )}
             {/* Global print styles for proper page breaks and clean PDF output */}
-	            <style dangerouslySetInnerHTML={{
-	                __html: `
+            <style dangerouslySetInnerHTML={{
+                __html: `
 	                    @media print {
-	                        /* Suppress browser print headers/footers (timestamps, URLs) */
+	                        /* Set page size based on user-selected layout */
 	                        @page {
+	                            size: ${layout.width} ${layout.height};
 	                            margin: 0;
 	                        }
                         

@@ -14,8 +14,18 @@ import { ProposalType } from "@/types";
 
 // Debounce
 import { useDebounce } from "use-debounce";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Switch } from "@/components/ui/switch";
+
+// Page width in px at 96 DPI for each layout option
+const PAGE_WIDTH_PX: Record<string, number> = {
+    "portrait-letter": 816,
+    "portrait-legal": 816,
+    "portrait-a4": 794,
+    "landscape-letter": 1056,
+    "landscape-legal": 1344,
+    "landscape-a4": 1122,
+};
 
 /** Stable fingerprint of form data so we only regenerate PDF when data actually changed. */
 function getPdfFingerprint(data: ProposalType): string {
@@ -73,6 +83,27 @@ const PdfViewer = () => {
     const lastGeneratedFingerprint = useRef<string>("");
     const isGenerating = useRef(false);
 
+    // Page-simulation: measure container width and scale template to fit
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [containerWidth, setContainerWidth] = useState(0);
+    const pageLayout = ((formValues?.details as any)?.pageLayout || "portrait-letter") as string;
+    const pageWidthPx = PAGE_WIDTH_PX[pageLayout] || 816;
+
+    const measureContainer = useCallback(() => {
+        if (containerRef.current) {
+            setContainerWidth(containerRef.current.clientWidth);
+        }
+    }, []);
+
+    useEffect(() => {
+        measureContainer();
+        const observer = new ResizeObserver(measureContainer);
+        if (containerRef.current) observer.observe(containerRef.current);
+        return () => observer.disconnect();
+    }, [measureContainer]);
+
+    const scaleFactor = containerWidth > 0 ? Math.min(1, containerWidth / pageWidthPx) : 1;
+
     // Store generatePdf in a ref so it doesn't cause effect re-runs
     const generatePdfRef = useRef(generatePdf);
     generatePdfRef.current = generatePdf;
@@ -119,7 +150,7 @@ const PdfViewer = () => {
                 </div>
             </div>
 
-            <div className="w-full flex-1 min-h-0">
+            <div ref={containerRef} className="w-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
                 {exactPdfPreview ? (
                     pdfUrl ? (
                         <iframe className="w-full h-full" src={pdfUrl} title="PDF Preview" />
@@ -138,7 +169,17 @@ const PdfViewer = () => {
                                 </div>
                             );
                         }
-                        return <Template {...debouncedValues} />;
+                        return (
+                            <div
+                                style={{
+                                    width: `${pageWidthPx}px`,
+                                    transformOrigin: 'top left',
+                                    transform: `scale(${scaleFactor})`,
+                                }}
+                            >
+                                <Template {...debouncedValues} />
+                            </div>
+                        );
                     })()
                 ) : (
                     <div className="flex items-center justify-center h-full text-gray-400">
