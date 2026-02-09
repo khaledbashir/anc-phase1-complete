@@ -15,6 +15,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 // RHF
 import { useFormContext, useWatch } from "react-hook-form";
+import { isMirrorMode as checkMirrorMode } from "@/lib/modeDetection";
 
 // Types
 import { ProposalType } from "@/types";
@@ -24,10 +25,8 @@ const WizardNavigation = () => {
     const { watch, trigger, control } = useFormContext<ProposalType>();
     const [proposalName, receiverName] = watch(["details.proposalName", "receiver.name"]);
     const isStep1Ready = Boolean(proposalName?.toString().trim()) && Boolean(receiverName?.toString().trim());
-    const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
-    const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
-    const isMirrorMode =
-        mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
+    const details = useWatch({ name: "details", control });
+    const isMirrorMode = checkMirrorMode(details);
 
     useEffect(() => {
         if (isMirrorMode && activeStep === 2) {

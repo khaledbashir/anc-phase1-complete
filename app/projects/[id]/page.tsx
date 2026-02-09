@@ -82,7 +82,7 @@ function mapDbToFormSchema(dbProject: any) {
             })),
             internalAudit: dbProject.internalAudit ? JSON.parse(dbProject.internalAudit) : {},
             clientSummary: dbProject.clientSummary ? JSON.parse(dbProject.clientSummary) : {},
-            mirrorMode: dbProject.calculationMode === "MIRROR",
+            mirrorMode: typeof dbProject.mirrorMode === 'boolean' ? dbProject.mirrorMode : (dbProject.calculationMode === "MIRROR" || (dbProject.pricingDocument as any)?.tables?.length > 0 ? true : undefined),
             calculationMode: dbProject.calculationMode || "INTELLIGENCE",
             taxRateOverride: Number(dbProject.taxRateOverride) || 0,
             bondRateOverride: Number(dbProject.bondRateOverride) || 0,

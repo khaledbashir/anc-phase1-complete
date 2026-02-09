@@ -124,7 +124,7 @@ const ColumnHeaderStyleToggle = () => {
 
 const Step2Intelligence = () => {
     const { aiWorkspaceSlug } = useProposalContext();
-    const { control, setValue, getValues } = useFormContext();
+    const { control, setValue, getValues, register } = useFormContext();
     const screens = useWatch({
         name: "details.screens",
         control
@@ -142,9 +142,146 @@ const Step2Intelligence = () => {
     // Intelligence section collapsed by default
     const [showIntelligence, setShowIntelligence] = useState(false);
 
+    // Shared Document Mode Selector (used by both modes)
+    const DocumentModeSelector = (
+        <div className="flex flex-col gap-3 px-4 py-3 rounded-lg border border-border bg-card/50">
+            <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                    <label className="text-xs font-medium text-muted-foreground">Document Mode</label>
+                    <span className="text-[10px] text-muted-foreground">
+                        {mode === "BUDGET" && "Non-binding estimate"}
+                        {mode === "PROPOSAL" && "Formal quote"}
+                        {mode === "LOI" && "Legal contract"}
+                    </span>
+                </div>
+                <Select
+                    value={mode}
+                    onValueChange={(val) => {
+                        const newMode = val as DocumentMode;
+                        setValue("details.documentMode", newMode, { shouldDirty: true });
+                        const currentDetails = getValues("details") as any;
+                        const updated = applyDocumentModeDefaults(newMode, currentDetails);
+                        const desiredDocumentType = newMode === "LOI" ? "LOI" : "First Round";
+                        const desiredPricingType = newMode === "PROPOSAL" ? "Hard Quoted" : "Budget";
+                        if (currentDetails?.documentType !== desiredDocumentType) {
+                            setValue("details.documentType", desiredDocumentType as any, { shouldDirty: true });
+                        }
+                        if (currentDetails?.pricingType !== desiredPricingType) {
+                            setValue("details.pricingType", desiredPricingType as any, { shouldDirty: true });
+                        }
+                        for (const [key, value] of Object.entries(updated)) {
+                            if (key.startsWith("show") && currentDetails?.[key] !== value) {
+                                setValue(`details.${key}` as any, value, { shouldDirty: true });
+                            }
+                        }
+                    }}
+                >
+                    <SelectTrigger className={`w-full text-sm font-semibold border-border ${
+                        mode === "BUDGET" ? "bg-amber-500/10 text-amber-400 border-amber-500/30" :
+                        mode === "PROPOSAL" ? "bg-[#0A52EF]/10 text-[#0A52EF] border-[#0A52EF]/30" :
+                        "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                    }`}>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border text-foreground">
+                        <SelectItem value="BUDGET" className="text-foreground focus:bg-muted focus:text-foreground">Budget</SelectItem>
+                        <SelectItem value="PROPOSAL" className="text-foreground focus:bg-muted focus:text-foreground">Proposal</SelectItem>
+                        <SelectItem value="LOI" className="text-foreground focus:bg-muted focus:text-foreground">LOI</SelectItem>
+                    </SelectContent>
+                </Select>
+                {mode === "BUDGET" && (
+                    <div className="flex gap-2">
+                        <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                            onClick={() => setValue("details.documentMode", "PROPOSAL" as DocumentMode, { shouldDirty: true })}>
+                            Promote to Proposal
+                        </button>
+                        <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+                            onClick={() => setValue("details.documentMode", "LOI" as DocumentMode, { shouldDirty: true })}>
+                            Promote to LOI
+                        </button>
+                    </div>
+                )}
+                {mode === "PROPOSAL" && (
+                    <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 transition-colors w-fit"
+                        onClick={() => setValue("details.documentMode", "LOI" as DocumentMode, { shouldDirty: true })}>
+                        Promote to LOI
+                    </button>
+                )}
+            </div>
+
+            {/* Mirror Mode only: Master Table + Column Headers */}
+            {mirrorMode && (
+                <>
+                    <MasterTableSelector />
+                    <ColumnHeaderStyleToggle />
+                </>
+            )}
+        </div>
+    );
+
+    if (mirrorMode) {
+        // ═══ MIRROR MODE: Configure ═══
+        // Doc mode, master table, column headers, custom text, brightness per screen
+        return (
+            <div className="h-full flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                {DocumentModeSelector}
+
+                {/* Custom Intro / Notes */}
+                <div className="flex flex-col gap-3 px-4 py-3 rounded-lg border border-border bg-card/50">
+                    <label className="text-xs font-medium text-muted-foreground">Custom Introduction Text</label>
+                    <textarea
+                        {...register("details.additionalNotes" as any)}
+                        placeholder="Add custom introduction or notes for this document..."
+                        className="w-full min-h-[80px] px-3 py-2 text-sm bg-background border border-input rounded-md resize-y focus:ring-1 focus:ring-[#0A52EF] focus:outline-none"
+                    />
+                </div>
+
+                {/* Payment Terms (LOI only) */}
+                {mode === "LOI" && (
+                    <div className="flex flex-col gap-3 px-4 py-3 rounded-lg border border-border bg-card/50">
+                        <label className="text-xs font-medium text-muted-foreground">Payment Terms</label>
+                        <textarea
+                            {...register("details.paymentTerms" as any)}
+                            placeholder="e.g., 50% on Deposit, 40% on Mobilization, 10% on Substantial Completion"
+                            className="w-full min-h-[60px] px-3 py-2 text-sm bg-background border border-input rounded-md resize-y focus:ring-1 focus:ring-[#0A52EF] focus:outline-none"
+                        />
+                    </div>
+                )}
+
+                {/* Brightness Editor — minimal per-screen brightness input */}
+                {screenCount > 0 && (
+                    <div className="flex flex-col gap-3 px-4 py-3 rounded-lg border border-border bg-card/50">
+                        <label className="text-xs font-medium text-muted-foreground">Screen Brightness (nits)</label>
+                        <div className="space-y-2">
+                            {(screens as any[]).map((s: any, idx: number) => (
+                                <div key={idx} className="flex items-center gap-3">
+                                    <span className="text-xs text-foreground min-w-[180px] truncate">
+                                        {s.externalName || s.name || `Screen ${idx + 1}`}
+                                    </span>
+                                    <input
+                                        type="number"
+                                        placeholder="e.g., 6000"
+                                        defaultValue={s.brightness || ""}
+                                        onChange={(e) => {
+                                            const val = e.target.value ? parseFloat(e.target.value) : "";
+                                            setValue(`details.screens.${idx}.brightness` as any, val, { shouldDirty: true });
+                                        }}
+                                        className="w-[120px] h-8 px-2 text-sm bg-background border border-input rounded-md focus:ring-1 focus:ring-[#0A52EF] focus:outline-none"
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // ═══ INTELLIGENCE MODE: Configure ═══
+    // Screen cards, SOW, doc mode (no master table, no column headers)
     return (
         <div className="h-full flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Collapsible Intelligence Briefing - Hidden by default */}
+            {/* Collapsible Intelligence Briefing */}
             {hasData && (
                 <div className="border border-border rounded-lg overflow-hidden">
                     <button
@@ -182,82 +319,12 @@ const Step2Intelligence = () => {
                 </div>
             )}
 
-            {/* Document Mode + Master Table Selector */}
-            <div className="flex flex-col gap-3 px-4 py-3 rounded-lg border border-border bg-card/50">
-                <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                        <label className="text-xs font-medium text-muted-foreground">Document Mode</label>
-                        <span className="text-[10px] text-muted-foreground">
-                            {mode === "BUDGET" && "Non-binding estimate"}
-                            {mode === "PROPOSAL" && "Formal quote"}
-                            {mode === "LOI" && "Legal contract"}
-                        </span>
-                    </div>
-                    <Select
-                        value={mode}
-                        onValueChange={(val) => {
-                            const newMode = val as DocumentMode;
-                            setValue("details.documentMode", newMode, { shouldDirty: true });
-                            const currentDetails = getValues("details") as any;
-                            const updated = applyDocumentModeDefaults(newMode, currentDetails);
-                            const desiredDocumentType = newMode === "LOI" ? "LOI" : "First Round";
-                            const desiredPricingType = newMode === "PROPOSAL" ? "Hard Quoted" : "Budget";
-                            if (currentDetails?.documentType !== desiredDocumentType) {
-                                setValue("details.documentType", desiredDocumentType as any, { shouldDirty: true });
-                            }
-                            if (currentDetails?.pricingType !== desiredPricingType) {
-                                setValue("details.pricingType", desiredPricingType as any, { shouldDirty: true });
-                            }
-                            for (const [key, value] of Object.entries(updated)) {
-                                if (key.startsWith("show") && currentDetails?.[key] !== value) {
-                                    setValue(`details.${key}` as any, value, { shouldDirty: true });
-                                }
-                            }
-                        }}
-                    >
-                        <SelectTrigger className={`w-full text-sm font-semibold border-border ${
-                            mode === "BUDGET" ? "bg-amber-500/10 text-amber-400 border-amber-500/30" :
-                            mode === "PROPOSAL" ? "bg-[#0A52EF]/10 text-[#0A52EF] border-[#0A52EF]/30" :
-                            "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                        }`}>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card border-border text-foreground">
-                            <SelectItem value="BUDGET" className="text-foreground focus:bg-muted focus:text-foreground">Budget</SelectItem>
-                            <SelectItem value="PROPOSAL" className="text-foreground focus:bg-muted focus:text-foreground">Proposal</SelectItem>
-                            <SelectItem value="LOI" className="text-foreground focus:bg-muted focus:text-foreground">LOI</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    {mode === "BUDGET" && (
-                        <div className="flex gap-2">
-                            <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-                                onClick={() => setValue("details.documentMode", "PROPOSAL" as DocumentMode, { shouldDirty: true })}>
-                                Promote to Proposal
-                            </button>
-                            <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 transition-colors"
-                                onClick={() => setValue("details.documentMode", "LOI" as DocumentMode, { shouldDirty: true })}>
-                                Promote to LOI
-                            </button>
-                        </div>
-                    )}
-                    {mode === "PROPOSAL" && (
-                        <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 transition-colors w-fit"
-                            onClick={() => setValue("details.documentMode", "LOI" as DocumentMode, { shouldDirty: true })}>
-                            Promote to LOI
-                        </button>
-                    )}
-                </div>
-                {/* Prompt 51: Master Table Selector */}
-                <MasterTableSelector />
-
-                {/* Prompt 43: Column Header Style Toggle */}
-                <ColumnHeaderStyleToggle />
-            </div>
+            {DocumentModeSelector}
 
             {/* AI-Generated SOW Panel - Intelligence Mode only */}
-            {!mirrorMode && <SOWGeneratorPanel />}
+            <SOWGeneratorPanel />
 
-            {/* Main Screens Card - Takes up most space */}
+            {/* Main Screens Card */}
             <Card className="bg-card/50 border-border flex-1 flex flex-col overflow-hidden">
                 <CardHeader className="pb-3 shrink-0 border-b border-border">
                     <div className="flex items-center justify-between">

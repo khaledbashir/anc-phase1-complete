@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
+import { isMirrorMode as checkMirrorMode } from "@/lib/modeDetection";
 import { Wizard, useWizard } from "react-use-wizard";
 
 // Components
@@ -48,10 +49,8 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   const wizard = useWizard();
   const { activeStep } = wizard;
 
-  const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
-  const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
-  const isMirrorMode =
-    mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
+  const details = useWatch({ name: "details", control });
+  const isMirrorMode = checkMirrorMode(details);
 
   // PROMPT 56: Single hydration path - ONE function that sets EVERYTHING
   const normalizedProjectId = projectId && projectId !== "new" ? projectId : null;

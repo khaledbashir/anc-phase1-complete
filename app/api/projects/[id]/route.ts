@@ -117,6 +117,7 @@ export async function PATCH(
             pricingDocument,  // Excel Mirror Mode pricing data
             marginAnalysis,   // Non-LED margin analysis tables
             pricingMode,      // MIRROR | STANDARD
+            mirrorMode,       // Mode gate: true = Upload Excel → PDF, false = Build from Scratch
             purchaserLegalName, // Prompt 42: Purchaser legal name for LOI
             masterTableIndex,   // Prompt 51: Master table selector index
         } = body;
@@ -208,6 +209,7 @@ export async function PATCH(
         if (pricingDocument !== undefined) updateData.pricingDocument = pricingDocument;
         if (marginAnalysis !== undefined) updateData.marginAnalysis = marginAnalysis;
         if (pricingMode !== undefined) updateData.pricingMode = pricingMode;
+        if (typeof mirrorMode === 'boolean') updateData.mirrorMode = mirrorMode;
         if (purchaserLegalName !== undefined) updateData.purchaserLegalName = purchaserLegalName;
         if (masterTableIndex !== undefined) updateData.masterTableIndex = masterTableIndex;
 

@@ -87,6 +87,7 @@ export function useAutoSave({
                     pricingDocument: (formData.details as any)?.pricingDocument,
                     marginAnalysis: (formData as any)?.marginAnalysis,
                     pricingMode: (formData.details as any)?.pricingMode,
+                    mirrorMode: typeof (formData.details as any)?.mirrorMode === 'boolean' ? (formData.details as any).mirrorMode : undefined,
                     paymentTerms: (formData.details as any)?.paymentTerms,
                     additionalNotes: (formData.details as any)?.additionalNotes,
                     signatureBlockText: (formData.details as any)?.signatureBlockText,

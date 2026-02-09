@@ -874,6 +874,7 @@ export const ProposalContextProvider = ({
                         pricingDocument: d?.pricingDocument,
                         marginAnalysis: (currentValues as any)?.marginAnalysis,
                         pricingMode: d?.pricingMode,
+                        mirrorMode: typeof d?.mirrorMode === 'boolean' ? d.mirrorMode : undefined,
                         purchaserLegalName: d?.purchaserLegalName,
                         masterTableIndex: d?.masterTableIndex ?? null,
                     };

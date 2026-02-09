@@ -17,6 +17,7 @@ import { useDebouncedSave } from "@/app/hooks/useDebouncedSave";
 
 // Utils
 import { cn } from "@/lib/utils";
+import { isMirrorMode as checkMirrorMode } from "@/lib/modeDetection";
 
 // Icons
 import { Check } from "lucide-react";
@@ -50,10 +51,8 @@ const WizardStepper = ({ wizard }: WizardStepperProps) => {
     const step3Valid = !errors.details?.items;
     const step4Valid = !errors.details?.paymentInformation;
 
-    const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
-    const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
-    const isMirrorMode =
-        mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
+    const details = useWatch({ name: "details", control });
+    const isMirrorMode = checkMirrorMode(details);
 
     const steps: Array<{ wizardStep: number; label: string; isValid?: boolean }> = isMirrorMode
         ? [
