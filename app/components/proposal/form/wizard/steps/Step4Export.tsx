@@ -871,15 +871,15 @@ const Step4Export = () => {
                                 </div>
 
                                 {/* Individual Options */}
-                                <div className="border-t border-border/60 grid grid-cols-2 divide-x divide-zinc-800/60">
+                                <div className="border-t border-border/60 grid grid-cols-2 divide-x divide-border/60">
                                     <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 rounded-lg bg-muted/50 text-muted-foreground">
                                                 <FileSpreadsheet className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <div className="text-xs font-bold text-foreground">Excel Only</div>
-                                                <div className="text-[10px] text-muted-foreground">Audit Workbook</div>
+                                                <div className="text-xs font-bold text-zinc-900 dark:text-foreground">Excel Only</div>
+                                                <div className="text-[10px] text-zinc-500 dark:text-muted-foreground">Audit Workbook</div>
                                             </div>
                                         </div>
                                         <Tooltip>
@@ -906,8 +906,8 @@ const Step4Export = () => {
                                                 <Eye className="w-4 h-4" />
                                             </div>
                                             <div>
-                                                <div className="text-xs font-bold text-foreground">PDF Only</div>
-                                                <div className="text-[10px] text-muted-foreground">Client Proposal</div>
+                                                <div className="text-xs font-bold text-zinc-900 dark:text-foreground">PDF Only</div>
+                                                <div className="text-[10px] text-zinc-500 dark:text-muted-foreground">Client Proposal</div>
                                             </div>
                                         </div>
                                         <Tooltip>
