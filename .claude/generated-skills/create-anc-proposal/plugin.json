@@ -1,0 +1,75 @@
+{
+  "active": true,
+  "name": "Create ANC Proposal",
+  "hubId": "create-anc-proposal",
+  "schema": "skill-1.0.0",
+  "version": "1.0.0",
+  "description": "Creates a proposal/budget in the ANC Proposal Engine from line items collected during the estimator conversation. Takes a client name, line items with descriptions and prices, and document type. Returns a link to the project where the user can view and download the PDF.",
+  "author": "@basheer",
+  "author_url": "https://github.com/khaledbashir",
+  "license": "MIT",
+  "setup_args": {
+    "ANC_BASE_URL": {
+      "type": "string",
+      "required": true,
+      "input": {
+        "type": "text",
+        "default": "https://basheer-natalia.prd42b.easypanel.host",
+        "placeholder": "https://your-anc-instance.com",
+        "hint": "Base URL of your ANC Proposal Engine (no trailing slash)"
+      },
+      "value": "https://basheer-natalia.prd42b.easypanel.host"
+    },
+    "API_KEY": {
+      "type": "string",
+      "required": true,
+      "input": {
+        "type": "text",
+        "default": "",
+        "placeholder": "your-agent-skill-api-key",
+        "hint": "The AGENT_SKILL_API_KEY value from your ANC app's .env file"
+      },
+      "value": ""
+    }
+  },
+  "examples": [
+    {
+      "prompt": "Create a budget proposal for Dallas Cowboys with LED Display $84,000 and Installation $36,000",
+      "call": "{\"client_name\": \"Dallas Cowboys\", \"line_items\": \"[{\\\"description\\\": \\\"LED Display 20x12ft\\\", \\\"price\\\": 84000}, {\\\"description\\\": \\\"Installation\\\", \\\"price\\\": 36000}]\", \"document_type\": \"budget\"}"
+    },
+    {
+      "prompt": "Generate a proposal for MetLife Stadium: LED $350,000, Structural $120,000, Electrical $45,000, Install $80,000, CMS $25,000",
+      "call": "{\"client_name\": \"MetLife Stadium\", \"line_items\": \"[{\\\"description\\\": \\\"LED Display System\\\", \\\"price\\\": 350000}, {\\\"description\\\": \\\"Structural / Mounting\\\", \\\"price\\\": 120000}, {\\\"description\\\": \\\"Electrical\\\", \\\"price\\\": 45000}, {\\\"description\\\": \\\"Installation Labor\\\", \\\"price\\\": 80000}, {\\\"description\\\": \\\"CMS / Control System\\\", \\\"price\\\": 25000}]\", \"document_type\": \"proposal\"}"
+    },
+    {
+      "prompt": "Make a budget for WVU Coliseum with the pricing we just discussed",
+      "call": "{\"client_name\": \"WVU Coliseum\", \"line_items\": \"[{\\\"description\\\": \\\"LED Product\\\", \\\"price\\\": 150000}, {\\\"description\\\": \\\"Installation\\\", \\\"price\\\": 45000}]\", \"document_type\": \"budget\"}"
+    }
+  ],
+  "entrypoint": {
+    "file": "handler.js",
+    "params": {
+      "client_name": {
+        "description": "The client or venue name for the proposal (e.g., 'Dallas Cowboys', 'MetLife Stadium')",
+        "type": "string"
+      },
+      "line_items": {
+        "description": "JSON string array of line items. Each item has 'description' (string) and 'price' (number). Example: [{\"description\": \"LED Display\", \"price\": 84000}]",
+        "type": "string"
+      },
+      "document_type": {
+        "description": "Type of document: 'budget' (default), 'proposal', or 'loi' (letter of intent)",
+        "type": "string"
+      },
+      "project_name": {
+        "description": "Optional custom project name. Defaults to 'Budget for {client_name}'",
+        "type": "string"
+      },
+      "notes": {
+        "description": "Optional additional notes to include in the proposal",
+        "type": "string"
+      }
+    }
+  },
+  "imported": true
+}

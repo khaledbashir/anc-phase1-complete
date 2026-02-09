@@ -129,10 +129,11 @@ export default function CopilotPanel({ onSendMessage, quickActions, className }:
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="fixed bottom-6 right-6 z-50 p-3.5 rounded-full bg-brand-blue text-white shadow-lg shadow-brand-blue/30 hover:shadow-brand-blue/50 hover:scale-105 transition-all"
+                    className="fixed bottom-8 right-8 z-50 flex items-center gap-2.5 px-5 py-3.5 rounded-full bg-brand-blue text-white shadow-xl shadow-brand-blue/40 hover:shadow-brand-blue/60 hover:scale-105 transition-all ring-4 ring-brand-blue/20 animate-pulse hover:animate-none"
                     title="Open AI Copilot"
                 >
-                    <MessageSquare className="w-5 h-5" />
+                    <MessageSquare className="w-6 h-6" />
+                    <span className="text-sm font-semibold pr-0.5">AI Copilot</span>
                 </button>
             )}
 
