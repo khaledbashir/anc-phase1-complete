@@ -491,24 +491,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         </div>
                                     ))}
 
-                                    {/* Alternates */}
-                                    {alternates.length > 0 && (
-                                        <>
-                                            <div className="grid grid-cols-12 px-4 py-2 border-t text-xs font-semibold uppercase tracking-wider" style={{ borderColor: colors.border, background: colors.surface, color: colors.textMuted }}>
-                                                <div className="col-span-8">ALTERNATES</div>
-                                                <div className="col-span-4 text-right">{colHeaderRight}</div>
-                                            </div>
-                                            {alternates.map((alt: any, aidx: number) => (
-                                                <div key={`alt-${aidx}`} className="grid grid-cols-12 px-4 py-1.5 border-t text-xs italic" style={{ borderColor: colors.borderLight, color: colors.textMuted }}>
-                                                    <div className="col-span-8">{(alt?.description || "Alternate").toString()}</div>
-                                                    <div className="col-span-4 text-right font-medium" style={{ color: colors.text }}>
-                                                        {formatCurrency(Number(alt?.priceDifference ?? 0))}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </>
-                                    )}
-
                                     {/* Footer: Subtotal / Tax / Bond / Grand Total */}
                                     <div className="border-t-2" style={{ borderColor: colors.border }}>
                                         {Math.abs(subtotal) >= 0.01 && subtotal !== grandTotal && (
@@ -538,6 +520,37 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Alternates — separate table AFTER grand total (mirrors Excel structure) */}
+                                {alternates.length > 0 && (
+                                    <div className="mt-4 rounded-lg border overflow-hidden break-inside-avoid" style={{ borderColor: colors.border }}>
+                                        <div
+                                            className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
+                                            style={{ background: colors.primary, color: colors.white }}
+                                        >
+                                            <div className="col-span-8">ALTERNATES — ADD TO COST ABOVE</div>
+                                            <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
+                                        </div>
+                                        {alternates.map((alt: any, aidx: number) => (
+                                            <div
+                                                key={`alt-${aidx}`}
+                                                className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
+                                                style={{
+                                                    borderColor: colors.borderLight,
+                                                    background: aidx % 2 === 1 ? colors.surface : colors.white,
+                                                    minHeight: '32px',
+                                                }}
+                                            >
+                                                <div className="col-span-8 pr-2 text-xs" style={{ color: colors.text }}>
+                                                    {(alt?.description || "Alternate").toString()}
+                                                </div>
+                                                <div className="col-span-4 text-right font-semibold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
+                                                    {formatCurrency(Number(alt?.priceDifference ?? 0))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

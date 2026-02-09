@@ -504,7 +504,7 @@ function PricingTableSection({
 }
 
 // ============================================================================
-// ALTERNATES SECTION
+// ALTERNATES SECTION — Distinct table rendered AFTER section grand total
 // ============================================================================
 
 function AlternatesSection({
@@ -517,29 +517,33 @@ function AlternatesSection({
   const currencyLabel = `PRICING (${currency})`;
 
   return (
-    <div className="px-12 py-2 break-inside-avoid">
-      {/* Header */}
-      <div className="flex justify-between items-center border-b border-gray-400 pb-1 mb-0 bg-gray-50 -mx-2 px-2">
-        <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-          ALTERNATES - ADD TO COST ABOVE
-        </h3>
-        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+    <div className="px-12 pt-4 pb-2 break-inside-avoid">
+      {/* Table header — matches main pricing table header styling */}
+      <div className="flex justify-between items-center border-b-2 border-gray-800 pb-2 mb-0">
+        <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
+          ALTERNATES — ADD TO COST ABOVE
+        </h2>
+        <span className="text-sm font-bold text-gray-800 uppercase tracking-wide">
           {currencyLabel}
         </span>
       </div>
 
-      {/* Alternate items */}
-      {alternates.map((alt, idx) => (
-        <div
-          key={`alt-${idx}`}
-          className="flex justify-between py-1.5 text-[10px] border-b border-gray-100"
-        >
-          <span className="text-gray-600 italic">{alt.description}</span>
-          <span className="text-gray-800 w-28 text-right font-medium">
-            {formatPricingCurrency(alt.priceDifference, currency)}
-          </span>
-        </div>
-      ))}
+      {/* Alternate line items */}
+      <div className="border-b border-gray-300">
+        {alternates.map((alt, idx) => (
+          <div
+            key={`alt-${idx}`}
+            className="flex justify-between py-2 border-b border-gray-100 text-[11px]"
+          >
+            <div className="flex-1 pr-4">
+              <span className="text-gray-700">{alt.description}</span>
+            </div>
+            <div className="text-right font-medium text-gray-800 w-28">
+              {formatPricingCurrency(alt.priceDifference, currency)}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
