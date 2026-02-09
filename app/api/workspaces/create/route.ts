@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
-import { updateWorkspaceSettings, getSystemLLMConfig } from "@/lib/anything-llm";
+import { updateWorkspaceSettings } from "@/lib/anything-llm";
 import { findClientLogo } from "@/lib/brand-discovery";
 
 export interface CreateWorkspaceRequest {
@@ -154,21 +154,13 @@ export async function POST(request: NextRequest) {
             }
 
             // 2. AUTOMATED CONFIGURATION
-            // Query AnythingLLM system settings at runtime — mirrors whatever
-            // provider/model is configured in the admin UI. Zero hardcoding.
-            const llmConfig = await getSystemLLMConfig();
-            if (llmConfig.provider && llmConfig.model) {
-              await updateWorkspaceSettings(slug, {
-                chatProvider: llmConfig.provider,
-                chatModel: llmConfig.model,
-                agentProvider: llmConfig.provider,
-                agentModel: llmConfig.model,
+            // Do NOT set chatProvider/chatModel — leave them null so the workspace
+            // inherits the system default from the AnythingLLM admin UI.
+            // This way, changing the model in the admin UI applies to ALL workspaces.
+            await updateWorkspaceSettings(slug, {
                 openAiTemp: 0.2,
                 chatMode: "chat",
-              }).catch(e => console.error("AI Settings Provision Failed:", e));
-            } else {
-              console.warn("[Workspace/Create] Could not fetch system LLM config — new workspace will use AnythingLLM defaults");
-            }
+            }).catch(e => console.error("AI Settings Provision Failed:", e));
 
             // 3. Provision Master Catalog (Background)
             const masterUrl = process.env.ANYTHING_LLM_MASTER_CATALOG_URL;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
-import { updateWorkspaceSettings, getSystemLLMConfig } from "@/lib/anything-llm";
+import { updateWorkspaceSettings } from "@/lib/anything-llm";
 
 /**
  * Dashboard Chat API Route - Intelligence Core
@@ -67,17 +67,11 @@ export async function POST(req: NextRequest) {
                     const created = await createRes.json();
                     const newSlug = created?.workspace?.slug || created?.slug || targetWorkspace;
                     
-                    // Mirror AnythingLLM system settings — no hardcoded models
-                    const llmConfig = await getSystemLLMConfig();
-                    if (llmConfig.provider && llmConfig.model) {
-                        await updateWorkspaceSettings(newSlug, {
-                            chatProvider: llmConfig.provider,
-                            chatModel: llmConfig.model,
-                            agentProvider: llmConfig.provider,
-                            agentModel: llmConfig.model,
-                            chatMode: "chat",
-                        }).catch(e => console.error("[Intelligence Core] Settings update failed:", e));
-                    }
+                    // Do NOT set chatProvider/chatModel — leave null so workspace
+                    // inherits the system default from AnythingLLM admin UI.
+                    await updateWorkspaceSettings(newSlug, {
+                        chatMode: "chat",
+                    }).catch(e => console.error("[Intelligence Core] Settings update failed:", e));
 
                     // Retry the chat call
                     response = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${newSlug}/chat`, {
