@@ -17,7 +17,9 @@ import {
     Receipt,
     Plus,
     Trash2,
-    Wand2
+    Wand2,
+    GripVertical,
+    Package,
 } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,8 +32,81 @@ import { formatCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { calculateProposalAudit } from "@/lib/estimator";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Textarea } from "@/components/ui/textarea";
 import { BaseButton } from "@/app/components";
+
+/**
+ * P58: Sortable Quote Item — drag handle + inline editing
+ */
+const SortableQuoteItem = ({
+    item,
+    index,
+    onUpdate,
+    onRemove,
+}: {
+    item: any;
+    index: number;
+    onUpdate: (idx: number, patch: any) => void;
+    onRemove: (idx: number) => void;
+}) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style} className="rounded-2xl border border-border bg-card/30 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+                <button
+                    type="button"
+                    className="p-1 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+                    {...attributes}
+                    {...listeners}
+                >
+                    <GripVertical className="w-4 h-4" />
+                </button>
+                <div className="flex-1">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Location</Label>
+                    <Input
+                        value={item.locationName || ""}
+                        onChange={(e) => onUpdate(index, { locationName: e.target.value })}
+                        className="mt-2 bg-background border-input text-foreground"
+                    />
+                </div>
+                <div className="w-[180px]">
+                    <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Price</Label>
+                    <Input
+                        value={String(item.price ?? "")}
+                        onChange={(e) => onUpdate(index, { price: Number(e.target.value || 0) })}
+                        className="mt-2 bg-background border-input text-foreground"
+                        inputMode="decimal"
+                    />
+                </div>
+                <button
+                    type="button"
+                    onClick={() => onRemove(index)}
+                    className="mt-6 p-2 rounded-xl border border-border bg-muted text-muted-foreground hover:text-foreground hover:border-brand-blue/30 transition-colors"
+                    title="Remove item"
+                >
+                    <Trash2 className="w-4 h-4" />
+                </button>
+            </div>
+            <div>
+                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Description</Label>
+                <Textarea
+                    value={item.description || ""}
+                    onChange={(e) => onUpdate(index, { description: e.target.value })}
+                    className="mt-2 bg-background border-input text-foreground min-h-[84px]"
+                />
+            </div>
+        </div>
+    );
+};
 
 const Step3Math = () => {
     const { control, setValue, watch, getValues } = useFormContext();
@@ -50,6 +125,45 @@ const Step3Math = () => {
     const mirrorMode = isMirrorMode;
 
     if (isMirrorMode) return null;
+
+    // P58: Drag-to-reorder sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+        const oldIndex = quoteItems.findIndex((it: any) => it.id === active.id);
+        const newIndex = quoteItems.findIndex((it: any) => it.id === over.id);
+        if (oldIndex !== -1 && newIndex !== -1) {
+            setQuoteItems(arrayMove(quoteItems, oldIndex, newIndex));
+        }
+    };
+
+    // P58: Add item from product catalog
+    const addFromCatalog = async () => {
+        try {
+            const res = await fetch("/api/products?active=true");
+            const data = await res.json();
+            const products = data.products || [];
+            if (products.length === 0) {
+                addQuoteItem();
+                return;
+            }
+            // Add first 3 products as sample items (user can edit)
+            const newItems = products.slice(0, 3).map((p: any) => ({
+                id: newId(),
+                locationName: p.displayName || p.modelNumber,
+                description: `${p.manufacturer} ${p.productFamily} — ${p.pixelPitch}mm, ${p.maxNits} nits, ${p.environment}`,
+                price: 0,
+            }));
+            setQuoteItems([...quoteItems, ...newItems]);
+        } catch {
+            addQuoteItem();
+        }
+    };
 
     // Global pricing controls
     const globalMargin = useWatch({ name: "details.globalMargin", control });
@@ -360,6 +474,15 @@ const Step3Math = () => {
                                 </BaseButton>
                                 <BaseButton
                                     type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={addFromCatalog}
+                                >
+                                    <Package className="w-4 h-4" />
+                                    From Catalog
+                                </BaseButton>
+                                <BaseButton
+                                    type="button"
                                     size="sm"
                                     onClick={addQuoteItem}
                                 >
@@ -372,50 +495,24 @@ const Step3Math = () => {
                     <CardContent className="pt-6 space-y-4">
                         {quoteItems.length === 0 ? (
                             <div className="text-xs text-muted-foreground">
-                                No quotation items yet. Click Add or Auto-fill from screens.
+                                No quotation items yet. Click Add, Auto-fill from screens, or From Catalog.
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                {quoteItems.map((it: any, idx: number) => (
-                                    <div key={it.id || idx} className="rounded-2xl border border-border bg-card/30 p-4 space-y-3">
-                                        <div className="flex items-center justify-between gap-3">
-                                            <div className="flex-1">
-                                                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Location</Label>
-                                                <Input
-                                                    value={it.locationName || ""}
-                                                    onChange={(e) => updateQuoteItem(idx, { locationName: e.target.value })}
-                                                    className="mt-2 bg-background border-input text-foreground"
-                                                />
-                                            </div>
-                                            <div className="w-[180px]">
-                                                <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Price</Label>
-                                                <Input
-                                                    value={String(it.price ?? "")}
-                                                    onChange={(e) => updateQuoteItem(idx, { price: Number(e.target.value || 0) })}
-                                                    className="mt-2 bg-background border-input text-foreground"
-                                                    inputMode="decimal"
-                                                />
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => removeQuoteItem(idx)}
-                                                className="mt-6 p-2 rounded-xl border border-border bg-muted text-muted-foreground hover:text-foreground hover:border-brand-blue/30 transition-colors"
-                                                title="Remove item"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
-                                        </div>
-                                        <div>
-                                            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Description</Label>
-                                            <Textarea
-                                                value={it.description || ""}
-                                                onChange={(e) => updateQuoteItem(idx, { description: e.target.value })}
-                                                className="mt-2 bg-background border-input text-foreground min-h-[84px]"
+                            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                                <SortableContext items={quoteItems.map((it: any) => it.id)} strategy={verticalListSortingStrategy}>
+                                    <div className="space-y-3">
+                                        {quoteItems.map((it: any, idx: number) => (
+                                            <SortableQuoteItem
+                                                key={it.id}
+                                                item={it}
+                                                index={idx}
+                                                onUpdate={updateQuoteItem}
+                                                onRemove={removeQuoteItem}
                                             />
-                                        </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </SortableContext>
+                            </DndContext>
                         )}
                     </CardContent>
                 </Card>)}
