@@ -143,44 +143,55 @@ export default function ProjectsPage() {
         };
     }, [projects, statusFilter]);
 
-    const insights = useMemo(() => generateInsights(projects), [projects]);
+    // Time-dependent values computed client-side only to avoid hydration mismatch
+    const [now, setNow] = useState<number | null>(null);
+    useEffect(() => { setNow(Date.now()); }, [projects]);
+
+    const insights = useMemo(() => now != null ? generateInsights(projects) : [], [projects, now]);
     const heroGreeting = useMemo(() => {
-        const hour = new Date().getHours();
-        const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
         const firstName = session?.user?.name?.trim()?.split(/\s+/)?.[0] || null;
         const totalValue = projects.reduce((sum, project) => sum + (project.totalAmount || 0), 0);
+
+        // Use a stable greeting on server, real time on client
+        if (now == null) {
+            const title = firstName ? `Welcome, ${firstName} 👋` : `Welcome 👋`;
+            return { title, line: `${projects.length} projects in the pipeline worth ${formatCompactCurrency(totalValue)}.` };
+        }
+
+        const hour = new Date(now).getHours();
+        const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
         const updatedTodayCount = projects.filter((project) => {
-            const hoursSinceUpdate = (Date.now() - new Date(project.updatedAt).getTime()) / (1000 * 60 * 60);
+            const hoursSinceUpdate = (now - new Date(project.updatedAt).getTime()) / (1000 * 60 * 60);
             return hoursSinceUpdate < 24;
         }).length;
         const staleCount = projects.filter((project) => {
-            const daysSinceUpdate = (Date.now() - new Date(project.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+            const daysSinceUpdate = (now - new Date(project.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
             return daysSinceUpdate > 7 && project.status === "DRAFT";
         }).length;
         const topDeal = [...projects].sort((a, b) => (b.totalAmount || 0) - (a.totalAmount || 0))[0];
 
         const title = firstName ? `${greeting}, ${firstName} 👋` : `${greeting} 👋`;
-        const insights: string[] = [];
+        const lines: string[] = [];
 
-        insights.push(`${projects.length} projects in the pipeline worth ${formatCompactCurrency(totalValue)}.`);
+        lines.push(`${projects.length} projects in the pipeline worth ${formatCompactCurrency(totalValue)}.`);
 
         if (updatedTodayCount > 0) {
-            insights.push(`${updatedTodayCount} proposal${updatedTodayCount > 1 ? "s" : ""} updated today`);
+            lines.push(`${updatedTodayCount} proposal${updatedTodayCount > 1 ? "s" : ""} updated today`);
         }
 
         if (topDeal?.clientName && topDeal.totalAmount > 0) {
-            insights.push(`${topDeal.clientName} is your biggest deal at ${formatCompactCurrency(topDeal.totalAmount, topDeal.currency || "USD")}`);
+            lines.push(`${topDeal.clientName} is your biggest deal at ${formatCompactCurrency(topDeal.totalAmount, topDeal.currency || "USD")}`);
         }
 
         if (staleCount > 0) {
-            insights.push(`${staleCount} draft${staleCount > 1 ? "s haven't" : " hasn't"} been touched in over a week`);
+            lines.push(`${staleCount} draft${staleCount > 1 ? "s haven't" : " hasn't"} been touched in over a week`);
         }
 
         return {
             title,
-            line: insights.slice(0, 2).join(". ") + (insights.length > 0 ? "." : ""),
+            line: lines.slice(0, 2).join(". ") + (lines.length > 0 ? "." : ""),
         };
-    }, [projects, session?.user?.name]);
+    }, [projects, session?.user?.name, now]);
 
     const handleStatusChange = useCallback(async (id: string, nextStatus: DashboardStatus) => {
         const response = await fetch(`/api/projects/${id}`, {
