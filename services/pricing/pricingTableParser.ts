@@ -366,12 +366,25 @@ function parseAllRows(
     const hasNumericData = Number.isFinite(cost) || Number.isFinite(sell);
 
     // Detect row types
-    const isHeader = !isEmpty && !hasNumericData && label.length > 0 && !labelNorm.includes("alternate");
+    // A row with "alternate" in its label is an alternate header ONLY if it
+    // matches the "alternates - add to cost" pattern.  Rows like
+    // "Alternate - Film Room - 163\" All-In-One Display | Cost | Selling Price"
+    // are real section headers that happen to contain the word "alternate".
+    const costCellNorm = norm(row[columnMap.cost]);
+    const sellCellNorm = norm(row[columnMap.sell]);
+    const hasColumnHeaders = costCellNorm === "cost" || costCellNorm === "budgeted cost"
+      || sellCellNorm === "selling price" || sellCellNorm === "sell price"
+      || sellCellNorm === "revenue" || sellCellNorm === "price";
+    const isAlternateAddToCost = /alternate[s]?\s*[-–—]?\s*add\s+to\s+cost/i.test(label);
+    const looksLikeAlternateHeader = labelNorm.includes("alternate") && !hasNumericData && !hasColumnHeaders;
+    const isHeader = !isEmpty && !hasNumericData && label.length > 0
+      && (!labelNorm.includes("alternate") || hasColumnHeaders)
+      && !isAlternateAddToCost;
     const isSubtotal = isSubtotalRow(labelNorm, hasNumericData);
     const isTax = labelNorm === "tax" || labelNorm.startsWith("tax ");
     const isBond = labelNorm === "bond";
     const isGrandTotal = labelNorm.includes("grand total") || labelNorm.includes("sub total (bid form)") || labelNorm === "total" || labelNorm === "project total";
-    const isAlternateHeader = labelNorm.includes("alternate") && !hasNumericData;
+    const isAlternateHeader = isAlternateAddToCost || (looksLikeAlternateHeader && !hasColumnHeaders);
     const isAlternateLine = labelNorm.startsWith("alt ") || labelNorm.startsWith("alt-") || labelNorm.includes("alternate");
 
     rows.push({
@@ -526,23 +539,86 @@ function findTableBoundaries(rows: RawRow[], headerRowLabel?: string): TableBoun
       (r) => !r.isEmpty && (Number.isFinite(r.sell) || Number.isFinite(r.cost))
     );
     if (hasData) {
-      const name =
-        (headerRowLabel || "").replace(/:$/, "").trim() || "Project Summary";
-      // endRow: use the last non-empty row in the orphan range
-      let endRow = firstHeaderIdx - 1;
-      for (let j = firstHeaderIdx - 1; j >= 0; j--) {
-        if (!rows[j].isEmpty) { endRow = j; break; }
+      // Split orphan range into sub-boundaries at each isGrandTotal row.
+      // This prevents multiple sub-sections (e.g. HOE base + Film Room) from
+      // being lumped into one boundary where the last grandTotal overwrites
+      // earlier ones.
+      const grandTotalIndices: number[] = [];
+      for (let j = 0; j < firstHeaderIdx; j++) {
+        if (rows[j].isGrandTotal) grandTotalIndices.push(j);
       }
-      boundaries.push({
-        name,
-        startRow: 0,
-        endRow,
-        alternatesStartRow: null,
-        alternatesEndRow: null,
-      });
-      console.log(
-        `[PRICING PARSER] Summary section "${name}" detected: rows 0–${endRow} (orphaned before first header at ${firstHeaderIdx})`
-      );
+
+      if (grandTotalIndices.length <= 1) {
+        // Single or no grandTotal — original behaviour: one boundary
+        const name =
+          (headerRowLabel || "").replace(/:$/, "").trim() || "Project Summary";
+        let endRow = firstHeaderIdx - 1;
+        for (let j = firstHeaderIdx - 1; j >= 0; j--) {
+          if (!rows[j].isEmpty) { endRow = j; break; }
+        }
+        boundaries.push({
+          name,
+          startRow: 0,
+          endRow,
+          alternatesStartRow: null,
+          alternatesEndRow: null,
+        });
+        console.log(
+          `[PRICING PARSER] Summary section "${name}" detected: rows 0–${endRow} (orphaned before first header at ${firstHeaderIdx})`
+        );
+      } else {
+        // Multiple grandTotal rows — split into sub-boundaries
+        let subStart = 0;
+        const defaultName = (headerRowLabel || "").replace(/:$/, "").trim() || "Project Summary";
+        for (let g = 0; g < grandTotalIndices.length; g++) {
+          const gtIdx = grandTotalIndices[g];
+          // Find a name: look for the nearest preceding header-like row or
+          // alternateHeader row within this sub-range.  Fall back to the
+          // headerRowLabel for the first sub-section.
+          let subName = g === 0 ? defaultName : "";
+          if (g > 0) {
+            for (let j = subStart; j <= gtIdx; j++) {
+              if (rows[j].isAlternateHeader || (rows[j].isHeader && !rows[j].isEmpty)) {
+                subName = rows[j].label;
+                break;
+              }
+            }
+            if (!subName) subName = `Section ${g + 1}`;
+          }
+          // Find alternates within this sub-range
+          let altStart: number | null = null;
+          let altEnd: number | null = null;
+          for (let j = subStart; j <= gtIdx; j++) {
+            if (rows[j].isAlternateHeader) altStart = j;
+            if (rows[j].isAlternateLine && altStart !== null) altEnd = j;
+          }
+          // endRow: extend past grandTotal to include TAX/BOND/empty rows
+          // up to the next sub-section start or orphan range end
+          let endRow = gtIdx;
+          const nextStart = g < grandTotalIndices.length - 1
+            ? grandTotalIndices[g] + 1
+            : firstHeaderIdx;
+          // Extend to include trailing TAX/BOND rows after grandTotal
+          for (let j = gtIdx + 1; j < nextStart; j++) {
+            if (!rows[j].isEmpty) endRow = j;
+            else break;
+          }
+          boundaries.push({
+            name: subName,
+            startRow: subStart,
+            endRow,
+            alternatesStartRow: altStart,
+            alternatesEndRow: altEnd,
+          });
+          console.log(
+            `[PRICING PARSER] Orphan sub-section "${subName}" detected: rows ${subStart}–${endRow}`
+          );
+          // Next sub-section starts after this grandTotal's trailing rows
+          subStart = endRow + 1;
+          // Skip empty rows to find real start of next sub-section
+          while (subStart < firstHeaderIdx && rows[subStart]?.isEmpty) subStart++;
+        }
+      }
     }
   }
 
