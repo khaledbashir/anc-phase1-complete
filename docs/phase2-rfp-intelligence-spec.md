@@ -274,29 +274,62 @@ Each pricing section contains:
 - **NTP (Notice to Proceed) date:** Mon 3/2/26
 - All dates calculated forward from NTP
 - **Location-grouped**, not trade-grouped
+- **⚠️ ALL DURATIONS ARE BUSINESS DAYS (Mon-Fri), NOT CALENDAR DAYS**
 
-### 5.2 Pre-Installation Phases (Sequential)
+### 5.2 Date Arithmetic Rules (Validated)
 
-| Phase | Duration | Dependency |
-|-------|----------|-----------|
-| Design & Engineering | Variable | Starts at NTP |
-| Submittals | Variable | After Design |
-| Owner Review & Approval | **5 days (hard gate)** | After Submittals |
-| LED Manufacturing | **45 days** | After Owner Approval |
-| Ocean Freight Shipping | **23 days** | After Manufacturing |
-| Ground Shipping to Site | Variable | After Ocean Freight |
+Cross-validation of all 15 pre-installation tasks confirms **100% business-day math**:
 
-### 5.3 Installation Task Template (Per Location)
+| Task | Start | End | Listed | Calendar | Business | Match |
+|------|-------|-----|--------|----------|----------|-------|
+| Notice to Proceed | Mon 3/2 | Mon 3/2 | 1d | 1 | 1 | ✅ Biz |
+| Design & Dev | Mon 3/2 | Wed 4/22 | 38d | 52 | 38 | ✅ Biz |
+| Secondary Struct Eng | Mon 3/2 | Fri 4/10 | 30d | 40 | 30 | ✅ Biz |
+| Prep Submittals | Mon 4/13 | Wed 4/15 | 3d | 3 | 3 | ✅ Biz |
+| Owner Review | Thu 4/16 | Wed 4/22 | 5d | 7 | 5 | ✅ Biz |
+| LED Manufacturing | Mon 3/2 | Fri 5/1 | 45d | 61 | 45 | ✅ Biz |
+| Ocean Freight | Mon 5/4 | Wed 6/3 | 23d | 31 | 23 | ✅ Biz |
+| Ground Shipping | Thu 6/4 | Tue 6/9 | 4d | 6 | 4 | ✅ Biz |
+
+**Sequencing Rule:** Next task starts on **next business day** after predecessor ends. No arbitrary gaps.
+- Fri 4/10 → Mon 4/13 (skip weekend)
+- Wed 6/3 → Thu 6/4 (immediate)
+
+**Parallel Lag Rule:** Infrastructure + Low Voltage start **2 business days after** LED Install begins.
+- LED Install starts Tue 6/9 → Infrastructure starts Thu 6/11 (confirmed)
+
+**⚠️ CRITICAL FOR IMPLEMENTATION:**
+```
+// WRONG — adds calendar days, schedule finishes 3 weeks early:
+endDate = startDate.addDays(45)
+
+// CORRECT — adds business days, matches Natalia's Excel:
+endDate = addBusinessDays(startDate, 45)  // skips Sat/Sun
+```
+45 business days = ~63 calendar days = 9 work weeks.
+
+### 5.3 Pre-Installation Phases (Sequential)
+
+| Phase | Duration (biz days) | Dependency |
+|-------|---------------------|-----------|
+| Design & Engineering | 38 | Starts at NTP |
+| Submittals | 3 | After Design |
+| Owner Review & Approval | **5 (hard gate)** | After Submittals |
+| LED Manufacturing | **45** | Starts at NTP (parallel with Design) |
+| Ocean Freight Shipping | **23** | After Manufacturing |
+| Ground Shipping to Site | **4** | After Ocean Freight |
+
+### 5.4 Installation Task Template (Per Location)
 
 Each location gets a block of sub-tasks:
 
-| # | Task | Duration | Parallel? | Notes |
-|---|------|----------|-----------|-------|
-| 1 | Mobilization | 1-2 days | No | Fixed |
-| 2 | Demolition | 1-4 days | No | Size-dependent |
-| 3 | Secondary Steel | 3 days | No | **Only for complex/hanging installs** (Elevator, PATH Hall) |
-| 4 | LED Panel Install | 2-17 days | No | Size-dependent (see below) |
-| 5 | Infrastructure Install | 3-9 days | **Yes — parallel with #4** | Starts 2 days after LED Install begins |
+| # | Task | Duration (biz days) | Parallel? | Notes |
+|---|------|---------------------|-----------|-------|
+| 1 | Mobilization | 1-2 | No | Fixed |
+| 2 | Demolition | 1-4 | No | Size-dependent |
+| 3 | Secondary Steel | 3 | No | **Only for complex/hanging installs** (Elevator, PATH Hall) |
+| 4 | LED Panel Install | 2-17 | No | Size-dependent (see below) |
+| 5 | Infrastructure Install | 3-9 | **Yes — parallel with #4** | Starts **2 biz days after** LED Install begins |
 | 6 | Low Voltage Connectivity | 3-9 days | **Yes — parallel with #4** | Starts 2 days after LED Install begins |
 | 7 | Finishes & Trim | 1-2 days | No | After all above complete |
 
