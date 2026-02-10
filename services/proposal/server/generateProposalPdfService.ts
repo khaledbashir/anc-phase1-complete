@@ -73,7 +73,7 @@ export async function generateProposalPdfService(req: NextRequest) {
 		);
 		const origin = getRequestOrigin(req).replace(/\/+$/, "");
 		const baseHref = `${origin}/`;
-		const html = `<!doctype html><html><head><meta charset="utf-8"/><base href="${baseHref}"/></head><body>${htmlTemplate}</body></html>`;
+		const html = `<!doctype html><html><head><meta charset="utf-8"/><base href="${baseHref}"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/><link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/><style>body,.font-sans{font-family:'Work Sans',system-ui,sans-serif!important}h1,h2,h3,h4,h5,h6{font-family:'Work Sans',system-ui,sans-serif!important}</style></head><body>${htmlTemplate}</body></html>`;
 
 		const puppeteer = (await import("puppeteer-core")).default;
 		const internalUrl = process.env.BROWSERLESS_INTERNAL_URL || "ws://basheer_browserless:3000";
@@ -155,7 +155,7 @@ export async function generateProposalPdfService(req: NextRequest) {
 			printBackground: true,
 			displayHeaderFooter: true,
 			footerTemplate: `
-                <div style="font-family: 'Open Sans', sans-serif; font-size: 8px; width: 100%; padding: 0 40px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+                <div style="font-family: 'Work Sans', sans-serif; font-size: 8px; width: 100%; padding: 0 40px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 10px;">
                     <div>ANC Intelligence Core - Confidential Proposal</div>
                     <div>Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
                 </div>

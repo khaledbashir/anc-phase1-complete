@@ -67,6 +67,7 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                         html, body {
                             margin: 0;
                             padding: 0;
+                            font-family: 'Work Sans', 'Inter', system-ui, sans-serif;
                         }
                         
                         /* Prevent table rows from breaking across pages */
@@ -143,7 +144,7 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
     return (
         <>
             {head}
-            <section style={{ fontFamily: "'Inter', 'Work Sans', system-ui, sans-serif", position: 'relative' }}>
+            <section style={{ fontFamily: "'Work Sans', 'Inter', system-ui, sans-serif", position: 'relative' }}>
                 <div className="block p-4 sm:p-10 bg-white dark:bg-white !bg-white text-[#1a1a1a] dark:text-[#1a1a1a] !text-black relative overflow-hidden print:bg-white">
                     <BrandSlashes className="absolute -top-10 -right-10" width={220} height={220} opacity={0.18} count={10} />
                     <div className="relative z-10 mb-16">
