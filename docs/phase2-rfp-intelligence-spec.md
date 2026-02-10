@@ -92,12 +92,23 @@ Unlike the 2.5mm alternate (fixed 480×960mm cabinets), the 4mm base bid uses **
 max_power = (cabinet_width_m × cabinet_height_m) × 488
 ```
 
-### 2.4 Type B — 10mm Specialty (Elevator)
+### 2.4 Type B — 10mm Mesh P10 (Elevator Only)
 
 | Parameter | Value | Source |
 |-----------|-------|--------|
+| **Panel Size** | **1680mm × 1000mm** | Drawing: 168px × 100px × 10mm pitch |
+| **Weight per panel** | **33 lbs** (15 kg) | Form 1e: 1,485 lbs / 45 panels |
+| **Max Power per panel** | **500 Watts** | Form 1e: 22,500W / 45 panels |
 | **Brightness** | 1500 nits | Form 1e |
-| **Other specs** | TBD — only one form uses this type | |
+| **Diode** | SMD Nationstar | Form 1e |
+| **Hardware** | Nitxeon LED Module (Mesh) | Form 1e |
+| **Processing** | Nova Star | Form 1e |
+| **Panel Count** | 2 wide × ~22.5 high = 45 panels | Drawing: ~11' wide (3360mm) / 1680mm = 2 |
+| **Usage** | Elevator only (Form 1e) — all other locations use 4mm | Westfield-specific |
+
+**Density Constants (10mm):**
+- Power density: 500W / (1.68 × 1.0) = **~298 W/m²**
+- Weight density: 33 lbs / 1.68 m² = **~19.6 lbs/m²**
 
 ---
 
@@ -252,7 +263,7 @@ Each location gets a block of sub-tasks:
 | 4mm weight per panel | ✅ **Confirmed:** 42 lbs (standard 960mm), ~46.5 lbs/m² density | Resolved |
 | 4mm max watts per panel | ✅ **Confirmed:** 450W (standard 960mm), 488 W/m² density | Resolved |
 | 4mm avg/max power ratio | ✅ **Confirmed:** 40% (vs 33% for 2.5mm MIP) | Resolved |
-| 10mm panel specs (all fields) | ⏳ **Pending** — only brightness (1500 nits) known | Low priority — only 1 form (elevator) |
+| 10mm panel specs (all fields) | ✅ **Confirmed:** 1680×1000mm Mesh P10, 33 lbs, 500W, 298 W/m² | Resolved |
 | System overhead multiplier | ✅ **Resolved:** No hidden multiplier — discrepancy was 4mm vs 2.5mm product mix | Resolved |
 | Structural weight buffer | ✅ **Confirmed:** ~10% adder | Resolved |
 
