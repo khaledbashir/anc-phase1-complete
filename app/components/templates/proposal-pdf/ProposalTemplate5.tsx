@@ -29,6 +29,7 @@ import {
     EXHIBIT_G_CONSTANT_FIELDS,
     EXHIBIT_G_CALCULATED_FIELDS,
     calculateExhibitG,
+    calculateHardwareCost,
     getProduct,
 } from "@/services/rfp/productCatalog";
 import type { DocumentMode as CatalogDocumentMode } from "@/services/rfp/productCatalog";
@@ -299,6 +300,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 const exhibitG = stored || (product && resolutionW > 0 && resolutionH > 0 ? calculateExhibitG(product, resolutionW, resolutionH) : null);
                 if (!product && !exhibitG) return null;
 
+                const hwCost = exhibitG && product ? calculateHardwareCost(exhibitG.activeAreaM2, product.id) : undefined;
+                const storedHw = screen?.calculatedPricing?.hardwareCost;
+                const effectiveHw = typeof storedHw === "number" && Number.isFinite(storedHw) ? storedHw : hwCost;
+
                 const constantValues: Record<string, string> = {
                     moduleMfg: product ? `${product.manufacturer} (${product.hardware})` : "—",
                     processorMfg: product?.processing || "—",
@@ -359,6 +364,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     <span className="font-semibold text-right ml-2" style={{ color: colors.text }}>{calculatedValues[field] || "—"}</span>
                                 </div>
                             ))}
+                            {effectiveHw != null && effectiveHw > 0 && (
+                                <div className="col-span-2 px-4 py-1.5 flex justify-between border-b" style={{ borderColor: colors.borderLight, background: colors.primaryLight }}>
+                                    <span className="font-bold" style={{ color: colors.primaryDark }}>Hardware Cost (ROM)</span>
+                                    <span className="font-bold text-right ml-2" style={{ color: colors.primaryDark }}>{formatCurrency(effectiveHw)}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 );

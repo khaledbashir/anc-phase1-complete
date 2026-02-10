@@ -8,6 +8,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { ProposalType } from "@/types";
 import {
   calculateExhibitG,
+  calculateHardwareCost,
   estimatePricing,
   getAllProducts,
   getProduct,
@@ -152,7 +153,8 @@ export default function ScreensGridEditor() {
         ? screen.zoneSize
         : autoZoneSize;
     const zoneClass = toZoneClass(zoneComplexity, zoneSize);
-    const pricing = estimatePricing(exhibitG, zoneClass);
+    const hwCost = calculateHardwareCost(exhibitG.activeAreaM2, product.id);
+    const pricing = estimatePricing(exhibitG, zoneClass, hwCost);
 
     return {
       ...screen,
@@ -288,6 +290,14 @@ export default function ScreensGridEditor() {
         editable: false,
         minWidth: 120,
         valueGetter: (p) => p.data?.calculatedPricing?.engCost ?? null,
+        valueFormatter: (p) => (p.value == null ? "—" : formatCurrency(Number(p.value))),
+      },
+      {
+        field: "calculatedPricing.hardwareCost",
+        headerName: "Hardware",
+        editable: false,
+        minWidth: 130,
+        valueGetter: (p) => p.data?.calculatedPricing?.hardwareCost ?? null,
         valueFormatter: (p) => (p.value == null ? "—" : formatCurrency(Number(p.value))),
       },
     ],

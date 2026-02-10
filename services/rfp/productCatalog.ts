@@ -278,6 +278,24 @@ export const PM_BASE_FEE = 5882.35;
 export const ENG_BASE_FEE = 4705.88;
 export const ALT1_UPGRADE_RATIO = 0.07;
 
+/**
+ * Hardware cost per square meter by product type.
+ * Derived from Westfield Concourse: $948,722 hardware for ~246 m² = $3,856/m².
+ * Rounded up to $4,200 to include connector/accessory overhead.
+ */
+export const HARDWARE_COST_PER_SQM: Record<string, number> = {
+    '4mm-nitxeon': 4200,
+    '10mm-mesh': 2800,
+    '2.5mm-mip': 5400,
+};
+
+/** Calculate hardware cost from active area and product ID. */
+export function calculateHardwareCost(activeAreaM2: number, productId: string): number | undefined {
+    const costPerSqm = HARDWARE_COST_PER_SQM[productId];
+    if (costPerSqm == null || !Number.isFinite(activeAreaM2) || activeAreaM2 <= 0) return undefined;
+    return round2(activeAreaM2 * costPerSqm);
+}
+
 const ZONE_MULTIPLIERS: Record<ZoneClass, number> = {
     standard: 1,
     medium: 2,

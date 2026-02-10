@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildAutoFillValues } from "@/services/rfp/proposalAutoFill";
-import { calculateExhibitG, estimatePricing, getAllProducts, getProduct } from "@/services/rfp/productCatalog";
+import { calculateExhibitG, calculateHardwareCost, estimatePricing, getAllProducts, getProduct } from "@/services/rfp/productCatalog";
 
 // ============================================================================
 // TYPES
@@ -354,7 +354,8 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             };
         }
         const zoneSize = deriveZoneSizeFromArea(exhibit.activeAreaM2);
-        const pricing = estimatePricing(exhibit, toZoneClass(zoneSize));
+        const hwCost = calculateHardwareCost(exhibit.activeAreaM2, product.id);
+        const pricing = estimatePricing(exhibit, toZoneClass(zoneSize), hwCost);
         const ovr = exhibitOverrides[idx] || {};
         return {
             idx,

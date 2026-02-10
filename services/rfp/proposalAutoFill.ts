@@ -8,6 +8,7 @@
 import type { ExtractedDisplay } from "./displayScheduleExtractor";
 import {
     calculateExhibitG,
+    calculateHardwareCost,
     estimatePricing,
     getAllProducts,
     getProduct,
@@ -190,7 +191,8 @@ export function buildAutoFillValues(
                 if (resolutionW > 0 && resolutionH > 0) {
                     const exhibit = calculateExhibitG(product, resolutionW, resolutionH);
                     const zoneClass = toZoneClass(zoneComplexity, zoneSize);
-                    const pricing = estimatePricing(exhibit, zoneClass);
+                    const hwCost = calculateHardwareCost(exhibit.activeAreaM2, product.id);
+                    const pricing = estimatePricing(exhibit, zoneClass, hwCost);
                     const rowOverrides = overridesByIndex[idx] || {};
 
                     screen.calculatedExhibitG = {

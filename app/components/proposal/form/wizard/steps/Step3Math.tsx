@@ -474,6 +474,12 @@ const Step3Math = () => {
                                         {formatCurrency(romTotals.engCost)}
                                     </div>
                                 </div>
+                                <div className="rounded-xl border border-border bg-muted/20 p-3">
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Hardware</div>
+                                    <div className="text-base font-bold text-foreground mt-1">
+                                        {romTotals.hardwareCost > 0 ? formatCurrency(romTotals.hardwareCost) : "—"}
+                                    </div>
+                                </div>
                                 <div className="rounded-xl border border-brand-blue/30 bg-brand-blue/10 p-3">
                                     <div className="text-[10px] uppercase tracking-wider text-brand-blue font-bold">ROM Grand Total</div>
                                     <div className="text-lg font-bold text-foreground mt-1">
