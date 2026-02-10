@@ -136,38 +136,99 @@ Cross-validation against ALL 7 Exhibit G forms proves the density constants are 
 | **10mm Mesh P10** | **298.0** | **19.6** | TBD (~40% est.) |
 | **2.5mm Nationstar MIP** | **390.6** (180W / 0.4608 m²) | **52.6** (24.25 lbs / 0.4608 m²) | 33% |
 
-### 3.3 Per-Location Calculation (Simplified)
+### 3.3 Cabinet Topology Map (Validated)
+
+Simple division (`pixels / panel_count`) works for 5 of 7 locations. The other 2 use **mixed cabinet sizes** (standard + remainder panels).
+
+**Uniform Topology (formula works):**
+
+| Location | Form Res (px) | Grid | Px/Panel | Cabinet (mm) | Status |
+|----------|--------------|------|----------|-------------|--------|
+| Concourse (1a) | 21,360 × 720 | 89×3 | 240×240 | 960×960 | ✅ Clean |
+| T4-B1 (1c) | 660 × 600 | 3×3 | 220×200 | 880×800 | ✅ Clean |
+| T4-B2 (1d) | 660 × 600 | 3×3 | 220×200 | 880×800 | ✅ Clean |
+| 9A Underpass D1 (1b) | 1,152 × 480 | 6×2 | 192×240 | 768×960 | ✅ Clean |
+| 9A Underpass D2 (1b) | 2,280 × 480 | 10×2 | 228×240 | 912×960 | ✅ Clean |
+
+**Mixed Topology (formula fails — needs remainder solver):**
+
+| Location | Form Res (px) | Grid | Simple Division | Actual Configuration |
+|----------|--------------|------|-----------------|---------------------|
+| Elevator (1e) | 336 × 2,250 | 2×23 | H: 97.8 ❌ | 22 rows × 100px + 1 row × 50px |
+| PATH Hall (1f) | 6,840 × 1,380 | 29×6 | W: 235.9 ❌ | W: 28×240px + 1×120px, H: 5×240px + 1×180px |
+| T2-B1 (1g) | 1,260 × 600 | 6×3 | W: 210 ❌ | 3×240px + 3×180px |
+
+### 3.4 Cabinet Logic Solver Algorithm
+```
+function solveCabinetTopology(total_pixels, panel_count, pitch_mm):
+
+  // Step 1: Try uniform division
+  px_per_panel = total_pixels / panel_count
+  if (px_per_panel is integer):
+    cabinet_mm = px_per_panel × pitch_mm
+    return { type: "uniform", standard_mm: cabinet_mm, count: panel_count }
+
+  // Step 2: Remainder solver — assume (N-1) standard + 1 remainder
+  // Try common standard sizes for this product type
+  standard_candidates = [240, 220, 200, 192, 180, 168, 100]  // px
+  for standard_px in standard_candidates:
+    remainder_px = total_pixels - (panel_count - 1) × standard_px
+    if (remainder_px > 0 AND remainder_px < standard_px AND remainder_px % 1 == 0):
+      return {
+        type: "mixed",
+        standard_mm: standard_px × pitch_mm,
+        standard_count: panel_count - 1,
+        remainder_mm: remainder_px × pitch_mm,
+        remainder_count: 1
+      }
+
+  // Step 3: Multi-remainder solver (e.g., T2-B1: 3×240 + 3×180)
+  for standard_px in standard_candidates:
+    for n_standard in range(1, panel_count):
+      n_remainder = panel_count - n_standard
+      remainder_px = (total_pixels - n_standard × standard_px) / n_remainder
+      if (remainder_px is integer AND remainder_px > 0):
+        return {
+          type: "mixed",
+          standard_mm: standard_px × pitch_mm,
+          standard_count: n_standard,
+          remainder_mm: remainder_px × pitch_mm,
+          remainder_count: n_remainder
+        }
+
+  // Step 4: Fallback — use total area for density calc (power/weight still correct)
+  return { type: "unknown", total_mm: total_pixels × pitch_mm }
+```
+
+### 3.5 Per-Location Calculation
 ```
 Input:
   - product_type: "4mm" | "10mm" | "2.5mm"
-  - panels_wide: number
-  - panels_high: number
-  - cabinet_width_mm: number   (from drawings or product default)
-  - cabinet_height_mm: number  (from drawings or product default)
+  - total_resolution_w_px: number  (from Exhibit G form)
+  - total_resolution_h_px: number  (from Exhibit G form)
 
 Derived:
-  panel_count = panels_wide × panels_high
-  cabinet_area_m2 = (cabinet_width_mm / 1000) × (cabinet_height_mm / 1000)
-  total_active_area_m2 = panel_count × cabinet_area_m2
+  display_width_mm = total_resolution_w_px × product.pitch_mm
+  display_height_mm = total_resolution_h_px × product.pitch_mm
+  total_active_area_m2 = (display_width_mm / 1000) × (display_height_mm / 1000)
 
-Output (universal — works for ALL product types):
+Output (universal — works regardless of cabinet topology):
   total_max_power = total_active_area_m2 × product.power_density_wm2
   total_avg_power = total_max_power × product.avg_max_ratio
   total_weight_lbs = total_active_area_m2 × product.weight_density_lbm2
 
-  display_width_mm = panels_wide × cabinet_width_mm
-  display_height_mm = panels_high × cabinet_height_mm
   display_width_ft = display_width_mm / 304.8
   display_height_ft = display_height_mm / 304.8
-  display_width_px = display_width_mm / product.pitch_mm
-  display_height_px = display_height_mm / product.pitch_mm
 ```
 
-### 3.4 Critical Implementation Notes
-- **DO NOT use per-panel constants for 4mm** — cabinet sizes vary per location. Use density × area.
-- **Weight on form INCLUDES internal structure** — the 45.4 lbs/m² density already accounts for this (validated against all forms). No separate +10% buffer needed.
-- **Power on form = wall draw only** — do NOT include rack/server/PDU power (separate pricing line items: $29k + $271k).
-- **2.5mm uses fixed cabinet sizes** — can use either per-panel OR density approach (both work). Density is simpler.
+**Key insight:** Power and weight calculations DON'T NEED cabinet topology at all — they use total active area × density. The cabinet solver is only needed for generating the panel layout/drawing, not for Exhibit G form values.
+
+### 3.6 Critical Implementation Notes
+- **Power/weight use TOTAL AREA × DENSITY** — cabinet topology is irrelevant for these calculations.
+- **Cabinet solver only needed for:** panel layout diagrams, BOM (bill of materials), and installation planning.
+- **Weight on form INCLUDES internal structure** — the 45.4 lbs/m² density already accounts for this. No separate buffer.
+- **Power on form = wall draw only** — do NOT include rack/server/PDU power (separate pricing line items).
+- **Cabinet widths vary wildly** (768mm to 960mm for 4mm) — never assume a standard size.
 
 ---
 
