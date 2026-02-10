@@ -272,11 +272,11 @@ export function calculateExhibitG(
 // ROM PRICING ESTIMATOR
 // ============================================================================
 
-const INSTALL_COST_PER_LB = 50.0;
-const COMPLEX_MODIFIER = 1.2;
-const PM_BASE_FEE = 5882.35;
-const ENG_BASE_FEE = 4705.88;
-const ALT1_UPGRADE_RATIO = 0.07;
+export const INSTALL_COST_PER_LB = 50.0;
+export const COMPLEX_MODIFIER = 1.2;
+export const PM_BASE_FEE = 5882.35;
+export const ENG_BASE_FEE = 4705.88;
+export const ALT1_UPGRADE_RATIO = 0.07;
 
 const ZONE_MULTIPLIERS: Record<ZoneClass, number> = {
     standard: 1,
@@ -459,3 +459,111 @@ export function nextBusinessDay(date: Date): Date {
 function round2(n: number): number {
     return Math.round(n * 100) / 100;
 }
+
+// ============================================================================
+// SCHEDULE TEMPLATES
+// ============================================================================
+
+export const PRE_INSTALL_PHASES = [
+    { name: 'Notice to Proceed', days: 1 },
+    { name: 'Design & Engineering', days: 38, dependsOn: 'Notice to Proceed' },
+    { name: 'Secondary Structural Design', days: 30, dependsOn: 'Notice to Proceed', parallel: true },
+    { name: 'Electrical Design', days: 30, dependsOn: 'Notice to Proceed', parallel: true },
+    { name: 'Control Room Design', days: 30, dependsOn: 'Notice to Proceed', parallel: true },
+    { name: 'Prep Submittals', days: 3, dependsOn: 'Design & Engineering' },
+    { name: 'Owner Review & Approval', days: 5, dependsOn: 'Prep Submittals' },
+    { name: 'LED Manufacturing', days: 45, dependsOn: 'Notice to Proceed', parallel: true },
+    { name: 'Ocean Freight Shipping', days: 23, dependsOn: 'LED Manufacturing' },
+    { name: 'Ground Shipping to Site', days: 4, dependsOn: 'Ocean Freight Shipping' },
+    { name: 'Integration & Testing', days: 18, dependsOn: 'Ocean Freight Shipping', parallel: true },
+    { name: 'Control System Programming', days: 10, dependsOn: 'Ocean Freight Shipping', parallel: true },
+] as const;
+
+export type InstallationType = 'standard_wall' | 'complex_hanging' | 'phased_large';
+
+export const INSTALL_TASK_TEMPLATES = [
+    { name: 'Mobilization', duration: { small: 1, medium: 1, large: 2 } },
+    { name: 'Demolition', duration: { small: 1, medium: 2, large: 4 } },
+    { name: 'Secondary Steel', duration: { small: 3, medium: 3, large: 3 }, onlyFor: ['complex_hanging'] as InstallationType[] },
+    { name: 'LED Panel Install', duration: { small: 2, medium: 5, large: 17 } },
+    { name: 'Infrastructure Install', duration: { small: 3, medium: 5, large: 9 }, parallelOffset: 2 },
+    { name: 'Low Voltage Connectivity', duration: { small: 3, medium: 5, large: 9 }, parallelOffset: 2 },
+    { name: 'Finishes & Trim', duration: { small: 1, medium: 1, large: 2 } },
+] as const;
+
+export const SIZE_THRESHOLDS = { small: 10, medium: 50 } as const;
+
+export function getInstallSizeCategory(panelCount: number): 'small' | 'medium' | 'large' {
+    if (panelCount < SIZE_THRESHOLDS.small) return 'small';
+    if (panelCount < SIZE_THRESHOLDS.medium) return 'medium';
+    return 'large';
+}
+
+// ============================================================================
+// DOCUMENT MODES
+// ============================================================================
+
+export type DocumentMode = 'budget' | 'proposal' | 'loi';
+
+export const DOCUMENT_MODES: Record<DocumentMode, {
+    headerText: string;
+    includeSignatures: boolean;
+    includePaymentTerms: boolean;
+    includeLegalIntro: boolean;
+    includeProjectSummaryFirst: boolean;
+    includeResponsibilityMatrix: boolean;
+}> = {
+    budget: {
+        headerText: 'BUDGET ESTIMATE',
+        includeSignatures: false,
+        includePaymentTerms: false,
+        includeLegalIntro: false,
+        includeProjectSummaryFirst: false,
+        includeResponsibilityMatrix: false,
+    },
+    proposal: {
+        headerText: 'SALES QUOTATION',
+        includeSignatures: false,
+        includePaymentTerms: false,
+        includeLegalIntro: false,
+        includeProjectSummaryFirst: false,
+        includeResponsibilityMatrix: false,
+    },
+    loi: {
+        headerText: 'LETTER OF INTENT',
+        includeSignatures: true,
+        includePaymentTerms: true,
+        includeLegalIntro: true,
+        includeProjectSummaryFirst: true,
+        includeResponsibilityMatrix: true,
+    },
+};
+
+export const CURRENCY_FORMAT = {
+    decimals: 0,
+    hideZeroLineItems: true,
+    removeTypeColumn: true,
+} as const;
+
+// ============================================================================
+// CABINET TOPOLOGY HELPERS
+// ============================================================================
+
+export const KNOWN_4MM_PANEL_WIDTHS_PX = [120, 180, 192, 200, 220, 228, 240];
+export const KNOWN_4MM_PANEL_HEIGHTS_PX = [180, 200, 240];
+export const STANDARD_PIXELS_PER_PANEL = { '4mm': 240, '10mm': 100, '2.5mm': 384 };
+export const STRUCTURAL_WEIGHT_BUFFER = 0.10;
+
+// ============================================================================
+// EXHIBIT G FIELD CLASSIFICATION
+// ============================================================================
+
+export const EXHIBIT_G_CONSTANT_FIELDS = [
+    'moduleMfg', 'processorMfg', 'ledDiode', 'pixelPitch',
+    'brightness', 'colorTemp', 'pixelDensity', 'lifespan',
+] as const;
+
+export const EXHIBIT_G_CALCULATED_FIELDS = [
+    'screenWidthFt', 'screenHeightFt', 'screenWidthPx', 'screenHeightPx',
+    'panelGrid', 'totalPanels', 'totalMaxPower', 'totalAvgPower', 'totalWeight',
+] as const;

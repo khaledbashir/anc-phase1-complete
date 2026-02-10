@@ -9,6 +9,7 @@
 import Decimal from "@/lib/decimal";
 import { roundToCents, roundCategoryTotal } from "@/lib/decimal";
 import { Venue } from "@/types";
+import { INSTALL_COST_PER_LB, PM_BASE_FEE } from "@/services/rfp/productCatalog";
 
 export interface ScreenPriceBreakdown {
   led: number;
@@ -55,11 +56,8 @@ export const DEFAULT_MARGIN = 0.25; // Default 25% margin
 export const DEFAULT_COST_PER_SQFT = 120;
 export const DEFAULT_PITCH_MM = 10;
 export const DEFAULT_SERVICE_TYPE = "Front/Rear";
-export const INSTALL_FLAT = 5000;
-export const LABOR_PCT = 0.15;
-export const POWER_PCT = 0.15;
-export const SHIPPING_PER_SQFT = 0.14;
-export const PM_PER_SQFT = 0.5;
+// REMOVED: INSTALL_FLAT, LABOR_PCT, POWER_PCT, SHIPPING_PER_SQFT, PM_PER_SQFT
+// Use INSTALL_COST_PER_LB and PM_BASE_FEE from productCatalog.ts instead
 export const GENERAL_CONDITIONS_PCT = 0.02;
 export const TRAVEL_PCT = 0.03;
 export const SUBMITTALS_PCT = 0.01;
@@ -281,12 +279,12 @@ export function calculatePerScreenAudit(
   const salesTaxVal = options?.taxRate ?? DEFAULT_SALES_TAX;
   const serviceTypeVal = DEFAULT_SERVICE_TYPE;
 
-  const installFlatVal = options?.installFlatFee ?? INSTALL_FLAT;
-  const laborPctVal = options?.laborPct ?? LABOR_PCT;
+  const installFlatVal = options?.installFlatFee ?? 0; // DEPRECATED: Use weight-based INSTALL_COST_PER_LB from productCatalog.ts
+  const laborPctVal = options?.laborPct ?? 0; // DEPRECATED: Use weight-based INSTALL_COST_PER_LB from productCatalog.ts
   const regionalLaborMultiplier = options?.regionalLaborMultiplier ?? DEFAULT_REGIONAL_LABOR_MULTIPLIER;
-  const powerPctVal = options?.powerPct ?? POWER_PCT;
-  const shippingVal = options?.shippingPerSqFt ?? SHIPPING_PER_SQFT;
-  const pmVal = options?.pmPerSqFt ?? PM_PER_SQFT;
+  const powerPctVal = options?.powerPct ?? 0; // DEPRECATED: Use density-based power calculation from productCatalog.ts
+  const shippingVal = options?.shippingPerSqFt ?? 0; // DEPRECATED: Use density-based weight calculation from productCatalog.ts
+  const pmVal = options?.pmPerSqFt ?? 0; // DEPRECATED: Use PM_BASE_FEE from productCatalog.ts
   const gcPctVal = options?.generalConditionsPct ?? GENERAL_CONDITIONS_PCT;
   const travelPctVal = options?.travelPct ?? TRAVEL_PCT;
   const submittalsPctVal = options?.submittalsPct ?? SUBMITTALS_PCT;
@@ -365,11 +363,12 @@ export function calculatePerScreenAudit(
 
   const baseStructure = hardware.times(STRUCTURE_PCT);
   const structure = roundToCents(baseStructure.times(structureMultiplier));
-  const install = roundToCents(new Decimal(INSTALL_FLAT).times(totalLaborMultiplier));
-  const labor = roundToCents(hardware.times(LABOR_PCT).times(totalLaborMultiplier));
-  const power = roundToCents(hardware.times(POWER_PCT));
-  const shipping = roundToCents(totalArea.times(SHIPPING_PER_SQFT));
-  const pm = roundToCents(totalArea.times(PM_PER_SQFT));
+  // DEPRECATED: Old flat-rate install. Use weight-based INSTALL_COST_PER_LB from productCatalog.ts
+  const install = roundToCents(new Decimal(0).times(totalLaborMultiplier));
+  const labor = roundToCents(hardware.times(0).times(totalLaborMultiplier)); // DEPRECATED
+  const power = roundToCents(hardware.times(0)); // DEPRECATED: Use density-based power calculation
+  const shipping = roundToCents(totalArea.times(0)); // DEPRECATED: Use density-based weight calculation
+  const pm = roundToCents(totalArea.times(0)); // DEPRECATED: Use PM_BASE_FEE from productCatalog.ts
   const generalConditions = roundToCents(hardware.times(GENERAL_CONDITIONS_PCT));
   const travel = roundToCents(hardware.times(TRAVEL_PCT));
   const submittals = roundToCents(hardware.times(SUBMITTALS_PCT));

@@ -1,0 +1,36 @@
+{
+  "active": true,
+  "name": "Time Check",
+  "hubId": "time-check",
+  "schema": "skill-1.0.0",
+  "version": "1.0.0",
+  "description": "Get the current date and time. Can optionally return time in a specific timezone (e.g., 'America/New_York', 'Europe/London', 'Asia/Tokyo').",
+  "author": "@basheer",
+  "author_url": "https://github.com/khaledbashir",
+  "license": "MIT",
+  "setup_args": {},
+  "examples": [
+    {
+      "prompt": "What time is it?",
+      "call": "{}"
+    },
+    {
+      "prompt": "What's the current time in New York?",
+      "call": "{\"timezone\": \"America/New_York\"}"
+    },
+    {
+      "prompt": "What time is it in London?",
+      "call": "{\"timezone\": \"Europe/London\"}"
+    }
+  ],
+  "entrypoint": {
+    "file": "handler.js",
+    "params": {
+      "timezone": {
+        "description": "IANA timezone identifier (e.g., 'America/New_York', 'UTC', 'Europe/London'). Leave empty for server local time.",
+        "type": "string"
+      }
+    }
+  },
+  "imported": true
+}
