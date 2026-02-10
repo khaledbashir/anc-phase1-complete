@@ -1,10 +1,10 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
-import { FileSpreadsheet, Calculator, FileSearch } from "lucide-react";
+import { FileSpreadsheet, PenTool } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type WorkflowMode = "mirror" | "intelligence" | "rfp";
+export type WorkflowMode = "mirror" | "intelligence";
 
 interface ModeSelectorProps {
   onSelect: (mirror: boolean, mode?: WorkflowMode) => void;
@@ -12,7 +12,7 @@ interface ModeSelectorProps {
 
 /**
  * ModeSelector — Full-screen gate shown before Step 1 on new projects.
- * Three options: Upload Excel, Build from Scratch, or Start from RFP.
+ * Two options: Upload Excel (Mirror) or Build a Proposal (Intelligence).
  */
 const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
   const { setValue } = useFormContext();
@@ -22,14 +22,10 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
       setValue("details.mirrorMode", true, { shouldDirty: true });
       setValue("details.calculationMode", "MIRROR", { shouldDirty: true });
       onSelect(true, "mirror");
-    } else if (mode === "intelligence") {
-      setValue("details.mirrorMode", false, { shouldDirty: true });
-      setValue("details.calculationMode", "INTELLIGENCE", { shouldDirty: true });
-      onSelect(false, "intelligence");
     } else {
       setValue("details.mirrorMode", false, { shouldDirty: true });
       setValue("details.calculationMode", "INTELLIGENCE", { shouldDirty: true });
-      onSelect(false, "rfp");
+      onSelect(false, "intelligence");
     }
   };
 
@@ -43,16 +39,9 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
     },
     {
       id: "intelligence" as WorkflowMode,
-      icon: Calculator,
-      title: "Build Quote from Scratch",
-      description: "Create a proposal by entering line items, setting margins, and calculating pricing.",
-      label: "Select",
-    },
-    {
-      id: "rfp" as WorkflowMode,
-      icon: FileSearch,
-      title: "Start from RFP",
-      description: "Upload a client RFP or bid document. Specs, pricing, and schedule are extracted and pre-filled.",
+      icon: PenTool,
+      title: "Build a Proposal",
+      description: "Create a proposal from scratch or import from an RFP document.",
       label: "Select",
     },
   ];
@@ -68,7 +57,7 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl w-full">
         {modes.map((mode) => (
           <button
             key={mode.id}

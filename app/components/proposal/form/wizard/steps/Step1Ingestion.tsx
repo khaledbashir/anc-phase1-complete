@@ -10,10 +10,12 @@ import {
     CheckCircle2,
     AlertTriangle,
     FileText,
+    FileSearch,
     Settings2,
     RefreshCw,
     Plus,
     ArrowLeftRight,
+    PenTool,
 } from "lucide-react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { FEATURES } from "@/lib/featureFlags";
@@ -67,10 +69,7 @@ const Step1Ingestion = () => {
     const [modeJustSelected, setModeJustSelected] = useState(false);
     const [rfpMode, setRfpMode] = useState(false);
 
-    const handleModeSelect = (_mirror: boolean, mode?: WorkflowMode) => {
-        if (mode === "rfp") {
-            setRfpMode(true);
-        }
+    const handleModeSelect = (_mirror: boolean, _mode?: WorkflowMode) => {
         setModeJustSelected(true);
     };
 
@@ -98,7 +97,7 @@ const Step1Ingestion = () => {
         return <ModeSelector onSelect={handleModeSelect} />;
     }
 
-    // RFP mode: show extraction flow instead of normal form
+    // RFP mode: full-screen extraction flow (replaces the normal form)
     if (rfpMode) {
         return <RfpIngestion onComplete={() => setRfpMode(false)} />;
     }
@@ -371,6 +370,25 @@ const Step1Ingestion = () => {
                     ) : (
                         /* ═══ INTELLIGENCE MODE ═══ */
                         <div className="flex flex-col h-full space-y-4">
+                            {/* Start Blank / Import from RFP toggle */}
+                            <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/40 w-fit">
+                                <button
+                                    type="button"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-background text-foreground shadow-sm"
+                                >
+                                    <PenTool className="w-3.5 h-3.5" />
+                                    Start Blank
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setRfpMode(true)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                                >
+                                    <FileSearch className="w-3.5 h-3.5" />
+                                    Import from RFP
+                                </button>
+                            </div>
+
                             <div className="flex items-center justify-between px-1">
                                 <div className="flex items-center gap-2">
                                     <span className="text-xs font-semibold text-foreground">
