@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
     Upload,
     FileText,
@@ -144,10 +144,6 @@ interface PipelineStatus {
 // ============================================================================
 
 export default function RfpFullAnalysis() {
-    const [mounted, setMounted] = useState(false);
-    const [isOpen, setIsOpen] = useState(false);
-
-    useEffect(() => { setMounted(true); }, []);
     const [activeTab, setActiveTab] = useState<TabId>("overview");
     const [pipeline, setPipeline] = useState<PipelineStatus>({
         overview: "idle", specs: "idle", pricing: "idle", schedule: "idle",
@@ -350,160 +346,134 @@ export default function RfpFullAnalysis() {
 
     // ── RENDER ──────────────────────────────────────────────────────────────
 
-    if (!mounted) return null;
-
-    if (!isOpen) {
-        return (
-            <button
-                onClick={() => setIsOpen(true)}
-                className="fixed bottom-24 left-24 md:left-28 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full text-white shadow-xl hover:scale-105 transition-all border border-white/20"
-                style={{ backgroundColor: "#dc2626" }}
-            >
-                <Zap className="w-4 h-4" />
-                <span className="text-xs font-semibold tracking-wide">RFP Intel</span>
-            </button>
-        );
-    }
-
     return (
-        <>
-            <div className="fixed inset-0 z-[55] bg-black/30 backdrop-blur-[2px]" onClick={() => !isProcessing && setIsOpen(false)} />
-
-            <div className="fixed inset-4 sm:inset-6 md:inset-8 lg:inset-x-[10%] lg:inset-y-6 z-[60] bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-700 shadow-2xl flex flex-col overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/80 shrink-0">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-red-100 dark:bg-red-900/30">
-                            <Zap className="w-5 h-5 text-red-600 dark:text-red-400" />
-                        </div>
-                        <div>
-                            <h2 className="text-sm font-bold text-zinc-900 dark:text-white">RFP Full Analysis</h2>
-                            <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
-                                Upload once — specs, pricing, schedule, warranty extracted in parallel
-                            </p>
-                        </div>
+        <div className="border border-border rounded-xl bg-card overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+                        <Zap className="w-5 h-5 text-white" />
                     </div>
-                    <button onClick={() => !isProcessing && setIsOpen(false)} disabled={isProcessing} className="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50">
-                        <X className="w-5 h-5 text-zinc-500" />
-                    </button>
+                    <div>
+                        <h2 className="text-base font-bold text-foreground">RFP Intelligence</h2>
+                        <p className="text-xs text-muted-foreground">
+                            Drop a PDF — specs, pricing, schedule & warranty extracted in parallel
+                        </p>
+                    </div>
                 </div>
+                <div className="flex items-center gap-2">
+                    {isDone && (
+                        <button onClick={handleReset} className="px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-border transition-colors">
+                            New Analysis
+                        </button>
+                    )}
+                    {isDone && (
+                        <button onClick={handleCopy} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-border transition-colors">
+                            {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                            {copied ? "Copied" : "Copy"}
+                        </button>
+                    )}
+                </div>
+            </div>
 
-                {/* Upload Zone */}
-                {!isDone && !isProcessing && !error && (
-                    <div
-                        className="flex-1 flex items-center justify-center p-6"
-                        onDragEnter={handleDragEnter}
-                        onDragLeave={handleDragLeave}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                    >
-                        <label htmlFor="rfp-full-upload" className={cn(
-                            "flex flex-col items-center justify-center w-full max-w-lg h-64 border-2 border-dashed rounded-2xl cursor-pointer transition-all",
-                            isDragging
-                                ? "border-red-500 bg-red-50/70 dark:border-red-400 dark:bg-red-900/20 scale-[1.02]"
-                                : "border-zinc-300 dark:border-zinc-600 hover:border-red-400 dark:hover:border-red-500 hover:bg-red-50/50 dark:hover:bg-red-900/10"
+            {/* Upload Zone — full width, proper drag-drop */}
+            {!isDone && !isProcessing && !error && (
+                <div
+                    className="p-6"
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                >
+                    <label htmlFor="rfp-full-upload" className={cn(
+                        "flex flex-col items-center justify-center w-full py-16 border-2 border-dashed rounded-xl cursor-pointer transition-all",
+                        isDragging
+                            ? "border-red-500 bg-red-50/70 dark:border-red-400 dark:bg-red-900/20 scale-[1.005]"
+                            : "border-border hover:border-red-400 dark:hover:border-red-500 hover:bg-muted/30"
+                    )}>
+                        <div className={cn(
+                            "w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-colors",
+                            isDragging ? "bg-red-100 dark:bg-red-900/30" : "bg-muted/50"
                         )}>
-                            <Upload className={cn("w-10 h-10 mb-3", isDragging ? "text-red-500 dark:text-red-400" : "text-zinc-400 dark:text-zinc-500")} />
-                            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-                                {isDragging ? "Drop PDF to analyze" : "Drop your RFP here"}
-                            </p>
-                            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">PDF files up to 50MB</p>
-                            <div className="flex gap-3 mt-4">
-                                {[{ icon: <Monitor className="w-3 h-3" />, label: "Specs" }, { icon: <DollarSign className="w-3 h-3" />, label: "Pricing" }, { icon: <Calendar className="w-3 h-3" />, label: "Schedule" }, { icon: <Shield className="w-3 h-3" />, label: "Warranty" }].map(t => (
-                                    <span key={t.label} className="flex items-center gap-1 text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">
-                                        {t.icon} {t.label}
-                                    </span>
-                                ))}
-                            </div>
-                        </label>
-                        <input ref={fileInputRef} id="rfp-full-upload" type="file" accept=".pdf" onChange={handleFileSelect} className="hidden" />
-                    </div>
-                )}
-
-                {/* Processing Pipeline */}
-                {isProcessing && (
-                    <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
-                        <Loader2 className="w-10 h-10 animate-spin text-red-500" />
-                        <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Analyzing RFP...</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md">
-                            {tabs.map(t => {
-                                const status = pipeline[t.status];
-                                return (
-                                    <div key={t.id} className={cn("flex items-center gap-2.5 px-3.5 py-3 rounded-xl border text-xs font-medium", status === "done" ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400" : status === "failed" ? "border-red-200 bg-red-50 text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400" : "border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400")}>
-                                        {status === "running" && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
-                                        {status === "done" && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
-                                        {status === "failed" && <XCircle className="w-3.5 h-3.5 shrink-0" />}
-                                        {status === "idle" && t.icon}
-                                        <span className="flex-1">
-                                            {status === "running" ? t.progressLabel : status === "done" ? `${t.label} — done` : status === "failed" ? `${t.label} — failed` : t.label}
-                                        </span>
-                                    </div>
-                                );
-                            })}
+                            <Upload className={cn("w-7 h-7", isDragging ? "text-red-500 dark:text-red-400" : "text-muted-foreground")} />
                         </div>
-                        {overview?.stats && (
-                            <div className="grid grid-cols-3 gap-3 text-center mt-2">
-                                <div className="px-4 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-800">
-                                    <div className="text-lg font-bold text-zinc-900 dark:text-white">{overview.stats.totalSections}</div>
-                                    <div className="text-[9px] text-zinc-500 uppercase tracking-wider">Sections</div>
-                                </div>
-                                <div className="px-4 py-2 rounded-xl bg-red-50 dark:bg-red-900/20">
-                                    <div className="text-lg font-bold text-red-600 dark:text-red-400">{overview.stats.highValueCount}</div>
-                                    <div className="text-[9px] text-red-500 uppercase tracking-wider">High Value</div>
-                                </div>
-                                <div className="px-4 py-2 rounded-xl bg-green-50 dark:bg-green-900/20">
-                                    <div className="text-lg font-bold text-green-600 dark:text-green-400">{overview.stats.filteredOutPercent}%</div>
-                                    <div className="text-[9px] text-green-500 uppercase tracking-wider">Noise Cut</div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Error */}
-                {error && !isProcessing && (
-                    <div className="flex-1 flex flex-col items-center justify-center p-8">
-                        <AlertTriangle className="w-10 h-10 text-red-500 mb-4" />
-                        <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-2">Processing Failed</p>
-                        <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-md text-center">{error}</p>
-                        <button onClick={handleReset} className="mt-4 px-4 py-2 rounded-lg text-xs font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">Try Again</button>
-                    </div>
-                )}
-
-                {/* Results */}
-                {isDone && !error && (
-                    <>
-                        {/* Tab Bar */}
-                        <div className="flex items-center gap-1 px-5 py-2 border-b border-zinc-200 dark:border-zinc-700 overflow-x-auto shrink-0">
-                            {tabs.map(t => {
-                                const status = pipeline[t.status];
-                                const isActive = activeTab === t.id;
-                                return (
-                                    <button
-                                        key={t.id}
-                                        onClick={() => setActiveTab(t.id)}
-                                        disabled={status === "failed"}
-                                        className={cn(
-                                            "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap",
-                                            isActive ? "bg-red-500 text-white shadow-sm" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700",
-                                            status === "failed" && "opacity-40 cursor-not-allowed"
-                                        )}
-                                    >
-                                        {t.icon}
-                                        {t.label}
-                                        {status === "failed" && <XCircle className="w-3 h-3 text-red-400" />}
-                                    </button>
-                                );
-                            })}
-                            <div className="flex-1" />
-                            <button onClick={handleCopy} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors">
-                                {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
-                                {copied ? "Copied" : "Copy"}
-                            </button>
+                        <p className="text-sm font-semibold text-foreground">
+                            {isDragging ? "Drop PDF to analyze" : "Drop your RFP or bid document here"}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">PDF up to 50MB — or click to browse</p>
+                        <div className="flex items-center gap-4 mt-5">
+                            {[{ icon: <Monitor className="w-3.5 h-3.5" />, label: "Display Specs" }, { icon: <DollarSign className="w-3.5 h-3.5" />, label: "Pricing" }, { icon: <Calendar className="w-3.5 h-3.5" />, label: "Schedule" }, { icon: <Shield className="w-3.5 h-3.5" />, label: "Warranty" }].map(t => (
+                                <span key={t.label} className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+                                    {t.icon} {t.label}
+                                </span>
+                            ))}
                         </div>
+                    </label>
+                    <input ref={fileInputRef} id="rfp-full-upload" type="file" accept=".pdf" onChange={handleFileSelect} className="hidden" />
+                </div>
+            )}
 
-                        {/* Tab Content */}
-                        <div className="flex-1 overflow-y-auto p-5">
+            {/* Processing Pipeline */}
+            {isProcessing && (
+                <div className="px-6 py-10 flex flex-col items-center gap-6">
+                    <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+                    <p className="text-sm font-semibold text-foreground">Analyzing document...</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-2xl">
+                        {tabs.map(t => {
+                            const status = pipeline[t.status];
+                            return (
+                                <div key={t.id} className={cn("flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-medium", status === "done" ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400" : status === "failed" ? "border-red-200 bg-red-50 text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400" : "border-border bg-muted/30 text-muted-foreground")}>
+                                    {status === "running" && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
+                                    {status === "done" && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
+                                    {status === "failed" && <XCircle className="w-3.5 h-3.5 shrink-0" />}
+                                    {status === "idle" && t.icon}
+                                    <span className="truncate">{status === "running" ? t.progressLabel : t.label}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Error */}
+            {error && !isProcessing && (
+                <div className="px-6 py-10 flex flex-col items-center">
+                    <AlertTriangle className="w-8 h-8 text-red-500 mb-3" />
+                    <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">Processing Failed</p>
+                    <p className="text-xs text-muted-foreground max-w-md text-center mb-4">{error}</p>
+                    <button onClick={handleReset} className="px-4 py-2 rounded-lg text-xs font-semibold text-white bg-red-500 hover:bg-red-600 transition-colors">Try Again</button>
+                </div>
+            )}
+
+            {/* Results */}
+            {isDone && !error && (
+                <>
+                    {/* Tab Bar */}
+                    <div className="flex items-center gap-1.5 px-5 py-2.5 border-b border-border overflow-x-auto">
+                        {tabs.map(t => {
+                            const status = pipeline[t.status];
+                            const isActive = activeTab === t.id;
+                            return (
+                                <button
+                                    key={t.id}
+                                    onClick={() => setActiveTab(t.id)}
+                                    disabled={status === "failed"}
+                                    className={cn(
+                                        "flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold transition-all whitespace-nowrap",
+                                        isActive ? "bg-red-500 text-white shadow-sm shadow-red-500/20" : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                                        status === "failed" && "opacity-40 cursor-not-allowed"
+                                    )}
+                                >
+                                    {t.icon}
+                                    {t.label}
+                                    {status === "failed" && <XCircle className="w-3 h-3 text-red-400" />}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Tab Content */}
+                    <div className="p-5 max-h-[600px] overflow-y-auto">
                             {/* ── OVERVIEW TAB ── */}
                             {activeTab === "overview" && overview && (
                                 <div className="space-y-5">
@@ -736,16 +706,9 @@ export default function RfpFullAnalysis() {
                             )}
                         </div>
 
-                        {/* Footer */}
-                        <div className="px-5 py-3 border-t border-zinc-200 dark:border-zinc-700 shrink-0">
-                            <button onClick={handleReset} className="w-full px-4 py-2.5 rounded-xl border-2 border-zinc-200 dark:border-zinc-600 text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors">
-                                Process Another PDF
-                            </button>
-                        </div>
                     </>
                 )}
-            </div>
-        </>
+        </div>
     );
 }
 

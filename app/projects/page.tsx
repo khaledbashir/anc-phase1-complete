@@ -411,6 +411,8 @@ export default function ProjectsPage() {
                                     )}
                                 </div>
 
+                                <RfpFullAnalysis />
+
                                 <div className={cn(
                                     "grid",
                                     viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "grid-cols-1 gap-2"
@@ -443,8 +445,6 @@ export default function ProjectsPage() {
                 {/* AI Operations Prompt Library — slide-out panel */}
                 <PromptLibraryPanel pipelineContext={copilotContext} onSendToCopilot={handleCopilotMessage} />
 
-                {/* Smart RFP Processor — upload huge PDFs, extract only what matters */}
-                <RfpFullAnalysis />
 
                 <div className="fixed bottom-6 right-6 z-50">
                     <CopilotPanel
