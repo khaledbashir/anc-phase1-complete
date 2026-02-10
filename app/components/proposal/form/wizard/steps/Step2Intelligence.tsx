@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { Calculator, Info, ChevronDown, ChevronUp, RotateCcw, Tv } from "lucide-react";
+import { Calculator, Info, ChevronDown, ChevronUp, RotateCcw, Tv, ClipboardList } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Screens } from "@/app/components";
 import PricingTableEditor from "@/app/components/proposal/form/sections/PricingTableEditor";
 import SchedulePreview from "@/app/components/proposal/form/sections/SchedulePreview";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { resolveDocumentMode, applyDocumentModeDefaults, type DocumentMode } from "@/lib/documentMode";
 import { SOWGeneratorPanel } from "@/app/components/proposal/SOWGeneratorPanel";
@@ -90,9 +91,64 @@ const MasterTableSelector = () => {
     );
 };
 
+/** Default ANC responsibility matrix for LOI documents (Intelligence Mode). */
+const DEFAULT_RESP_MATRIX = {
+    projectName: "",
+    date: "",
+    format: "long" as const,
+    categories: [
+        {
+            name: "Physical Installation",
+            items: [
+                { description: "LED Panel Mounting & Alignment", anc: "X", purchaser: "" },
+                { description: "Secondary Steel / Structural Support", anc: "X", purchaser: "" },
+                { description: "Electrical Infrastructure to Display", anc: "X", purchaser: "" },
+                { description: "Low Voltage Cabling & Connectivity", anc: "X", purchaser: "" },
+                { description: "Demolition of Existing Displays", anc: "X", purchaser: "" },
+            ],
+        },
+        {
+            name: "Electrical & Power",
+            items: [
+                { description: "Dedicated Circuits to Display Location", anc: "", purchaser: "X" },
+                { description: "Main Power Distribution Panel", anc: "", purchaser: "X" },
+                { description: "Power Wiring from Panel to Displays", anc: "X", purchaser: "" },
+            ],
+        },
+        {
+            name: "Control & Integration",
+            items: [
+                { description: "Control Room Equipment & Setup", anc: "X", purchaser: "" },
+                { description: "Content Management System", anc: "X", purchaser: "" },
+                { description: "Network Infrastructure to Control Room", anc: "", purchaser: "X" },
+                { description: "Third-Party System Integration", anc: "", purchaser: "X" },
+            ],
+        },
+        {
+            name: "Project Management",
+            items: [
+                { description: "ANC Project Manager (On-site)", anc: "X", purchaser: "" },
+                { description: "Design & Engineering Submittals", anc: "X", purchaser: "" },
+                { description: "Owner Review & Approval of Submittals", anc: "", purchaser: "X" },
+                { description: "Permitting & Code Compliance", anc: "", purchaser: "X" },
+                { description: "Site Access & Coordination", anc: "", purchaser: "X" },
+            ],
+        },
+        {
+            name: "Post-Installation",
+            items: [
+                { description: "System Testing & Commissioning", anc: "X", purchaser: "" },
+                { description: "Training — Operations & Maintenance", anc: "X", purchaser: "" },
+                { description: "Warranty Support (Parts & Labor)", anc: "X", purchaser: "" },
+                { description: "Spare Parts Package", anc: "X", purchaser: "" },
+            ],
+        },
+    ],
+};
+
 const Step2Intelligence = () => {
     const { aiWorkspaceSlug } = useProposalContext();
-    const { control, setValue, getValues, register } = useFormContext();
+    const { control, setValue, getValues, register, watch } = useFormContext();
     const watchedScreens = useWatch({
         name: "details.screens",
         control
@@ -270,6 +326,29 @@ const Step2Intelligence = () => {
                             {...register("details.paymentTerms" as any)}
                             placeholder="e.g., 50% on Deposit, 40% on Mobilization, 10% on Substantial Completion"
                             className="w-full min-h-[60px] px-3 py-2 text-sm bg-background border border-input rounded-md resize-y focus:ring-1 focus:ring-[#0A52EF] focus:outline-none"
+                        />
+                    </div>
+                )}
+
+                {/* Responsibility Matrix toggle (LOI default on, others off) */}
+                {mode === "LOI" && (
+                    <div className="flex items-center justify-between px-4 py-3 rounded-lg border border-border bg-card/50">
+                        <div className="flex items-start gap-2">
+                            <ClipboardList className="w-4 h-4 text-muted-foreground mt-0.5" />
+                            <div className="space-y-0.5">
+                                <h4 className="text-sm font-semibold text-foreground">Include Responsibility Matrix</h4>
+                                <p className="text-xs text-muted-foreground">Statement of Work — who is responsible for each task</p>
+                            </div>
+                        </div>
+                        <Switch
+                            checked={watch("details.includeResponsibilityMatrix" as any) !== false}
+                            onCheckedChange={(checked) => {
+                                setValue("details.includeResponsibilityMatrix" as any, checked, { shouldDirty: true });
+                                if (checked && !watch("details.responsibilityMatrix" as any)) {
+                                    setValue("details.responsibilityMatrix" as any, DEFAULT_RESP_MATRIX, { shouldDirty: true });
+                                }
+                            }}
+                            className="data-[state=checked]:bg-[#0A52EF]"
                         />
                     </div>
                 )}

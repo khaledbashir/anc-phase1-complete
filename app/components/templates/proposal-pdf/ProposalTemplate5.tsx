@@ -1031,8 +1031,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         );
     };
 
-    // Resp Matrix Statement of Work (parsed from Excel "Resp Matrix" sheet)
-    const respMatrix: RespMatrix | null = pricingDocument?.respMatrix ?? null;
+    // Resp Matrix Statement of Work — from Excel "Resp Matrix" sheet OR Intelligence Mode default
+    const intelligenceRespMatrix = (details as any)?.includeResponsibilityMatrix !== false
+        ? ((details as any)?.responsibilityMatrix ?? null)
+        : null;
+    const respMatrix: RespMatrix | null = pricingDocument?.respMatrix ?? intelligenceRespMatrix;
 
     const RespMatrixSOW = () => {
         if (!respMatrix || !respMatrix.categories || respMatrix.categories.length === 0) return null;
