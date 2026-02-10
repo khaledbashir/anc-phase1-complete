@@ -77,6 +77,18 @@ append_text — Append text to a field instead of replacing:
 fix_section_header — Fix a typo in a pricing section header:
   { "type": "fix_section_header", "sectionIndex": 2, "value": "Corrected Name" }
 
+add_screen — Add a display screen to the project:
+  From natural language: { "type": "add_screen", "value": "Concourse display 280 by 9 feet 4mm" }
+  From structured data: { "type": "add_screen", "value": { "name": "Concourse", "widthFt": 280, "heightFt": 9, "pitchMm": 4, "quantity": 1 } }
+  Parse user requests like "add a concourse display 280x9 ft 4mm" or "new screen PATH Hall 90ft wide 18ft tall 4mm"
+
+list_screens — List all configured screens:
+  { "type": "list_screens" }
+
+remove_screen — Remove a screen by name or index (1-based):
+  { "type": "remove_screen", "value": "Concourse" }
+  { "type": "remove_screen", "value": 2 }
+
 == MIRROR MODE RULES ==
 Look at the screen. If you see pricing tables with data from an Excel upload, this is Mirror Mode:
 - You CAN change: client name, project name, intro text, payment terms, notes, doc type, section headers

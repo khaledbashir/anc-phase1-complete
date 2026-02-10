@@ -67,10 +67,17 @@ const INTENT_PATTERNS: Array<{
     {
         type: "add_screen",
         patterns: [
-            /(?:add|create|new)\s+(?:a\s+)?screen/i,
-            /(?:add|create|new)\s+(?:a\s+)?display/i,
+            /(?:add|create|new|insert)\s+(?:a\s+)?(?:\d+\s+)?(?:screen|display|panel)/i,
         ],
-        extractParams: () => ({}),
+        extractParams: (_match, message) => ({ rawSpec: message }),
+    },
+    {
+        type: "remove_screen",
+        patterns: [
+            /(?:remove|delete)\s+(?:the\s+)?(?:screen|display)\s*(.*)/i,
+            /(?:remove|delete)\s+screen\s*(\d+)/i,
+        ],
+        extractParams: (match) => ({ target: (match[1] || "").trim() }),
     },
     {
         type: "add_quote_item",

@@ -6,6 +6,7 @@
  */
 
 import { type ParsedIntent } from "./intentParser";
+import { parseScreenSpec } from "./formFillBridge";
 
 // ============================================================================
 // TYPES
@@ -40,6 +41,8 @@ export function executeIntent(intent: ParsedIntent, ctx: ExecutionContext): Exec
             return executeSetTaxRate(intent, ctx);
         case "add_screen":
             return executeAddScreen(intent, ctx);
+        case "remove_screen":
+            return executeRemoveScreen(intent, ctx);
         case "add_quote_item":
             return executeAddQuoteItem(intent, ctx);
         case "export_pdf":
@@ -104,28 +107,95 @@ function executeSetTaxRate(intent: ParsedIntent, ctx: ExecutionContext): Executi
     };
 }
 
-function executeAddScreen(_intent: ParsedIntent, ctx: ExecutionContext): ExecutionResult {
+function executeAddScreen(intent: ParsedIntent, ctx: ExecutionContext): ExecutionResult {
+    const rawSpec = intent.params.rawSpec || intent.originalMessage;
+    const spec = parseScreenSpec(rawSpec);
+
     const screens = ctx.getValues("details.screens") || [];
+
+    if (!spec) {
+        // Fallback: add blank screen
+        const newScreen = {
+            name: `Screen ${screens.length + 1}`,
+            externalName: "",
+            productType: "",
+            quantity: 1,
+            widthFt: 0,
+            heightFt: 0,
+            pitchMm: 0,
+            zoneComplexity: "standard",
+            zoneSize: "auto",
+            isReplacement: false,
+            useExistingStructure: false,
+            includeSpareParts: false,
+            isManualLineItem: false,
+        };
+        ctx.setValue("details.screens", [...screens, newScreen], { shouldDirty: true });
+        return {
+            success: true,
+            message: `Added a blank screen. Specify dimensions and pitch to configure it.`,
+            actionTaken: "add_screen",
+        };
+    }
+
     const newScreen = {
-        name: `Screen ${screens.length + 1}`,
-        productType: "Manual Item",
-        quantity: 1,
-        desiredMargin: ctx.getValues("details.globalMargin") || 0.25,
-        isManualLineItem: true,
-        manualCost: 0,
-        widthFt: 0,
-        heightFt: 0,
-        pitchMm: 0,
+        externalName: spec.name,
+        name: "",
+        widthFt: spec.widthFt,
+        heightFt: spec.heightFt,
+        pitchMm: spec.pitchMm,
+        quantity: spec.quantity,
+        productType: spec.productType || "",
+        zoneComplexity: "standard",
+        zoneSize: "auto",
         isReplacement: false,
         useExistingStructure: false,
         includeSpareParts: false,
+        isManualLineItem: false,
     };
     ctx.setValue("details.screens", [...screens, newScreen], { shouldDirty: true });
 
     return {
         success: true,
-        message: `Added **Screen ${screens.length + 1}**. Go to Step 2 to configure its dimensions and specs.`,
+        message: `Added **${spec.name}** (${spec.widthFt}' × ${spec.heightFt}', ${spec.pitchMm}mm, qty ${spec.quantity}).`,
         actionTaken: "add_screen",
+    };
+}
+
+function executeRemoveScreen(intent: ParsedIntent, ctx: ExecutionContext): ExecutionResult {
+    const screens: any[] = ctx.getValues("details.screens") || [];
+    if (screens.length === 0) {
+        return { success: false, message: "No screens to remove.", actionTaken: "none" };
+    }
+
+    const target = (intent.params.target || "").toString().toLowerCase().trim();
+    let removeIdx = -1;
+
+    // Try index first — "3", "screen 3"
+    const indexMatch = target.match(/^(?:screen\s*)?(\d+)$/);
+    if (indexMatch) {
+        removeIdx = parseInt(indexMatch[1], 10) - 1;
+    } else if (target) {
+        // Fuzzy name match
+        removeIdx = screens.findIndex((s: any) => {
+            const name = ((s.externalName || s.name || "").toString()).toLowerCase();
+            return name.includes(target) || target.includes(name);
+        });
+    }
+
+    if (removeIdx < 0 || removeIdx >= screens.length) {
+        return { success: false, message: `Could not find a screen matching "${intent.params.target}".`, actionTaken: "none" };
+    }
+
+    const removed = screens[removeIdx];
+    const removedName = removed.externalName || removed.name || `Screen ${removeIdx + 1}`;
+    const updated = screens.filter((_: any, i: number) => i !== removeIdx);
+    ctx.setValue("details.screens", updated, { shouldDirty: true });
+
+    return {
+        success: true,
+        message: `Removed **${removedName}**. ${updated.length} screen(s) remaining.`,
+        actionTaken: "remove_screen",
     };
 }
 

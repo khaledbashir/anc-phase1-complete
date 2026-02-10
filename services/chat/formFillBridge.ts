@@ -9,6 +9,7 @@
 
 import type { UseFormSetValue, UseFormGetValues } from "react-hook-form";
 import type { StageAction } from "./proposalConversationFlow";
+import { getProductByPitch, getProduct } from "@/services/rfp/productCatalog";
 
 // ============================================================================
 // TYPES
@@ -17,6 +18,96 @@ import type { StageAction } from "./proposalConversationFlow";
 export interface FormFillContext {
     setValue: UseFormSetValue<any>;
     getValues: UseFormGetValues<any>;
+}
+
+// ============================================================================
+// SCREEN SPEC NLP PARSER
+// ============================================================================
+
+export interface ParsedScreenSpec {
+    name: string;
+    widthFt: number;
+    heightFt: number;
+    pitchMm: number;
+    quantity: number;
+    productType?: string;
+}
+
+/**
+ * Parse natural language screen specification into structured data.
+ * Handles: "add concourse display 280 by 9 feet 4mm",
+ *          "add 3 T4-B1 screens 8x8 ft 4mm indoor",
+ *          "new screen PATH Hall 90ft wide 18ft tall 4mm nitxeon"
+ */
+export function parseScreenSpec(text: string): ParsedScreenSpec | null {
+    const s = text.trim();
+
+    // Extract quantity — "add 3 screens", "3x", etc.
+    let quantity = 1;
+    const qtyMatch = s.match(/\b(\d+)\s*(?:x\s+)?(?:screen|display|panel|unit)/i)
+        || s.match(/\badd\s+(\d+)\b/i);
+    if (qtyMatch) quantity = parseInt(qtyMatch[1], 10) || 1;
+
+    // Extract pitch — "4mm", "2.5 mm", "10mm"
+    let pitchMm = 0;
+    const pitchMatch = s.match(/(\d+(?:\.\d+)?)\s*mm\b/i);
+    if (pitchMatch) pitchMm = parseFloat(pitchMatch[1]);
+
+    // Extract dimensions — various patterns
+    let widthFt = 0, heightFt = 0;
+
+    // "280 by 9 feet", "280x9 ft", "280 x 9ft"
+    const dimByMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:ft|feet|')?\s*(?:by|x|×)\s*(\d+(?:\.\d+)?)\s*(?:ft|feet|')?/i);
+    if (dimByMatch) {
+        widthFt = parseFloat(dimByMatch[1]);
+        heightFt = parseFloat(dimByMatch[2]);
+    }
+
+    // "90ft wide 18ft tall", "90' wide 18' tall"
+    if (!widthFt || !heightFt) {
+        const wMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:ft|feet|')\s*(?:wide|w\b)/i);
+        const hMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:ft|feet|')\s*(?:tall|high|h\b)/i);
+        if (wMatch) widthFt = parseFloat(wMatch[1]);
+        if (hMatch) heightFt = parseFloat(hMatch[1]);
+    }
+
+    // "W 90 H 18", "width 90 height 18" (feet assumed)
+    if (!widthFt || !heightFt) {
+        const whMatch = s.match(/(?:width|w)\s*[:=]?\s*(\d+(?:\.\d+)?)\s*.*?(?:height|h)\s*[:=]?\s*(\d+(?:\.\d+)?)/i);
+        if (whMatch) {
+            widthFt = parseFloat(whMatch[1]);
+            heightFt = parseFloat(whMatch[2]);
+        }
+    }
+
+    if (widthFt <= 0 || heightFt <= 0 || pitchMm <= 0) return null;
+
+    // Match product from pitch
+    let productType: string | undefined;
+    const matchedProduct = getProductByPitch(pitchMm);
+    if (matchedProduct) productType = matchedProduct.id;
+
+    // Also check for explicit product name — "nitxeon", "mesh", "mip"
+    const lower = s.toLowerCase();
+    if (lower.includes("nitxeon") && !productType) productType = "4mm-nitxeon";
+    if (lower.includes("mesh")) productType = "10mm-mesh";
+    if (lower.includes("mip")) productType = "2.5mm-mip";
+
+    // Extract display name — strip out dimensions, pitch, quantity, commands
+    let name = s
+        .replace(/\b(?:add|new|create|insert)\s+(?:a\s+)?(?:\d+\s+)?/i, "")
+        .replace(/\b\d+(?:\.\d+)?\s*(?:ft|feet|')\s*(?:by|x|×)\s*\d+(?:\.\d+)?\s*(?:ft|feet|')?/gi, "")
+        .replace(/\b\d+(?:\.\d+)?\s*(?:ft|feet|')\s*(?:wide|tall|high|w\b|h\b)/gi, "")
+        .replace(/\b\d+(?:\.\d+)?\s*mm\b/gi, "")
+        .replace(/\b(?:screen|display|panel|unit)s?\b/gi, "")
+        .replace(/\b(?:indoor|outdoor)\b/gi, "")
+        .replace(/\b(?:nitxeon|mesh|mip)\b/gi, "")
+        .replace(/[,\-–—]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    if (!name || name.length < 2) name = "Display";
+
+    return { name, widthFt, heightFt, pitchMm, quantity, productType };
 }
 
 // ============================================================================
@@ -473,6 +564,114 @@ export function executeScreenActions(
                     ctx.setValue("details.tableHeaderOverrides", { ...overrides }, { shouldDirty: true });
                     log.push(`Fixed section ${idx + 1} header → "${sa.value}"`);
                 }
+                break;
+            }
+
+            case "add_screen": {
+                // Value is either a raw text string (NLP parse) or structured screen data
+                const rawSpec = typeof sa.value === "string" ? sa.value : null;
+                const structured = typeof sa.value === "object" && sa.value ? sa.value : null;
+
+                let spec: ParsedScreenSpec | null = null;
+                if (rawSpec) {
+                    spec = parseScreenSpec(rawSpec);
+                } else if (structured) {
+                    spec = {
+                        name: structured.name || structured.externalName || "Display",
+                        widthFt: Number(structured.widthFt || structured.width || 0),
+                        heightFt: Number(structured.heightFt || structured.height || 0),
+                        pitchMm: Number(structured.pitchMm || structured.pitch || 0),
+                        quantity: Number(structured.quantity || 1),
+                        productType: structured.productType,
+                    };
+                }
+
+                if (!spec || spec.widthFt <= 0 || spec.heightFt <= 0 || spec.pitchMm <= 0) {
+                    log.push("add_screen: could not parse screen specs — need width, height (ft), and pitch (mm)");
+                    break;
+                }
+
+                if (!spec.productType) {
+                    const match = getProductByPitch(spec.pitchMm);
+                    if (match) spec.productType = match.id;
+                }
+
+                const currentScreens: any[] = ctx.getValues("details.screens") || [];
+                const newScreen = {
+                    externalName: spec.name,
+                    name: "",
+                    widthFt: spec.widthFt,
+                    heightFt: spec.heightFt,
+                    pitchMm: spec.pitchMm,
+                    quantity: spec.quantity,
+                    productType: spec.productType || "",
+                    zoneComplexity: "standard",
+                    zoneSize: "auto",
+                    isReplacement: false,
+                    useExistingStructure: false,
+                    includeSpareParts: false,
+                    isManualLineItem: false,
+                };
+                ctx.setValue("details.screens" as any, [...currentScreens, newScreen], { shouldDirty: true });
+                log.push(`Added screen "${spec.name}" (${spec.widthFt}' × ${spec.heightFt}', ${spec.pitchMm}mm, qty ${spec.quantity})`);
+                break;
+            }
+
+            case "list_screens": {
+                const screens: any[] = ctx.getValues("details.screens") || [];
+                if (screens.length === 0) {
+                    log.push("No screens configured yet.");
+                } else {
+                    const summary = screens.map((s: any, i: number) => {
+                        const name = s.externalName || s.name || `Screen ${i + 1}`;
+                        const w = s.widthFt || 0;
+                        const h = s.heightFt || 0;
+                        const p = s.pitchMm || 0;
+                        return `${i + 1}. ${name} — ${w}' × ${h}', ${p}mm, qty ${s.quantity || 1}`;
+                    }).join("\n");
+                    log.push(`Current screens:\n${summary}`);
+                }
+                break;
+            }
+
+            case "remove_screen": {
+                const screens: any[] = ctx.getValues("details.screens") || [];
+                if (screens.length === 0) {
+                    log.push("No screens to remove.");
+                    break;
+                }
+
+                let removeIdx = -1;
+                // By index — "remove screen 3" → value is 3 (1-based)
+                if (typeof sa.value === "number") {
+                    removeIdx = sa.value - 1; // convert to 0-based
+                }
+                // By name — "remove the elevator screen"
+                if (typeof sa.value === "string") {
+                    const target = sa.value.toLowerCase().trim();
+                    // Try exact index first — "3", "screen 3"
+                    const indexMatch = target.match(/^(?:screen\s*)?(\d+)$/);
+                    if (indexMatch) {
+                        removeIdx = parseInt(indexMatch[1], 10) - 1;
+                    } else {
+                        // Fuzzy name match
+                        removeIdx = screens.findIndex((s: any) => {
+                            const name = ((s.externalName || s.name || "").toString()).toLowerCase();
+                            return name.includes(target) || target.includes(name);
+                        });
+                    }
+                }
+
+                if (removeIdx < 0 || removeIdx >= screens.length) {
+                    log.push(`remove_screen: could not find screen matching "${sa.value}"`);
+                    break;
+                }
+
+                const removed = screens[removeIdx];
+                const removedName = removed.externalName || removed.name || `Screen ${removeIdx + 1}`;
+                const updated = screens.filter((_: any, i: number) => i !== removeIdx);
+                ctx.setValue("details.screens" as any, updated, { shouldDirty: true });
+                log.push(`Removed screen "${removedName}"`);
                 break;
             }
 
