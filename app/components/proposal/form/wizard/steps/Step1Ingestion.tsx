@@ -27,7 +27,8 @@ import { AiWand, FormInput } from "@/app/components";
 import AgentSearchAnimation, { type AgentSearchPhase } from "@/app/components/reusables/AgentSearchAnimation";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ModeSelector from "@/app/components/proposal/form/wizard/ModeSelector";
+import ModeSelector, { type WorkflowMode } from "@/app/components/proposal/form/wizard/ModeSelector";
+import RfpIngestion from "@/app/components/proposal/form/wizard/RfpIngestion";
 import { isModeUnselected, isMirrorMode as checkMirrorMode } from "@/lib/modeDetection";
 
 const Step1Ingestion = () => {
@@ -64,8 +65,12 @@ const Step1Ingestion = () => {
     const modeUnselected = isModeUnselected(details);
     const mirrorMode = checkMirrorMode(details);
     const [modeJustSelected, setModeJustSelected] = useState(false);
+    const [rfpMode, setRfpMode] = useState(false);
 
-    const handleModeSelect = (_mirror: boolean) => {
+    const handleModeSelect = (_mirror: boolean, mode?: WorkflowMode) => {
+        if (mode === "rfp") {
+            setRfpMode(true);
+        }
         setModeJustSelected(true);
     };
 
@@ -91,6 +96,11 @@ const Step1Ingestion = () => {
     // Mode gate: show selector for new projects with no mode chosen
     if (modeUnselected && !modeJustSelected && !excelPreview) {
         return <ModeSelector onSelect={handleModeSelect} />;
+    }
+
+    // RFP mode: show extraction flow instead of normal form
+    if (rfpMode) {
+        return <RfpIngestion onComplete={() => setRfpMode(false)} />;
     }
 
     return (
