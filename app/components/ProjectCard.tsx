@@ -191,10 +191,10 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                 clearHoverTimer();
                 if (!quickViewPinned) setQuickViewVisible(false);
             }}
-            className="group relative bg-card border border-border overflow-visible cursor-pointer transition-all duration-200 hover:shadow-card-hover hover:-translate-y-[1px] flex flex-col h-full min-h-[220px] rounded shadow-card"
+            className="group relative bg-card border border-border overflow-visible cursor-pointer transition-colors duration-150 hover:bg-accent flex flex-col h-full min-h-[220px] rounded"
         >
             {/* Status accent — thin left bar */}
-            <div className={cn("absolute left-0 top-3 bottom-3 w-[2px] transition-all duration-200", status.accent, "opacity-50 group-hover:opacity-100")} />
+            <div className={cn("absolute left-0 top-0 bottom-0 w-[2px]", status.accent, "opacity-40 group-hover:opacity-100 transition-opacity duration-150")} />
 
             <div className="p-5 pl-6 flex flex-col h-full">
                 {/* Header: meta line */}
@@ -236,7 +236,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
 
                 {/* Title + subtitle */}
                 <div className="flex-1 min-h-0">
-                    <h3 className="text-[15px] font-semibold text-card-foreground leading-snug truncate group-hover:text-primary transition-colors">
+                    <h3 className="text-[15px] font-medium text-card-foreground leading-snug truncate">
                         {title}
                     </h3>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -267,18 +267,18 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
 
                 {/* Footer: value + actions */}
                 <div className="flex items-end justify-between pt-3 border-t border-border/40">
-                    <div className="text-xl font-semibold text-foreground tracking-tight tabular-nums">{totalDisplay}</div>
+                    <div className="text-lg font-medium text-foreground tracking-tight tabular-nums">{totalDisplay}</div>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <button
                             onClick={(e) => { e.stopPropagation(); onBriefMe(project.id); }}
-                            className="p-1.5 text-muted-foreground hover:text-primary rounded-sm hover:bg-primary/5 transition-colors"
+                            className="p-1.5 text-muted-foreground hover:text-foreground rounded-sm transition-colors"
                             title="Brief Me"
                         >
                             <Sparkles className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={handleQuickExport}
-                            className="p-1.5 text-muted-foreground hover:text-primary rounded-sm hover:bg-primary/5 transition-colors"
+                            className="p-1.5 text-muted-foreground hover:text-foreground rounded-sm transition-colors"
                             title="Export PDF"
                             disabled={isExporting}
                         >
@@ -292,13 +292,13 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                                         onDelete(project.id);
                                     }
                                 }}
-                                className="p-1.5 text-muted-foreground hover:text-destructive rounded-sm hover:bg-destructive/5 transition-colors"
+                                className="p-1.5 text-muted-foreground hover:text-destructive rounded-sm transition-colors"
                                 title="Delete"
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         )}
-                        <ArrowUpRight className="w-3.5 h-3.5 ml-0.5 text-muted-foreground group-hover:text-foreground transition-all transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                        <ArrowUpRight className="w-3.5 h-3.5 ml-0.5 text-muted-foreground group-hover:text-foreground transition-colors" />
                     </div>
                 </div>
             </div>
@@ -307,7 +307,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
             {(quickViewVisible || quickViewPinned) && (
                 <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute z-40 top-2 right-2 w-72 rounded border border-border bg-card/95 backdrop-blur-xl p-4 shadow-card-hover"
+                    className="absolute z-40 top-2 right-2 w-72 rounded border border-border bg-card p-4 shadow-sm"
                 >
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{getDocModeLabel(project.documentMode)} · {workflowLabel}</div>
                     <div className="text-sm font-semibold text-foreground mt-1 truncate">{project.clientName}</div>

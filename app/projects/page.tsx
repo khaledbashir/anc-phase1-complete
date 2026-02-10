@@ -11,7 +11,6 @@ import {
     Plus,
     Search,
     Settings,
-    TrendingUp,
 } from "lucide-react";
 import NewProjectModal from "@/app/components/modals/NewProjectModal";
 import ProjectCard, { type DashboardStatus, type ProjectCardData } from "@/app/components/ProjectCard";
@@ -287,7 +286,7 @@ export default function ProjectsPage() {
             <DashboardSidebar />
 
             <div className="flex-1 flex flex-col min-w-0 relative ml-16 md:ml-20 overflow-x-hidden">
-                <header className="fixed top-0 left-16 md:left-20 right-0 h-14 border-b border-border flex items-center justify-between gap-3 px-4 sm:px-6 bg-card/80 backdrop-blur-xl z-50 min-w-0">
+                <header className="fixed top-0 left-16 md:left-20 right-0 h-14 border-b border-border flex items-center justify-between gap-3 px-4 sm:px-6 bg-background/80 backdrop-blur-md z-50 min-w-0">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                         <Link href="/" className="flex items-center gap-2 shrink-0">
                             <span className="text-foreground font-semibold text-sm tracking-tight">ANC</span>
@@ -319,7 +318,7 @@ export default function ProjectsPage() {
                         </button>
                         <div className="h-5 w-px bg-border/60 mx-1" />
                         <NewProjectModal>
-                            <button className="px-3.5 py-1.5 bg-primary text-primary-foreground rounded hover:shadow-lift hover:-translate-y-[1px] active:translate-y-0 transition-all duration-200 text-xs font-semibold flex items-center gap-1.5">
+                            <button className="px-3.5 py-1.5 bg-foreground text-background rounded hover:opacity-80 active:opacity-70 transition-opacity duration-150 text-xs font-medium flex items-center gap-1.5">
                                 <Plus className="w-3.5 h-3.5" />
                                 <span className="hidden sm:inline">New Project</span>
                                 <span className="sm:hidden">New</span>
@@ -340,14 +339,14 @@ export default function ProjectsPage() {
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <div className="flex p-0.5 rounded bg-secondary border border-border shrink-0">
+                                <div className="flex gap-1 shrink-0">
                                     {statusFilters.map((filter) => (
                                         <button
                                             key={filter.key}
                                             onClick={() => setStatusFilter(filter.key)}
                                             className={cn(
-                                                "px-2.5 py-1 text-[11px] font-medium rounded-sm transition-all",
-                                                statusFilter === filter.key ? "bg-card text-primary shadow-card font-semibold" : "text-muted-foreground hover:text-foreground"
+                                                "px-2.5 py-1 text-[11px] font-medium rounded transition-colors duration-150",
+                                                statusFilter === filter.key ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                                             )}
                                         >
                                             {filter.label}
@@ -362,45 +361,31 @@ export default function ProjectsPage() {
                         </div>
 
                         {loading && projects.length === 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                                 {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="h-48 bg-muted/40 rounded-lg animate-pulse border border-border/50" />
+                                    <div key={i} className="h-48 bg-accent animate-pulse rounded border border-border" />
                                 ))}
                             </div>
                         ) : (
                             <div className="space-y-5">
                                 {/* KPI Strip */}
-                                <div className="flex items-center gap-6 sm:gap-8 py-3 border-b border-border/40">
+                                <div className="flex items-baseline gap-6 sm:gap-8 pb-4">
                                     <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">{summary.filterLabel}</div>
-                                        <div className="text-lg font-semibold text-foreground tabular-nums">{summary.projectCount}</div>
+                                        <span className="text-2xl font-medium text-foreground tabular-nums">{summary.projectCount}</span>
+                                        <span className="text-[11px] text-muted-foreground ml-1.5">{summary.filterLabel}</span>
                                     </div>
-                                    <div className="h-8 w-px bg-border/30" />
                                     <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">Mirror</div>
-                                        <div className="text-lg font-semibold text-foreground tabular-nums">{summary.mirrorCount}</div>
+                                        <span className="text-2xl font-medium text-foreground tabular-nums">{summary.mirrorCount}</span>
+                                        <span className="text-[11px] text-muted-foreground ml-1.5">Mirror</span>
                                     </div>
-                                    <div className="h-8 w-px bg-border/30" />
                                     <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">Intelligence</div>
-                                        <div className="text-lg font-semibold text-foreground tabular-nums">{summary.intelligenceCount}</div>
+                                        <span className="text-2xl font-medium text-foreground tabular-nums">{summary.intelligenceCount}</span>
+                                        <span className="text-[11px] text-muted-foreground ml-1.5">Intelligence</span>
                                     </div>
-                                    <div className="h-8 w-px bg-border/30" />
                                     <div>
-                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">Pipeline</div>
-                                        <div className="text-lg font-semibold text-foreground tabular-nums">{summary.formattedPipeline}</div>
+                                        <span className="text-2xl font-medium text-foreground tabular-nums">{summary.formattedPipeline}</span>
+                                        <span className="text-[11px] text-muted-foreground ml-1.5">Pipeline</span>
                                     </div>
-                                    {insights.length > 0 && (
-                                        <>
-                                            <div className="h-8 w-px bg-border/30 hidden lg:block" />
-                                            <div className="hidden lg:flex items-start gap-2 flex-1 min-w-0">
-                                                <TrendingUp className="w-3.5 h-3.5 text-muted-foreground/50 mt-0.5 shrink-0" />
-                                                <p className="text-[11px] text-muted-foreground leading-relaxed truncate">
-                                                    {insights[0]}
-                                                </p>
-                                            </div>
-                                        </>
-                                    )}
                                 </div>
 
                                 <div className={cn(
