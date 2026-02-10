@@ -63,18 +63,34 @@ ANC uses **3 distinct product types** for this project:
 | **Processing** | Nova Star | Nova Star |
 | **Lifespan** | 100,000 hrs | 100,000 hrs |
 
-### 2.3 Type A — 4mm Base Bid (Back-Calculated from Exhibit G)
+### 2.3 Type A — 4mm Base Bid (Confirmed from Exhibit G + Drawings)
+
+**Standard Cabinet (Concourse reference):**
 
 | Parameter | Value | Source |
 |-----------|-------|--------|
-| **Panel Size** | TBD — awaiting confirmation |  |
-| **Weight per panel** | ~29 lbs (est.) | T4-B1: 288 lbs / 9 panels / 1.10 structure |
-| **Max Power per panel** | ~344 Watts (est.) | T4-B1: 3,094W / 9 panels |
+| **Panel Size** | **960mm × 960mm** | Drawing: 240px × 240px × 4mm pitch |
+| **Weight per panel** | **42 lbs** (incl. structure) | Concourse: 11,161 lbs / 267 panels |
+| **Max Power per panel** | **450 Watts** | Concourse: 120,150W / 267 panels |
+| **Avg Power per panel** | **180 Watts** (40% of max) | Concourse: 48,060W / 267 panels |
 | **Brightness** | 2000 nits | Exhibit G forms |
+| **Pixel Density** | 5,806 PPF | Exhibit G forms |
+| **Color Temperature** | 6,500K – 6,700K (adjustable 3,200K – 9,300K) | Exhibit G forms |
 | **Diode** | Nationstar RS2020 | Exhibit G forms |
 | **Processing** | Nova Star | Exhibit G forms |
 | **Hardware** | Nitxeon LED Module | Exhibit G forms |
 | **Lifespan** | 100,000 hrs | Exhibit G forms |
+
+**Critical Note — Custom Cabinets:**
+Unlike the 2.5mm alternate (fixed 480×960mm cabinets), the 4mm base bid uses **custom-sized cabinets per location**:
+- Concourse: 960mm × 960mm (standard)
+- T4-B1: 880mm × 800mm (220px × 200px)
+- Other locations: vary by wall dimensions
+
+**Power Density Constant:** All 4mm cabinets share **~488 W/m² max power density**, confirming identical technology regardless of cabinet size. This means for custom cabinets:
+```
+max_power = (cabinet_width_m × cabinet_height_m) × 488
+```
 
 ### 2.4 Type B — 10mm Specialty (Elevator)
 
@@ -94,19 +110,33 @@ Input:
   - panels_wide: number
   - panels_high: number
   - cabinet_variant: "standard" | "small" (for 2.5mm only)
+  - custom_cabinet_width_mm: number (optional, for 4mm custom sizes)
+  - custom_cabinet_height_mm: number (optional, for 4mm custom sizes)
 
 Derived:
   panel_count = panels_wide × panels_high
+  cabinet_width_mm = custom_cabinet_width_mm || product.default_width_mm
+  cabinet_height_mm = custom_cabinet_height_mm || product.default_height_mm
 
 Output:
+  // For 2.5mm/10mm (fixed cabinet sizes):
   total_max_power = panel_count × max_watts_per_panel
   total_avg_power = panel_count × avg_watts_per_panel
   screen_weight_lbs = panel_count × weight_per_panel_lbs
+
+  // For 4mm (custom cabinets — use power density):
+  cabinet_area_m2 = (cabinet_width_mm / 1000) × (cabinet_height_mm / 1000)
+  total_max_power = panel_count × cabinet_area_m2 × 488  // W/m²
+  total_avg_power = total_max_power × 0.40
+  weight_per_panel = cabinet_area_m2 × 46.5  // ~46.5 lbs/m² derived from 42 lbs / 0.9216 m²
+  screen_weight_lbs = panel_count × weight_per_panel
+
+  // Common:
   assembly_weight_lbs = screen_weight_lbs × 1.10  (10% structural buffer)
-  display_width_ft = panels_wide × panel_width_mm / 304.8
-  display_height_ft = panels_high × panel_height_mm / 304.8
-  display_width_px = panels_wide × (panel_width_mm / pitch_mm)
-  display_height_px = panels_high × (panel_height_mm / pitch_mm)
+  display_width_ft = panels_wide × cabinet_width_mm / 304.8
+  display_height_ft = panels_high × cabinet_height_mm / 304.8
+  display_width_px = panels_wide × (cabinet_width_mm / pitch_mm)
+  display_height_px = panels_high × (cabinet_height_mm / pitch_mm)
 ```
 
 ### 3.2 Important Notes
@@ -214,16 +244,20 @@ Each location gets a block of sub-tasks:
 
 ---
 
-## 6. Data Gaps (Still Needed)
+## 6. Data Gaps
 
 | Item | Status | Impact |
 |------|--------|--------|
-| 4mm panel physical size (mm) | Awaiting confirmation | Needed for dimension calculations |
-| 4mm exact weight per panel | Back-calculated ~29 lbs | Need confirmation |
-| 4mm exact max watts per panel | Back-calculated ~344W | Need confirmation |
-| 10mm panel specs (all fields) | Only brightness (1500 nits) known | Low priority — only 1 form |
-| System overhead multiplier | Confirmed: NONE — discrepancy was 4mm vs 2.5mm product mix | Resolved |
-| Structural weight buffer | Confirmed: ~10% adder | Resolved |
+| 4mm panel physical size | ✅ **Confirmed:** 960×960mm standard, custom per location | Resolved — use power density (488 W/m²) for custom sizes |
+| 4mm weight per panel | ✅ **Confirmed:** 42 lbs (standard 960mm), ~46.5 lbs/m² density | Resolved |
+| 4mm max watts per panel | ✅ **Confirmed:** 450W (standard 960mm), 488 W/m² density | Resolved |
+| 4mm avg/max power ratio | ✅ **Confirmed:** 40% (vs 33% for 2.5mm MIP) | Resolved |
+| 10mm panel specs (all fields) | ⏳ **Pending** — only brightness (1500 nits) known | Low priority — only 1 form (elevator) |
+| System overhead multiplier | ✅ **Resolved:** No hidden multiplier — discrepancy was 4mm vs 2.5mm product mix | Resolved |
+| Structural weight buffer | ✅ **Confirmed:** ~10% adder | Resolved |
+
+### Key Insight: Power Density as Universal Constant
+The 4mm product uses **custom cabinet sizes per location**, but all share the same power density (~488 W/m²) and weight density (~46.5 lbs/m²). This means the calculation engine can handle ANY cabinet size without needing per-size lookup tables — just multiply area × density constant.
 
 ---
 
