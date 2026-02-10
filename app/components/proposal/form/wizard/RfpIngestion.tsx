@@ -18,12 +18,13 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildAutoFillValues } from "@/services/rfp/proposalAutoFill";
+import { calculateExhibitG, estimatePricing, getAllProducts, getProduct } from "@/services/rfp/productCatalog";
 
 // ============================================================================
 // TYPES
 // ============================================================================
 
-type TabId = "specs" | "pricing" | "schedule";
+type TabId = "specs" | "pricing" | "schedule" | "exhibitg";
 
 interface PipelineStatus {
     overview: "idle" | "running" | "done" | "failed";
@@ -43,6 +44,7 @@ interface ExtractedSpec {
     maxPower?: number;
     weight?: number;
     hardware?: string;
+    processing?: string;
     confidence: number;
 }
 
@@ -103,6 +105,14 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
     const [fileName, setFileName] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [applied, setApplied] = useState<{ screensCount: number; fields: string[]; warnings: string[] } | null>(null);
+    const [exhibitOverrides, setExhibitOverrides] = useState<Record<number, {
+        maxPowerW?: number;
+        avgPowerW?: number;
+        totalWeightLbs?: number;
+        installCost?: number;
+        pmCost?: number;
+        engCost?: number;
+    }>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
     const dragCounter = useRef(0);
 
@@ -121,6 +131,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
         setOverviewData(null);
         setFileName(file.name);
         setActiveTab("specs");
+        setExhibitOverrides({});
         setPipeline({ overview: "running", specs: "running", pricing: "running", schedule: "running" });
 
         const makeForm = () => {
@@ -222,6 +233,10 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             heightFt: s.heightFt,
             pitchMm: s.pitchMm,
             brightness: s.brightness,
+            maxPower: s.maxPower,
+            weight: s.weight,
+            hardware: s.hardware,
+            processing: s.processing,
             quantity: 1,
             environment: "Indoor" as const,
             confidence: s.confidence,
@@ -232,7 +247,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             specialRequirements: [],
             bondRequired: pricingData?.sections?.some(s => s.hasBond),
             extractionAccuracy: "Standard",
-        });
+        }, exhibitOverrides);
 
         // Use reset with merged values so useFieldArray picks up screens
         const current = getValues();
@@ -255,7 +270,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             fields: result.fieldsPopulated,
             warnings: result.warnings,
         });
-    }, [specData, pricingData, getValues, reset]);
+    }, [specData, pricingData, exhibitOverrides, getValues, reset]);
 
     const handleReset = () => {
         setSpecData(null);
@@ -266,9 +281,90 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
         setFileName(null);
         setPipeline({ overview: "idle", specs: "idle", pricing: "idle", schedule: "idle" });
         setActiveTab("specs");
+        setExhibitOverrides({});
     };
 
     const fmt = (n: number | null | undefined) => n != null ? `$${n.toLocaleString()}` : "—";
+    const allProducts = getAllProducts();
+    const toNum = (v: any): number | null => {
+        if (v == null || v === "") return null;
+        const n = Number(v);
+        return Number.isFinite(n) ? n : null;
+    };
+    const matchProductIdFromPitch = (pitchMmRaw: number | null): string | null => {
+        if (!pitchMmRaw || !Number.isFinite(pitchMmRaw) || pitchMmRaw <= 0) return null;
+        const pitchMm = Number(pitchMmRaw);
+        if (Math.abs(pitchMm - 4) <= 0.15) return "4mm-nitxeon";
+        if (Math.abs(pitchMm - 10) <= 0.25) return "10mm-mesh";
+        if (Math.abs(pitchMm - 2.5) <= 0.15) return "2.5mm-mip";
+        const nearest = allProducts
+            .map((p) => ({ id: p.id, diff: Math.abs(p.pitchMm - pitchMm) }))
+            .sort((a, b) => a.diff - b.diff)[0];
+        return nearest && nearest.diff <= 1.5 ? nearest.id : null;
+    };
+    const deriveZoneSizeFromArea = (areaM2: number): "small" | "medium" | "large" => {
+        if (!Number.isFinite(areaM2) || areaM2 <= 0) return "small";
+        if (areaM2 < 10) return "small";
+        if (areaM2 <= 50) return "medium";
+        return "large";
+    };
+    const toZoneClass = (zoneSize: "small" | "medium" | "large"): "standard" | "medium" | "large" => {
+        if (zoneSize === "large") return "large";
+        if (zoneSize === "medium") return "medium";
+        return "standard";
+    };
+    const exhibitRows = (specData?.specs || []).map((s, idx) => {
+        const pitch = toNum(s.pitchMm);
+        const widthFt = toNum(s.widthFt) ?? 0;
+        const heightFt = toNum(s.heightFt) ?? 0;
+        const productId = matchProductIdFromPitch(pitch);
+        const product = productId ? getProduct(productId) : undefined;
+        if (!product || !pitch || widthFt <= 0 || heightFt <= 0) {
+            return {
+                idx,
+                screenName: s.screenName || s.formId || `Display ${idx + 1}`,
+                extracted: s,
+                calculated: null as any,
+                productLabel: product?.name || "No match",
+                zoneSize: "small" as const,
+            };
+        }
+        const resolutionW = Math.round((widthFt * 304.8) / pitch);
+        const resolutionH = Math.round((heightFt * 304.8) / pitch);
+        const exhibit = resolutionW > 0 && resolutionH > 0 ? calculateExhibitG(product, resolutionW, resolutionH) : null;
+        if (!exhibit) {
+            return {
+                idx,
+                screenName: s.screenName || s.formId || `Display ${idx + 1}`,
+                extracted: s,
+                calculated: null as any,
+                productLabel: product.name,
+                zoneSize: "small" as const,
+            };
+        }
+        const zoneSize = deriveZoneSizeFromArea(exhibit.activeAreaM2);
+        const pricing = estimatePricing(exhibit, toZoneClass(zoneSize));
+        const ovr = exhibitOverrides[idx] || {};
+        return {
+            idx,
+            screenName: s.screenName || s.formId || `Display ${idx + 1}`,
+            extracted: s,
+            calculated: {
+                maxPowerW: ovr.maxPowerW ?? exhibit.maxPowerW,
+                avgPowerW: ovr.avgPowerW ?? exhibit.avgPowerW,
+                totalWeightLbs: ovr.totalWeightLbs ?? exhibit.totalWeightLbs,
+                installCost: ovr.installCost ?? pricing.installCost,
+                pmCost: ovr.pmCost ?? pricing.pmCost,
+                engCost: ovr.engCost ?? pricing.engCost,
+            },
+            productLabel: product.name,
+            zoneSize,
+        };
+    });
+    const hasDiff = (a: number | null | undefined, b: number | null | undefined, tolerance = 1) => {
+        if (a == null || b == null) return false;
+        return Math.abs(Number(a) - Number(b)) > tolerance;
+    };
 
     // ── TABS CONFIG ──────────────────────────────────────────────────────
 
@@ -276,6 +372,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
         { id: "specs", label: "Display Specs", icon: <Monitor className="w-3.5 h-3.5" />, status: "specs" },
         { id: "pricing", label: "Pricing", icon: <DollarSign className="w-3.5 h-3.5" />, status: "pricing" },
         { id: "schedule", label: "Schedule & Warranty", icon: <Calendar className="w-3.5 h-3.5" />, status: "schedule" },
+        { id: "exhibitg", label: "Exhibit G Preview", icon: <Shield className="w-3.5 h-3.5" />, status: "specs" },
     ];
 
     const pipelineSteps = [
@@ -629,6 +726,84 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                             </div>
                         )}
 
+                        {/* Exhibit G Preview Tab */}
+                        {activeTab === "exhibitg" && (
+                            <div className="space-y-4">
+                                {exhibitRows.length > 0 ? (
+                                    <>
+                                        <p className="text-xs text-muted-foreground">
+                                            Cross-check extracted values vs catalog-derived Exhibit G calculations. Amber rows indicate mismatch.
+                                        </p>
+                                        <div className="space-y-3">
+                                            {exhibitRows.map((row) => {
+                                                const mismatchPower = hasDiff(row.extracted.maxPower, row.calculated?.maxPowerW, 10);
+                                                const mismatchWeight = hasDiff(row.extracted.weight, row.calculated?.totalWeightLbs, 10);
+                                                const mismatch = mismatchPower || mismatchWeight;
+                                                return (
+                                                    <div
+                                                        key={`exg-${row.idx}`}
+                                                        className={cn(
+                                                            "border rounded-lg overflow-hidden",
+                                                            mismatch ? "border-amber-500/40 bg-amber-500/5" : "border-border"
+                                                        )}
+                                                    >
+                                                        <div className="px-3 py-2 border-b border-border/60 flex items-center justify-between">
+                                                            <div className="text-xs font-semibold text-foreground">{row.screenName}</div>
+                                                            <div className="text-[10px] text-muted-foreground">{row.productLabel} • {row.zoneSize}</div>
+                                                        </div>
+                                                        <div className="grid grid-cols-2">
+                                                            <div className="p-3 border-r border-border/60">
+                                                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Extracted from RFP</div>
+                                                                <div className="space-y-1 text-xs">
+                                                                    <div className="flex justify-between"><span className="text-muted-foreground">Pitch</span><span>{row.extracted.pitchMm ? `${row.extracted.pitchMm}mm` : "—"}</span></div>
+                                                                    <div className="flex justify-between"><span className="text-muted-foreground">Dimensions</span><span>{row.extracted.widthFt && row.extracted.heightFt ? `${row.extracted.heightFt}' × ${row.extracted.widthFt}'` : "—"}</span></div>
+                                                                    <div className={cn("flex justify-between", mismatchPower && "text-amber-300")}><span className="text-muted-foreground">Max Power</span><span>{row.extracted.maxPower ? `${Math.round(row.extracted.maxPower).toLocaleString()} W` : "—"}</span></div>
+                                                                    <div className={cn("flex justify-between", mismatchWeight && "text-amber-300")}><span className="text-muted-foreground">Weight</span><span>{row.extracted.weight ? `${Math.round(row.extracted.weight).toLocaleString()} lbs` : "—"}</span></div>
+                                                                    <div className="flex justify-between"><span className="text-muted-foreground">Brightness</span><span>{row.extracted.brightness ? `${Math.round(row.extracted.brightness).toLocaleString()} nits` : "—"}</span></div>
+                                                                    <div className="flex justify-between"><span className="text-muted-foreground">Hardware</span><span className="text-right ml-2">{row.extracted.hardware || "—"}</span></div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="p-3">
+                                                                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Calculated from Catalog (editable)</div>
+                                                                {row.calculated ? (
+                                                                    <div className="space-y-2 text-xs">
+                                                                        <EditableNumber
+                                                                            label="Computed Max Power"
+                                                                            value={row.calculated.maxPowerW}
+                                                                            unit="W"
+                                                                            highlight={mismatchPower}
+                                                                            onChange={(v) => setExhibitOverrides((prev) => ({ ...prev, [row.idx]: { ...(prev[row.idx] || {}), maxPowerW: v } }))}
+                                                                        />
+                                                                        <EditableNumber
+                                                                            label="Computed Avg Power"
+                                                                            value={row.calculated.avgPowerW}
+                                                                            unit="W"
+                                                                            onChange={(v) => setExhibitOverrides((prev) => ({ ...prev, [row.idx]: { ...(prev[row.idx] || {}), avgPowerW: v } }))}
+                                                                        />
+                                                                        <EditableNumber
+                                                                            label="Computed Weight"
+                                                                            value={row.calculated.totalWeightLbs}
+                                                                            unit="lbs"
+                                                                            highlight={mismatchWeight}
+                                                                            onChange={(v) => setExhibitOverrides((prev) => ({ ...prev, [row.idx]: { ...(prev[row.idx] || {}), totalWeightLbs: v } }))}
+                                                                        />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-xs text-muted-foreground">Missing pitch/product match or dimensions; unable to calculate.</div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                ) : (
+                                    <EmptyState text="No Exhibit G candidates found" />
+                                )}
+                            </div>
+                        )}
+
                         {/* Apply Button (bottom) */}
                         {specData?.specs && specData.specs.length > 0 && (
                             <div className="pt-4 border-t border-border">
@@ -655,6 +830,38 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
 // ============================================================================
 // SUB-COMPONENTS
 // ============================================================================
+
+function EditableNumber({
+    label,
+    value,
+    unit,
+    highlight,
+    onChange,
+}: {
+    label: string;
+    value: number;
+    unit?: string;
+    highlight?: boolean;
+    onChange: (value: number) => void;
+}) {
+    return (
+        <div className={cn("flex items-center justify-between gap-3", highlight && "text-amber-300")}>
+            <span className="text-muted-foreground">{label}</span>
+            <div className="flex items-center gap-1">
+                <input
+                    type="number"
+                    value={Number.isFinite(value) ? value : 0}
+                    onChange={(e) => onChange(Number(e.target.value || 0))}
+                    className={cn(
+                        "w-28 h-7 px-2 rounded border bg-background text-right text-xs",
+                        highlight ? "border-amber-500/50" : "border-border"
+                    )}
+                />
+                {unit ? <span className="text-[10px] text-muted-foreground min-w-[28px]">{unit}</span> : null}
+            </div>
+        </div>
+    );
+}
 
 function EmptyState({ text }: { text: string }) {
     return (
