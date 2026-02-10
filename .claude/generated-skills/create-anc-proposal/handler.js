@@ -8,11 +8,11 @@ module.exports.runtime = {
     try {
       // Validate required params
       if (!client_name || !client_name.trim()) {
-        return "Error: client_name is required. Please provide the client or venue name.";
+        return "FAILED: client_name is required. Ask the user for the client or venue name. Do not retry.";
       }
 
       if (!line_items) {
-        return "Error: line_items is required. Provide a JSON array like: [{\"description\": \"LED Display\", \"price\": 84000}]";
+        return "FAILED: line_items is required. Ask the user for line items as {description, price} pairs. Do not retry.";
       }
 
       // Parse line items
@@ -20,11 +20,11 @@ module.exports.runtime = {
       try {
         items = typeof line_items === "string" ? JSON.parse(line_items) : line_items;
       } catch (e) {
-        return `Error: Could not parse line_items JSON. Make sure it's a valid array. Got: ${line_items}`;
+        return `FAILED: Could not parse line_items JSON. Make sure it's a valid array. Got: ${line_items}. Do not retry.`;
       }
 
       if (!Array.isArray(items) || items.length === 0) {
-        return "Error: line_items must be a non-empty array of {description, price} objects.";
+        return "FAILED: line_items must be a non-empty array of {description, price} objects. Do not retry.";
       }
 
       // Get config from setup_args
@@ -32,7 +32,7 @@ module.exports.runtime = {
       const apiKey = this.runtimeArgs["API_KEY"];
 
       if (!apiKey) {
-        return "Error: API_KEY not configured. Go to Agent Settings > Skills > Create ANC Proposal > gear icon and set your AGENT_SKILL_API_KEY.";
+        return "FAILED: API_KEY not configured. Go to Agent Settings > Skills > Create ANC Proposal > gear icon and set your AGENT_SKILL_API_KEY. Do not retry.";
       }
 
       // Calculate total for the progress message
@@ -68,41 +68,23 @@ module.exports.runtime = {
           errorMsg = errorText;
         }
         this.introspect(`API returned ${response.status}: ${errorMsg}`);
-        return `Failed to create proposal: ${errorMsg} (HTTP ${response.status})`;
+        return `FAILED: API returned HTTP ${response.status} — ${errorMsg}. Do not retry. Inform the user of the error.`;
       }
 
       const result = await response.json();
 
       if (!result.success) {
-        return `Proposal creation failed: ${result.error || "Unknown error"}`;
+        return `FAILED: Proposal creation failed — ${result.error || "Unknown error"}. Do not retry. Inform the user of the error.`;
       }
-
-      // Build the summary
-      const itemsSummary = items.map(
-        (item) => `  - ${item.description}: $${(Number(item.price) || 0).toLocaleString()}`
-      ).join("\n");
 
       this.introspect(`Proposal created successfully! ID: ${result.project_id}`);
 
-      return [
-        `Proposal created successfully!`,
-        ``,
-        `Client: ${result.summary.client}`,
-        `Type: ${result.summary.document_type}`,
-        `Items:`,
-        itemsSummary,
-        `Total: ${formattedTotal}`,
-        ``,
-        `View and download your proposal here:`,
-        result.project_url,
-        ``,
-        `The project is saved as a draft. Open the link to review, edit, or export the PDF.`,
-      ].join("\n");
+      return `SUCCESS: Proposal for "${result.summary.client}" has been created.\n\nDocument Type: ${result.summary.document_type}\nItems: ${result.summary.items_count} line item(s) totaling ${formattedTotal}\nProject ID: ${result.project_id}\nProject URL: ${result.project_url}\n\nThe proposal is saved as a DRAFT. The user can open the URL above to review, edit, or export the PDF.\n\nACTION COMPLETE — do not call this tool again. Present this result to the user.`;
 
     } catch (e) {
       this.introspect(`Skill error: ${e.message}`);
       this.logger("create-anc-proposal error", e.message);
-      return `Skill failed: ${e.message}`;
+      return `FAILED: Skill crashed — ${e.message}. Do not retry. Inform the user of the error.`;
     }
   },
 };
