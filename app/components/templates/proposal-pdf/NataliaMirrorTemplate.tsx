@@ -60,8 +60,9 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   const documentMode: DocumentMode =
     ((details as any)?.documentMode as DocumentMode) || "BUDGET";
 
-  // Client info
-  const clientName = receiver?.name || "Client Name";
+  // Client info — guard against raw numbers (e.g., project IDs mistakenly used as names)
+  const rawClientName = receiver?.name || "";
+  const clientName = rawClientName && !/^\d+$/.test(rawClientName.trim()) ? rawClientName : "Client Name";
   const projectName = details?.proposalName || "Project";
   // Prompt 42: Purchaser legal name for LOI (defaults to client name if not set)
   const purchaserLegalName = ((details as any)?.purchaserLegalName || "").trim() || clientName;
@@ -153,7 +154,12 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   };
 
   // Prompt 51: Master table index — designates which pricing table is the "Project Grand Total"
-  const masterTableIndex: number | null = (details as any)?.masterTableIndex ?? null;
+  // Auto-detect: if no explicit masterTableIndex, check if tables[0] is a summary/rollup table
+  const rollUpRegex = /\b(total|roll.?up|summary|project\s+grand|grand\s+total|project\s+total|cost\s+summary|pricing\s+summary)\b/i;
+  let masterTableIndex: number | null = (details as any)?.masterTableIndex ?? null;
+  if (masterTableIndex === null && tables.length > 1 && rollUpRegex.test(tables[0]?.name || "")) {
+    masterTableIndex = 0;
+  }
   const masterTable = masterTableIndex !== null ? tables[masterTableIndex] ?? null : null;
   // Detail tables = all tables except the master table
   const detailTables = masterTableIndex !== null

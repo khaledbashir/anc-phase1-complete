@@ -178,6 +178,10 @@ function parsePricingTablesInner(
   };
 
   // Diagnostic: log each table's breakdown
+  if (tables.length > 0) {
+    const t0 = tables[0];
+    console.log(`[PRICING PARSER] tables[0] (summary): name="${t0.name}", items=${t0.items.length}, grandTotal=${t0.grandTotal.toFixed(2)}`);
+  }
   for (const t of tables) {
     console.log(`[PRICING PARSER]   Table "${t.name}": ${t.items.length} items, subtotal=${t.subtotal.toFixed(2)}, tax=${t.tax?.amount?.toFixed(2) || '0'}, bond=${t.bond.toFixed(2)}, grandTotal=${t.grandTotal.toFixed(2)}, alternates=${t.alternates.length}`);
   }

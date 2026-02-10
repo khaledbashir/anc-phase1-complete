@@ -502,6 +502,7 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     };
 
     // ── Strategy 1: Parse the filename ──
+    // Pattern: ANC_[ClientName]_LED_Displays_[DocType]_[Date].xlsx
     const extractFromFilename = (): string | null => {
         if (!fileName || typeof fileName !== "string") return null;
         let base = fileName;
@@ -511,19 +512,22 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
         base = base.replace(/^Copy[_ ]of[_ ]/i, "");
         // Remove "Cost_Analysis_-_" / "Cost Analysis - "
         base = base.replace(/^Cost[_ ]Analysis[_ ][-–—][_ ]/i, "");
-        // Remove "anc_x_" / "ANC_x_" vendor prefix
-        base = base.replace(/^anc[_ ]x[_ ]/i, "");
-        // Remove date patterns: YYYY-MM-DD, MM-DD-YY, _YYYY-MM-DD, -MM-DD-YY
-        base = base.replace(/[_ -]*\d{4}[-/.]\d{1,2}[-/.]\d{1,2}[_ -]*/g, "");
-        base = base.replace(/[_ -]*\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}[_ -]*/g, "");
+        // Remove "ANC_" prefix (with or without "x_")
+        base = base.replace(/^anc[_ ](x[_ ])?/i, "");
+        // Remove document type suffixes: _LED_Displays, _LED, _Budget, _Proposal, _LOI and everything after
+        base = base.replace(/[_ ](LED[_ ]Displays?|LED|LCD|Budget|Proposal|LOI|Quotation|Estimate)[_ ]?.*/i, "");
+        // Remove date patterns: YYYY-MM-DD, MM-DD-YY, M_DD_YYYY (with any separator)
+        base = base.replace(/[_ -]*\d{4}[-/._]\d{1,2}[-/._]\d{1,2}[_ -]*/g, "");
+        base = base.replace(/[_ -]*\d{1,2}[-/._]\d{1,2}[-/._]\d{2,4}[_ -]*/g, "");
         // Remove copy indicators like (1), (2)
         base = base.replace(/\s*\(\d+\)\s*/g, "");
         // Replace underscores with spaces
         base = base.replace(/_/g, " ");
         // Trim dashes, whitespace, and separators from edges
         base = base.replace(/^[\s\-–—:]+|[\s\-–—:]+$/g, "").trim();
-        if (base.length >= 2) return base;
-        return null;
+        // Reject if result is purely numeric or too short
+        if (base.length < 2 || /^\d+$/.test(base)) return null;
+        return base;
     };
 
     const extractClientName = (): string => {

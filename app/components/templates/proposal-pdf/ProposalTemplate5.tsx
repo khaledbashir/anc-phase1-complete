@@ -43,7 +43,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "SALES QUOTATION" : "LETTER OF INTENT";
     const isLOI = documentMode === "LOI";
 
-    const purchaserName = receiver?.name || "Client";
+    // Guard against raw numbers (e.g., project IDs mistakenly used as names)
+    const rawPurchaserName = receiver?.name || "";
+    const purchaserName = rawPurchaserName && !/^\d+$/.test(rawPurchaserName.trim()) ? rawPurchaserName : "Client";
     // Prompt 42: Purchaser legal name for LOI (defaults to client name if not set)
     const purchaserLegalName = ((details as any)?.purchaserLegalName || "").trim() || purchaserName;
     const purchaserAddress = (() => {
@@ -58,7 +60,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const currency: "CAD" | "USD" = pricingDocument?.currency || "USD";
 
     // Prompt 51: Master table index — designates which pricing table is the "Project Grand Total"
-    const masterTableIndex: number | null = (details as any)?.masterTableIndex ?? null;
+    // Auto-detect: if no explicit masterTableIndex, check if tables[0] is a summary/rollup table
+    const rollUpRegex = /\b(total|roll.?up|summary|project\s+grand|grand\s+total|project\s+total|cost\s+summary|pricing\s+summary)\b/i;
+    const pricingTables = pricingDocument?.tables || [];
+    let masterTableIndex: number | null = (details as any)?.masterTableIndex ?? null;
+    if (masterTableIndex === null && pricingTables.length > 1 && rollUpRegex.test(pricingTables[0]?.name || "")) {
+        masterTableIndex = 0;
+    }
 
     // Prompt 42: Description overrides for inline typo editing (Mirror Mode)
     const descriptionOverrides: Record<string, string> = (details as any)?.descriptionOverrides || {};
@@ -314,7 +322,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             Project Grand Total
                         </div>
                         <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
-                            {formatCurrency(total, Math.abs(total) < 0.01 ? "—" : undefined)}
+                            {formatCurrency(total, Math.abs(total) < 0.01 ? "—" : undefined, currency)}
                         </div>
                     </div>
                 </div>
@@ -377,7 +385,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     {desc.toUpperCase()}
                                 </div>
                                 <div className="col-span-4 text-right font-bold text-sm whitespace-nowrap" style={{ color: colors.primaryDark }}>
-                                    {formatCurrency(price, Math.abs(price) < 0.01 ? "—" : undefined)}
+                                    {formatCurrency(price, Math.abs(price) < 0.01 ? "—" : undefined, currency)}
                                 </div>
                             </div>
                         );
@@ -388,7 +396,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <div className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
                             <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Subtotal</div>
                             <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
-                                {formatCurrency(subtotal)}
+                                {formatCurrency(subtotal, currency)}
                             </div>
                         </div>
                     )}
@@ -398,7 +406,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <div className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
                             <div className="col-span-8 text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Tax</div>
                             <div className="col-span-4 text-right text-sm" style={{ color: colors.text }}>
-                                {formatCurrency(tax)}
+                                {formatCurrency(tax, currency)}
                             </div>
                         </div>
                     )}
@@ -408,7 +416,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <div className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
                             <div className="col-span-8 text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Performance Bond</div>
                             <div className="col-span-4 text-right text-sm" style={{ color: colors.text }}>
-                                {formatCurrency(bond)}
+                                {formatCurrency(bond, currency)}
                             </div>
                         </div>
                     )}
@@ -422,7 +430,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             {label.toUpperCase()}{currency === "CAD" ? " (CAD)" : ""}
                         </div>
                         <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
-                            {formatCurrency(grandTotal, Math.abs(grandTotal) < 0.01 ? "—" : undefined)}
+                            {formatCurrency(grandTotal, Math.abs(grandTotal) < 0.01 ? "—" : undefined, currency)}
                         </div>
                     </div>
                 </div>
@@ -516,7 +524,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                             <div className="col-span-4 text-right font-semibold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
                                                 {item?.isIncluded
                                                     ? <span style={{ color: colors.text }}>INCLUDED</span>
-                                                    : formatCurrency(priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : Number(item?.sellingPrice ?? 0))}
+                                                    : formatCurrency(priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : Number(item?.sellingPrice ?? 0), currency)}
                                             </div>
                                         </div>
                                     ))}
@@ -526,19 +534,19 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         {Math.abs(subtotal) >= 0.01 && subtotal !== grandTotal && (
                                             <div className="grid grid-cols-12 px-4 py-1.5 text-xs font-bold" style={{ color: colors.text }}>
                                                 <div className="col-span-8">SUBTOTAL</div>
-                                                <div className="col-span-4 text-right">{formatCurrency(subtotal)}</div>
+                                                <div className="col-span-4 text-right">{formatCurrency(subtotal, currency)}</div>
                                             </div>
                                         )}
                                         {Math.abs(taxAmount) >= 0.01 && (
                                             <div className="grid grid-cols-12 px-4 py-1 text-xs" style={{ color: colors.textMuted }}>
                                                 <div className="col-span-8">{taxLabel}</div>
-                                                <div className="col-span-4 text-right">{formatCurrency(taxAmount)}</div>
+                                                <div className="col-span-4 text-right">{formatCurrency(taxAmount, currency)}</div>
                                             </div>
                                         )}
                                         {(Math.abs(bond) >= 0.01 || Math.abs(taxAmount) >= 0.01) && (
                                             <div className="grid grid-cols-12 px-4 py-1 text-xs" style={{ color: colors.textMuted }}>
                                                 <div className="col-span-8">BOND</div>
-                                                <div className="col-span-4 text-right">{formatCurrency(bond)}</div>
+                                                <div className="col-span-4 text-right">{formatCurrency(bond, currency)}</div>
                                             </div>
                                         )}
                                         <div
@@ -546,7 +554,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                             style={{ borderColor: colors.primary, background: colors.primaryLight }}
                                         >
                                             <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>GRAND TOTAL</div>
-                                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.primaryDark }}>{formatCurrency(grandTotal)}</div>
+                                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.primaryDark }}>{formatCurrency(grandTotal, currency)}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -575,7 +583,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                                     {(alt?.description || "Alternate").toString()}
                                                 </div>
                                                 <div className="col-span-4 text-right font-semibold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
-                                                    {formatCurrency(Number(alt?.priceDifference ?? 0))}
+                                                    {formatCurrency(Number(alt?.priceDifference ?? 0), currency)}
                                                 </div>
                                             </div>
                                         ))}
@@ -609,7 +617,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         PROJECT GRAND TOTAL{currency === "CAD" ? " (CAD)" : ""}
                                     </div>
                                     <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
-                                        {formatCurrency(documentTotal)}
+                                        {formatCurrency(documentTotal, currency)}
                                     </div>
                                 </div>
                             </div>
@@ -738,7 +746,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 )}
                             </div>
                             <div className="col-span-4 text-right font-bold text-sm whitespace-nowrap" style={{ color: colors.primaryDark }}>
-                                {formatCurrency(item.price, Math.abs(Number(item.price)) < 0.01 ? "—" : undefined)}
+                                {formatCurrency(item.price, Math.abs(Number(item.price)) < 0.01 ? "—" : undefined, currency)}
                             </div>
                         </div>
                     ))}
@@ -752,7 +760,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             Project Total{currency === "CAD" ? " (CAD)" : ""}
                         </div>
                         <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
-                            {formatCurrency(subtotal, Math.abs(subtotal) < 0.01 ? "—" : undefined)}
+                            {formatCurrency(subtotal, Math.abs(subtotal) < 0.01 ? "—" : undefined, currency)}
                         </div>
                     </div>
 
@@ -791,7 +799,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         )}
                                     </div>
                                     <div className="col-span-4 text-right text-sm whitespace-nowrap italic" style={{ color: colors.textMuted }}>
-                                        {formatCurrency(item.price, Math.abs(Number(item.price)) < 0.01 ? "—" : undefined)}
+                                        {formatCurrency(item.price, Math.abs(Number(item.price)) < 0.01 ? "—" : undefined, currency)}
                                     </div>
                                 </div>
                             ))}
