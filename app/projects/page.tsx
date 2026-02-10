@@ -21,6 +21,7 @@ import DashboardChat from "@/app/components/DashboardChat";
 import DashboardSidebar from "@/app/components/layout/DashboardSidebar";
 import DashboardBriefMe from "@/app/components/dashboard/DashboardBriefMe";
 import CopilotPanel from "@/app/components/chat/CopilotPanel";
+import PromptLibraryPanel from "@/app/components/dashboard/PromptLibraryPanel";
 import { FEATURES } from "@/lib/featureFlags";
 import { cn } from "@/lib/utils";
 
@@ -437,6 +438,9 @@ export default function ProjectsPage() {
                 )}
 
                 <DashboardBriefMe projectId={briefProjectId} isOpen={isBriefOpen} onClose={() => setIsBriefOpen(false)} />
+
+                {/* AI Operations Prompt Library — slide-out panel */}
+                <PromptLibraryPanel pipelineContext={copilotContext} onSendToCopilot={handleCopilotMessage} />
 
                 <div className="fixed bottom-6 right-6 z-50">
                     <CopilotPanel
