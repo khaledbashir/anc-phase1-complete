@@ -68,6 +68,16 @@
 
 ---
 
+## 11. RFP EXTRACTION PIPELINE (P48-P49)
+
+- P48. Smart RFP Processor — Upload huge PDFs, filter noise, extract high-value content via AI
+- P49a. Form 1 Spec Extractor — Auto-extract display specs from Requirement Details forms
+- P49b. Alternates & Pricing Mapper — Detect pricing sections, alternates, upsells, deducts
+- P49c. Schedule & Warranty Extractor — Extract construction phases, dates, warranty terms
+- P50. RFP Full Analysis UI — Tabbed results view for all 4 extractors (in progress)
+
+---
+
 ## Implementation Notes
 
 - Each item above is a standalone feature — build and ship one at a time
