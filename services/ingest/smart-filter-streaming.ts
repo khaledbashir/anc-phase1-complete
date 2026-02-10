@@ -38,14 +38,11 @@ async function parsePdfChunk(
   totalPages: number
 ): Promise<string> {
   try {
-    const pdfParseModule = await import("pdf-parse");
-    const parsePDF = (pdfParseModule as any).default || pdfParseModule;
+    const { extractText } = await import("unpdf");
     
-    // Try to parse with page range (if pdf-parse supports it)
-    // Note: pdf-parse doesn't natively support page ranges, so we parse all
-    // and extract by text position estimation
-    const data = await parsePDF(fileBuffer);
-    const fullText = String(data?.text ?? "");
+    // unpdf: works in Node.js serverless (no web worker needed)
+    const result = await extractText(new Uint8Array(fileBuffer));
+    const fullText = typeof result.text === "string" ? result.text : (result.text || []).join("\n\n");
     
     // Estimate pages based on text length
     const estimatedTotalPages = totalPages || Math.max(1, Math.ceil(fullText.length / 3000));
@@ -176,10 +173,9 @@ export async function smartFilterStreaming(
   // Phase 1: Parse full text to get all content
   // Note: For true streaming, we'd use a PDF lib with page range support
   // For now, we parse once and simulate chunking by text position
-  const pdfParseModule = await import("pdf-parse");
-  const parsePDF = (pdfParseModule as any).default || pdfParseModule;
-  const data = await parsePDF(fileBuffer);
-  const fullText = String(data?.text ?? "");
+  const { extractText } = await import("unpdf");
+  const result = await extractText(new Uint8Array(fileBuffer));
+  const fullText = typeof result.text === "string" ? result.text : (result.text || []).join("\n\n");
 
   // Calculate actual page count
   const actualTotalPages = totalPages || Math.max(1, Math.ceil(fullText.length / 3000));

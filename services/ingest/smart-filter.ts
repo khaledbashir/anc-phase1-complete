@@ -87,17 +87,13 @@ function buildPartialPages(totalPages: number, maxPages: number): number[] | und
 
 export async function smartFilterPdf(fileBuffer: Buffer): Promise<FilterResult> {
   try {
-    // Dynamic import to avoid issues with Next.js serverless environment
-    // pdf-parse exports a function as the default export
-    const pdfParseModule = await import("pdf-parse");
-    const parsePDF = (pdfParseModule as any).default || pdfParseModule;
-    
-    // Parse the PDF - pdf-parse takes (data, options)
-    const data = await parsePDF(fileBuffer);
+    // unpdf: works in Node.js serverless (no web worker needed)
+    const { extractText } = await import("unpdf");
+    const result = await extractText(new Uint8Array(fileBuffer));
     
     // Extract metadata
-    const totalPagesFromDoc = Number(data?.numpages) || Number(data?.numPages) || 0;
-    const fullText = String(data?.text ?? "");
+    const totalPagesFromDoc = result.totalPages || 0;
+    const fullText = typeof result.text === "string" ? result.text : (result.text || []).join("\n\n");
     
     // Estimate pages if not provided
     const estimatedPages = totalPagesFromDoc || Math.max(1, Math.ceil(fullText.length / 3000));

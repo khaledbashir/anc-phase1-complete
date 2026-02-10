@@ -175,10 +175,9 @@ ${excelExtractedData.lineItems.map((li: any) => `- ${li.description}: $${li.sell
 
       try {
         // Determine if we need streaming (2,500+ pages) or standard filtering
-        const pdfParseModule = await import("pdf-parse");
-        const parsePDF = (pdfParseModule as any).default || pdfParseModule;
-        const metadata = await parsePDF(buffer);
-        const totalPages = Number(metadata?.numpages) || Number(metadata?.numPages) || 0;
+        const { extractText } = await import("unpdf");
+        const pdfResult = await extractText(new Uint8Array(buffer));
+        const totalPages = pdfResult.totalPages || 0;
         
         let filterResult;
         if (shouldUseStreaming(totalPages)) {

@@ -41,23 +41,22 @@ export async function extractTextFromPDF(
     filename: string,
     options?: ExtractionOptions
 ): Promise<ExtractedRFP> {
-    // pdf-parse v2: class-based API with Uint8Array input
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { PDFParse } = require("pdf-parse");
+    // unpdf: works in Node.js serverless (no web worker needed)
+    const { extractText } = await import("unpdf");
 
-    const parser = new PDFParse(new Uint8Array(buffer));
-    await parser.load();
-    const textResult = await parser.getText();
-    const info = await parser.getInfo();
+    const result = await extractText(new Uint8Array(buffer));
+    const fullText = typeof result.text === "string" ? result.text : (result.text || []).join("\n\n");
+    const totalPages = result.totalPages || Math.ceil(fullText.length / 3000);
 
-    const totalPages = info.total || textResult.total || textResult.pages?.length || 0;
     const startPage = options?.startPage || 1;
     const endPage = options?.endPage || totalPages;
 
-    const pages = (textResult.pages || [])
-        .map((p: any, idx: number) => ({
+    // Split text by form feed characters to approximate pages
+    const rawPages = fullText.split(/\f/);
+    const pages = rawPages
+        .map((text: string, idx: number) => ({
             pageNumber: idx + 1,
-            text: (p.text || "").trim(),
+            text: text.trim(),
         }))
         .filter((p: any) => p.pageNumber >= startPage && p.pageNumber <= endPage)
         .filter((p: any) => p.text.length > 0);
@@ -65,12 +64,9 @@ export async function extractTextFromPDF(
     return {
         filename,
         pageCount: totalPages,
-        fullText: textResult.text || pages.map((p: any) => p.text).join("\n\n"),
+        fullText,
         pages,
         metadata: {
-            title: info.info?.Title,
-            author: info.info?.Author,
-            creationDate: info.info?.CreationDate,
             extractedAt: new Date().toISOString(),
             fileSizeBytes: buffer.length,
         },
