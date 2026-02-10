@@ -182,12 +182,14 @@ export async function POST(req: NextRequest) {
             conversationStage,
             collectedData,
             screenContext,
+            chatHistory,
         } = body as {
             projectId?: string;
             message: string;
             conversationStage: string;
             collectedData: CollectedData;
             screenContext?: any;
+            chatHistory?: Array<{ role: "user" | "assistant"; content: string }>;
         };
 
         if (!message) {
@@ -232,7 +234,7 @@ export async function POST(req: NextRequest) {
         }
 
         // ---- Normal LLM-powered guided flow ----
-        const llmResult = await llmGuidedFlow(workspaceSlug, projectId, stage, message, collected, screenContext);
+        const llmResult = await llmGuidedFlow(workspaceSlug, projectId, stage, message, collected, screenContext, chatHistory);
         if (llmResult) {
             return NextResponse.json(llmResult);
         }
@@ -259,7 +261,12 @@ export async function POST(req: NextRequest) {
 // LLM-POWERED GUIDED FLOW
 // ============================================================================
 
-function buildSystemPrompt(stage: ConversationStage, collected: CollectedData, screenContext?: any): string {
+function buildSystemPrompt(
+    stage: ConversationStage,
+    collected: CollectedData,
+    screenContext?: any,
+    chatHistory?: Array<{ role: "user" | "assistant"; content: string }>
+): string {
     let screenBlock = "";
     if (screenContext) {
         const sc = screenContext;
@@ -319,6 +326,14 @@ function buildSystemPrompt(stage: ConversationStage, collected: CollectedData, s
         `BOND RATE: ${collected.bondRate ?? "(not set)"}`,
     ].join("\n");
 
+    const historyLines = (chatHistory || [])
+        .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string" && m.content.trim().length > 0)
+        .slice(-20)
+        .map((m) => `${m.role === "user" ? "User" : "Lux"}: ${m.content.trim()}`);
+    const historyBlock = historyLines.length > 0
+        ? `\nPREVIOUS CONVERSATION (latest 20):\n${historyLines.join("\n")}`
+        : "";
+
     return `${COPILOT_SYSTEM_PROMPT}
 
 KEEP RESPONSES BRIEF:
@@ -328,7 +343,8 @@ KEEP RESPONSES BRIEF:
 
 INTERNAL STATE (for context):
 ${collectedSummary}
-${screenBlock}`;
+${screenBlock}
+${historyBlock}`;
 }
 
 async function llmGuidedFlow(
@@ -338,9 +354,10 @@ async function llmGuidedFlow(
     message: string,
     collected: CollectedData,
     screenContext?: any,
+    chatHistory?: Array<{ role: "user" | "assistant"; content: string }>,
 ): Promise<any | null> {
     try {
-        const systemPrompt = buildSystemPrompt(stage, collected, screenContext);
+        const systemPrompt = buildSystemPrompt(stage, collected, screenContext, chatHistory);
         const fullMessage = `[System Context: ${systemPrompt}]\n\nUser: ${message}`;
 
         const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${workspaceSlug}/chat`, {

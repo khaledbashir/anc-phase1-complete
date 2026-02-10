@@ -123,6 +123,8 @@ export async function PATCH(
             tableHeaderOverrides, // Mirror Mode: section header overrides
             descriptionOverrides, // Mirror Mode: line item description overrides
             priceOverrides,       // Mirror Mode: line item price overrides
+            chatHistory,          // Copilot active conversation
+            chatConversations,    // Copilot archived conversations
         } = body;
 
         // Map address from receiverData (nested) or flat fields
@@ -218,6 +220,8 @@ export async function PATCH(
         if (tableHeaderOverrides !== undefined) updateData.tableHeaderOverrides = tableHeaderOverrides;
         if (descriptionOverrides !== undefined) updateData.descriptionOverrides = descriptionOverrides;
         if (priceOverrides !== undefined) updateData.priceOverrides = priceOverrides;
+        if (chatHistory !== undefined) updateData.chatHistory = chatHistory;
+        if (chatConversations !== undefined) updateData.chatConversations = chatConversations;
 
         const project = await prisma.$transaction(async (tx) => {
             // Handle snapshot creation if requested

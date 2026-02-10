@@ -196,6 +196,7 @@ model Proposal {
 
   // P69: Copilot Chat History
   chatHistory            Json?               // Array of { id, role, content, timestamp } messages
+  chatConversations      Json?               // Array of past conversations { id, title, messages, createdAt }
 
   // NEW: Manual overrides and versions
   manualOverrides       ManualOverride[]

@@ -6,7 +6,7 @@ import {
     Send,
     X,
     Zap,
-    Trash2,
+    Plus,
     Brain,
     Mic,
     MicOff,
@@ -18,7 +18,6 @@ import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import {
     ConversationStage,
-    getStagePrompt,
     createInitialState,
 } from "@/services/chat/proposalConversationFlow";
 import type { CollectedData, StageAction } from "@/services/chat/proposalConversationFlow";
@@ -51,6 +50,21 @@ export interface ChatMessage {
     actionUpdates?: FieldUpdate[];
     actionCards?: ActionCard[];
 }
+
+type PersistedChatMessage = {
+    id: string;
+    role: "user" | "assistant" | "system";
+    content: string;
+    timestamp: number;
+    actionCards?: ActionCard[];
+};
+
+type ChatConversation = {
+    id: string;
+    title: string;
+    createdAt: number;
+    messages: PersistedChatMessage[];
+};
 
 export interface CopilotPanelProps {
     onSendMessage?: (message: string, history: ChatMessage[]) => Promise<string>;
@@ -155,6 +169,20 @@ function normalizeLoose(value: string): string {
     return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+function uniqueSuggestions(items: string[]): string[] {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const item of items) {
+        const trimmed = item.trim();
+        if (!trimmed) continue;
+        const key = trimmed.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push(trimmed);
+    }
+    return out;
+}
+
 function ThinkingBlock({ thinking, isStreaming }: { thinking: string; isStreaming: boolean }) {
     const [expanded, setExpanded] = useState(false);
 
@@ -199,8 +227,9 @@ export default function CopilotPanel({
     onNavigateStep,
 }: CopilotPanelProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [isMinimized, setIsMinimized] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
+    const [chatConversations, setChatConversations] = useState<ChatConversation[]>([]);
+    const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
     const [input, setInput] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [newMessageCount, setNewMessageCount] = useState(0);
@@ -211,6 +240,7 @@ export default function CopilotPanel({
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const autoOpenedRef = useRef(false);
     const prevMessageCountRef = useRef(0);
+    const loadedProjectRef = useRef<string | null>(null);
 
     const [conversationStage, setConversationStage] = useState<ConversationStage>(ConversationStage.GREETING);
     const [collectedData, setCollectedData] = useState<CollectedData>(createInitialState().collected);
@@ -227,6 +257,78 @@ export default function CopilotPanel({
     } = useSpeechRecognition();
 
     const newId = () => `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+
+    const toPersistedMessages = useCallback((list: ChatMessage[]): PersistedChatMessage[] => {
+        return list
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .slice(-50)
+            .map((m) => ({
+                id: m.id,
+                role: m.role,
+                content: m.content,
+                timestamp: m.timestamp,
+                actionCards: m.actionCards?.length ? m.actionCards : undefined,
+            }));
+    }, []);
+
+    const normalizeLoadedMessages = useCallback((raw: unknown): ChatMessage[] => {
+        if (!Array.isArray(raw)) return [];
+        return raw
+            .map((item: any, idx: number): ChatMessage | null => {
+                const role = item?.role;
+                if (role !== "user" && role !== "assistant" && role !== "system") return null;
+                const content = String(item?.content || "");
+                if (!content.trim()) return null;
+                const timestamp = Number(item?.timestamp || Date.now());
+                const actionCards = Array.isArray(item?.actionCards)
+                    ? item.actionCards
+                        .map((card: any) => ({
+                            title: String(card?.title || "").trim(),
+                            lines: Array.isArray(card?.lines) ? card.lines.map((line: any) => String(line || "")) : [],
+                        }))
+                        .filter((card: ActionCard) => card.title && card.lines.length > 0)
+                    : undefined;
+
+                return {
+                    id: String(item?.id || `loaded-${idx}-${Date.now()}`),
+                    role,
+                    content,
+                    timestamp,
+                    actionCards: actionCards && actionCards.length ? actionCards : undefined,
+                };
+            })
+            .filter(Boolean) as ChatMessage[];
+    }, []);
+
+    const buildConversationTitle = useCallback((list: ChatMessage[]) => {
+        const firstUser = list.find((m) => m.role === "user")?.content?.trim() || "New chat";
+        return firstUser.length > 40 ? `${firstUser.slice(0, 40)}...` : firstUser;
+    }, []);
+
+    const persistChatState = useCallback(
+        async (nextMessages: ChatMessage[], nextConversations?: ChatConversation[]) => {
+            if (!projectId || projectId === "new") return;
+            const payload: Record<string, unknown> = {
+                chatHistory: toPersistedMessages(nextMessages),
+            };
+            if (nextConversations) {
+                payload.chatConversations = nextConversations.map((conv) => ({
+                    ...conv,
+                    messages: conv.messages.slice(-50),
+                }));
+            }
+            const res = await fetch(`/api/projects/${projectId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`PATCH /api/projects/${projectId} failed (${res.status}): ${text}`);
+            }
+        },
+        [projectId, toPersistedMessages]
+    );
 
     const scrollToBottom = useCallback((smooth = true) => {
         messagesEndRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
@@ -268,8 +370,8 @@ export default function CopilotPanel({
     }, [messages, isOpen, isAtBottom, scrollToBottom]);
 
     useEffect(() => {
-        if (isOpen && !isMinimized && inputRef.current) inputRef.current.focus();
-    }, [isOpen, isMinimized]);
+        if (isOpen && inputRef.current) inputRef.current.focus();
+    }, [isOpen]);
 
     const adjustInputHeight = useCallback(() => {
         if (!inputRef.current) return;
@@ -281,6 +383,62 @@ export default function CopilotPanel({
     useEffect(() => {
         adjustInputHeight();
     }, [input, adjustInputHeight]);
+
+    useEffect(() => {
+        const id = (projectId || "").trim();
+        if (!id || id === "new") return;
+        if (loadedProjectRef.current === id) return;
+        loadedProjectRef.current = id;
+
+        let cancelled = false;
+        const loadChat = async () => {
+            try {
+                const res = await fetch(`/api/projects/${id}`);
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`GET /api/projects/${id} failed (${res.status}): ${text}`);
+                }
+                const data = await res.json();
+                const project = data?.project || {};
+                if (cancelled) return;
+
+                const loadedMessages = normalizeLoadedMessages(project.chatHistory);
+                setMessages(loadedMessages);
+                setConversationHistory(
+                    loadedMessages
+                        .filter((m) => m.role === "user" || m.role === "assistant")
+                        .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }))
+                );
+
+                const rawConversations = Array.isArray(project.chatConversations) ? project.chatConversations : [];
+                const normalizedConversations: ChatConversation[] = rawConversations
+                    .map((conv: any, idx: number) => ({
+                        id: String(conv?.id || `conv-${idx}-${Date.now()}`),
+                        title: String(conv?.title || "New chat"),
+                        createdAt: Number(conv?.createdAt || Date.now()),
+                        messages: normalizeLoadedMessages(conv?.messages).map((m) => ({
+                            id: m.id,
+                            role: m.role,
+                            content: m.content,
+                            timestamp: m.timestamp,
+                            actionCards: m.actionCards,
+                        })),
+                    }))
+                    .filter((conv: ChatConversation) => conv.messages.length > 0)
+                    .slice(-20);
+                setChatConversations(normalizedConversations);
+                setActiveConversationId(null);
+
+                requestAnimationFrame(() => scrollToBottom(false));
+            } catch (error) {
+                console.error("[Copilot] Failed to load chat history:", error);
+            }
+        };
+        void loadChat();
+        return () => {
+            cancelled = true;
+        };
+    }, [normalizeLoadedMessages, projectId, scrollToBottom]);
 
     const stripActionBlocks = (text: string) => text.replace(ACTION_BLOCK_REGEX, "").trim();
 
@@ -627,14 +785,17 @@ export default function CopilotPanel({
         }
     };
 
-    const handleAnythingLLMSend = async (text: string): Promise<string> => {
+    const handleAnythingLLMSend = async (
+        text: string,
+        recentMessages: Array<{ role: "user" | "assistant"; content: string }>
+    ): Promise<string> => {
         try {
             const screenContext: ScreenContext | undefined = formFillContext ? getScreenContext(formFillContext, currentStep) : undefined;
 
             const res = await fetch("/api/copilot/propose", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ projectId, message: text, conversationStage, collectedData, screenContext }),
+                body: JSON.stringify({ projectId, message: text, conversationStage, collectedData, screenContext, chatHistory: recentMessages.slice(-20) }),
             });
 
             const data = await res.json();
@@ -759,17 +920,28 @@ export default function CopilotPanel({
             }
 
             const processed = await processAssistantResponse(answerBuf.trim() || "No response received.");
-            updateMsg({
-                content: processed.cleanText,
-                thinking: thinkBuf || undefined,
-                isThinking: false,
-                actionUpdates: processed.updates.length > 0 ? processed.updates : undefined,
-                actionCards: processed.cards.length > 0 ? processed.cards : undefined,
+            setMessages((prev) => {
+                const next = prev.map((m) =>
+                    m.id === assistantId
+                        ? {
+                            ...m,
+                            content: processed.cleanText,
+                            thinking: thinkBuf || undefined,
+                            isThinking: false,
+                            actionUpdates: processed.updates.length > 0 ? processed.updates : undefined,
+                            actionCards: processed.cards.length > 0 ? processed.cards : undefined,
+                        }
+                        : m
+                );
+                void persistChatState(next);
+                return next;
             });
         } catch (err: any) {
-            setMessages((prev) =>
-                prev.map((m) => (m.id === assistantId ? { ...m, content: `Stream error: ${err?.message || String(err)}` } : m))
-            );
+            setMessages((prev) => {
+                const next = prev.map((m) => (m.id === assistantId ? { ...m, content: `Stream error: ${err?.message || String(err)}` } : m));
+                void persistChatState(next);
+                return next;
+            });
         }
     };
 
@@ -778,7 +950,9 @@ export default function CopilotPanel({
         if (!text || isLoading) return;
 
         const userMsg: ChatMessage = { id: newId(), role: "user", content: text, timestamp: Date.now() };
-        setMessages((prev) => [...prev, userMsg]);
+        const nextAfterUser = [...messages, userMsg];
+        setMessages(nextAfterUser);
+        void persistChatState(nextAfterUser);
         setInput("");
         setIsLoading(true);
 
@@ -789,7 +963,10 @@ export default function CopilotPanel({
             if (brain === "kimi" && formFillContext) {
                 response = await handleKimiSend(text);
             } else if (formFillContext && conversationStage !== ConversationStage.DONE) {
-                response = await handleAnythingLLMSend(text);
+                const llmHistory = nextAfterUser
+                    .filter((m) => m.role === "user" || m.role === "assistant")
+                    .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+                response = await handleAnythingLLMSend(text, llmHistory);
             } else if (projectId && projectId !== "new") {
                 await handleStreamingSend(text);
                 setIsLoading(false);
@@ -809,7 +986,11 @@ export default function CopilotPanel({
                 actionUpdates: processed.updates.length > 0 ? processed.updates : undefined,
                 actionCards: processed.cards.length > 0 ? processed.cards : undefined,
             };
-            setMessages((prev) => [...prev, assistantMsg]);
+            setMessages((prev) => {
+                const next = [...prev, assistantMsg];
+                void persistChatState(next);
+                return next;
+            });
         } catch (err: any) {
             const errorMsg: ChatMessage = {
                 id: newId(),
@@ -817,7 +998,11 @@ export default function CopilotPanel({
                 content: `Error: ${err?.message || String(err)}`,
                 timestamp: Date.now(),
             };
-            setMessages((prev) => [...prev, errorMsg]);
+            setMessages((prev) => {
+                const next = [...prev, errorMsg];
+                void persistChatState(next);
+                return next;
+            });
         } finally {
             setIsLoading(false);
         }
@@ -831,12 +1016,56 @@ export default function CopilotPanel({
         if (nearBottom) setNewMessageCount(0);
     };
 
-    const clearChat = () => {
+    const createArchivedConversation = useCallback((source: ChatMessage[]): ChatConversation | null => {
+        const persisted = toPersistedMessages(source);
+        if (persisted.length === 0) return null;
+        return {
+            id: `conv-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+            title: buildConversationTitle(source),
+            createdAt: Date.now(),
+            messages: persisted.slice(-50),
+        };
+    }, [buildConversationTitle, toPersistedMessages]);
+
+    const handleNewChat = useCallback(async () => {
+        const archived = createArchivedConversation(messages);
+        const nextConversations = archived
+            ? [...chatConversations, archived].slice(-20)
+            : chatConversations;
+
+        setChatConversations(nextConversations);
+        setActiveConversationId(null);
         setMessages([]);
         setConversationHistory([]);
         setConversationStage(ConversationStage.GREETING);
         setCollectedData(createInitialState().collected);
-    };
+        try {
+            await persistChatState([], nextConversations);
+        } catch (error) {
+            console.error("[Copilot] Failed to persist new chat state:", error);
+        }
+    }, [chatConversations, createArchivedConversation, messages, persistChatState]);
+
+    const handleLoadConversation = useCallback(async (conversationId: string) => {
+        const selected = chatConversations.find((c) => c.id === conversationId);
+        if (!selected) return;
+        const restored = normalizeLoadedMessages(selected.messages);
+        setMessages(restored);
+        setActiveConversationId(conversationId);
+        setConversationHistory(
+            restored
+                .filter((m) => m.role === "user" || m.role === "assistant")
+                .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }))
+        );
+        setConversationStage(ConversationStage.GREETING);
+        setCollectedData(createInitialState().collected);
+        try {
+            await persistChatState(restored, chatConversations);
+        } catch (error) {
+            console.error("[Copilot] Failed to persist loaded conversation:", error);
+        }
+        requestAnimationFrame(() => scrollToBottom(false));
+    }, [chatConversations, normalizeLoadedMessages, persistChatState, scrollToBottom]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter" && !e.shiftKey) {
@@ -855,12 +1084,50 @@ export default function CopilotPanel({
         const clientName = String(formFillContext.getValues("receiver.name") || "").trim();
         const screens = formFillContext.getValues("details.screens") || [];
         const docMode = String(formFillContext.getValues("details.documentMode") || "").trim();
+        const pricingDoc = formFillContext.getValues("details.pricingDocument") as any;
+        const sections: Array<{ name?: string }> = Array.isArray(pricingDoc?.tables) ? pricingDoc.tables : [];
 
+        const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content?.toLowerCase() || "";
+        const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant")?.content?.toLowerCase() || "";
+        const convo = `${lastUser} ${lastAssistant}`;
+
+        const sectionChips = sections.slice(0, 3).map((s, idx) => `Section ${idx + 1}: ${String(s?.name || `Section ${idx + 1}`)}`);
+
+        // Rename/header intent
+        if (/(rename|section|header|call it|should be called)/i.test(convo)) {
+            return uniqueSuggestions([
+                ...sectionChips,
+                sections[0]?.name ? `Rename "${sections[0].name}" to Concourse LED Display System` : "",
+                "Rename section 1 to Concourse LED Display System",
+                "Rename section 2 to Ribbon Display",
+            ]).slice(0, 3);
+        }
+
+        // Typo/fix text intent
+        if (/(typo|misspell|fix|correct|replace|sturcutral|description)/i.test(convo)) {
+            return uniqueSuggestions([
+                `Fix typo: "Sturcutral" -> "Structural"`,
+                `Change "Submittals, Engineering, and Permits" to "Engineering & Permits" everywhere`,
+                "Update line 4 in section 1 to Structural Materials",
+            ]).slice(0, 3);
+        }
+
+        // Document mode intent
+        if (/(loi|budget|proposal|document mode)/i.test(convo)) {
+            return uniqueSuggestions(["Switch to LOI", "Switch to Proposal", "Switch to Budget"]).slice(0, 3);
+        }
+
+        // Preview/export intent
+        if (/(preview|pdf|export|download)/i.test(convo)) {
+            return uniqueSuggestions(["Preview PDF", "Summarize project", "Switch to LOI"]).slice(0, 3);
+        }
+
+        // Fallback (state-driven)
         if (!clientName) return ["Start a new proposal", "What can you do?", "Fill client info"];
         if (screens.length === 0) return ["Add display specs", "Set pricing", "Look up address"];
         if (docMode) return ["Preview PDF", "Summarize project", "Switch to LOI"];
         return ["Set document mode", "Summarize project", "Look up address"];
-    }, [formFillContext, quickActions]);
+    }, [formFillContext, quickActions, messages]);
 
     return (
         <>
@@ -901,16 +1168,16 @@ export default function CopilotPanel({
                     </div>
                     <div className="flex items-center gap-1">
                         <button
-                            onClick={clearChat}
+                            onClick={() => void handleNewChat()}
                             className="rounded-md p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-                            title="Clear chat"
+                            title="New chat"
                         >
-                            <Trash2 className="h-4 w-4" />
+                            <Plus className="h-4 w-4" />
                         </button>
                         <button
-                            onClick={() => setIsMinimized((prev) => !prev)}
+                            onClick={() => setIsOpen(false)}
                             className="rounded-md p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
-                            title={isMinimized ? "Expand" : "Minimize"}
+                            title="Minimize"
                         >
                             <Minus className="h-4 w-4" />
                         </button>
@@ -924,21 +1191,52 @@ export default function CopilotPanel({
                     </div>
                 </div>
 
-                {!isMinimized && (
-                    <>
+                <>
                         <div
                             ref={viewportRef}
                             onScroll={onMessagesScroll}
                             className="relative flex-1 overflow-y-auto bg-gradient-to-b from-white to-[#F8FAFC] px-3 py-4"
                         >
                             {messages.length === 0 ? (
-                                <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm animate-[copilot-message-in_200ms_ease-out]">
-                                    <div className="mb-2 text-sm font-semibold text-zinc-900">⚡ Hey — I'm Lux.</div>
-                                    <div className="space-y-1 text-xs text-zinc-700">
-                                        <p>I work with the ANC proposal team.</p>
-                                        <p>Drop me an Excel, tell me about a project, or just ask me something.</p>
+                                <div className="space-y-3">
+                                    {chatConversations.length > 0 && (
+                                        <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-sm">
+                                            <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-zinc-600">
+                                                Previous conversations
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                {chatConversations
+                                                    .slice()
+                                                    .reverse()
+                                                    .slice(0, 5)
+                                                    .map((conv) => (
+                                                        <button
+                                                            key={conv.id}
+                                                            onClick={() => void handleLoadConversation(conv.id)}
+                                                            className={cn(
+                                                                "w-full rounded-md border px-2 py-1.5 text-left text-xs transition-colors",
+                                                                activeConversationId === conv.id
+                                                                    ? "border-[#0055B3]/40 bg-[#0055B3]/5 text-[#0055B3]"
+                                                                    : "border-zinc-200 hover:bg-zinc-50"
+                                                            )}
+                                                        >
+                                                            <div className="font-medium truncate">{conv.title}</div>
+                                                            <div className="mt-0.5 text-[10px] text-zinc-500">
+                                                                {new Date(conv.createdAt).toLocaleString()}
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm animate-[copilot-message-in_200ms_ease-out]">
+                                        <div className="mb-2 text-sm font-semibold text-zinc-900">⚡ Hey — I'm Lux.</div>
+                                        <div className="space-y-1 text-xs text-zinc-700">
+                                            <p>I work with the ANC proposal team.</p>
+                                            <p>Drop me an Excel, tell me about a project, or just ask me something.</p>
+                                        </div>
+                                        <p className="mt-3 text-xs text-zinc-600">What are we working on?</p>
                                     </div>
-                                    <p className="mt-3 text-xs text-zinc-600">What are we working on?</p>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -1110,8 +1408,7 @@ export default function CopilotPanel({
                                 </button>
                             </div>
                         </div>
-                    </>
-                )}
+                </>
             </div>
         </>
     );
