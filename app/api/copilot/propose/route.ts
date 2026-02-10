@@ -130,6 +130,30 @@ Sender Info: senderName, senderAddress, senderCity, senderCountry, senderEmail, 
 Document: documentMode (budget/proposal/loi), projectName, projectLocation, venue, currency, language, proposalDate, dueDate, poNumber
 Content: customIntroText, paymentTerms, signatureBlockText, additionalNotes, customProposalNotes, loiHeaderText
 
+RENAME SECTION ACTIONS:
+- Use when user says "rename section", "change header", "call this section", or similar.
+- Output exactly one action block:
+:::ACTION:::{"action":"rename_section","sectionIndex":2,"newName":"Main Concourse LED"}:::END:::
+- If the user references by current section name:
+:::ACTION:::{"action":"rename_section","currentName":"G7 Ceiling LED Displays","newName":"Ribbon Display"}:::END:::
+
+DESCRIPTION OVERRIDE ACTIONS:
+- Use when user asks to fix typos or rewrite line-item text.
+- Single line-item update:
+:::ACTION:::{"action":"override_description","sectionIndex":0,"itemIndex":3,"newDescription":"Structural Materials"}:::END:::
+- Global find/replace across all sections:
+:::ACTION:::{"action":"find_replace_description","find":"Sturcutral","replace":"Structural"}:::END:::
+
+RENAME/FIX DETECTION RULES:
+- "rename", "change the name", "call it", "should say" => rename_section or override_description.
+- "typo", "misspelled", "fix", "correct" => find_replace_description or override_description.
+- "everywhere", "all sections", "across the board" => find_replace_description.
+- Number references like "section 3", "line 4" => use sectionIndex/itemIndex (0-indexed).
+- Name references like "G9 section" => use currentName.
+- If ambiguous, ask a clarification question and do NOT emit an action block.
+- Never change pricing numbers when doing rename/description fixes. Text only.
+- After every successful text edit action, confirm exactly what changed.
+
 CONVERSATION FLOW:
 1. Start with project or partner name
 2. Confirm venue/location

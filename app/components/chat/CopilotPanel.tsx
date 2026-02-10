@@ -36,6 +36,11 @@ export interface FieldUpdate {
     value: string;
 }
 
+export interface ActionCard {
+    title: string;
+    lines: string[];
+}
+
 export interface ChatMessage {
     id: string;
     role: "user" | "assistant" | "system";
@@ -44,6 +49,7 @@ export interface ChatMessage {
     thinking?: string;
     isThinking?: boolean;
     actionUpdates?: FieldUpdate[];
+    actionCards?: ActionCard[];
 }
 
 export interface CopilotPanelProps {
@@ -139,6 +145,14 @@ function labelForField(field: string) {
 
 function normalizeActionField(field: string): string {
     return ACTION_FIELD_ALIASES[field] || field;
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeLoose(value: string): string {
+    return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function ThinkingBlock({ thinking, isStreaming }: { thinking: string; isStreaming: boolean }) {
@@ -355,24 +369,233 @@ export default function CopilotPanel({
         [formFillContext, projectId]
     );
 
+    const persistProjectPatch = useCallback(
+        async (payload: Record<string, unknown>) => {
+            if (!projectId || projectId === "new") return;
+            if (Object.keys(payload).length === 0) return;
+            const res = await fetch(`/api/projects/${projectId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`PATCH /api/projects/${projectId} failed (${res.status}): ${text}`);
+            }
+        },
+        [projectId]
+    );
+
+    const resolveSectionByName = useCallback(
+        (tables: Array<{ id?: string; name?: string }>, currentNameRaw: string) => {
+            const currentName = currentNameRaw.trim();
+            if (!currentName) throw new Error("rename_section requires a non-empty currentName.");
+
+            const needle = normalizeLoose(currentName);
+            const scored = tables
+                .map((table, index) => {
+                    const name = (table.name || "").toString();
+                    const hay = normalizeLoose(name);
+                    let score = 0;
+                    if (hay === needle) score = 1000;
+                    else if (hay.includes(needle)) score = Math.max(score, 700 + needle.length);
+                    else if (needle.includes(hay) && hay.length > 0) score = Math.max(score, 500 + hay.length);
+                    else {
+                        const needleParts = needle.split(" ").filter(Boolean);
+                        const hitCount = needleParts.filter((p) => hay.includes(p)).length;
+                        if (hitCount > 0) score = 100 + hitCount;
+                    }
+                    return { table, index, score, name };
+                })
+                .filter((x) => x.score > 0)
+                .sort((a, b) => b.score - a.score);
+
+            if (scored.length === 0) throw new Error(`No section found matching "${currentName}".`);
+
+            const top = scored[0];
+            const ties = scored.filter((x) => x.score === top.score);
+            if (ties.length > 1) {
+                const options = ties
+                    .slice(0, 5)
+                    .map((x) => `Section ${x.index + 1}: ${x.name || "(unnamed)"}`)
+                    .join(" | ");
+                throw new Error(`Ambiguous section name "${currentName}". Matches: ${options}`);
+            }
+
+            return top;
+        },
+        []
+    );
+
+    const applyStructuredAction = useCallback(
+        async (actionBlock: Record<string, unknown>): Promise<ActionCard | null> => {
+            if (!formFillContext) return null;
+
+            const actionType = String(actionBlock.action || "").trim();
+            if (!actionType) return null;
+
+            const pricingDocument = formFillContext.getValues("details.pricingDocument") as any;
+            const tables = Array.isArray(pricingDocument?.tables) ? pricingDocument.tables : [];
+
+            if (actionType === "rename_section") {
+                if (tables.length === 0) throw new Error("No pricing sections available to rename.");
+                const newName = String(actionBlock.newName || "").trim();
+                if (!newName) throw new Error("rename_section requires newName.");
+
+                let sectionIndex = Number.isFinite(Number(actionBlock.sectionIndex))
+                    ? Number(actionBlock.sectionIndex)
+                    : null;
+
+                if (sectionIndex === null) {
+                    const currentName = String(actionBlock.currentName || "").trim();
+                    if (!currentName) throw new Error("rename_section requires sectionIndex or currentName.");
+                    sectionIndex = resolveSectionByName(tables, currentName).index;
+                }
+
+                if (sectionIndex < 0 || sectionIndex >= tables.length) {
+                    throw new Error(`rename_section sectionIndex out of range: ${sectionIndex}.`);
+                }
+
+                const table = tables[sectionIndex];
+                const tableId = String(table?.id || "").trim();
+                if (!tableId) throw new Error(`Section ${sectionIndex + 1} has no table id; cannot persist rename.`);
+
+                const currentOverrides = (formFillContext.getValues("details.tableHeaderOverrides") || {}) as Record<string, string>;
+                const oldName = String(currentOverrides[tableId] || table?.name || `Section ${sectionIndex + 1}`);
+                const nextOverrides = { ...currentOverrides, [tableId]: newName };
+
+                formFillContext.setValue("details.tableHeaderOverrides", nextOverrides, { shouldDirty: true, shouldValidate: true });
+                await persistProjectPatch({ tableHeaderOverrides: nextOverrides });
+
+                return {
+                    title: "Section Renamed",
+                    lines: [`"${oldName}" -> "${newName}"`],
+                };
+            }
+
+            if (actionType === "override_description") {
+                if (tables.length === 0) throw new Error("No pricing sections available for line-item override.");
+
+                const sectionIndex = Number(actionBlock.sectionIndex);
+                const itemIndex = Number(actionBlock.itemIndex);
+                const newDescription = String(actionBlock.newDescription || "").trim();
+                if (!Number.isInteger(sectionIndex) || !Number.isInteger(itemIndex)) {
+                    throw new Error("override_description requires integer sectionIndex and itemIndex.");
+                }
+                if (!newDescription) throw new Error("override_description requires newDescription.");
+                if (sectionIndex < 0 || sectionIndex >= tables.length) {
+                    throw new Error(`override_description sectionIndex out of range: ${sectionIndex}.`);
+                }
+
+                const table = tables[sectionIndex];
+                const tableId = String(table?.id || "").trim();
+                if (!tableId) throw new Error(`Section ${sectionIndex + 1} has no table id; cannot persist override.`);
+
+                const items = Array.isArray(table?.items) ? table.items : [];
+                if (itemIndex < 0 || itemIndex >= items.length) {
+                    throw new Error(`override_description itemIndex out of range: ${itemIndex} for section ${sectionIndex + 1}.`);
+                }
+
+                const original = String(items[itemIndex]?.description || "");
+                const key = `${tableId}:${itemIndex}`;
+                const currentOverrides = (formFillContext.getValues("details.descriptionOverrides") || {}) as Record<string, string>;
+                const nextOverrides = { ...currentOverrides, [key]: newDescription };
+
+                formFillContext.setValue("details.descriptionOverrides", nextOverrides, { shouldDirty: true, shouldValidate: true });
+                await persistProjectPatch({ descriptionOverrides: nextOverrides });
+
+                return {
+                    title: "Line Item Updated",
+                    lines: [
+                        `Section: ${String(table?.name || `Section ${sectionIndex + 1}`)}`,
+                        `"${original}" -> "${newDescription}"`,
+                    ],
+                };
+            }
+
+            if (actionType === "find_replace_description") {
+                if (tables.length === 0) throw new Error("No pricing sections available for find/replace.");
+                const find = String(actionBlock.find || "").trim();
+                const replace = String(actionBlock.replace || "");
+                if (!find) throw new Error("find_replace_description requires a non-empty find value.");
+
+                const re = new RegExp(escapeRegExp(find), "gi");
+                const currentOverrides = (formFillContext.getValues("details.descriptionOverrides") || {}) as Record<string, string>;
+                const nextOverrides = { ...currentOverrides };
+
+                let updateCount = 0;
+                const sectionTouched = new Set<string>();
+
+                tables.forEach((table: any, sectionIndex: number) => {
+                    const tableId = String(table?.id || "").trim();
+                    if (!tableId) return;
+                    const items = Array.isArray(table?.items) ? table.items : [];
+                    items.forEach((item: any, itemIndex: number) => {
+                        const key = `${tableId}:${itemIndex}`;
+                        const baseline = String(currentOverrides[key] ?? item?.description ?? "");
+                        if (!re.test(baseline)) return;
+                        re.lastIndex = 0;
+                        const replaced = baseline.replace(re, replace);
+                        re.lastIndex = 0;
+                        if (replaced === baseline) return;
+                        nextOverrides[key] = replaced;
+                        updateCount++;
+                        sectionTouched.add(String(table?.name || `Section ${sectionIndex + 1}`));
+                    });
+                });
+
+                if (updateCount === 0) {
+                    throw new Error(`I don't see "${find}" in any line-item descriptions.`);
+                }
+
+                formFillContext.setValue("details.descriptionOverrides", nextOverrides, { shouldDirty: true, shouldValidate: true });
+                await persistProjectPatch({ descriptionOverrides: nextOverrides });
+
+                return {
+                    title: "Find & Replace",
+                    lines: [
+                        `"${find}" -> "${replace}"`,
+                        `Updated ${updateCount} line items across ${sectionTouched.size} sections`,
+                    ],
+                };
+            }
+
+            return null;
+        },
+        [formFillContext, persistProjectPatch, resolveSectionByName]
+    );
+
     const processAssistantResponse = useCallback(
-        async (rawResponse: string): Promise<{ cleanText: string; updates: FieldUpdate[] }> => {
+        async (rawResponse: string): Promise<{ cleanText: string; updates: FieldUpdate[]; cards: ActionCard[] }> => {
             const blocks = extractActionBlocks(rawResponse);
             const updates: FieldUpdate[] = [];
+            const cards: ActionCard[] = [];
 
             for (const block of blocks) {
                 const fields = block.fields;
-                if (!fields || typeof fields !== "object" || Array.isArray(fields)) continue;
-                const blockUpdates = await applyActionFields(fields as Record<string, unknown>);
-                updates.push(...blockUpdates);
+                if (fields && typeof fields === "object" && !Array.isArray(fields)) {
+                    const blockUpdates = await applyActionFields(fields as Record<string, unknown>);
+                    updates.push(...blockUpdates);
+                    if (blockUpdates.length > 0) {
+                        cards.push({
+                            title: blockUpdates.length === 1 ? "Field Updated" : `${blockUpdates.length} Fields Updated`,
+                            lines: blockUpdates.map((u) => `${labelForField(u.field)} -> ${u.value}`),
+                        });
+                    }
+                    continue;
+                }
+
+                const actionCard = await applyStructuredAction(block);
+                if (actionCard) cards.push(actionCard);
             }
 
             return {
                 cleanText: stripActionBlocks(rawResponse) || "Done.",
                 updates,
+                cards,
             };
         },
-        [applyActionFields]
+        [applyActionFields, applyStructuredAction]
     );
 
     const handleKimiSend = async (text: string): Promise<string> => {
@@ -541,6 +764,7 @@ export default function CopilotPanel({
                 thinking: thinkBuf || undefined,
                 isThinking: false,
                 actionUpdates: processed.updates.length > 0 ? processed.updates : undefined,
+                actionCards: processed.cards.length > 0 ? processed.cards : undefined,
             });
         } catch (err: any) {
             setMessages((prev) =>
@@ -583,6 +807,7 @@ export default function CopilotPanel({
                 content: processed.cleanText,
                 timestamp: Date.now(),
                 actionUpdates: processed.updates.length > 0 ? processed.updates : undefined,
+                actionCards: processed.cards.length > 0 ? processed.cards : undefined,
             };
             setMessages((prev) => [...prev, assistantMsg]);
         } catch (err: any) {
@@ -760,15 +985,22 @@ export default function CopilotPanel({
                                                             )}
                                                         </div>
 
-                                                        {msg.actionUpdates && msg.actionUpdates.length > 0 && (
-                                                            <div className="mt-2 ml-2 rounded-lg border-l-4 border-green-500 bg-green-50 px-3 py-2 text-[11px] text-zinc-800 animate-[copilot-action-in_220ms_ease-out]">
-                                                                <div className="mb-1 flex items-center gap-1.5 font-semibold uppercase tracking-wide text-green-700">
-                                                                    <CheckCircle2 className="h-3.5 w-3.5" />
-                                                                    {msg.actionUpdates.length === 1 ? "Field Updated" : `${msg.actionUpdates.length} Fields Updated`}
-                                                                </div>
-                                                                {msg.actionUpdates.map((u, idx) => (
-                                                                    <div key={`${msg.id}-${idx}`} className="truncate">
-                                                                        {labelForField(u.field)} {"->"} {u.value}
+                                                        {msg.actionCards && msg.actionCards.length > 0 && (
+                                                            <div className="mt-2 ml-2 space-y-2">
+                                                                {msg.actionCards.map((card, cardIdx) => (
+                                                                    <div
+                                                                        key={`${msg.id}-card-${cardIdx}`}
+                                                                        className="rounded-lg border-l-4 border-green-500 bg-green-50 px-3 py-2 text-[11px] text-zinc-800 animate-[copilot-action-in_220ms_ease-out]"
+                                                                    >
+                                                                        <div className="mb-1 flex items-center gap-1.5 font-semibold uppercase tracking-wide text-green-700">
+                                                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                                                            {card.title}
+                                                                        </div>
+                                                                        {card.lines.map((line, lineIdx) => (
+                                                                            <div key={`${msg.id}-card-${cardIdx}-line-${lineIdx}`} className="truncate">
+                                                                                {line}
+                                                                            </div>
+                                                                        ))}
                                                                     </div>
                                                                 ))}
                                                             </div>
