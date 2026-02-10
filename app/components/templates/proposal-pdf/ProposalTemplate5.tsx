@@ -23,6 +23,8 @@ import PageBreak from "@/app/components/templates/proposal-pdf/PageBreak";
 // Helpers
 import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText, normalizePitch } from "@/lib/helpers";
 import { resolveDocumentMode } from "@/lib/documentMode";
+import { DOCUMENT_MODES, CURRENCY_FORMAT } from "@/services/rfp/productCatalog";
+import type { DocumentMode as CatalogDocumentMode } from "@/services/rfp/productCatalog";
 
 // Types
 import { ProposalType } from "@/types";
@@ -40,7 +42,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const internalAudit = details?.internalAudit as any;
 
     const documentMode = resolveDocumentMode(details);
-    const docLabel = documentMode === "BUDGET" ? "BUDGET ESTIMATE" : documentMode === "PROPOSAL" ? "SALES QUOTATION" : "LETTER OF INTENT";
+    const catalogMode = documentMode.toLowerCase() as CatalogDocumentMode;
+    const docModeConfig = DOCUMENT_MODES[catalogMode] || DOCUMENT_MODES.proposal;
+    const docLabel = docModeConfig.headerText;
     const isLOI = documentMode === "LOI";
 
     // Guard against raw numbers (e.g., project IDs mistakenly used as names)
@@ -507,8 +511,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
                                     </div>
 
-                                    {/* Line items */}
-                                    {items.map((item: any, idx: number) => (
+                                    {/* Line items (CURRENCY_FORMAT.hideZeroLineItems filters $0 rows) */}
+                                    {items.map((item: any, idx: number) => {
+                                        const itemPrice = priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : Number(item?.sellingPrice ?? 0);
+                                        if (CURRENCY_FORMAT.hideZeroLineItems && !item?.isIncluded && Math.abs(itemPrice) < 0.01) return null;
+                                        return (
                                         <div
                                             key={`${tableId}-item-${idx}`}
                                             className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
@@ -524,10 +531,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                             <div className="col-span-4 text-right font-semibold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
                                                 {item?.isIncluded
                                                     ? <span style={{ color: colors.text }}>INCLUDED</span>
-                                                    : formatCurrency(priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : Number(item?.sellingPrice ?? 0), currency)}
+                                                    : formatCurrency(itemPrice, currency)}
                                             </div>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
 
                                     {/* Footer: Subtotal / Tax / Bond / Grand Total */}
                                     <div className="border-t-2" style={{ borderColor: colors.border }}>

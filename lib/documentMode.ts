@@ -1,3 +1,6 @@
+import { DOCUMENT_MODES } from "@/services/rfp/productCatalog";
+import type { DocumentMode as CatalogDocumentMode } from "@/services/rfp/productCatalog";
+
 export type DocumentMode = "BUDGET" | "PROPOSAL" | "LOI";
 
 export function resolveDocumentMode(details: any): DocumentMode {
@@ -16,6 +19,7 @@ export function resolveDocumentMode(details: any): DocumentMode {
 /**
  * Apply document mode defaults - HYBRID TEMPLATE APPROACH
  * 
+ * Derives defaults from DOCUMENT_MODES config in productCatalog.ts (single source of truth).
  * In the Hybrid Template, Notes, Scope of Work, and Signatures are
  * OPTIONAL for ALL document types (Budget, Proposal, LOI).
  * 
@@ -27,28 +31,26 @@ export function applyDocumentModeDefaults(mode: DocumentMode, current: any) {
   const base = { ...(current || {}) };
   base.documentMode = mode;
 
+  const catalogMode = mode.toLowerCase() as CatalogDocumentMode;
+  const config = DOCUMENT_MODES[catalogMode] || DOCUMENT_MODES.proposal;
+
   // Only set defaults if undefined - respect user's explicit choices
   // This allows universal toggles for all document types
-  
+  if (base.showPaymentTerms === undefined) base.showPaymentTerms = config.includePaymentTerms;
+  if (base.showSignatureBlock === undefined) base.showSignatureBlock = config.includeSignatures;
+  if (base.showNotes === undefined) base.showNotes = true;
+  if (base.showScopeOfWork === undefined) base.showScopeOfWork = false;
+
   if (mode === "LOI") {
-    // LOI defaults - but user can override
-    if (base.showPaymentTerms === undefined) base.showPaymentTerms = true;
-    if (base.showSignatureBlock === undefined) base.showSignatureBlock = true;
     if (base.showExhibitA === undefined) base.showExhibitA = true;
     if (base.showExhibitB === undefined) base.showExhibitB = true;
     if (base.showSpecifications === undefined) base.showSpecifications = false;
-    if (base.showNotes === undefined) base.showNotes = true;
-    if (base.showScopeOfWork === undefined) base.showScopeOfWork = false;
     return base;
   }
 
-  // Budget and Proposal defaults - but user can override
-  if (base.showPaymentTerms === undefined) base.showPaymentTerms = false;
-  if (base.showSignatureBlock === undefined) base.showSignatureBlock = false;
+  // Budget and Proposal shared defaults
   if (base.showSpecifications === undefined) base.showSpecifications = true;
   if (base.showExhibitB === undefined) base.showExhibitB = false;
-  if (base.showNotes === undefined) base.showNotes = true;
-  if (base.showScopeOfWork === undefined) base.showScopeOfWork = false;
 
   if (mode === "PROPOSAL") {
     if (base.showExhibitA === undefined) base.showExhibitA = true;

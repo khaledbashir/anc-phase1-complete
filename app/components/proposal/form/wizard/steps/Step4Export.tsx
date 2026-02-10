@@ -21,6 +21,7 @@ import {
     Check,
     FileText,
     FileCheck,
+    FileSignature,
     ChevronRight,
     ChevronDown,
     PenLine
@@ -56,6 +57,8 @@ const Step4Export = () => {
         verificationExceptions,
         isGatekeeperLocked,
         unverifiedAiFields,
+        headerType,
+        setHeaderType,
     } = useProposalContext();
     const { watch, getValues, setValue } = useFormContext<ProposalType>();
     const [exporting, setExporting] = useState(false);
@@ -566,6 +569,57 @@ const Step4Export = () => {
 
                     {/* Right Column: Global Export Action */}
                     <div className="lg:col-span-2 space-y-6">
+                        <Card className="bg-card/40 border border-border/60 overflow-hidden">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Document Mode</CardTitle>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                    Select the output mode before generating/exporting PDF.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setHeaderType("BUDGET")}
+                                        className={cn(
+                                            "flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
+                                            headerType === "BUDGET"
+                                                ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-200"
+                                                : "border-border bg-card/40 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                        )}
+                                    >
+                                        <FileText className="w-3.5 h-3.5" />
+                                        Budget
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setHeaderType("PROPOSAL")}
+                                        className={cn(
+                                            "flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
+                                            headerType === "PROPOSAL"
+                                                ? "border-brand-blue/50 bg-brand-blue/10 text-brand-blue"
+                                                : "border-border bg-card/40 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                        )}
+                                    >
+                                        <FileCheck className="w-3.5 h-3.5" />
+                                        Proposal
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setHeaderType("LOI")}
+                                        className={cn(
+                                            "flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition-colors",
+                                            headerType === "LOI"
+                                                ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200"
+                                                : "border-border bg-card/40 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                                        )}
+                                    >
+                                        <FileSignature className="w-3.5 h-3.5" />
+                                        LOI
+                                    </button>
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         {/* NATALIA GATEKEEPER ADVISORY - Moved to top for visibility */}
                         {isGatekeeperLocked && (
