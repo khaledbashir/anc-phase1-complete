@@ -5,6 +5,7 @@ import { formatNumberWithCommas, sanitizeNitsForDisplay, normalizePitch } from "
 type ExhibitATechnicalSpecsProps = {
     data: ProposalType;
     showSOW?: boolean;
+    headingMode?: "exhibit" | "plain";
 };
 
 const formatFeet = (value: any) => {
@@ -23,10 +24,24 @@ const formatPitchMm = (value: any): string => {
     return corrected < 2 ? corrected.toFixed(2) : corrected.toFixed(corrected % 1 === 0 ? 0 : 2);
 };
 
+/** Strip parser/debug metadata and redundant technical suffix from display names. */
+const cleanDisplayName = (value: any, fallbackIndex?: number): string => {
+    const raw = (value ?? "").toString().trim();
+    let sanitized = sanitizeNitsForDisplay(raw);
+    // Remove debug wrappers like "-- ... ---"
+    sanitized = sanitized.replace(/^\s*-+\s*/g, "").replace(/\s*-+\s*$/g, "").trim();
+    // Remove parser metadata like "(Page 95, Score 10)"
+    sanitized = sanitized.replace(/\(\s*Page\s*\d+\s*,\s*Score\s*[\d.]+\s*\)/gi, "").trim();
+    sanitized = sanitized.replace(/\s{2,}/g, " ").trim();
+    if (!sanitized || /^unnamed\s+screen$/i.test(sanitized)) {
+        return `Display ${fallbackIndex ? fallbackIndex + 1 : 1}`;
+    }
+    return sanitized;
+};
+
 /** Strip redundant technical suffix from display name (dimensions, pitch, brightness are in their own columns). */
-const getShortDisplayName = (screen: any): string => {
-    const raw = (screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
-    const sanitized = sanitizeNitsForDisplay(raw);
+const getShortDisplayName = (screen: any, fallbackIndex?: number): string => {
+    const sanitized = cleanDisplayName(screen?.customDisplayName || screen?.externalName || screen?.name || "Display", fallbackIndex);
     // Truncate at " : " followed by a dimension pattern (digits + apostrophe/feet or "Diameter")
     const colonDimMatch = sanitized.match(/^(.+?)\s*:\s*\d+(\.\d+)?[''′]?\s*(h\b|x\b|Diameter)/i);
     if (colonDimMatch) return colonDimMatch[1].replace(/[\s\-–—:]+$/, "").trim();
@@ -44,18 +59,86 @@ const computePixels = (feetValue: any, pitchMm: any) => {
     return Math.round((ft * 304.8) / pitch);
 };
 
-export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: ExhibitATechnicalSpecsProps) {
+export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, headingMode = "exhibit" }: ExhibitATechnicalSpecsProps) {
     const { details } = data;
     const screens = details?.screens || [];
+    const pricingDocument = (details as any)?.pricingDocument;
+    const tableHeaderOverrides: Record<string, string> = (details as any)?.tableHeaderOverrides || {};
     const sowText = (details as any)?.scopeOfWorkText;
     const hasSOWContent = showSOW && sowText && sowText.trim().length > 0;
 
-    const headerText = hasSOWContent
-        ? "EXHIBIT A: STATEMENT OF WORK & TECHNICAL SPECIFICATIONS"
-        : "EXHIBIT A: TECHNICAL SPECIFICATIONS";
+    const headerText = headingMode === "exhibit"
+        ? (hasSOWContent
+            ? "EXHIBIT A: STATEMENT OF WORK & TECHNICAL SPECIFICATIONS"
+            : "EXHIBIT A: TECHNICAL SPECIFICATIONS")
+        : "TECHNICAL SPECIFICATIONS";
+
+    const rollUpRegex = /\b(total|roll.?up|summary|project\s+grand|grand\s+total|project\s+total|cost\s+summary|pricing\s+summary)\b/i;
+    const pricingTables = (pricingDocument?.tables || []) as Array<{ id?: string; name?: string }>;
+    const detailTables = pricingTables.filter((t) => !rollUpRegex.test((t?.name || "").toString()));
+
+    const normalizedScreenRows = screens.map((screen: any, idx: number) => {
+        const h = screen?.heightFt ?? screen?.height ?? 0;
+        const w = screen?.widthFt ?? screen?.width ?? 0;
+        const pitch = screen?.pitchMm ?? screen?.pixelPitch ?? 0;
+        const pixelsH = screen?.pixelsH || computePixels(h, pitch);
+        const pixelsW = screen?.pixelsW || computePixels(w, pitch);
+        const cleanName = getShortDisplayName(screen, idx);
+        return {
+            ...screen,
+            __cleanName: cleanName,
+            __key: `${cleanName.toLowerCase()}|${Number(h) || 0}|${Number(w) || 0}|${normalizePitch(pitch) || 0}|${pixelsH}|${pixelsW}`,
+        };
+    });
+
+    // Remove exact duplicates (same name + dimensions + pitch + resolution)
+    const dedupedScreens = normalizedScreenRows.filter((screen: any, idx: number, arr: any[]) =>
+        arr.findIndex((s: any) => s.__key === screen.__key) === idx
+    );
+
+    // Name collision handling: same name with different specs -> append numbering
+    const nameCounts: Record<string, number> = {};
+    const normalizedNames = dedupedScreens.map((screen: any) => {
+        const base = screen.__cleanName;
+        nameCounts[base] = (nameCounts[base] || 0) + 1;
+        return base;
+    });
+    const duplicates = new Set(Object.entries(nameCounts).filter(([, count]) => count > 1).map(([name]) => name));
+    const duplicateSeen: Record<string, number> = {};
+
+    const numberedScreens = dedupedScreens.map((screen: any) => {
+        const base = screen.__cleanName;
+        if (!duplicates.has(base)) return { ...screen, __displayName: base };
+        duplicateSeen[base] = (duplicateSeen[base] || 0) + 1;
+        return { ...screen, __displayName: `${base} (${duplicateSeen[base]})` };
+    });
+
+    // Ensure at least one row per pricing section in mirror mode
+    const screenNames = new Set(numberedScreens.map((s: any) => (s.__cleanName || "").toLowerCase().trim()));
+    const synthesizedFromTables = detailTables
+        .map((table, idx) => {
+            const override = table.id ? tableHeaderOverrides[table.id] : undefined;
+            const name = cleanDisplayName(override || table.name || `Display ${idx + 1}`, numberedScreens.length + idx);
+            if (screenNames.has(name.toLowerCase())) return null;
+            return {
+                id: `synthetic-${table.id || idx}`,
+                __cleanName: name,
+                __displayName: name,
+                heightFt: null,
+                widthFt: null,
+                pitchMm: null,
+                quantity: 1,
+                pixelsH: null,
+                pixelsW: null,
+                brightness: null,
+            };
+        })
+        .filter(Boolean) as any[];
+
+    const specRows = [...numberedScreens, ...synthesizedFromTables];
 
     // Prompt 46: Hide BRIGHTNESS column if all values are null/empty/dash
-    const hasAnyBrightness = screens.some((screen: any) => {
+    const hasAnyBrightness = specRows.some((screen: any) => {
         const rawBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits;
         const brightnessNumber = Number(rawBrightness);
         return rawBrightness != null && rawBrightness !== "" && rawBrightness !== 0 && isFinite(brightnessNumber) && brightnessNumber > 0;
@@ -72,20 +155,28 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false }: Exhib
             <div className="border border-gray-300 break-inside-avoid overflow-hidden">
                 {/* Use HTML table for reliable PDF column separation (avoids merged headers in Puppeteer) */}
                 <table className="w-full text-[9px] border-collapse" style={{ tableLayout: "fixed", pageBreakInside: 'auto' }}>
+                    <colgroup>
+                        <col style={{ width: "30%" }} />
+                        <col style={{ width: "15%" }} />
+                        <col style={{ width: "10%" }} />
+                        <col style={{ width: "15%" }} />
+                        {hasAnyBrightness && <col style={{ width: "15%" }} />}
+                        <col style={{ width: hasAnyBrightness ? "10%" : "15%" }} />
+                    </colgroup>
                     <thead>
                         <tr className="text-[10px] font-bold uppercase tracking-wider text-white" style={{ background: "#0A52EF", pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                            <th className="text-left py-2.5 px-3" style={{ width: hasAnyBrightness ? "30%" : "35%" }}>Display Name</th>
-                            <th className="text-left py-2.5 px-3" style={{ width: hasAnyBrightness ? "15%" : "18%" }}>Dimensions</th>
-                            <th className="text-right py-2.5 px-3" style={{ width: hasAnyBrightness ? "12%" : "15%" }}>Pitch</th>
-                            <th className="text-right py-2.5 px-3" style={{ width: hasAnyBrightness ? "18%" : "20%" }}>Resolution</th>
-                            {hasAnyBrightness && <th className="text-right py-2.5 px-3 w-[13%]">Brightness</th>}
-                            <th className="text-right py-2.5 px-3 w-[12%]">Qty</th>
+                            <th className="text-left py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>DISPLAY NAME</th>
+                            <th className="text-left py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>DIMENSIONS</th>
+                            <th className="text-right py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>PITCH</th>
+                            <th className="text-right py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>RESOLUTION</th>
+                            {hasAnyBrightness && <th className="text-right py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>BRIGHTNESS</th>}
+                            <th className="text-right py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>QTY</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-900">
-                        {screens.length > 0 ? (
-                            screens.map((screen: any, idx: number) => {
-                                const name = getShortDisplayName(screen);
+                        {specRows.length > 0 ? (
+                            specRows.map((screen: any, idx: number) => {
+                                const name = screen.__displayName || getShortDisplayName(screen, idx);
                                 const h = screen?.heightFt ?? screen?.height ?? 0;
                                 const w = screen?.widthFt ?? screen?.width ?? 0;
                                 const pitch = screen?.pitchMm ?? screen?.pixelPitch ?? 0;

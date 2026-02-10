@@ -20,6 +20,18 @@ function isAlternateRowLabel(label: string) {
     return /^(alt(\b|[^a-z])|alternate(\b|[^a-z]))/.test(v);
 }
 
+function sanitizeScreenDisplayName(value: any): string {
+    const raw = (value ?? "").toString().trim();
+    if (!raw) return "";
+
+    // Strip parser/debug wrappers like "-- ... ---"
+    let cleaned = raw.replace(/^\s*-+\s*/g, "").replace(/\s*-+\s*$/g, "").trim();
+    // Strip parser metadata e.g. "(Page 95, Score 10)"
+    cleaned = cleaned.replace(/\(\s*Page\s*\d+\s*,\s*Score\s*[\d.]+\s*\)/gi, "").trim();
+    cleaned = cleaned.replace(/\s{2,}/g, " ").trim();
+    return cleaned;
+}
+
 /**
  * Parses the ANC Master Excel spreadsheet to extract pre-calculated proposal data.
  * Focuses on 'LED Sheet', 'Install (In-Bowl)', and 'Install (Concourse)' tabs.
@@ -175,9 +187,10 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     for (let i = headerRowIndex + 1; i < ledData.length; i++) {
         const row = ledData[i];
         const projectName = row[colIdx.name];
+        const cleanedProjectName = sanitizeScreenDisplayName(projectName);
 
         // Valid project row usually has a name and numeric dimensions/pitch
-        const normalizedName = typeof projectName === "string" ? projectName.trim().toLowerCase() : "";
+        const normalizedName = cleanedProjectName.toLowerCase();
         const nameCellUpper = (row[colIdx.name] ?? "").toString().trim().toUpperCase();
         const firstNonEmptyCellUpper = (() => {
             for (const c of row) {
@@ -202,8 +215,7 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
         const widthNum = Number(row[colIdx.width]);
 
         if (
-            typeof projectName === 'string' &&
-            projectName.trim() !== "" &&
+            cleanedProjectName !== "" &&
             normalizedName !== "option" &&
             Number.isFinite(pitchNum) &&
             pitchNum > 0 &&
@@ -216,9 +228,9 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             // PRD: Rows starting with "ALT" or "Alternate" are flagged but preserved.
             // Mirror Mode requires true 1:1 pass-through - templates decide what to render.
             // Intelligence Mode can filter these out to prevent inflated Base Bid.
-            const isAlternate = isAlternateRowLabel(projectName);
+            const isAlternate = isAlternateRowLabel(cleanedProjectName);
             if (isAlternate) {
-                console.log(`[EXCEL IMPORT] Detected Alternate Row (preserved): "${projectName}"`);
+                console.log(`[EXCEL IMPORT] Detected Alternate Row (preserved): "${cleanedProjectName}"`);
                 altRowsDetected++;
             }
 
@@ -253,7 +265,7 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             const finalClientTotal = safeNumAt(colIdx.finalTotal);
 
             const screen: any = {
-                name: projectName,
+                name: cleanedProjectName,
                 rowIndex: i + 1,
                 sourceRef: { sheet: ledSheetName, row: i + 1 },
                 pitchMm: formatDimension(pitch),
@@ -285,7 +297,7 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             }
             screen.description = description;
 
-            const marginRow = marginRows.length > 0 ? pickBestMarginRow(marginRows, projectName) : null;
+            const marginRow = marginRows.length > 0 ? pickBestMarginRow(marginRows, cleanedProjectName) : null;
             if (marginRow) {
                 screen.totalCost = marginRow.cost;
                 screen.sellPrice = marginRow.sell;
@@ -300,7 +312,7 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             }
 
             const audit: ScreenAudit = {
-                name: projectName,
+                name: cleanedProjectName,
                 productType: 'LED Display',
                 quantity: Number(colIdx.quantity >= 0 ? row[colIdx.quantity] : 1) || 1,
                 areaSqFt: formatDimension((parseFloat(heightFt) || 0) * (parseFloat(widthFt) || 0)),
@@ -338,6 +350,49 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             perScreenAudits.push(audit);
         } else if (typeof projectName === 'string' && projectName.trim() !== "") {
             blankRowsSkipped++;
+        }
+    }
+
+    // Normalize/fallback names and dedupe exact duplicates.
+    const dedupeSeen = new Set<string>();
+    const dedupedScreens: any[] = [];
+    for (let idx = 0; idx < screens.length; idx++) {
+        const screen = screens[idx];
+        const baseName = sanitizeScreenDisplayName(screen?.name);
+        const normalizedNameForOutput =
+            baseName && !/^unnamed\s+screen$/i.test(baseName)
+                ? baseName
+                : `Display ${dedupedScreens.length + 1}`;
+
+        const signature = [
+            normalizedNameForOutput.toLowerCase(),
+            Number(screen?.heightFt ?? 0) || 0,
+            Number(screen?.widthFt ?? 0) || 0,
+            Number(screen?.pitchMm ?? 0) || 0,
+            Number(screen?.pixelsH ?? 0) || 0,
+            Number(screen?.pixelsW ?? 0) || 0,
+        ].join("|");
+
+        if (dedupeSeen.has(signature)) continue;
+        dedupeSeen.add(signature);
+        dedupedScreens.push({ ...screen, name: normalizedNameForOutput });
+    }
+    screens.splice(0, screens.length, ...dedupedScreens);
+
+    if (marginRows.length > 0) {
+        const normalizedScreenNames = new Set(
+            screens.map((s: any) => (s?.name || "").toString().trim().toLowerCase()).filter(Boolean)
+        );
+        const sectionNames = new Set(
+            marginRows
+                .filter((r) => !r.isAlternate && !r.isTotalLike && r.section)
+                .map((r) => (r.section || "").toString().trim().toLowerCase())
+                .filter(Boolean)
+        );
+        for (const sectionName of sectionNames) {
+            if (!normalizedScreenNames.has(sectionName)) {
+                console.warn(`[EXCEL IMPORT] Missing screen spec match for pricing section: "${sectionName}"`);
+            }
         }
     }
 

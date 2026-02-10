@@ -26,11 +26,6 @@ import { resolveDocumentMode } from "@/lib/documentMode";
 import {
     DOCUMENT_MODES,
     CURRENCY_FORMAT,
-    EXHIBIT_G_CONSTANT_FIELDS,
-    EXHIBIT_G_CALCULATED_FIELDS,
-    calculateExhibitG,
-    calculateHardwareCost,
-    getProduct,
 } from "@/services/rfp/productCatalog";
 import type { DocumentMode as CatalogDocumentMode } from "@/services/rfp/productCatalog";
 
@@ -64,8 +59,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const parts = [receiver?.address, receiver?.city, receiver?.zipCode].filter(Boolean);
         return parts.length > 0 ? parts.join(", ") : "";
     })();
-
-    const specsSectionTitle = ((details as any)?.specsSectionTitle || "").trim() || "TECHNICAL SPECIFICATIONS";
 
     // Prompt 43: Currency detection from pricingDocument
     const pricingDocument = (details as any)?.pricingDocument;
@@ -199,14 +192,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         return corrected < 2 ? corrected.toFixed(2) : corrected.toFixed(corrected % 1 === 0 ? 0 : 2);
     };
 
-    /**
-     * Safely get corrected pitch for resolution math.
-     * Prevents "17px" from a 125mm (should be 1.25mm) bug.
-     */
-    const safePitch = (screen: any): number => {
-        return normalizePitch(screen?.pitchMm ?? screen?.pixelPitch) || 10;
-    };
-
     const buildDescription = (screen: any) => {
         const heightFt = screen?.heightFt ?? screen?.height;
         const widthFt = screen?.widthFt ?? screen?.width;
@@ -246,146 +231,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 <h2 className="text-base font-bold tracking-wide uppercase" style={{ color: colors.text }}>{title}</h2>
             </div>
             {subtitle && <p className="text-xs ml-4" style={{ color: colors.textMuted }}>{subtitle}</p>}
-        </div>
-    );
-
-    // Hybrid Spec Table - Modern styling with blue headers, zebra striping
-    const SpecTable = ({ screen, screenIndex }: { screen: any; screenIndex: number }) => (
-        <div className="mb-6 rounded-lg overflow-hidden border break-inside-avoid" style={{ borderColor: colors.border, background: colors.white, pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
-            {/* Blue Header */}
-            <div className="px-4 py-2.5 border-b break-inside-avoid" style={{ borderColor: colors.primary, background: colors.primary }}>
-                <h3 className="font-bold text-xs uppercase tracking-wide text-white">
-                    {getScreenHeader(screen)}
-                </h3>
-            </div>
-            {/* Two-column layout with zebra striping */}
-            <div className="grid grid-cols-2 text-xs">
-                {[
-                    { label: "Pixel Pitch", value: `${formatPitchMm(screen.pitchMm ?? screen.pixelPitch)}mm` },
-                    { label: "Quantity", value: screen.quantity || 1 },
-                    { label: "Height", value: `${Number(screen.heightFt ?? screen.height ?? 0).toFixed(2)}'` },
-                    { label: "Width", value: `${Number(screen.widthFt ?? screen.width ?? 0).toFixed(2)}'` },
-                    { label: "Resolution (H)", value: `${screen.pixelsH || Math.round((Number(screen.heightFt ?? 0) * 304.8) / safePitch(screen)) || 0}px` },
-                    { label: "Resolution (W)", value: `${screen.pixelsW || Math.round((Number(screen.widthFt ?? 0) * 304.8) / safePitch(screen)) || 0}px` },
-                    ...(() => {
-                        const raw = screen.brightnessNits ?? screen.brightness;
-                        if (!raw) return [];
-                        const num = Number(raw);
-                        const isNum = !isNaN(num) && num > 0;
-                        // Use formatted number if valid, otherwise use raw string
-                        const value = isNum ? `${formatNumberWithCommas(num)} nits` : raw.toString();
-                        return [{ label: "Brightness", value }];
-                    })(),
-                ]
-                    .filter((item) => !/Pixel\s*Density|HDR\s*Status/i.test(item.label))
-                    .map((item, idx) => (
-                        <div
-                            key={idx}
-                            className={`px-4 py-2 flex justify-between break-inside-avoid ${idx % 2 === 0 ? '' : ''} ${idx < 6 ? 'border-b' : ''}`}
-                            style={{
-                                borderColor: colors.borderLight,
-                                background: idx % 2 === 0 ? colors.white : colors.surface
-                            }}
-                        >
-                            <span style={{ color: colors.textMuted, fontSize: '10px' }}>{item.label}</span>
-                            <span className="font-semibold whitespace-nowrap" style={{ color: colors.text, fontSize: '10px' }}>{item.value}</span>
-                        </div>
-                    ))}
-            </div>
-            {!mirrorMode && (() => {
-                const product = getProduct((screen?.productType || "").toString());
-                const stored = screen?.calculatedExhibitG;
-                const resolutionW = Number(stored?.resolutionW || screen?.pixelsW || Math.round((Number(screen?.widthFt ?? screen?.width ?? 0) * 304.8) / safePitch(screen)) || 0);
-                const resolutionH = Number(stored?.resolutionH || screen?.pixelsH || Math.round((Number(screen?.heightFt ?? screen?.height ?? 0) * 304.8) / safePitch(screen)) || 0);
-                const exhibitG = stored || (product && resolutionW > 0 && resolutionH > 0 ? calculateExhibitG(product, resolutionW, resolutionH) : null);
-                if (!product && !exhibitG) return null;
-
-                const hwCost = exhibitG && product ? calculateHardwareCost(exhibitG.activeAreaM2, product.id) : undefined;
-                const storedHw = screen?.calculatedPricing?.hardwareCost;
-                const effectiveHw = typeof storedHw === "number" && Number.isFinite(storedHw) ? storedHw : hwCost;
-
-                const formLetter = String.fromCharCode(97 + screenIndex); // a, b, c...
-                const locationName = (screen?.externalName || screen?.customDisplayName || screen?.name || "Display").toString().trim();
-
-                const widthFtDisplay = exhibitG ? `${exhibitG.displayWidthFt}'` : "—";
-                const heightFtDisplay = exhibitG ? `${exhibitG.displayHeightFt}'` : "—";
-                const resDisplay = exhibitG ? `${formatNumberWithCommas(exhibitG.resolutionW)} × ${formatNumberWithCommas(exhibitG.resolutionH)}` : "—";
-
-                type FieldRow = { label: string; value: string };
-                type FieldGroup = { title: string; rows: FieldRow[] };
-
-                const groups: FieldGroup[] = [
-                    {
-                        title: "Component Specifications",
-                        rows: [
-                            { label: "OEM LED Module", value: product ? `${product.manufacturer} (${product.hardware})` : "—" },
-                            { label: "Processor", value: product?.processing || "—" },
-                            { label: "LED Lamp Die", value: product?.diode || "—" },
-                            { label: "Pixel Pitch", value: product ? `${product.pitchMm} mm` : "—" },
-                        ],
-                    },
-                    {
-                        title: "Display Dimensions",
-                        rows: [
-                            { label: "Overall Display Size", value: exhibitG ? `${widthFtDisplay} × ${heightFtDisplay}` : "—" },
-                            { label: "Resolution (px)", value: resDisplay },
-                            { label: "Panel Configuration", value: "—" },
-                            { label: "Total Panels / Qty", value: `${screen?.quantity || 1}` },
-                        ],
-                    },
-                    {
-                        title: "Performance Specifications",
-                        rows: [
-                            { label: "Brightness", value: product?.brightnessNits ? `${formatNumberWithCommas(product.brightnessNits)} nits` : "—" },
-                            { label: "Pixel Density", value: product?.pixelDensityPPF ? `${formatNumberWithCommas(product.pixelDensityPPF)} px/ft²` : "—" },
-                            { label: "Color Temperature", value: product?.colorTempK ? `${product.colorTempK.nominal}K (${product.colorTempK.min}–${product.colorTempK.max}K)` : "—" },
-                            { label: "Lifespan", value: product?.lifespanHours ? `${formatNumberWithCommas(product.lifespanHours)} hrs` : "—" },
-                        ],
-                    },
-                    {
-                        title: "Power & Weight",
-                        rows: [
-                            { label: "Max Power Consumption", value: exhibitG ? `${formatNumberWithCommas(exhibitG.maxPowerW)} W` : "—" },
-                            { label: "Avg Power Consumption", value: exhibitG ? `${formatNumberWithCommas(exhibitG.avgPowerW)} W` : "—" },
-                            { label: "Assembly Weight", value: exhibitG ? `${formatNumberWithCommas(exhibitG.totalWeightLbs)} lbs` : "—" },
-                            ...(effectiveHw != null && effectiveHw > 0
-                                ? [{ label: "Hardware Cost (ROM)", value: formatCurrency(effectiveHw) }]
-                                : []),
-                        ],
-                    },
-                ];
-
-                return (
-                    <div className="border-t" style={{ borderColor: colors.border }}>
-                        <div className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#FFFFFF', background: colors.primary }}>
-                            Exhibit G — Form 1{formLetter}: {locationName}
-                        </div>
-                        <table className="w-full text-[10px] border-collapse">
-                            <tbody>
-                                {groups.map((group) => (
-                                    <React.Fragment key={group.title}>
-                                        <tr>
-                                            <td colSpan={2} className="px-4 py-1.5 font-bold text-[9px] uppercase tracking-widest" style={{ background: colors.primaryLight, color: colors.primaryDark, borderBottom: `1px solid ${colors.borderLight}` }}>
-                                                {group.title}
-                                            </td>
-                                        </tr>
-                                        {group.rows.map((row, rIdx) => (
-                                            <tr key={row.label} style={{ background: rIdx % 2 === 0 ? colors.white : colors.surface }}>
-                                                <td className="px-4 py-1.5 w-1/2" style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.borderLight}` }}>
-                                                    {row.label}
-                                                </td>
-                                                <td className="px-4 py-1.5 w-1/2 font-semibold text-right" style={{ color: colors.text, borderBottom: `1px solid ${colors.borderLight}` }}>
-                                                    {row.value}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </React.Fragment>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                );
-            })()}
         </div>
     );
 
@@ -468,8 +313,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const grandTotal = Number(masterTable?.grandTotal ?? 0);
 
         return (
-            <div className="px-6 mt-6 break-inside-avoid">
-                <SectionHeader title="Project Pricing" />
+            <div className="px-6 mt-2 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: colors.primaryDark }}>
+                    Project Pricing
+                </div>
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     {/* Darker French Blue header to distinguish from detail tables */}
                     <div
@@ -489,11 +336,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         return (
                             <div
                                 key={`master-row-${idx}`}
-                                className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
+                                className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid items-center"
                                 style={{
                                     borderColor: colors.borderLight,
                                     background: idx % 2 === 1 ? colors.surface : colors.white,
-                                    minHeight: '36px',
+                                    minHeight: '28px',
                                 }}
                             >
                                 <div className="col-span-8 font-bold text-xs tracking-wide uppercase" style={{ color: colors.text }}>
@@ -508,7 +355,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Subtotal */}
                     {rows.length > 0 && Math.abs(subtotal) >= 0.01 && subtotal !== grandTotal && (
-                        <div className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
+                        <div className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
                             <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Subtotal</div>
                             <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
                                 {formatCurrency(subtotal, currency)}
@@ -518,7 +365,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Tax */}
                     {Math.abs(tax) >= 0.01 && (
-                        <div className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
+                        <div className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
                             <div className="col-span-8 text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Tax</div>
                             <div className="col-span-4 text-right text-sm" style={{ color: colors.text }}>
                                 {formatCurrency(tax, currency)}
@@ -528,7 +375,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Bond */}
                     {Math.abs(bond) >= 0.01 && (
-                        <div className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
+                        <div className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
                             <div className="col-span-8 text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Performance Bond</div>
                             <div className="col-span-4 text-right text-sm" style={{ color: colors.text }}>
                                 {formatCurrency(bond, currency)}
@@ -538,13 +385,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Grand Total */}
                     <div
-                        className="grid grid-cols-12 px-4 py-3 border-t-2 break-inside-avoid"
+                        className="grid grid-cols-12 px-4 py-2 border-t-2 break-inside-avoid"
                         style={{ borderColor: colors.primary, background: colors.primaryLight }}
                     >
                         <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
                             {label.toUpperCase()}{currency === "CAD" ? " (CAD)" : ""}
                         </div>
-                        <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
+                        <div className="col-span-4 text-right font-bold text-base" style={{ color: colors.primaryDark }}>
                             {formatCurrency(grandTotal, Math.abs(grandTotal) < 0.01 ? "—" : undefined, currency)}
                         </div>
                     </div>
@@ -1219,8 +1066,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
             {/* Intro - 10pt font */}
             {showIntroText && (
-                <div className="px-6 mb-6 break-inside-avoid">
-                    <div className="text-sm leading-relaxed" style={{ color: colors.textMuted }}>
+                <div className={`px-6 ${isLOI ? "mb-3" : "mb-6"} break-inside-avoid`}>
+                    <div className={`${isLOI ? "text-[10px]" : "text-sm"} leading-relaxed`} style={{ color: colors.textMuted }}>
                         {(shouldRenderLegalIntro && (details as any)?.loiHeaderText?.trim()) ? (
                             <p className="text-justify whitespace-pre-wrap">{(details as any).loiHeaderText.trim()}</p>
                         ) : customIntroText?.trim() ? (
@@ -1293,18 +1140,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         )}
 
-                        {/* Last pages: Technical Specifications */}
-                        {showSpecifications && screens.length > 0 && (
+                        {/* Last pages: Technical Specifications (single render path) */}
+                        {(showSpecifications || showExhibitA) && screens.length > 0 && (
                             <>
                                 <PageBreak />
                                 <ContinuationPageHeader />
                                 <div className="px-6 break-inside-avoid">
-                                    <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
-                                    <div className="break-inside-avoid">
-                                        {screens.map((screen: any, idx: number) => (
-                                            <SpecTable key={idx} screen={screen} screenIndex={idx} />
-                                        ))}
-                                    </div>
+                                    <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="exhibit" />
                                 </div>
                             </>
                         )}
@@ -1316,14 +1158,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     <ProjectScheduleSection />
                                 </div>
                             </>
-                        )}
-
-                        {showExhibitA && <PageBreak />}
-                        {showExhibitA && <ContinuationPageHeader />}
-                        {showExhibitA && (
-                            <div className="px-6 break-inside-avoid">
-                                <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
-                            </div>
                         )}
 
                         {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
@@ -1373,18 +1207,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         )}
 
-                        {/* Last pages: Technical Specifications */}
-                        {showSpecifications && screens.length > 0 && (
+                        {/* Last pages: Technical Specifications (single render path) */}
+                        {(showSpecifications || showExhibitA) && screens.length > 0 && (
                             <>
                                 <PageBreak />
                                 <ContinuationPageHeader />
                                 <div className="px-6 break-inside-avoid">
-                                    <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
-                                    <div className="break-inside-avoid">
-                                        {screens.map((screen: any, idx: number) => (
-                                            <SpecTable key={idx} screen={screen} screenIndex={idx} />
-                                        ))}
-                                    </div>
+                                    <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="exhibit" />
                                 </div>
                             </>
                         )}
@@ -1396,14 +1225,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     <ProjectScheduleSection />
                                 </div>
                             </>
-                        )}
-
-                        {showExhibitA && <PageBreak />}
-                        {showExhibitA && <ContinuationPageHeader />}
-                        {showExhibitA && (
-                            <div className="px-6 break-inside-avoid">
-                                <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
-                            </div>
                         )}
 
                         {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
@@ -1451,17 +1272,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <ScopeOfWorkSection />
                         </div>
                     )}
-                    {showSpecifications && screens.length > 0 && (
+                    {(showSpecifications || showExhibitA) && screens.length > 0 && (
                         <>
                             <PageBreak />
                             <ContinuationPageHeader />
                             <div className="px-6 break-inside-avoid">
-                                <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
-                                <div className="break-inside-avoid">
-                                    {screens.map((screen: any, idx: number) => (
-                                        <SpecTable key={idx} screen={screen} screenIndex={idx} />
-                                    ))}
-                                </div>
+                                <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="plain" />
                             </div>
                         </>
                     )}
@@ -1479,16 +1295,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <HybridFooter />
                         </div>
                     )}
-                    {showExhibitA && (
-                        <>
-                            <PageBreak />
-                            <ContinuationPageHeader />
-                            <div className="px-6 break-inside-avoid">
-                                <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} />
-                            </div>
-                        </>
-                    )}
-
                     {/* Resp Matrix SOW (if present in Excel) */}
                     <RespMatrixSOW />
 
