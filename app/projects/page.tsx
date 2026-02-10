@@ -237,18 +237,8 @@ export default function ProjectsPage() {
 
     const handleCopilotMessage = useCallback(async (message: string) => {
         const lower = message.toLowerCase();
-        if (lower.includes("pipeline value") || lower.includes("total pipeline")) {
-            return `Current pipeline value is ${summary.formattedPipeline} across ${summary.projectCount} projects.`;
-        }
-        if (lower.includes("need attention") || lower.includes("stale")) {
-            const stale = projects.filter((project) => {
-                const days = (Date.now() - new Date(project.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
-                return days > 7 && project.status === "DRAFT";
-            });
-            return stale.length > 0
-                ? `${stale.length} draft proposals are stale: ${stale.slice(0, 5).map((project) => project.clientName).join(", ")}.`
-                : "No stale draft proposals right now.";
-        }
+
+        // Local navigation shortcuts (need client-side router)
         if (lower.startsWith("open ")) {
             const query = lower.replace(/^open\s+/, "").trim();
             const match = projects.find((project) => project.clientName.toLowerCase().includes(query));
@@ -262,8 +252,26 @@ export default function ProjectsPage() {
             router.push("/projects/new");
             return "Opening new project setup.";
         }
-        return `Ask me about pipeline value, stale projects, opening a project, or starting a new proposal.\n\n${copilotContext}`;
-    }, [copilotContext, projects, router, summary.formattedPipeline, summary.projectCount]);
+
+        // Everything else → real AI via AnythingLLM dashboard workspace
+        try {
+            const res = await fetch("/api/copilot/dashboard", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message,
+                    pipelineContext: copilotContext,
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                return `AI error: ${data.response || data.error || res.statusText}`;
+            }
+            return data.response || "No response received.";
+        } catch (err: any) {
+            return `AI connection error: ${err?.message || String(err)}`;
+        }
+    }, [copilotContext, projects, router]);
 
     return (
         <div className="flex min-h-screen min-w-0 bg-background text-muted-foreground selection:bg-brand-blue/30 overflow-x-hidden">
