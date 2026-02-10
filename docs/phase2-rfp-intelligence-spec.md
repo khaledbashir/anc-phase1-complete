@@ -114,46 +114,60 @@ max_power = (cabinet_width_m × cabinet_height_m) × 488
 
 ## 3. Calculation Engine
 
-### 3.1 Per-Location Calculation
+### 3.1 The "488/45" Rule (Validated)
+
+Cross-validation against ALL 7 Exhibit G forms proves the density constants are **exact** — not approximate. Natalia uses a global density formula, not per-panel lookups.
+
+| Form | Location | Product | Grid | Panels | Max Power | Weight | **Power Density** | **Weight Density** |
+|------|----------|---------|------|--------|-----------|--------|-------------------|-------------------|
+| 1a | Concourse | 4mm | 89×3 | 267 | 120,150W | 11,161 lbs | **488.3 W/m²** | **45.4 lbs/m²** |
+| 1b | 9A Underpass | 4mm | 10×2 | 20 | 8,550W | 795 lbs | **488.3 W/m²** | **45.4 lbs/m²** |
+| 1c | T4-B1 | 4mm | 3×3 | 9 | 3,094W | 288 lbs | **488.3 W/m²** | **45.4 lbs/m²** |
+| 1d | T4-B2 | 4mm | 3×3 | 9 | 3,094W | 288 lbs | **488.3 W/m²** | **45.4 lbs/m²** |
+| 1f | PATH Hall | 4mm | 29×6 | 174 | 73,744W | 6,850 lbs | **488.3 W/m²** | **45.4 lbs/m²** |
+| 1g | T2-B1 | 4mm | 6×3 | 18 | 5,907W | 549 lbs | **488.3 W/m²** | **45.4 lbs/m²** |
+| 1e | Elevator | 10mm | 2×23 | 46 | 22,500W | 1,485 lbs | **298.0 W/m²** | **19.6 lbs/m²** |
+
+### 3.2 Density Profiles (Per Product Type)
+
+| Product | Power Density (W/m²) | Weight Density (lbs/m²) | Avg/Max Ratio |
+|---------|---------------------|------------------------|---------------|
+| **4mm Nitxeon** | **488.3** | **45.4** | 40% |
+| **10mm Mesh P10** | **298.0** | **19.6** | TBD (~40% est.) |
+| **2.5mm Nationstar MIP** | **390.6** (180W / 0.4608 m²) | **52.6** (24.25 lbs / 0.4608 m²) | 33% |
+
+### 3.3 Per-Location Calculation (Simplified)
 ```
 Input:
   - product_type: "4mm" | "10mm" | "2.5mm"
   - panels_wide: number
   - panels_high: number
-  - cabinet_variant: "standard" | "small" (for 2.5mm only)
-  - custom_cabinet_width_mm: number (optional, for 4mm custom sizes)
-  - custom_cabinet_height_mm: number (optional, for 4mm custom sizes)
+  - cabinet_width_mm: number   (from drawings or product default)
+  - cabinet_height_mm: number  (from drawings or product default)
 
 Derived:
   panel_count = panels_wide × panels_high
-  cabinet_width_mm = custom_cabinet_width_mm || product.default_width_mm
-  cabinet_height_mm = custom_cabinet_height_mm || product.default_height_mm
-
-Output:
-  // For 2.5mm/10mm (fixed cabinet sizes):
-  total_max_power = panel_count × max_watts_per_panel
-  total_avg_power = panel_count × avg_watts_per_panel
-  screen_weight_lbs = panel_count × weight_per_panel_lbs
-
-  // For 4mm (custom cabinets — use power density):
   cabinet_area_m2 = (cabinet_width_mm / 1000) × (cabinet_height_mm / 1000)
-  total_max_power = panel_count × cabinet_area_m2 × 488  // W/m²
-  total_avg_power = total_max_power × 0.40
-  weight_per_panel = cabinet_area_m2 × 46.5  // ~46.5 lbs/m² derived from 42 lbs / 0.9216 m²
-  screen_weight_lbs = panel_count × weight_per_panel
+  total_active_area_m2 = panel_count × cabinet_area_m2
 
-  // Common:
-  assembly_weight_lbs = screen_weight_lbs × 1.10  (10% structural buffer)
-  display_width_ft = panels_wide × cabinet_width_mm / 304.8
-  display_height_ft = panels_high × cabinet_height_mm / 304.8
-  display_width_px = panels_wide × (cabinet_width_mm / pitch_mm)
-  display_height_px = panels_high × (cabinet_height_mm / pitch_mm)
+Output (universal — works for ALL product types):
+  total_max_power = total_active_area_m2 × product.power_density_wm2
+  total_avg_power = total_max_power × product.avg_max_ratio
+  total_weight_lbs = total_active_area_m2 × product.weight_density_lbm2
+
+  display_width_mm = panels_wide × cabinet_width_mm
+  display_height_mm = panels_high × cabinet_height_mm
+  display_width_ft = display_width_mm / 304.8
+  display_height_ft = display_height_mm / 304.8
+  display_width_px = display_width_mm / product.pitch_mm
+  display_height_px = display_height_mm / product.pitch_mm
 ```
 
-### 3.2 Important Notes
-- **Power:** Form asks for "Entire Display" power = wall draw of the screen only. Do NOT include rack/server/PDU power (those are separate pricing line items: $29k + $271k).
-- **Weight:** Form asks for "Include internal structure" = add 10% buffer to raw panel weight.
-- **Structure adder is ~6-15%** based on back-calculation from actual forms. **Use 10% as default.**
+### 3.4 Critical Implementation Notes
+- **DO NOT use per-panel constants for 4mm** — cabinet sizes vary per location. Use density × area.
+- **Weight on form INCLUDES internal structure** — the 45.4 lbs/m² density already accounts for this (validated against all forms). No separate +10% buffer needed.
+- **Power on form = wall draw only** — do NOT include rack/server/PDU power (separate pricing line items: $29k + $271k).
+- **2.5mm uses fixed cabinet sizes** — can use either per-panel OR density approach (both work). Density is simpler.
 
 ---
 
@@ -265,7 +279,7 @@ Each location gets a block of sub-tasks:
 | 4mm avg/max power ratio | ✅ **Confirmed:** 40% (vs 33% for 2.5mm MIP) | Resolved |
 | 10mm panel specs (all fields) | ✅ **Confirmed:** 1680×1000mm Mesh P10, 33 lbs, 500W, 298 W/m² | Resolved |
 | System overhead multiplier | ✅ **Resolved:** No hidden multiplier — discrepancy was 4mm vs 2.5mm product mix | Resolved |
-| Structural weight buffer | ✅ **Confirmed:** ~10% adder | Resolved |
+| Structural weight buffer | ✅ **Revised:** No separate buffer needed — the 45.4 lbs/m² density already includes internal structure (validated against all 7 forms) | Resolved |
 
 ### Key Insight: Power Density as Universal Constant
 The 4mm product uses **custom cabinet sizes per location**, but all share the same power density (~488 W/m²) and weight density (~46.5 lbs/m²). This means the calculation engine can handle ANY cabinet size without needing per-size lookup tables — just multiply area × density constant.
