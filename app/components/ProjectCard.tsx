@@ -1,15 +1,11 @@
 "use client";
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
     ArrowUpRight,
-    Clock,
     Download,
-    FileSpreadsheet,
     Loader2,
-    MonitorPlay,
-    Sparkles,
     Trash2,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
@@ -40,24 +36,19 @@ interface ProjectCardProps {
     onStatusChange: (id: string, status: DashboardStatus) => Promise<void> | void;
     onBriefMe: (id: string) => void;
     onDelete?: (id: string) => void;
+    viewMode?: "grid" | "list";
 }
 
-const modeBadgeConfig: Record<ProjectCardData["documentMode"], { label: string }> = {
-    BUDGET: { label: "Budget" },
-    PROPOSAL: { label: "Proposal" },
-    LOI: { label: "LOI" },
-};
-
-const statusConfig: Record<string, { label: string; accent: string }> = {
-    DRAFT: { label: "Draft", accent: "bg-zinc-400" },
-    SHARED: { label: "Sent", accent: "bg-blue-500" },
-    APPROVED: { label: "Approved", accent: "bg-emerald-500" },
-    SIGNED: { label: "Signed", accent: "bg-emerald-600" },
-    CANCELLED: { label: "Lost", accent: "bg-zinc-300" },
-    PENDING_VERIFICATION: { label: "Pending", accent: "bg-blue-400" },
-    AUDIT: { label: "Audit", accent: "bg-amber-500" },
-    CLOSED: { label: "Closed", accent: "bg-zinc-300" },
-    ARCHIVED: { label: "Archived", accent: "bg-zinc-300" },
+const statusConfig: Record<string, { label: string; dot: string }> = {
+    DRAFT: { label: "Draft", dot: "bg-[#878787]" },
+    SHARED: { label: "Sent", dot: "bg-[#0A52EF]" },
+    APPROVED: { label: "Approved", dot: "bg-[#16a34a]" },
+    SIGNED: { label: "Signed", dot: "bg-[#16a34a]" },
+    CANCELLED: { label: "Lost", dot: "bg-[#878787]" },
+    PENDING_VERIFICATION: { label: "Pending", dot: "bg-[#0A52EF]" },
+    AUDIT: { label: "Audit", dot: "bg-[#d97706]" },
+    CLOSED: { label: "Closed", dot: "bg-[#878787]" },
+    ARCHIVED: { label: "Archived", dot: "bg-[#878787]" },
 };
 
 const statusOptions: Array<{ value: DashboardStatus; label: string }> = [
@@ -67,13 +58,6 @@ const statusOptions: Array<{ value: DashboardStatus; label: string }> = [
     { value: "SIGNED", label: "Signed" },
     { value: "CANCELLED", label: "Lost" },
 ];
-
-const getDocModeLabel = (mode: ProjectCardData["documentMode"]) => modeBadgeConfig[mode]?.label || mode;
-
-const truncateText = (value: string, maxChars: number): string => {
-    if (value.length <= maxChars) return value;
-    return `${value.slice(0, maxChars - 1)}...`;
-};
 
 const formatCurrency = (amount: number, currency: string = "USD") =>
     new Intl.NumberFormat("en-US", {
@@ -91,11 +75,10 @@ const formatDateStamp = () => {
 const safeFileName = (value: string) =>
     value.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_").slice(0, 80) || "Project";
 
-export default function ProjectCard({ project, onStatusChange, onBriefMe, onDelete }: ProjectCardProps) {
+export default function ProjectCard({ project, onStatusChange, onBriefMe, onDelete, viewMode = "list" }: ProjectCardProps) {
     const router = useRouter();
-    const workflowLabel = project.mirrorMode ? "Mirror" : "Intelligence";
 
-    const status = statusConfig[project.status] || { label: project.status, accent: "bg-zinc-400" };
+    const status = statusConfig[project.status] || { label: project.status, dot: "bg-[#878787]" };
     const selectedStatus: DashboardStatus = (() => {
         if (project.status === "SHARED" || project.status === "APPROVED" || project.status === "SIGNED" || project.status === "CANCELLED" || project.status === "DRAFT") {
             return project.status;
@@ -105,30 +88,12 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
         return "DRAFT";
     })();
 
-    const subtitle =
-        [project.venue ? truncateText(project.venue, 25) : null, project.clientCity].filter(Boolean).join(" · ") ||
-        getDocModeLabel(project.documentMode);
-
-    const title = truncateText(project.clientName, 30);
+    const venue = project.venue || project.clientCity || null;
     const totalDisplay = project.totalAmount === 0 && !project.hasExcel ? "—" : formatCurrency(project.totalAmount, project.currency || "USD");
 
     const [isExporting, setIsExporting] = useState(false);
     const [isStatusUpdating, setIsStatusUpdating] = useState(false);
     const [statusError, setStatusError] = useState<string | null>(null);
-    const [quickViewVisible, setQuickViewVisible] = useState(false);
-    const [quickViewPinned, setQuickViewPinned] = useState(false);
-    const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    const quickSummary = useMemo(() => {
-        return `${project.sectionCount} sections · ${project.screenCount} screens`;
-    }, [project.sectionCount, project.screenCount]);
-
-    const clearHoverTimer = () => {
-        if (hoverTimerRef.current) {
-            clearTimeout(hoverTimerRef.current);
-            hoverTimerRef.current = null;
-        }
-    };
 
     const handleQuickExport = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -139,7 +104,6 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
             setIsExporting(true);
             const res = await fetch(`/api/projects/${project.id}/pdf`, { method: "POST" });
             
-            // Check if response is OK
             if (!res.ok) {
                 const errorText = await res.text();
                 console.error("PDF export failed:", errorText);
@@ -147,7 +111,6 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                 return;
             }
             
-            // Verify the response is actually a PDF
             const contentType = res.headers.get("content-type");
             if (!contentType?.includes("application/pdf")) {
                 console.error("Response is not a PDF:", contentType);
@@ -157,7 +120,6 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
             
             const blob = await res.blob();
             
-            // Verify blob has content
             if (blob.size === 0) {
                 console.error("PDF blob is empty");
                 alert("PDF export failed — generated PDF is empty.");
@@ -180,158 +142,158 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
         }
     };
 
+    const handleStatusChange = async (nextStatus: DashboardStatus) => {
+        setStatusError(null);
+        setIsStatusUpdating(true);
+        try {
+            await onStatusChange(project.id, nextStatus);
+        } catch (err: any) {
+            setStatusError(err?.message || "Status update failed");
+        } finally {
+            setIsStatusUpdating(false);
+        }
+    };
+
+    /* ─── LIST ROW (default) ─── */
+    if (viewMode === "list") {
+        return (
+            <div
+                onClick={() => router.push(`/projects/${project.id}`)}
+                className="group flex items-center gap-4 px-4 py-3 border-b border-border cursor-pointer transition-colors duration-100 hover:bg-accent"
+            >
+                {/* Status dot + Name */}
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className={cn("w-2 h-2 rounded-full shrink-0", status.dot)} />
+                    <div className="min-w-0">
+                        <div className="text-[13px] font-medium text-foreground truncate">{project.clientName}</div>
+                        {venue && <div className="text-[11px] text-muted-foreground truncate">{venue}</div>}
+                    </div>
+                </div>
+
+                {/* Type */}
+                <div className="hidden sm:block w-20 text-[11px] text-muted-foreground shrink-0">
+                    {project.documentMode === "LOI" ? "LOI" : project.documentMode.charAt(0) + project.documentMode.slice(1).toLowerCase()}
+                </div>
+
+                {/* Status select */}
+                <div className="hidden md:flex items-center gap-1.5 w-24 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <select
+                        value={selectedStatus}
+                        onChange={(e) => handleStatusChange(e.target.value as DashboardStatus)}
+                        className="w-full bg-transparent text-[11px] text-muted-foreground cursor-pointer border-0 outline-none p-0 appearance-none hover:text-foreground transition-colors"
+                        aria-label="Change project status"
+                    >
+                        {statusOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                    </select>
+                    {isStatusUpdating && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground shrink-0" />}
+                </div>
+
+                {/* Screens */}
+                <div className="hidden lg:block w-20 text-[11px] text-muted-foreground text-right tabular-nums shrink-0">
+                    {project.screenCount > 0 ? `${project.screenCount} screen${project.screenCount !== 1 ? "s" : ""}` : "—"}
+                </div>
+
+                {/* Value */}
+                <div className="w-28 text-[13px] font-medium text-foreground text-right tabular-nums shrink-0">
+                    {totalDisplay}
+                </div>
+
+                {/* Time */}
+                <div className="hidden xl:block w-28 text-[11px] text-muted-foreground text-right shrink-0">
+                    {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-0.5 w-16 justify-end shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                    <button
+                        onClick={handleQuickExport}
+                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                        title="Export PDF"
+                        disabled={isExporting}
+                    >
+                        {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    </button>
+                    {onDelete && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("Delete this project?")) onDelete(project.id);
+                            }}
+                            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                            title="Delete"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                    <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground" />
+                </div>
+
+                {statusError && (
+                    <div className="absolute right-4 top-full mt-1 text-[10px] text-destructive bg-card border border-border rounded px-2 py-1 z-10">
+                        {statusError}
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    /* ─── GRID CARD ─── */
     return (
         <div
             onClick={() => router.push(`/projects/${project.id}`)}
-            onMouseEnter={() => {
-                clearHoverTimer();
-                hoverTimerRef.current = setTimeout(() => setQuickViewVisible(true), 1500);
-            }}
-            onMouseLeave={() => {
-                clearHoverTimer();
-                if (!quickViewPinned) setQuickViewVisible(false);
-            }}
-            className="group relative bg-card border border-border overflow-visible cursor-pointer transition-colors duration-150 hover:bg-accent flex flex-col h-full min-h-[220px] rounded"
+            className="group relative bg-card border border-border overflow-hidden cursor-pointer transition-colors duration-100 hover:bg-accent rounded flex flex-col"
         >
-            {/* Status accent — thin left bar */}
-            <div className={cn("absolute left-0 top-0 bottom-0 w-[2px]", status.accent, "opacity-40 group-hover:opacity-100 transition-opacity duration-150")} />
+            <div className="p-4 flex flex-col gap-3 flex-1">
+                {/* Row 1: Name + value */}
+                <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                        <div className="text-[13px] font-medium text-foreground truncate leading-tight">{project.clientName}</div>
+                        {venue && <div className="text-[11px] text-muted-foreground truncate mt-0.5">{venue}</div>}
+                    </div>
+                    <div className="text-[13px] font-medium text-foreground tabular-nums shrink-0 whitespace-nowrap">{totalDisplay}</div>
+                </div>
 
-            <div className="p-5 pl-6 flex flex-col h-full">
-                {/* Header: meta line */}
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground tracking-wide">
-                        <span className="uppercase font-medium">{getDocModeLabel(project.documentMode)}</span>
-                        <span className="text-border">·</span>
-                        <span>{workflowLabel}</span>
-                        <span className="text-border">·</span>
+                {/* Row 2: Meta chips */}
+                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                        <div className={cn("w-1.5 h-1.5 rounded-full", status.dot)} />
                         <span>{status.label}</span>
-                        {isStatusUpdating && <Loader2 className="w-3 h-3 animate-spin" />}
                     </div>
-
-                    <select
-                        value={selectedStatus}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={async (e) => {
-                            const nextStatus = e.target.value as DashboardStatus;
-                            setStatusError(null);
-                            setIsStatusUpdating(true);
-                            try {
-                                await onStatusChange(project.id, nextStatus);
-                            } catch (err: any) {
-                                setStatusError(err?.message || "Status update failed");
-                            } finally {
-                                setIsStatusUpdating(false);
-                            }
-                        }}
-                        className="h-6 px-1.5 rounded-sm border border-transparent hover:border-border bg-transparent text-[10px] text-muted-foreground cursor-pointer focus:border-border focus:outline-none transition-colors"
-                        aria-label="Change project status"
-                    >
-                        {statusOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                                {option.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                {/* Title + subtitle */}
-                <div className="flex-1 min-h-0">
-                    <h3 className="text-[15px] font-medium text-card-foreground leading-snug truncate">
-                        {title}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                        {subtitle}
-                    </p>
-                    {statusError && <p className="text-[10px] text-red-500 mt-1 truncate">{statusError}</p>}
-                </div>
-
-                {/* Stats row */}
-                <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-4 mb-3">
-                    {project.sectionCount > 0 && (
-                        <div className="flex items-center gap-1">
-                            {project.hasExcel && <FileSpreadsheet className="w-3 h-3" />}
-                            <span>{project.sectionCount} section{project.sectionCount !== 1 ? "s" : ""}</span>
-                        </div>
-                    )}
-                    {project.screenCount > 0 && (
-                        <div className="flex items-center gap-1">
-                            <MonitorPlay className="w-3 h-3" />
-                            <span>{project.screenCount} screen{project.screenCount !== 1 ? "s" : ""}</span>
-                        </div>
-                    )}
-                    <div className="flex items-center gap-1 ml-auto">
-                        <Clock className="w-3 h-3" />
-                        <span>{formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}</span>
-                    </div>
-                </div>
-
-                {/* Footer: value + actions */}
-                <div className="flex items-end justify-between pt-3 border-t border-border/40">
-                    <div className="text-lg font-medium text-foreground tracking-tight tabular-nums">{totalDisplay}</div>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <button
-                            onClick={(e) => { e.stopPropagation(); onBriefMe(project.id); }}
-                            className="p-1.5 text-muted-foreground hover:text-foreground rounded-sm transition-colors"
-                            title="Brief Me"
-                        >
-                            <Sparkles className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                            onClick={handleQuickExport}
-                            className="p-1.5 text-muted-foreground hover:text-foreground rounded-sm transition-colors"
-                            title="Export PDF"
-                            disabled={isExporting}
-                        >
-                            {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                        </button>
-                        {onDelete && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (confirm("Are you sure you want to delete this project?")) {
-                                        onDelete(project.id);
-                                    }
-                                }}
-                                className="p-1.5 text-muted-foreground hover:text-destructive rounded-sm transition-colors"
-                                title="Delete"
-                            >
-                                <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                        )}
-                        <ArrowUpRight className="w-3.5 h-3.5 ml-0.5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                    </div>
+                    <span>{project.documentMode === "LOI" ? "LOI" : project.documentMode.charAt(0) + project.documentMode.slice(1).toLowerCase()}</span>
+                    {project.screenCount > 0 && <span>{project.screenCount} screens</span>}
                 </div>
             </div>
 
-            {/* Quick View Popover */}
-            {(quickViewVisible || quickViewPinned) && (
-                <div
-                    onClick={(e) => e.stopPropagation()}
-                    className="absolute z-40 top-2 right-2 w-72 rounded border border-border bg-card p-4 shadow-sm"
-                >
-                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{getDocModeLabel(project.documentMode)} · {workflowLabel}</div>
-                    <div className="text-sm font-semibold text-foreground mt-1 truncate">{project.clientName}</div>
-                    <div className="text-xs text-muted-foreground mt-2">{quickSummary}</div>
-                    <div className="text-sm font-semibold text-foreground mt-1">{formatCurrency(project.totalAmount, project.currency || "USD")}</div>
-                    <div className="text-[11px] text-muted-foreground mt-2">
-                        Updated {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })} · {status.label}
-                    </div>
-                    <div className="mt-3 flex items-center gap-2">
-                        <button
-                            onClick={() => router.push(`/projects/${project.id}`)}
-                            className="px-3 py-1.5 text-xs rounded-sm border border-border text-foreground hover:bg-muted transition-colors"
-                        >
-                            Open
-                        </button>
-                        <button
-                            onClick={handleQuickExport}
-                            className="px-3 py-1.5 text-xs rounded-sm border border-border text-foreground hover:bg-muted transition-colors"
-                        >
-                            Export PDF
-                        </button>
-                    </div>
+            {/* Footer */}
+            <div className="flex items-center justify-between px-4 py-2 border-t border-border">
+                <div className="text-[11px] text-muted-foreground">
+                    {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
                 </div>
-            )}
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                    <button
+                        onClick={handleQuickExport}
+                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                        title="Export PDF"
+                        disabled={isExporting}
+                    >
+                        {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    </button>
+                    {onDelete && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (confirm("Delete this project?")) onDelete(project.id);
+                            }}
+                            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                            title="Delete"
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

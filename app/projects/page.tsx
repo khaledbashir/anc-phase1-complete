@@ -82,7 +82,7 @@ export default function ProjectsPage() {
     const [projects, setProjects] = useState<ProjectCardData[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
-    const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+    const [viewMode, setViewMode] = useState<"grid" | "list">("list");
     const [statusFilter, setStatusFilter] = useState("all");
     const [briefProjectId, setBriefProjectId] = useState<string | null>(null);
     const [isBriefOpen, setIsBriefOpen] = useState(false);
@@ -361,9 +361,9 @@ export default function ProjectsPage() {
                         </div>
 
                         {loading && projects.length === 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                                {[1, 2, 3, 4].map((i) => (
-                                    <div key={i} className="h-48 bg-accent animate-pulse rounded border border-border" />
+                            <div className="border border-border rounded overflow-hidden bg-card">
+                                {[1, 2, 3, 4, 5, 6].map((i) => (
+                                    <div key={i} className="h-12 border-b border-border last:border-b-0 animate-pulse bg-accent/50" />
                                 ))}
                             </div>
                         ) : (
@@ -388,20 +388,43 @@ export default function ProjectsPage() {
                                     </div>
                                 </div>
 
-                                <div className={cn(
-                                    "grid",
-                                    viewMode === "grid" ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" : "grid-cols-1 gap-2"
-                                )}>
-                                    {projects.map((project) => (
-                                        <ProjectCard
-                                            key={project.id}
-                                            project={project}
-                                            onStatusChange={handleStatusChange}
-                                            onBriefMe={handleBriefMe}
-                                            onDelete={handleDelete}
-                                        />
-                                    ))}
-                                </div>
+                                {viewMode === "list" ? (
+                                    <div className="border border-border rounded overflow-hidden bg-card">
+                                        {/* Table header */}
+                                        <div className="flex items-center gap-4 px-4 py-2 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground font-medium select-none">
+                                            <div className="flex-1 min-w-0 pl-5">Project</div>
+                                            <div className="hidden sm:block w-20">Type</div>
+                                            <div className="hidden md:block w-24">Status</div>
+                                            <div className="hidden lg:block w-20 text-right">Screens</div>
+                                            <div className="w-28 text-right">Value</div>
+                                            <div className="hidden xl:block w-28 text-right">Updated</div>
+                                            <div className="w-16" />
+                                        </div>
+                                        {projects.map((project) => (
+                                            <ProjectCard
+                                                key={project.id}
+                                                project={project}
+                                                onStatusChange={handleStatusChange}
+                                                onBriefMe={handleBriefMe}
+                                                onDelete={handleDelete}
+                                                viewMode="list"
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                        {projects.map((project) => (
+                                            <ProjectCard
+                                                key={project.id}
+                                                project={project}
+                                                onStatusChange={handleStatusChange}
+                                                onBriefMe={handleBriefMe}
+                                                onDelete={handleDelete}
+                                                viewMode="grid"
+                                            />
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
