@@ -150,6 +150,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const showPricingTables = (details as any)?.showPricingTables ?? true;
     const showIntroText = (details as any)?.showIntroText ?? true;
     const showCompanyFooter = (details as any)?.showCompanyFooter ?? true;
+    const generatedSchedule = (details as any)?.generatedSchedule;
+    const generatedScheduleTasks = Array.isArray(generatedSchedule?.tasks) ? generatedSchedule.tasks : [];
+    const hasGeneratedSchedule = !mirrorMode && generatedScheduleTasks.length > 0;
     const showExhibitA = (details as any)?.showExhibitA ?? false;
     const shouldRenderLegalIntro = docModeConfig.includeLegalIntro;
     const shouldRenderPaymentTerms = docModeConfig.includePaymentTerms && showPaymentTerms;
@@ -1092,6 +1095,69 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         );
     };
 
+    const ProjectScheduleSection = () => {
+        if (!hasGeneratedSchedule) return null;
+
+        const ntpLabel = (details as any)?.ntpDate;
+        const completionLabel = generatedSchedule?.completionDate;
+        const totalDuration = Number(generatedSchedule?.totalDurationDays || 0);
+        const phaseOrder = ["design", "manufacturing", "shipping", "install"];
+        const grouped = phaseOrder.map((phase) => ({
+            phase,
+            tasks: generatedScheduleTasks.filter((task: any) => (task?.phase || "").toString().toLowerCase() === phase),
+        })).filter((group) => group.tasks.length > 0);
+        let taskNumber = 0;
+
+        return (
+            <div className="mt-8 break-inside-avoid">
+                <SectionHeader title="Project Schedule" subtitle="Generated from NTP date and screen configuration" />
+                <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
+                    <div className="grid grid-cols-12 px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ background: colors.primaryLight, color: colors.primaryDark }}>
+                        <div className="col-span-4">NTP: {ntpLabel || "—"}</div>
+                        <div className="col-span-4 text-center">Completion: {completionLabel || "—"}</div>
+                        <div className="col-span-4 text-right">Duration: {totalDuration > 0 ? `${totalDuration} business days` : "—"}</div>
+                    </div>
+
+                    <div className="grid grid-cols-12 px-4 py-2 text-[10px] font-bold uppercase tracking-wider border-t" style={{ borderColor: colors.borderLight, background: colors.primary, color: colors.white }}>
+                        <div className="col-span-1">#</div>
+                        <div className="col-span-4">Task</div>
+                        <div className="col-span-2">Location</div>
+                        <div className="col-span-2">Start</div>
+                        <div className="col-span-2">End</div>
+                        <div className="col-span-1 text-right">Days</div>
+                    </div>
+
+                    {grouped.map((group) => (
+                        <React.Fragment key={`phase-${group.phase}`}>
+                            <div className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider border-t" style={{ borderColor: colors.borderLight, background: colors.surface, color: colors.primaryDark }}>
+                                {group.phase}
+                            </div>
+                            {group.tasks.map((task: any, idx: number) => {
+                                taskNumber += 1;
+                                return (
+                                    <div
+                                        key={`${group.phase}-${idx}-${task?.taskName || "task"}`}
+                                        className="grid grid-cols-12 px-4 py-2 text-[10px] border-t items-center"
+                                        style={{ borderColor: colors.borderLight, background: idx % 2 === 1 ? colors.surface : colors.white }}
+                                    >
+                                        <div className="col-span-1" style={{ color: colors.textMuted }}>{taskNumber}</div>
+                                        <div className="col-span-4 font-semibold" style={{ color: colors.text }}>
+                                            {task?.isParallel ? "↳ " : ""}{task?.taskName || "Task"}
+                                        </div>
+                                        <div className="col-span-2" style={{ color: colors.textMuted }}>{task?.locationName || "Global"}</div>
+                                        <div className="col-span-2" style={{ color: colors.text }}>{task?.startDate || "—"}</div>
+                                        <div className="col-span-2" style={{ color: colors.text }}>{task?.endDate || "—"}</div>
+                                        <div className="col-span-1 text-right" style={{ color: colors.text }}>{task?.durationDays ?? "—"}</div>
+                                    </div>
+                                );
+                            })}
+                        </React.Fragment>
+                    ))}
+                </div>
+            </div>
+        );
+    };
+
     // Bold-style Footer with dark blue slash
     const HybridFooter = () => (
         <div className="mt-16 pt-6 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
@@ -1216,6 +1282,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 </div>
                             </>
                         )}
+                        {hasGeneratedSchedule && (
+                            <>
+                                <PageBreak />
+                                <ContinuationPageHeader />
+                                <div className="px-6 break-inside-avoid">
+                                    <ProjectScheduleSection />
+                                </div>
+                            </>
+                        )}
 
                         {showExhibitA && <PageBreak />}
                         {showExhibitA && <ContinuationPageHeader />}
@@ -1287,6 +1362,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 </div>
                             </>
                         )}
+                        {hasGeneratedSchedule && (
+                            <>
+                                <PageBreak />
+                                <ContinuationPageHeader />
+                                <div className="px-6 break-inside-avoid">
+                                    <ProjectScheduleSection />
+                                </div>
+                            </>
+                        )}
 
                         {showExhibitA && <PageBreak />}
                         {showExhibitA && <ContinuationPageHeader />}
@@ -1352,6 +1436,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         <SpecTable key={idx} screen={screen} />
                                     ))}
                                 </div>
+                            </div>
+                        </>
+                    )}
+                    {hasGeneratedSchedule && (
+                        <>
+                            <PageBreak />
+                            <ContinuationPageHeader />
+                            <div className="px-6 break-inside-avoid">
+                                <ProjectScheduleSection />
                             </div>
                         </>
                     )}

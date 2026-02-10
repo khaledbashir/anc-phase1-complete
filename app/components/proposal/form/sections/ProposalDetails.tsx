@@ -170,6 +170,12 @@ const ProposalDetails = () => {
                         label={_t("form.steps.proposalDetails.dueDate")}
                     />
 
+                    <FormInput
+                        name="details.ntpDate"
+                        label="Notice to Proceed Date"
+                        type="date"
+                    />
+
                     <CurrencySelector
                         name="details.currency"
                         label={_t("form.steps.proposalDetails.currency")}

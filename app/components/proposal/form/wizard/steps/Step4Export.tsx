@@ -8,6 +8,7 @@ import {
     Eye,
     CheckCircle2,
     Clock,
+    Calendar,
     FileSpreadsheet,
     Shield,
     AlertTriangle,
@@ -32,6 +33,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { TextEditorPanel } from "@/app/components";
+import SchedulePreview from "@/app/components/proposal/form/sections/SchedulePreview";
 import { formatCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -72,6 +74,7 @@ const Step4Export = () => {
     const [changeRequests, setChangeRequests] = useState<any[]>([]);    // State for toggling sections
     const [isVerificationExpanded, setIsVerificationExpanded] = useState(true);
     const [isTextEditOpen, setIsTextEditOpen] = useState(true);
+    const [isScheduleOpen, setIsScheduleOpen] = useState(false);
 
     // Get proposal data
     const screens = watch("details.screens") || [];
@@ -846,6 +849,37 @@ const Step4Export = () => {
                         </Card>
 
                         {/* ─── Spacer between text editing and export ─── */}
+                        <div className="h-2" />
+
+                        {!mirrorMode && (
+                            <Card className="bg-card/40 border border-border/60 overflow-hidden">
+                                <CardHeader
+                                    className="border-b border-border/60 pb-3 cursor-pointer select-none"
+                                    onClick={() => setIsScheduleOpen(!isScheduleOpen)}
+                                >
+                                    <div className="flex items-center justify-between gap-2">
+                                        <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2 min-w-0">
+                                            <Calendar className="w-4 h-4 text-brand-blue shrink-0" />
+                                            <span className="truncate">Schedule Review</span>
+                                        </CardTitle>
+                                        <ChevronDown className={cn(
+                                            "w-4 h-4 text-muted-foreground transition-transform shrink-0",
+                                            isScheduleOpen && "rotate-180"
+                                        )} />
+                                    </div>
+                                    <CardDescription className="text-xs text-muted-foreground mt-1">
+                                        Generated from NTP date and configured screen locations
+                                    </CardDescription>
+                                </CardHeader>
+                                {isScheduleOpen && (
+                                    <CardContent className="p-4">
+                                        <SchedulePreview />
+                                    </CardContent>
+                                )}
+                            </Card>
+                        )}
+
+                        {/* ─── Spacer between schedule and export ─── */}
                         <div className="h-2" />
 
                         {/* ─── EXPORT SUITE — Hero Section ─── */}

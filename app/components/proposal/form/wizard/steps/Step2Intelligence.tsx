@@ -7,6 +7,7 @@ import { Calculator, Info, ChevronDown, ChevronUp, RotateCcw, Tv } from "lucide-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Screens } from "@/app/components";
 import PricingTableEditor from "@/app/components/proposal/form/sections/PricingTableEditor";
+import SchedulePreview from "@/app/components/proposal/form/sections/SchedulePreview";
 import { Badge } from "@/components/ui/badge";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { resolveDocumentMode, applyDocumentModeDefaults, type DocumentMode } from "@/lib/documentMode";
@@ -98,6 +99,7 @@ const Step2Intelligence = () => {
     });
     const screens = useMemo(() => (Array.isArray(watchedScreens) ? watchedScreens : []), [watchedScreens]);
     const details = useWatch({ name: "details", control });
+    const ntpDate = useWatch({ name: "details.ntpDate", control });
     const mirrorModeFlag = useWatch({ name: "details.mirrorMode", control });
     const pricingDocument = useWatch({ name: "details.pricingDocument" as any, control });
     const mirrorMode =
@@ -450,6 +452,10 @@ const Step2Intelligence = () => {
                     </div>
                 </CardContent>
             </Card>
+
+            {ntpDate && (
+                <SchedulePreview />
+            )}
         </div>
     );
 };

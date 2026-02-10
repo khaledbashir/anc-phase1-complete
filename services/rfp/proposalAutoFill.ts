@@ -28,6 +28,14 @@ export interface RFPExtractedData {
     isOutdoor?: boolean;
     bondRequired?: boolean;
     extractionAccuracy: "High" | "Standard" | "Low";
+    extractedSchedulePhases?: Array<{
+        phaseName: string;
+        phaseNumber?: string | number | null;
+        duration?: string | null;
+        startDate?: string | null;
+        endDate?: string | null;
+        tasks?: Array<{ name: string; duration?: string | null }>;
+    }>;
 }
 
 export interface ExhibitGOverridesByIndex {
@@ -219,6 +227,18 @@ export function buildAutoFillValues(
         fieldsPopulated.push(`details.screens (${screens.length} displays)`);
     } else {
         warnings.push("No displays extracted from RFP — manual entry required");
+    }
+
+    if (Array.isArray(extracted.extractedSchedulePhases) && extracted.extractedSchedulePhases.length > 0) {
+        values["details.extractedScheduleReference"] = extracted.extractedSchedulePhases.map((phase) => ({
+            phaseName: phase.phaseName,
+            phaseNumber: phase.phaseNumber != null ? String(phase.phaseNumber) : null,
+            duration: phase.duration ?? null,
+            startDate: phase.startDate ?? null,
+            endDate: phase.endDate ?? null,
+            taskCount: Array.isArray(phase.tasks) ? phase.tasks.length : 0,
+        }));
+        fieldsPopulated.push("details.extractedScheduleReference");
     }
 
     // Context flags

@@ -247,6 +247,17 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             specialRequirements: [],
             bondRequired: pricingData?.sections?.some(s => s.hasBond),
             extractionAccuracy: "Standard",
+            extractedSchedulePhases: (scheduleData?.schedule || []).map((phase) => ({
+                phaseName: phase.phaseName,
+                phaseNumber: phase.phaseNumber != null ? String(phase.phaseNumber) : null,
+                duration: phase.duration || null,
+                startDate: null,
+                endDate: null,
+                tasks: (phase.tasks || []).map((task) => ({
+                    name: task.name,
+                    duration: task.duration || null,
+                })),
+            })),
         }, exhibitOverrides);
 
         // Use reset with merged values so useFieldArray picks up screens
@@ -270,7 +281,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             fields: result.fieldsPopulated,
             warnings: result.warnings,
         });
-    }, [specData, pricingData, exhibitOverrides, getValues, reset]);
+    }, [specData, pricingData, scheduleData, exhibitOverrides, getValues, reset]);
 
     const handleReset = () => {
         setSpecData(null);
