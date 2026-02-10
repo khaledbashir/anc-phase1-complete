@@ -7,6 +7,7 @@ import numberToWords from "number-to-words";
 // Currencies
 import currenciesDetails from "@/public/assets/data/currencies.json";
 import { CurrencyDetails } from "@/types";
+import { CURRENCY_FORMAT } from "@/services/rfp/productCatalog";
 
 type SupportedCurrencyCode = "USD" | "CAD" | "EUR" | "GBP";
 const SUPPORTED_CURRENCY_CODES: Set<SupportedCurrencyCode> = new Set(["USD", "CAD", "EUR", "GBP"]);
@@ -127,14 +128,15 @@ export const formatCurrency = (
     if (amount === undefined || amount === null || amount === 0) {
         if (placeholder) return placeholder;
     }
-    const roundedAmount = Math.round(val);
+    const scale = 10 ** CURRENCY_FORMAT.decimals;
+    const roundedAmount = Math.round(val * scale) / scale;
     const normalizedAmount = Object.is(roundedAmount, -0) ? 0 : roundedAmount;
 
     return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
+        minimumFractionDigits: CURRENCY_FORMAT.decimals,
+        maximumFractionDigits: CURRENCY_FORMAT.decimals,
     }).format(normalizedAmount);
 };
 
@@ -151,14 +153,15 @@ export const formatCurrencyForPdf = (
         return placeholderText;
     }
     const locale = CURRENCY_LOCALES[currency];
-    const roundedAmount = Math.round(amount);
+    const scale = 10 ** CURRENCY_FORMAT.decimals;
+    const roundedAmount = Math.round(amount * scale) / scale;
     const normalizedAmount = Object.is(roundedAmount, -0) ? 0 : roundedAmount;
 
     return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency,
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
+        minimumFractionDigits: CURRENCY_FORMAT.decimals,
+        maximumFractionDigits: CURRENCY_FORMAT.decimals,
     }).format(normalizedAmount);
 };
 

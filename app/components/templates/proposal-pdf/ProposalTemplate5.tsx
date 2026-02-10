@@ -142,6 +142,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const showIntroText = (details as any)?.showIntroText ?? true;
     const showCompanyFooter = (details as any)?.showCompanyFooter ?? true;
     const showExhibitA = (details as any)?.showExhibitA ?? false;
+    const shouldRenderLegalIntro = docModeConfig.includeLegalIntro;
+    const shouldRenderPaymentTerms = docModeConfig.includePaymentTerms && showPaymentTerms;
+    const shouldRenderSignatureBlock = docModeConfig.includeSignatures && showSignatureBlock;
+    const shouldRenderCompanyFooter = showCompanyFooter && isLOI;
 
     // Page layout: landscape modes render detail tables in a two-column grid
     const pageLayout: string = (details as any)?.pageLayout || "portrait-letter";
@@ -1044,11 +1048,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             {showIntroText && (
                 <div className="px-6 mb-6 break-inside-avoid">
                     <div className="text-sm leading-relaxed" style={{ color: colors.textMuted }}>
-                        {(documentMode === "LOI" && (details as any)?.loiHeaderText?.trim()) ? (
+                        {(shouldRenderLegalIntro && (details as any)?.loiHeaderText?.trim()) ? (
                             <p className="text-justify whitespace-pre-wrap">{(details as any).loiHeaderText.trim()}</p>
                         ) : customIntroText?.trim() ? (
                             <p className="text-justify whitespace-pre-wrap">{customIntroText.trim()}</p>
-                        ) : documentMode === "LOI" ? (
+                        ) : shouldRenderLegalIntro ? (
                             <p className="text-justify">
                                 This Sales Quotation will set forth the terms by which <strong style={{ color: colors.text }}>{purchaserLegalName}</strong> ("Purchaser"){purchaserAddress ? ` located at ${purchaserAddress}` : ""} and <strong style={{ color: colors.text }}>ANC Sports Enterprises, LLC</strong> ("ANC") located at 2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties") agree that ANC will provide following LED Display and services (the "Display System") described below for the <strong style={{ color: colors.text }}>{details?.proposalName || (details as any)?.clientName || receiver?.name || "project"}</strong>.
                             </p>
@@ -1089,7 +1093,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         {/* Page 2: Payment Terms + Notes + Signature Block */}
                         <PageBreak />
                         <ContinuationPageHeader />
-                        {showPaymentTerms && (
+                        {shouldRenderPaymentTerms && (
                             <div className="px-6 break-inside-avoid">
                                 <PaymentTermsSection />
                             </div>
@@ -1099,7 +1103,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <NotesSection />
                             </div>
                         )}
-                        {showSignatureBlock && (
+                        {shouldRenderSignatureBlock && (
                             <div className="px-6 break-inside-avoid">
                                 <SignatureBlock />
                             </div>
@@ -1149,7 +1153,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         {/* Resp Matrix SOW (if present in Excel) */}
                         <RespMatrixSOW />
 
-                        {showCompanyFooter && (
+                        {shouldRenderCompanyFooter && (
                             <div className="px-6">
                                 <HybridFooter />
                             </div>
@@ -1171,7 +1175,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         )}
 
                         {/* Then: Payment Terms + Notes + Signature Block */}
-                        {showPaymentTerms && (
+                        {shouldRenderPaymentTerms && (
                             <div className="px-6 break-inside-avoid">
                                 <PaymentTermsSection />
                             </div>
@@ -1181,7 +1185,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <NotesSection />
                             </div>
                         )}
-                        {showSignatureBlock && (
+                        {shouldRenderSignatureBlock && (
                             <div className="px-6 break-inside-avoid">
                                 <SignatureBlock />
                             </div>
@@ -1220,7 +1224,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         {/* Resp Matrix SOW (if present in Excel) */}
                         <RespMatrixSOW />
 
-                        {showCompanyFooter && (
+                        {shouldRenderCompanyFooter && (
                             <div className="px-6">
                                 <HybridFooter />
                             </div>
@@ -1270,7 +1274,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         </>
                     )}
-                    {showCompanyFooter && (
+                    {shouldRenderCompanyFooter && (
                         <div className="px-6">
                             <HybridFooter />
                         </div>
@@ -1288,12 +1292,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {/* Resp Matrix SOW (if present in Excel) */}
                     <RespMatrixSOW />
 
-                    {showPaymentTerms && (
+                    {shouldRenderPaymentTerms && (
                         <div className="px-6 break-inside-avoid">
                             <PaymentTermsSection />
                         </div>
                     )}
-                    {showSignatureBlock && (
+                    {shouldRenderSignatureBlock && (
                         <>
                             <PageBreak />
                             <ContinuationPageHeader />
