@@ -11,7 +11,6 @@ import {
     Check,
     Zap,
     Filter,
-    Brain,
     X,
     AlertTriangle,
     DollarSign,
@@ -158,14 +157,15 @@ export default function RfpFullAnalysis() {
     const [copied, setCopied] = useState(false);
     const [showSections, setShowSections] = useState(false);
     const [expandedPhases, setExpandedPhases] = useState<Set<number>>(new Set());
+    const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const dragCounter = useRef(0);
 
     const isProcessing = Object.values(pipeline).some(s => s === "running");
     const isDone = Object.values(pipeline).some(s => s === "done" || s === "failed") && !isProcessing;
 
-    const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const processFile = useCallback(async (file: File) => {
+        if (!file || file.type !== "application/pdf") return;
 
         setError(null);
         setOverview(null);
@@ -237,6 +237,39 @@ export default function RfpFullAnalysis() {
         if (fileInputRef.current) fileInputRef.current.value = "";
     }, []);
 
+    const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) processFile(file);
+    }, [processFile]);
+
+    const handleDragEnter = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter.current++;
+        if (e.dataTransfer.types.includes("Files")) setIsDragging(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dragCounter.current--;
+        if (dragCounter.current === 0) setIsDragging(false);
+    }, []);
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        dragCounter.current = 0;
+        const file = e.dataTransfer.files?.[0];
+        if (file) processFile(file);
+    }, [processFile]);
+
     const handleCopy = useCallback(() => {
         let text = "";
         if (activeTab === "overview" && overview?.extraction) text = overview.extraction;
@@ -305,11 +338,11 @@ export default function RfpFullAnalysis() {
     };
 
     // ── TABS CONFIG ─────────────────────────────────────────────────────────
-    const tabs: Array<{ id: TabId; label: string; icon: React.ReactNode; status: keyof PipelineStatus }> = [
-        { id: "overview", label: "Overview", icon: <Brain className="w-3.5 h-3.5" />, status: "overview" },
-        { id: "specs", label: "Specs", icon: <Monitor className="w-3.5 h-3.5" />, status: "specs" },
-        { id: "pricing", label: "Pricing", icon: <DollarSign className="w-3.5 h-3.5" />, status: "pricing" },
-        { id: "schedule", label: "Schedule", icon: <Calendar className="w-3.5 h-3.5" />, status: "schedule" },
+    const tabs: Array<{ id: TabId; label: string; icon: React.ReactNode; status: keyof PipelineStatus; progressLabel: string }> = [
+        { id: "overview", label: "Overview", icon: <FileText className="w-3.5 h-3.5" />, status: "overview", progressLabel: "Scanning structure..." },
+        { id: "specs", label: "Specs", icon: <Monitor className="w-3.5 h-3.5" />, status: "specs", progressLabel: "Extracting specs..." },
+        { id: "pricing", label: "Pricing", icon: <DollarSign className="w-3.5 h-3.5" />, status: "pricing", progressLabel: "Mapping pricing..." },
+        { id: "schedule", label: "Schedule & Warranty", icon: <Calendar className="w-3.5 h-3.5" />, status: "schedule", progressLabel: "Extracting schedule..." },
     ];
 
     // ── RENDER ──────────────────────────────────────────────────────────────
@@ -352,10 +385,23 @@ export default function RfpFullAnalysis() {
 
                 {/* Upload Zone */}
                 {!isDone && !isProcessing && !error && (
-                    <div className="flex-1 flex items-center justify-center p-6">
-                        <label htmlFor="rfp-full-upload" className="flex flex-col items-center justify-center w-full max-w-lg h-64 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-2xl cursor-pointer hover:border-red-400 dark:hover:border-red-500 hover:bg-red-50/50 dark:hover:bg-red-900/10 transition-all">
-                            <Upload className="w-10 h-10 text-zinc-400 dark:text-zinc-500 mb-3" />
-                            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Drop your RFP here</p>
+                    <div
+                        className="flex-1 flex items-center justify-center p-6"
+                        onDragEnter={handleDragEnter}
+                        onDragLeave={handleDragLeave}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                    >
+                        <label htmlFor="rfp-full-upload" className={cn(
+                            "flex flex-col items-center justify-center w-full max-w-lg h-64 border-2 border-dashed rounded-2xl cursor-pointer transition-all",
+                            isDragging
+                                ? "border-red-500 bg-red-50/70 dark:border-red-400 dark:bg-red-900/20 scale-[1.02]"
+                                : "border-zinc-300 dark:border-zinc-600 hover:border-red-400 dark:hover:border-red-500 hover:bg-red-50/50 dark:hover:bg-red-900/10"
+                        )}>
+                            <Upload className={cn("w-10 h-10 mb-3", isDragging ? "text-red-500 dark:text-red-400" : "text-zinc-400 dark:text-zinc-500")} />
+                            <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                                {isDragging ? "Drop PDF to analyze" : "Drop your RFP here"}
+                            </p>
                             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">PDF files up to 50MB</p>
                             <div className="flex gap-3 mt-4">
                                 {[{ icon: <Monitor className="w-3 h-3" />, label: "Specs" }, { icon: <DollarSign className="w-3 h-3" />, label: "Pricing" }, { icon: <Calendar className="w-3 h-3" />, label: "Schedule" }, { icon: <Shield className="w-3 h-3" />, label: "Warranty" }].map(t => (
@@ -374,16 +420,18 @@ export default function RfpFullAnalysis() {
                     <div className="flex-1 flex flex-col items-center justify-center p-8 gap-6">
                         <Loader2 className="w-10 h-10 animate-spin text-red-500" />
                         <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">Analyzing RFP...</p>
-                        <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md">
                             {tabs.map(t => {
                                 const status = pipeline[t.status];
                                 return (
-                                    <div key={t.id} className={cn("flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium", status === "done" ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400" : status === "failed" ? "border-red-200 bg-red-50 text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400" : "border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400")}>
+                                    <div key={t.id} className={cn("flex items-center gap-2.5 px-3.5 py-3 rounded-xl border text-xs font-medium", status === "done" ? "border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400" : status === "failed" ? "border-red-200 bg-red-50 text-red-600 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400" : "border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400")}>
                                         {status === "running" && <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />}
                                         {status === "done" && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
                                         {status === "failed" && <XCircle className="w-3.5 h-3.5 shrink-0" />}
                                         {status === "idle" && t.icon}
-                                        {t.label}
+                                        <span className="flex-1">
+                                            {status === "running" ? t.progressLabel : status === "done" ? `${t.label} — done` : status === "failed" ? `${t.label} — failed` : t.label}
+                                        </span>
                                     </div>
                                 );
                             })}
@@ -506,26 +554,30 @@ export default function RfpFullAnalysis() {
                                                     <thead>
                                                         <tr className="bg-zinc-50 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 text-left">
                                                             <th className="px-3 py-2 font-semibold">Name</th>
+                                                            <th className="px-3 py-2 font-semibold">Location</th>
                                                             <th className="px-3 py-2 font-semibold">Dimensions</th>
                                                             <th className="px-3 py-2 font-semibold">Pitch</th>
                                                             <th className="px-3 py-2 font-semibold">Brightness</th>
                                                             <th className="px-3 py-2 font-semibold">Power</th>
                                                             <th className="px-3 py-2 font-semibold">Weight</th>
                                                             <th className="px-3 py-2 font-semibold">Hardware</th>
-                                                            <th className="px-3 py-2 font-semibold">Qty</th>
+                                                            <th className="px-3 py-2 font-semibold text-center">Confidence</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                                                         {specData.specs.map((s, i) => (
                                                             <tr key={i} className="text-zinc-700 dark:text-zinc-300">
                                                                 <td className="px-3 py-2 font-medium">{s.screenName || s.formId}</td>
+                                                                <td className="px-3 py-2">{s.location || "—"}</td>
                                                                 <td className="px-3 py-2">{s.widthFt && s.heightFt ? `${s.heightFt}' × ${s.widthFt}'` : "—"}</td>
                                                                 <td className="px-3 py-2">{s.pitchMm ? `${s.pitchMm}mm` : "—"}</td>
                                                                 <td className="px-3 py-2">{s.brightness ? `${s.brightness.toLocaleString()} nits` : "—"}</td>
                                                                 <td className="px-3 py-2">{s.maxPower ? `${s.maxPower.toLocaleString()}W` : "—"}</td>
                                                                 <td className="px-3 py-2">{s.weight ? `${s.weight.toLocaleString()} lbs` : "—"}</td>
                                                                 <td className="px-3 py-2">{s.hardware || "—"}</td>
-                                                                <td className="px-3 py-2">{s.quantity || 1}</td>
+                                                                <td className="px-3 py-2 text-center">
+                                                                    <span className={cn("px-1.5 py-0.5 rounded text-[9px] font-bold", s.confidence >= 0.8 ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : s.confidence >= 0.5 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400")}>{Math.round(s.confidence * 100)}%</span>
+                                                                </td>
                                                             </tr>
                                                         ))}
                                                     </tbody>
