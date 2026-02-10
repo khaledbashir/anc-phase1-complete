@@ -17,7 +17,7 @@ import {
     AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { buildAutoFillValues, applyAutoFill } from "@/services/rfp/proposalAutoFill";
+import { buildAutoFillValues } from "@/services/rfp/proposalAutoFill";
 
 // ============================================================================
 // TYPES
@@ -89,7 +89,7 @@ interface RfpIngestionProps {
 // ============================================================================
 
 export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
-    const { setValue } = useFormContext();
+    const { setValue, getValues, reset } = useFormContext();
 
     const [activeTab, setActiveTab] = useState<TabId>("specs");
     const [pipeline, setPipeline] = useState<PipelineStatus>({
@@ -102,6 +102,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
     const [error, setError] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [applied, setApplied] = useState<{ screensCount: number; fields: string[]; warnings: string[] } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const dragCounter = useRef(0);
 
@@ -226,16 +227,35 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             confidence: s.confidence,
         }));
 
-        const { values } = buildAutoFillValues({
+        const { values, result } = buildAutoFillValues({
             displays,
             specialRequirements: [],
             bondRequired: pricingData?.sections?.some(s => s.hasBond),
             extractionAccuracy: "Standard",
         });
 
-        applyAutoFill(values, setValue);
-        onComplete();
-    }, [specData, pricingData, setValue, onComplete]);
+        // Use reset with merged values so useFieldArray picks up screens
+        const current = getValues();
+        const merged = { ...current };
+
+        for (const [key, val] of Object.entries(values)) {
+            const parts = key.split(".");
+            let target: any = merged;
+            for (let i = 0; i < parts.length - 1; i++) {
+                if (!target[parts[i]]) target[parts[i]] = {};
+                target = target[parts[i]];
+            }
+            target[parts[parts.length - 1]] = val;
+        }
+
+        reset(merged, { keepDirty: true });
+
+        setApplied({
+            screensCount: result.screensCreated,
+            fields: result.fieldsPopulated,
+            warnings: result.warnings,
+        });
+    }, [specData, pricingData, getValues, reset]);
 
     const handleReset = () => {
         setSpecData(null);
@@ -283,15 +303,17 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={handleReset}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted/30 transition-colors"
-                    >
-                        <ArrowLeft className="w-3.5 h-3.5" />
-                        Back
-                    </button>
-                    {isDone && specData?.specs && specData.specs.length > 0 && (
+                    {!applied && (
+                        <button
+                            type="button"
+                            onClick={handleReset}
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted/30 transition-colors"
+                        >
+                            <ArrowLeft className="w-3.5 h-3.5" />
+                            Back
+                        </button>
+                    )}
+                    {isDone && !applied && specData?.specs && specData.specs.length > 0 && (
                         <button
                             type="button"
                             onClick={handleApplyToProposal}
@@ -301,13 +323,68 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                             <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                     )}
+                    {applied && (
+                        <button
+                            type="button"
+                            onClick={onComplete}
+                            className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-foreground rounded-lg hover:bg-foreground/90 transition-colors"
+                        >
+                            Continue to Proposal
+                            <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                    )}
                 </div>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
+                {/* Applied Confirmation */}
+                {applied && (
+                    <div className="max-w-lg mx-auto py-12 space-y-6">
+                        <div className="flex flex-col items-center text-center">
+                            <CheckCircle2 className="w-8 h-8 text-foreground mb-3" />
+                            <h2 className="text-lg font-semibold text-foreground">Data Applied to Proposal</h2>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {applied.screensCount} display{applied.screensCount !== 1 ? "s" : ""} and {applied.fields.length} field{applied.fields.length !== 1 ? "s" : ""} populated from {fileName}
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            {applied.fields.map((f, i) => (
+                                <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-xs">
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-foreground shrink-0" />
+                                    <span className="text-foreground">{f}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {applied.warnings.length > 0 && (
+                            <div className="space-y-1">
+                                {applied.warnings.map((w, i) => (
+                                    <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-xs text-muted-foreground">
+                                        <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                        <span>{w}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={onComplete}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-foreground rounded-lg hover:bg-foreground/90 transition-colors"
+                        >
+                            Continue to Proposal
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                        <p className="text-[10px] text-muted-foreground text-center">
+                            You can review and edit all extracted data in the proposal form.
+                        </p>
+                    </div>
+                )}
+
                 {/* Upload Zone */}
-                {!isDone && !isProcessing && !error && (
+                {!isDone && !isProcessing && !error && !applied && (
                     <div
                         className="max-w-2xl mx-auto"
                         onDragEnter={handleDragEnter}
@@ -337,7 +414,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                 )}
 
                 {/* Processing */}
-                {isProcessing && (
+                {isProcessing && !applied && (
                     <div className="max-w-lg mx-auto py-16 flex flex-col items-center gap-6">
                         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                         <p className="text-sm font-medium text-foreground">Extracting from {fileName}...</p>
@@ -356,7 +433,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                 )}
 
                 {/* Error */}
-                {error && !isProcessing && (
+                {error && !isProcessing && !applied && (
                     <div className="max-w-md mx-auto py-16 flex flex-col items-center">
                         <AlertTriangle className="w-6 h-6 text-destructive mb-3" />
                         <p className="text-sm font-medium text-destructive mb-1">Extraction Failed</p>
@@ -368,7 +445,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                 )}
 
                 {/* Results */}
-                {isDone && !error && (
+                {isDone && !error && !applied && (
                     <div className="space-y-4">
                         {/* Tab Bar */}
                         <div className="flex items-center gap-1 border-b border-border pb-px">
