@@ -173,6 +173,30 @@ const Step3Math = () => {
     const totalProjectValue = totals?.finalClientTotal || 0;
     const structuralLabor = totals?.labor || 0;
     const shippingLogistics = totals?.shipping || 0;
+    const romTotals = (screens || []).reduce(
+        (acc: any, s: any) => {
+            const ex = s?.calculatedExhibitG;
+            const pr = s?.calculatedPricing;
+            acc.maxPowerW += Number(ex?.maxPowerW || 0);
+            acc.totalWeightLbs += Number(ex?.totalWeightLbs || 0);
+            acc.installCost += Number(pr?.installCost || 0);
+            acc.pmCost += Number(pr?.pmCost || 0);
+            acc.engCost += Number(pr?.engCost || 0);
+            const hw = pr?.hardwareCost;
+            if (typeof hw === "number" && Number.isFinite(hw)) acc.hardwareCost += hw;
+            return acc;
+        },
+        {
+            maxPowerW: 0,
+            totalWeightLbs: 0,
+            installCost: 0,
+            pmCost: 0,
+            engCost: 0,
+            hardwareCost: 0,
+        }
+    );
+    const romGrandTotal =
+        romTotals.installCost + romTotals.pmCost + romTotals.engCost + romTotals.hardwareCost;
 
     const newId = () => {
         if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -407,6 +431,59 @@ const Step3Math = () => {
                         </div>
                     </div>
                 </div>
+
+                {!mirrorMode && (
+                    <Card className="bg-card border-border shadow-sm">
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-sm font-bold text-foreground uppercase tracking-tight">
+                                ROM Estimate
+                            </CardTitle>
+                            <CardDescription className="text-xs text-muted-foreground">
+                                Estimated from density constants — not from Excel data.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div className="rounded-xl border border-border bg-muted/20 p-3">
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Max Power</div>
+                                    <div className="text-base font-bold text-foreground mt-1">
+                                        {Math.round(romTotals.maxPowerW).toLocaleString("en-US")} W
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-muted/20 p-3">
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Total Weight</div>
+                                    <div className="text-base font-bold text-foreground mt-1">
+                                        {Math.round(romTotals.totalWeightLbs).toLocaleString("en-US")} lbs
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-muted/20 p-3">
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Install Labor</div>
+                                    <div className="text-base font-bold text-foreground mt-1">
+                                        {formatCurrency(romTotals.installCost)}
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-muted/20 p-3">
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">PM Cost</div>
+                                    <div className="text-base font-bold text-foreground mt-1">
+                                        {formatCurrency(romTotals.pmCost)}
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-border bg-muted/20 p-3">
+                                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">Engineering</div>
+                                    <div className="text-base font-bold text-foreground mt-1">
+                                        {formatCurrency(romTotals.engCost)}
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-brand-blue/30 bg-brand-blue/10 p-3">
+                                    <div className="text-[10px] uppercase tracking-wider text-brand-blue font-bold">ROM Grand Total</div>
+                                    <div className="text-lg font-bold text-foreground mt-1">
+                                        {formatCurrency(romGrandTotal)}
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Calculation Mode Toggle Card */}
                 <Card className="bg-card border-border shadow-sm">

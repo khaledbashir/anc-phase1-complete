@@ -383,6 +383,8 @@ const Step1Ingestion = () => {
                                         appendScreen({
                                             name: "",
                                             productType: "",
+                                            zoneComplexity: "standard",
+                                            zoneSize: "small",
                                             widthFt: 0,
                                             heightFt: 0,
                                             quantity: 1,

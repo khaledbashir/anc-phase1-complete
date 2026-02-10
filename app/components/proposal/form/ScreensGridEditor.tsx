@@ -6,6 +6,14 @@ import { AgGridReact } from "ag-grid-react";
 import { useMemo, useRef } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ProposalType } from "@/types";
+import {
+  calculateExhibitG,
+  estimatePricing,
+  getAllProducts,
+  getProduct,
+  getProductByPitch,
+} from "@/services/rfp/productCatalog";
+import { formatCurrency } from "@/lib/helpers";
 
 // Register AG Grid modules (required for v35+)
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -27,9 +35,49 @@ function parseOptionalNumber(value: unknown) {
   return Number.isFinite(n) ? n : undefined;
 }
 
+function deriveZoneSizeFromArea(areaM2: number): "small" | "medium" | "large" {
+  if (!Number.isFinite(areaM2) || areaM2 <= 0) return "small";
+  if (areaM2 < 10) return "small";
+  if (areaM2 <= 50) return "medium";
+  return "large";
+}
+
+function toZoneClass(
+  zoneComplexity: "standard" | "complex",
+  zoneSize: "small" | "medium" | "large",
+): "standard" | "medium" | "large" | "complex" {
+  if (zoneComplexity === "complex") return "complex";
+  if (zoneSize === "large") return "large";
+  if (zoneSize === "medium") return "medium";
+  return "standard";
+}
+
 export default function ScreensGridEditor() {
   const { control, setValue } = useFormContext<ProposalType>();
   const screens = useWatch({ control, name: "details.screens" }) || [];
+  const productOptions = useMemo(
+    () =>
+      getAllProducts()
+        .slice()
+        .sort((a, b) => a.pitchMm - b.pitchMm)
+        .map((p) => ({
+          id: p.id,
+          label:
+            p.id === "4mm-nitxeon"
+              ? "4mm Indoor (Nitxeon)"
+              : p.id === "10mm-mesh"
+                ? "10mm Mesh"
+                : p.id === "2.5mm-mip"
+                  ? "2.5mm Premium (MIP)"
+                  : p.name,
+        })),
+    []
+  );
+  const productLabelMap = useMemo(
+    () => Object.fromEntries(productOptions.map((p) => [p.id, p.label])),
+    [productOptions]
+  );
+
   const themeClass = useMemo(
     () => (typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "ag-theme-quartz-dark" : "ag-theme-quartz"),
     []
@@ -37,6 +85,103 @@ export default function ScreensGridEditor() {
 
   const screensRef = useRef<any[]>(screens);
   screensRef.current = screens;
+
+  const computeRom = (screen: any) => {
+    if (!screen || screen?.isManualLineItem) {
+      return {
+        ...screen,
+        calculatedExhibitG: undefined,
+        calculatedPricing: undefined,
+      };
+    }
+
+    const widthFt = Number(screen?.widthFt ?? 0);
+    const heightFt = Number(screen?.heightFt ?? 0);
+    const pitchMm = Number(screen?.pitchMm ?? 0);
+
+    let productId = (screen?.productType || "").toString().trim();
+    if (!productId && pitchMm > 0) {
+      const byPitch = getProductByPitch(pitchMm);
+      if (byPitch) productId = byPitch.id;
+    }
+    const product = productId ? getProduct(productId) : undefined;
+
+    const zoneComplexity: "standard" | "complex" =
+      screen?.zoneComplexity === "complex" ? "complex" : "standard";
+
+    if (!product || widthFt <= 0 || heightFt <= 0) {
+      return {
+        ...screen,
+        productType: product?.id ?? productId ?? screen?.productType ?? "",
+        zoneComplexity,
+        zoneSize: screen?.zoneSize || "small",
+        calculatedExhibitG: undefined,
+        calculatedPricing: undefined,
+      };
+    }
+
+    const effectivePitch = pitchMm > 0 ? pitchMm : product.pitchMm;
+    if (effectivePitch <= 0) {
+      return {
+        ...screen,
+        productType: product.id,
+        zoneComplexity,
+        zoneSize: screen?.zoneSize || "small",
+        calculatedExhibitG: undefined,
+        calculatedPricing: undefined,
+      };
+    }
+
+    const resolutionW = Math.round((widthFt * 304.8) / effectivePitch);
+    const resolutionH = Math.round((heightFt * 304.8) / effectivePitch);
+    if (resolutionW <= 0 || resolutionH <= 0) {
+      return {
+        ...screen,
+        productType: product.id,
+        zoneComplexity,
+        zoneSize: screen?.zoneSize || "small",
+        calculatedExhibitG: undefined,
+        calculatedPricing: undefined,
+      };
+    }
+
+    const exhibitG = calculateExhibitG(product, resolutionW, resolutionH);
+    const autoZoneSize = deriveZoneSizeFromArea(exhibitG.activeAreaM2);
+    const zoneSize: "small" | "medium" | "large" =
+      screen?.zoneSize === "small" || screen?.zoneSize === "medium" || screen?.zoneSize === "large"
+        ? screen.zoneSize
+        : autoZoneSize;
+    const zoneClass = toZoneClass(zoneComplexity, zoneSize);
+    const pricing = estimatePricing(exhibitG, zoneClass);
+
+    return {
+      ...screen,
+      productType: product.id,
+      zoneComplexity,
+      zoneSize,
+      pitchMm: pitchMm > 0 ? pitchMm : product.pitchMm,
+      calculatedExhibitG: {
+        displayWidthFt: exhibitG.displayWidthFt,
+        displayHeightFt: exhibitG.displayHeightFt,
+        resolutionW: exhibitG.resolutionW,
+        resolutionH: exhibitG.resolutionH,
+        activeAreaM2: exhibitG.activeAreaM2,
+        activeAreaSqFt: exhibitG.activeAreaSqFt,
+        maxPowerW: exhibitG.maxPowerW,
+        avgPowerW: exhibitG.avgPowerW,
+        totalWeightLbs: exhibitG.totalWeightLbs,
+        pitchMm: exhibitG.pitchMm,
+      },
+      calculatedPricing: {
+        installCost: pricing.installCost,
+        pmCost: pricing.pmCost,
+        engCost: pricing.engCost,
+        hardwareCost: pricing.hardwareCost,
+        totalEstimate: pricing.totalEstimate,
+        zoneClass: pricing.zoneClass,
+      },
+    };
+  };
 
   const columnDefs = useMemo<ColDef[]>(
     () => [
@@ -71,6 +216,31 @@ export default function ScreensGridEditor() {
         minWidth: 80,
         valueParser: (p) => parseOptionalNumber(p.newValue),
       },
+      {
+        field: "productType",
+        headerName: "Product",
+        editable: true,
+        minWidth: 180,
+        cellEditor: "agSelectCellEditor",
+        cellEditorParams: { values: productOptions.map((p) => p.id) },
+        valueFormatter: (p) => productLabelMap[(p.value || "").toString()] || (p.value || "Select Product"),
+      },
+      {
+        field: "zoneComplexity",
+        headerName: "Complexity",
+        editable: true,
+        minWidth: 110,
+        cellEditor: "agSelectCellEditor",
+        cellEditorParams: { values: ["standard", "complex"] },
+      },
+      {
+        field: "zoneSize",
+        headerName: "Zone Size",
+        editable: true,
+        minWidth: 100,
+        cellEditor: "agSelectCellEditor",
+        cellEditorParams: { values: ["small", "medium", "large"] },
+      },
       { field: "brightness", headerName: "Brightness", editable: true, minWidth: 100 },
       {
         field: "serviceType",
@@ -80,8 +250,48 @@ export default function ScreensGridEditor() {
         cellEditor: "agSelectCellEditor",
         cellEditorParams: { values: ["", "Top", "Front/Rear"] },
       },
+      {
+        field: "calculatedExhibitG.maxPowerW",
+        headerName: "Max Power (W)",
+        editable: false,
+        minWidth: 130,
+        valueGetter: (p) => p.data?.calculatedExhibitG?.maxPowerW ?? null,
+        valueFormatter: (p) => (p.value == null ? "—" : Number(p.value).toLocaleString("en-US")),
+      },
+      {
+        field: "calculatedExhibitG.totalWeightLbs",
+        headerName: "Weight (lbs)",
+        editable: false,
+        minWidth: 120,
+        valueGetter: (p) => p.data?.calculatedExhibitG?.totalWeightLbs ?? null,
+        valueFormatter: (p) => (p.value == null ? "—" : Number(p.value).toLocaleString("en-US")),
+      },
+      {
+        field: "calculatedPricing.installCost",
+        headerName: "Install Labor",
+        editable: false,
+        minWidth: 130,
+        valueGetter: (p) => p.data?.calculatedPricing?.installCost ?? null,
+        valueFormatter: (p) => (p.value == null ? "—" : formatCurrency(Number(p.value))),
+      },
+      {
+        field: "calculatedPricing.pmCost",
+        headerName: "PM Cost",
+        editable: false,
+        minWidth: 110,
+        valueGetter: (p) => p.data?.calculatedPricing?.pmCost ?? null,
+        valueFormatter: (p) => (p.value == null ? "—" : formatCurrency(Number(p.value))),
+      },
+      {
+        field: "calculatedPricing.engCost",
+        headerName: "Engineering",
+        editable: false,
+        minWidth: 120,
+        valueGetter: (p) => p.data?.calculatedPricing?.engCost ?? null,
+        valueFormatter: (p) => (p.value == null ? "—" : formatCurrency(Number(p.value))),
+      },
     ],
-    []
+    [productOptions, productLabelMap]
   );
 
   const defaultColDef = useMemo<ColDef>(
@@ -107,7 +317,13 @@ export default function ScreensGridEditor() {
     if (idx < 0) return;
 
     const nextValue = (event.data as any)[field];
-    setValue(`details.screens.${idx}.${field}` as any, nextValue, { shouldDirty: true, shouldValidate: true });
+    const nextRow = {
+      ...(currentScreens[idx] || {}),
+      ...(event.data || {}),
+      [field]: nextValue,
+    };
+    const computed = computeRom(nextRow);
+    setValue(`details.screens.${idx}` as any, computed, { shouldDirty: true, shouldValidate: true });
   };
 
   return (

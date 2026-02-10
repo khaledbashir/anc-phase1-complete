@@ -23,7 +23,14 @@ import PageBreak from "@/app/components/templates/proposal-pdf/PageBreak";
 // Helpers
 import { formatNumberWithCommas, formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText, normalizePitch } from "@/lib/helpers";
 import { resolveDocumentMode } from "@/lib/documentMode";
-import { DOCUMENT_MODES, CURRENCY_FORMAT } from "@/services/rfp/productCatalog";
+import {
+    DOCUMENT_MODES,
+    CURRENCY_FORMAT,
+    EXHIBIT_G_CONSTANT_FIELDS,
+    EXHIBIT_G_CALCULATED_FIELDS,
+    calculateExhibitG,
+    getProduct,
+} from "@/services/rfp/productCatalog";
 import type { DocumentMode as CatalogDocumentMode } from "@/services/rfp/productCatalog";
 
 // Types
@@ -61,6 +68,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Prompt 43: Currency detection from pricingDocument
     const pricingDocument = (details as any)?.pricingDocument;
+    const mirrorMode =
+        (details as any)?.mirrorMode === true || ((pricingDocument?.tables || []).length ?? 0) > 0;
     const currency: "CAD" | "USD" = pricingDocument?.currency || "USD";
 
     // Prompt 51: Master table index — designates which pricing table is the "Project Grand Total"
@@ -279,6 +288,78 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         </div>
                     ))}
             </div>
+            {!mirrorMode && (() => {
+                const product = getProduct((screen?.productType || "").toString());
+                const stored = screen?.calculatedExhibitG;
+                const resolutionW = Number(stored?.resolutionW || screen?.pixelsW || Math.round((Number(screen?.widthFt ?? screen?.width ?? 0) * 304.8) / safePitch(screen)) || 0);
+                const resolutionH = Number(stored?.resolutionH || screen?.pixelsH || Math.round((Number(screen?.heightFt ?? screen?.height ?? 0) * 304.8) / safePitch(screen)) || 0);
+                const exhibitG = stored || (product && resolutionW > 0 && resolutionH > 0 ? calculateExhibitG(product, resolutionW, resolutionH) : null);
+                if (!product && !exhibitG) return null;
+
+                const constantValues: Record<string, string> = {
+                    moduleMfg: product ? `${product.manufacturer} (${product.hardware})` : "—",
+                    processorMfg: product?.processing || "—",
+                    ledDiode: product?.diode || "—",
+                    pixelPitch: product ? `${product.pitchMm} mm` : "—",
+                    brightness: product?.brightnessNits ? `${formatNumberWithCommas(product.brightnessNits)} nits` : "—",
+                    colorTemp: product?.colorTempK ? `${product.colorTempK.nominal}K (${product.colorTempK.min}–${product.colorTempK.max}K)` : "—",
+                    pixelDensity: product?.pixelDensityPPF ? `${formatNumberWithCommas(product.pixelDensityPPF)} px/ft²` : "—",
+                    lifespan: product?.lifespanHours ? `${formatNumberWithCommas(product.lifespanHours)} hrs` : "—",
+                };
+                const calculatedValues: Record<string, string> = exhibitG ? {
+                    screenWidthFt: `${exhibitG.displayWidthFt} ft`,
+                    screenHeightFt: `${exhibitG.displayHeightFt} ft`,
+                    screenWidthPx: `${exhibitG.resolutionW}px`,
+                    screenHeightPx: `${exhibitG.resolutionH}px`,
+                    panelGrid: "—",
+                    totalPanels: `${screen?.quantity || 1}`,
+                    totalMaxPower: `${formatNumberWithCommas(exhibitG.maxPowerW)} W`,
+                    totalAvgPower: `${formatNumberWithCommas(exhibitG.avgPowerW)} W`,
+                    totalWeight: `${formatNumberWithCommas(exhibitG.totalWeightLbs)} lbs`,
+                } : {};
+
+                const labelMap: Record<string, string> = {
+                    moduleMfg: "Module Mfg",
+                    processorMfg: "Processor Mfg",
+                    ledDiode: "LED Diode",
+                    pixelPitch: "Pixel Pitch",
+                    brightness: "Brightness",
+                    colorTemp: "Color Temp",
+                    pixelDensity: "Pixel Density",
+                    lifespan: "Lifespan",
+                    screenWidthFt: "Width (ft)",
+                    screenHeightFt: "Height (ft)",
+                    screenWidthPx: "Resolution W",
+                    screenHeightPx: "Resolution H",
+                    panelGrid: "Panel Grid",
+                    totalPanels: "Total Panels",
+                    totalMaxPower: "Max Power",
+                    totalAvgPower: "Avg Power",
+                    totalWeight: "Total Weight",
+                };
+
+                return (
+                    <div className="border-t" style={{ borderColor: colors.borderLight }}>
+                        <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: colors.primaryDark, background: colors.primaryLight }}>
+                            Exhibit G Fields
+                        </div>
+                        <div className="grid grid-cols-2 text-[10px]">
+                            {EXHIBIT_G_CONSTANT_FIELDS.map((field, idx) => (
+                                <div key={`const-${field}`} className="px-4 py-1.5 flex justify-between border-b" style={{ borderColor: colors.borderLight, background: idx % 2 === 0 ? colors.white : colors.surface }}>
+                                    <span style={{ color: colors.textMuted }}>{labelMap[field] || field}</span>
+                                    <span className="font-semibold text-right ml-2" style={{ color: colors.text }}>{constantValues[field] || "—"}</span>
+                                </div>
+                            ))}
+                            {EXHIBIT_G_CALCULATED_FIELDS.map((field, idx) => (
+                                <div key={`calc-${field}`} className="px-4 py-1.5 flex justify-between border-b" style={{ borderColor: colors.borderLight, background: idx % 2 === 0 ? colors.white : colors.surface }}>
+                                    <span style={{ color: colors.textMuted }}>{labelMap[field] || field}</span>
+                                    <span className="font-semibold text-right ml-2" style={{ color: colors.text }}>{calculatedValues[field] || "—"}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 

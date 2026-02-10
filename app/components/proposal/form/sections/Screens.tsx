@@ -74,6 +74,8 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
         append({
             name: "",
             productType: "",
+            zoneComplexity: "standard",
+            zoneSize: "small",
             widthFt: 0,
             heightFt: 0,
             quantity: 1,
