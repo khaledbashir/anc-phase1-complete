@@ -234,36 +234,110 @@ Output (universal — works regardless of cabinet topology):
 
 ## 4. Pricing Structure
 
-### 4.1 Sections (1:1 with Exhibit G Forms)
-| Pricing Section | Location | Exhibit G Form |
-|----------------|----------|---------------|
-| 1 | Concourse LED | Form 1a |
-| 2 | 9A Underpass | Form 1b |
-| 3 | T4-B1 Screens | Form 1c |
-| 4 | T4-B2 Screens | Form 1d |
-| 5 | Elevator Screen | Form 1e |
-| 6 | PATH Hall Screens | Form 1f |
-| 7 | T2-B1 Screens | Form 1g |
-| 8 | T3-B1 Screens | (no form — pricing only) |
+### 4.1 Pricing Map (Validated 1:1 with Exhibit G)
 
-### 4.2 Line Items Per Section
-Each pricing section contains:
-- **Structural Labor** (steel/mounting)
-- **Electrical and Data** (power, conduit, fiber)
-- **Project Management** (PM allocation)
-- Hardware cost (LED panels)
+| Section | Location | Total Cost | Form | Zone Class |
+|---------|----------|-----------|------|-----------|
+| 1 | Concourse LED | $1,707,121.59 | 1a | Large (3x) |
+| 2 | 9A Underpass | $576,327.21 | 1b | Medium (2x) |
+| 3 | T4-B1 Screens | $202,914.66 | 1c | Standard (1x) |
+| 4 | T4-B2 Screens | $764,568.72 | 1d | Standard (1x) — high electrical |
+| 5 | Elevator Screen | $424,245.90 | 1e | Complex (1.2x) |
+| 6 | PATH Hall | $2,220,307.71 | 1f | Complex (1.2x) |
+| 7 | T2-B1 Screens | $265,814.02 | 1g | Standard (1x) |
+| 8 | T3-B1 Screen | $75,040.51 | N/A | Standard (1x) |
 
-### 4.3 Alternates
-| Alt # | Description | Type |
-|-------|------------|------|
-| Alt 1 | Upgrade to 2.5mm GOB | Upgrade (positive $) |
-| Alt 2 | Move to Smaller Display | Deduct (negative $) |
-| Alt 4 | Add Hoist Materials | Add-on (positive $) |
+### 4.2 Labor Cost Formulas (The "Holy Grail")
 
-### 4.4 Architecture Implication
+#### A. Structural Labor & Install — "The Weight Rule"
+Remarkably consistent cost-per-pound across locations:
+
+| Location | Install Cost | Weight (lbs) | $/lb | Complexity |
+|----------|-------------|-------------|------|-----------|
+| Concourse | $554,281 | 11,161 | $49.66 | Standard |
+| T4-B1 | $41,611 | 864 | $48.16 | Standard |
+| PATH Hall | $804,479 | 13,700 | $58.72 | Complex (ceiling/hoist) |
+| Elevator | $95,443 | 1,485 | $64.27 | Complex (custom mount) |
+
+**Formula:**
+```
+install_cost = total_weight_lbs × $50.00
+if (zone_type === "complex"): install_cost × 1.2
+```
+**Accuracy:** 99.3% on Concourse ($558,050 predicted vs $554,281 actual)
+
+#### B. Project Management — "Stepped Fixed Fee"
+PM is NOT percentage-based. It uses a fixed base unit × complexity factor:
+
+| Zone Class | PM Cost | Factor | Base Unit |
+|-----------|---------|--------|-----------|
+| Standard (T4-B1, T4-B2, T2-B1) | $5,882.35 | 1x | $5,882.35 |
+| Medium (9A Underpass) | $11,764.71 | 2x | $5,882.35 |
+| Large (Concourse) | $17,647.06 | 3x | $5,882.35 |
+
+**Formula:**
+```
+pm_cost = $5,882.35 × complexity_factor  // 1, 2, or 3
+```
+**Accuracy:** 99.9%
+
+#### C. Engineering & Submittals — "Base Fee"
+Also follows stepped logic:
+
+| Zone Class | Eng Cost | Notes |
+|-----------|---------|-------|
+| Standard | $4,705.88 | Base fee |
+| Concourse | $28,235.29 | ~6x base |
+| PATH Hall | $109,411.76 | High — structural engineering for hoists |
+
+**Formula:**
+```
+eng_cost = $4,705.88  // base, multiply for complex zones
+```
+
+### 4.3 Detailed Line Items (Validation Data)
+
+| Section | Hardware | Structural | Elec/Data | PM |
+|---------|----------|-----------|-----------|-----|
+| Concourse | $948,722.53 | $554,281.41 | $158,235.29 | $17,647.06 |
+| T4-B2 | $394,679.66 | $124,833.18 | $211,941.18* | $5,882.35 |
+| PATH Hall | $1,108,063.48 | $804,479.53 | $186,588.24 | $11,764.71 |
+
+*T4-B2 electrical is an outlier (>50% of hardware) — likely long conduit runs for 9 separate screens.
+
+### 4.4 Alternates
+
+Alternates apply **per-zone**, not globally:
+
+| Alt | Description | Type | Example | Logic |
+|-----|------------|------|---------|-------|
+| Alt 1 | Upgrade to 2.5mm GOB | Upgrade | Concourse: +$63,199, PATH: +$90,531, T4-B1: +$8,766 | ~6-8% of hardware base bid |
+| Alt 2 | Move to Smaller Display | Deduct | PATH Hall: -$354,195 | Location-specific |
+| Alt 4 | Add Hoist Materials | Add-on | PATH Hall: +$908,262 | Location-specific infrastructure |
+
+**Alt 1 Formula:**
+```
+alt1_upgrade_cost = hardware_cost × 0.07  // ~6-8%, use 7% midpoint
+```
+
+### 4.5 ROM Estimator Pipeline (From Exhibit G → Pricing)
+```
+1. Read Exhibit G form → get weight_lbs, max_power_watts
+2. Classify zone: Standard (1x) | Medium (2x) | Large (3x) | Complex (1.2x modifier)
+3. Calculate:
+   install_cost    = weight_lbs × $50 × complexity_modifier
+   pm_cost         = $5,882.35 × zone_factor
+   eng_cost        = $4,705.88 × zone_factor
+   hardware_cost   = (from product catalog pricing, TBD)
+   total           = hardware + install + elec + pm + eng
+4. Generate alternates:
+   alt1_2.5mm      = hardware_cost × 0.07
+```
+
+### 4.6 Architecture Implication
 **Adding a location should generate BOTH:**
-1. A pricing section with standard line items
-2. An Exhibit G technical form with calculated values
+1. An Exhibit G technical form (density × area → power/weight)
+2. A pricing section (weight → install cost, zone → PM/eng fees)
 
 ---
 
