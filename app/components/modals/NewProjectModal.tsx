@@ -58,9 +58,11 @@ export default function NewProjectModal({ children }: NewProjectModalProps) {
 
         // redirect to clean route for proposal
         setOpen(false);
+        router.refresh();
         router.push(`/projects/${json.proposal.id}`);
       } else if (resp.ok && json && json.workspace) {
         setOpen(false);
+        router.refresh();
         router.push(`/`);
       } else {
         const msg =
