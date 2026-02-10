@@ -172,13 +172,17 @@ export async function processPdf(
   buffer: Buffer,
   fileName: string = "document.pdf"
 ): Promise<ProcessedPdf> {
-  // pdf-parse is CJS — use require
+  // pdf-parse v2: class-based API with Uint8Array input
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const pdfParse = require("pdf-parse");
+  const { PDFParse } = require("pdf-parse");
 
-  const parsed = await pdfParse(buffer);
-  const rawText = parsed.text || "";
-  const totalPages = parsed.numpages || Math.ceil(rawText.length / 3000);
+  const parser = new PDFParse(new Uint8Array(buffer));
+  await parser.load();
+  const textResult = await parser.getText();
+  const info = await parser.getInfo();
+
+  const rawText = textResult.text || textResult.pages?.map((p: any) => p.text).join("\n\n") || "";
+  const totalPages = info.total || textResult.total || textResult.pages?.length || Math.ceil(rawText.length / 3000);
 
   // Split into sections
   const sections = splitIntoSections(rawText, totalPages);

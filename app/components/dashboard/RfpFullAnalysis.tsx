@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
     Upload,
     FileText,
@@ -144,7 +144,10 @@ interface PipelineStatus {
 // ============================================================================
 
 export default function RfpFullAnalysis() {
+    const [mounted, setMounted] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => { setMounted(true); }, []);
     const [activeTab, setActiveTab] = useState<TabId>("overview");
     const [pipeline, setPipeline] = useState<PipelineStatus>({
         overview: "idle", specs: "idle", pricing: "idle", schedule: "idle",
@@ -346,6 +349,8 @@ export default function RfpFullAnalysis() {
     ];
 
     // ── RENDER ──────────────────────────────────────────────────────────────
+
+    if (!mounted) return null;
 
     if (!isOpen) {
         return (

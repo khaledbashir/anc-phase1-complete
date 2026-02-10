@@ -41,36 +41,36 @@ export async function extractTextFromPDF(
     filename: string,
     options?: ExtractionOptions
 ): Promise<ExtractedRFP> {
-    // Dynamic import to avoid bundling pdf-parse in client
-    const pdfParseModule = await import("pdf-parse");
-    const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+    // pdf-parse v2: class-based API with Uint8Array input
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { PDFParse } = require("pdf-parse");
 
-    const data = await pdfParse(buffer, {
-        max: options?.maxPages || 0, // 0 = all pages
-    });
+    const parser = new PDFParse(new Uint8Array(buffer));
+    await parser.load();
+    const textResult = await parser.getText();
+    const info = await parser.getInfo();
 
-    // Split text by page breaks (form feed character)
-    const rawPages = data.text.split(/\f/);
+    const totalPages = info.total || textResult.total || textResult.pages?.length || 0;
     const startPage = options?.startPage || 1;
-    const endPage = options?.endPage || rawPages.length;
+    const endPage = options?.endPage || totalPages;
 
-    const pages = rawPages
-        .map((text: string, idx: number) => ({
+    const pages = (textResult.pages || [])
+        .map((p: any, idx: number) => ({
             pageNumber: idx + 1,
-            text: text.trim(),
+            text: (p.text || "").trim(),
         }))
         .filter((p: any) => p.pageNumber >= startPage && p.pageNumber <= endPage)
         .filter((p: any) => p.text.length > 0);
 
     return {
         filename,
-        pageCount: data.numpages,
-        fullText: pages.map((p: any) => p.text).join("\n\n"),
+        pageCount: totalPages,
+        fullText: textResult.text || pages.map((p: any) => p.text).join("\n\n"),
         pages,
         metadata: {
-            title: data.info?.Title,
-            author: data.info?.Author,
-            creationDate: data.info?.CreationDate,
+            title: info.info?.Title,
+            author: info.info?.Author,
+            creationDate: info.info?.CreationDate,
             extractedAt: new Date().toISOString(),
             fileSizeBytes: buffer.length,
         },
