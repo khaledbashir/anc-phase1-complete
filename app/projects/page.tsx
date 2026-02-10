@@ -22,6 +22,7 @@ import DashboardSidebar from "@/app/components/layout/DashboardSidebar";
 import DashboardBriefMe from "@/app/components/dashboard/DashboardBriefMe";
 import CopilotPanel from "@/app/components/chat/CopilotPanel";
 import PromptLibraryPanel from "@/app/components/dashboard/PromptLibraryPanel";
+import RfpProcessor from "@/app/components/dashboard/RfpProcessor";
 import { FEATURES } from "@/lib/featureFlags";
 import { cn } from "@/lib/utils";
 
@@ -441,6 +442,9 @@ export default function ProjectsPage() {
 
                 {/* AI Operations Prompt Library — slide-out panel */}
                 <PromptLibraryPanel pipelineContext={copilotContext} onSendToCopilot={handleCopilotMessage} />
+
+                {/* Smart RFP Processor — upload huge PDFs, extract only what matters */}
+                <RfpProcessor />
 
                 <div className="fixed bottom-6 right-6 z-50">
                     <CopilotPanel
