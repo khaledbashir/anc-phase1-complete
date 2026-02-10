@@ -164,10 +164,14 @@ export function detectCurrency(sheetName: string, content?: string): "CAD" | "US
  * Helper to format currency for display
  */
 export function formatPricingCurrency(amount: number, currency: "CAD" | "USD"): string {
-  const formatted = Math.abs(amount).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-  const prefix = amount < 0 ? "-" : "";
-  return `${prefix}$${formatted}`;
+  const locale = currency === "CAD" ? "en-CA" : "en-US";
+  const roundedAmount = Math.round(amount);
+  const normalizedAmount = Object.is(roundedAmount, -0) ? 0 : roundedAmount;
+
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(normalizedAmount);
 }

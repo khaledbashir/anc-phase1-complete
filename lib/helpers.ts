@@ -8,6 +8,18 @@ import numberToWords from "number-to-words";
 import currenciesDetails from "@/public/assets/data/currencies.json";
 import { CurrencyDetails } from "@/types";
 
+type SupportedCurrencyCode = "USD" | "CAD" | "EUR" | "GBP";
+const SUPPORTED_CURRENCY_CODES: Set<SupportedCurrencyCode> = new Set(["USD", "CAD", "EUR", "GBP"]);
+const CURRENCY_LOCALES: Record<SupportedCurrencyCode, string> = {
+    USD: "en-US",
+    CAD: "en-CA",
+    EUR: "de-DE",
+    GBP: "en-GB",
+};
+
+const isSupportedCurrencyCode = (value: string): value is SupportedCurrencyCode =>
+    SUPPORTED_CURRENCY_CODES.has(value as SupportedCurrencyCode);
+
 /**
  * Formats a number with commas and decimal places
  *
@@ -94,34 +106,60 @@ const formatNumberWithCommas = (number: number | string) => {
 /**
  * REQ-125: Format currency with professional placeholder for zero/undefined values
  * @param amount - The amount to format
- * @param placeholder - Optional placeholder for zero values (defaults to formatted $0.00)
+ * @param placeholderOrCurrency - Optional placeholder for zero values, or currency code for backward compatibility
+ * @param currencyOverride - Optional explicit currency code
  * @returns Formatted currency string or placeholder
  */
-export const formatCurrency = (amount: number | undefined | null, placeholder?: string) => {
+export const formatCurrency = (
+    amount: number | undefined | null,
+    placeholderOrCurrency?: string,
+    currencyOverride?: SupportedCurrencyCode
+) => {
+    const secondArg = (placeholderOrCurrency || "").toUpperCase();
+    const currencyFromSecondArg = isSupportedCurrencyCode(secondArg) ? secondArg : undefined;
+    const placeholder = currencyFromSecondArg ? undefined : placeholderOrCurrency;
+    const currency: SupportedCurrencyCode = currencyOverride || currencyFromSecondArg || "USD";
+    const locale = CURRENCY_LOCALES[currency];
+
     // Use placeholder for zero/undefined or negligible amounts when caller provides one (e.g. "—" in PDF)
     const val = amount ?? 0;
     if (placeholder != null && (val === 0 || Math.abs(val) < 0.01)) return placeholder;
     if (amount === undefined || amount === null || amount === 0) {
         if (placeholder) return placeholder;
     }
-    return new Intl.NumberFormat('en-US', {
+    const roundedAmount = Math.round(val);
+    const normalizedAmount = Object.is(roundedAmount, -0) ? 0 : roundedAmount;
+
+    return new Intl.NumberFormat(locale, {
         style: 'currency',
-        currency: 'USD',
-    }).format(amount || 0);
+        currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(normalizedAmount);
 };
 
 /**
  * REQ-125: Format currency for PDF - always uses placeholder for zero values
  * Use this in PDF templates to ensure professional appearance
  */
-export const formatCurrencyForPdf = (amount: number | undefined | null, placeholderText = "[PRICE]") => {
+export const formatCurrencyForPdf = (
+    amount: number | undefined | null,
+    placeholderText = "[PRICE]",
+    currency: SupportedCurrencyCode = "USD"
+) => {
     if (amount === undefined || amount === null || Math.abs(amount) < 0.01) {
         return placeholderText;
     }
-    return new Intl.NumberFormat('en-US', {
+    const locale = CURRENCY_LOCALES[currency];
+    const roundedAmount = Math.round(amount);
+    const normalizedAmount = Object.is(roundedAmount, -0) ? 0 : roundedAmount;
+
+    return new Intl.NumberFormat(locale, {
         style: 'currency',
-        currency: 'USD',
-    }).format(amount);
+        currency,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+    }).format(normalizedAmount);
 };
 
 /**
