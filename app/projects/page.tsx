@@ -6,14 +6,12 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
     Bell,
-    Brain,
-    ChevronDown,
-    ChevronUp,
     LayoutGrid,
     List,
     Plus,
     Search,
     Settings,
+    TrendingUp,
 } from "lucide-react";
 import NewProjectModal from "@/app/components/modals/NewProjectModal";
 import ProjectCard, { type DashboardStatus, type ProjectCardData } from "@/app/components/ProjectCard";
@@ -87,7 +85,6 @@ export default function ProjectsPage() {
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
     const [statusFilter, setStatusFilter] = useState("all");
-    const [showInsights, setShowInsights] = useState(true);
     const [briefProjectId, setBriefProjectId] = useState<string | null>(null);
     const [isBriefOpen, setIsBriefOpen] = useState(false);
     const router = useRouter();
@@ -153,7 +150,7 @@ export default function ProjectsPage() {
 
         // Use a stable greeting on server, real time on client
         if (now == null) {
-            const title = firstName ? `Welcome, ${firstName} 👋` : `Welcome 👋`;
+            const title = firstName ? `Welcome, ${firstName}` : `Welcome`;
             return { title, line: `${projects.length} projects in the pipeline worth ${formatCompactCurrency(totalValue)}.` };
         }
 
@@ -169,7 +166,7 @@ export default function ProjectsPage() {
         }).length;
         const topDeal = [...projects].sort((a, b) => (b.totalAmount || 0) - (a.totalAmount || 0))[0];
 
-        const title = firstName ? `${greeting}, ${firstName} 👋` : `${greeting} 👋`;
+        const title = firstName ? `${greeting}, ${firstName}` : greeting;
         const lines: string[] = [];
 
         lines.push(`${projects.length} projects in the pipeline worth ${formatCompactCurrency(totalValue)}.`);
@@ -290,44 +287,40 @@ export default function ProjectsPage() {
             <DashboardSidebar />
 
             <div className="flex-1 flex flex-col min-w-0 relative ml-16 md:ml-20 overflow-x-hidden">
-                <header className="fixed top-0 left-16 md:left-20 right-0 h-16 border-b border-border flex items-center justify-between gap-3 px-4 sm:px-6 bg-background/95 backdrop-blur z-50 min-w-0">
-                    <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+                <header className="fixed top-0 left-16 md:left-20 right-0 h-14 border-b border-border/60 flex items-center justify-between gap-3 px-4 sm:px-6 bg-background/80 backdrop-blur-xl z-50 min-w-0">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
                         <Link href="/" className="flex items-center gap-2 shrink-0">
-                            <div className="w-8 h-8 bg-gradient-to-br from-[#0A52EF] to-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                <span className="text-foreground font-bold text-sm">A</span>
-                            </div>
-                            <span className="text-foreground font-medium text-sm hidden sm:block">ANC</span>
+                            <span className="text-foreground font-semibold text-sm tracking-tight">ANC</span>
                         </Link>
 
-                        <div className="h-6 w-px bg-border hidden sm:block" />
+                        <div className="h-5 w-px bg-border/60 hidden sm:block" />
 
-                        <div className="relative group max-w-md w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-brand-blue transition-colors duration-200" />
+                        <div className="relative group max-w-sm w-full">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 group-focus-within:text-foreground transition-colors duration-200" />
                             <input
                                 type="text"
                                 placeholder="Search projects..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-muted/50 border border-input rounded-xl text-sm text-foreground placeholder-muted-foreground outline-none focus:border-brand-blue/50 focus:bg-muted focus:ring-1 focus:ring-brand-blue/20 transition-all duration-200"
+                                className="w-full pl-9 pr-4 py-1.5 bg-transparent border border-border/50 rounded-md text-sm text-foreground placeholder-muted-foreground/50 outline-none focus:border-foreground/20 focus:ring-0 transition-all duration-200"
                             />
-                            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted rounded border border-border">
+                            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/50 rounded border border-border/40">
                                 ⌘K
                             </kbd>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-                        <button className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all duration-200 relative">
+                    <div className="flex items-center gap-1 shrink-0">
+                        <button className="p-2 text-muted-foreground hover:text-foreground transition-colors relative">
                             <Bell className="w-4 h-4" />
-                            <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-[#0A52EF] rounded-full animate-pulse" />
                         </button>
-                        <button className="p-2.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl transition-all duration-200">
+                        <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
                             <Settings className="w-4 h-4" />
                         </button>
-                        <div className="h-6 w-px bg-border mx-1" />
+                        <div className="h-5 w-px bg-border/60 mx-1" />
                         <NewProjectModal>
-                            <button className="px-4 py-2 bg-white text-black rounded-xl hover:bg-zinc-100 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 text-sm font-semibold flex items-center gap-2 shadow-lg shadow-white/10">
-                                <Plus className="w-4 h-4" />
+                            <button className="px-3.5 py-1.5 bg-foreground text-background rounded-md hover:opacity-90 active:opacity-80 transition-opacity text-xs font-medium flex items-center gap-1.5">
+                                <Plus className="w-3.5 h-3.5" />
                                 <span className="hidden sm:inline">New Project</span>
                                 <span className="sm:hidden">New</span>
                             </button>
@@ -335,25 +328,26 @@ export default function ProjectsPage() {
                     </div>
                 </header>
 
-                <main className="flex-1 mt-16 pt-12 pb-48 px-12 overflow-y-auto">
+                <main className="flex-1 mt-14 pt-8 pb-48 px-6 sm:px-10 lg:px-12 overflow-y-auto">
                     <div className="max-w-7xl mx-auto space-y-6">
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                            <div className="space-y-1">
-                                <h1 className="text-3xl font-normal text-foreground serif-vault leading-tight">
+                        {/* Hero */}
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                            <div>
+                                <h1 className="text-2xl font-semibold text-foreground tracking-tight leading-tight">
                                     {heroGreeting.title}
                                 </h1>
-                                <p className="text-sm text-muted-foreground font-medium">{heroGreeting.line}</p>
+                                <p className="text-[13px] text-muted-foreground mt-1">{heroGreeting.line}</p>
                             </div>
 
-                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                                <div className="flex bg-muted/50 p-1 rounded-lg border border-border shrink-0">
+                            <div className="flex items-center gap-2">
+                                <div className="flex p-0.5 rounded-md border border-border/50 shrink-0">
                                     {statusFilters.map((filter) => (
                                         <button
                                             key={filter.key}
                                             onClick={() => setStatusFilter(filter.key)}
                                             className={cn(
-                                                "px-3 py-1 text-xs font-medium rounded transition-all",
-                                                statusFilter === filter.key ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                                                "px-2.5 py-1 text-[11px] font-medium rounded-[3px] transition-all",
+                                                statusFilter === filter.key ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
                                             )}
                                         >
                                             {filter.label}
@@ -361,9 +355,7 @@ export default function ProjectsPage() {
                                     ))}
                                 </div>
 
-                                <div className="h-6 w-px bg-border" />
-
-                                <button className="p-2 text-muted-foreground hover:text-foreground transition-colors" onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}>
+                                <button className="p-1.5 text-muted-foreground hover:text-foreground transition-colors" onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}>
                                     {viewMode === "grid" ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
                                 </button>
                             </div>
@@ -376,51 +368,40 @@ export default function ProjectsPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                                    <div className="border border-border rounded-lg bg-card px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{summary.filterLabel}</div>
-                                        <div className="text-2xl font-semibold text-foreground">{summary.projectCount}</div>
+                            <div className="space-y-5">
+                                {/* KPI Strip */}
+                                <div className="flex items-center gap-6 sm:gap-8 py-3 border-b border-border/40">
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">{summary.filterLabel}</div>
+                                        <div className="text-lg font-semibold text-foreground tabular-nums">{summary.projectCount}</div>
                                     </div>
-                                    <div className="border border-border rounded-lg bg-card px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Mirror</div>
-                                        <div className="text-2xl font-semibold text-foreground">{summary.mirrorCount}</div>
+                                    <div className="h-8 w-px bg-border/30" />
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">Mirror</div>
+                                        <div className="text-lg font-semibold text-foreground tabular-nums">{summary.mirrorCount}</div>
                                     </div>
-                                    <div className="border border-border rounded-lg bg-card px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Intelligence</div>
-                                        <div className="text-2xl font-semibold text-foreground">{summary.intelligenceCount}</div>
+                                    <div className="h-8 w-px bg-border/30" />
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">Intelligence</div>
+                                        <div className="text-lg font-semibold text-foreground tabular-nums">{summary.intelligenceCount}</div>
                                     </div>
-                                    <div className="border border-border rounded-lg bg-card px-4 py-3">
-                                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Pipeline Value</div>
-                                        <div className="text-2xl font-semibold text-foreground">{summary.formattedPipeline}</div>
+                                    <div className="h-8 w-px bg-border/30" />
+                                    <div>
+                                        <div className="text-[10px] uppercase tracking-widest text-muted-foreground/70 font-medium">Pipeline</div>
+                                        <div className="text-lg font-semibold text-foreground tabular-nums">{summary.formattedPipeline}</div>
                                     </div>
-                                </div>
-
-                                <div className="border border-blue-100 bg-blue-50/70 rounded-lg">
-                                    <button
-                                        className="w-full px-4 py-3 flex items-center justify-between"
-                                        onClick={() => setShowInsights((prev) => !prev)}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <Brain className="w-4 h-4 text-blue-700" />
-                                            <span className="text-sm font-semibold text-blue-900">AI Insights</span>
-                                        </div>
-                                        {showInsights ? <ChevronUp className="w-4 h-4 text-blue-700" /> : <ChevronDown className="w-4 h-4 text-blue-700" />}
-                                    </button>
-                                    {showInsights && (
-                                        <div className="px-4 pb-4 space-y-2">
-                                            {insights.length > 0 ? insights.map((insight) => (
-                                                <div key={insight} className="text-sm text-blue-900">
-                                                    <span className="mr-2">✨</span>
-                                                    {insight}
-                                                </div>
-                                            )) : (
-                                                <div className="text-sm text-blue-900">No actionable insights yet. Keep pipeline activity flowing.</div>
-                                            )}
-                                        </div>
+                                    {insights.length > 0 && (
+                                        <>
+                                            <div className="h-8 w-px bg-border/30 hidden lg:block" />
+                                            <div className="hidden lg:flex items-start gap-2 flex-1 min-w-0">
+                                                <TrendingUp className="w-3.5 h-3.5 text-muted-foreground/50 mt-0.5 shrink-0" />
+                                                <p className="text-[11px] text-muted-foreground leading-relaxed truncate">
+                                                    {insights[0]}
+                                                </p>
+                                            </div>
+                                        </>
                                     )}
                                 </div>
-
 
                                 <div className={cn(
                                     "grid",
