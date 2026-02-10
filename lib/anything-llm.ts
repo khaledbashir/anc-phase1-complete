@@ -328,7 +328,7 @@ export async function updateWorkspaceSettings(slug: string, settings: any): Prom
 // PROJECT WORKSPACE PROVISIONING
 // ============================================================================
 
-const DASHBOARD_WORKSPACE_SLUG = process.env.ANYTHING_LLM_WORKSPACE || "nata-estimator";
+const DASHBOARD_WORKSPACE_SLUG = process.env.ANYTHING_LLM_WORKSPACE || "dashboard-vault";
 
 /**
  * Provision a dedicated AnythingLLM workspace for a project.
