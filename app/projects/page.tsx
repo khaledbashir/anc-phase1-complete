@@ -361,9 +361,9 @@ export default function ProjectsPage() {
                         </div>
 
                         {loading && projects.length === 0 ? (
-                            <div className="border border-border rounded overflow-hidden bg-card">
+                            <div className="space-y-px">
                                 {[1, 2, 3, 4, 5, 6].map((i) => (
-                                    <div key={i} className="h-12 border-b border-border last:border-b-0 animate-pulse bg-accent/50" />
+                                    <div key={i} className="h-12 animate-pulse bg-accent/50" />
                                 ))}
                             </div>
                         ) : (
@@ -389,17 +389,7 @@ export default function ProjectsPage() {
                                 </div>
 
                                 {viewMode === "list" ? (
-                                    <div className="border border-border rounded overflow-hidden bg-card">
-                                        {/* Table header */}
-                                        <div className="flex items-center gap-4 px-4 py-2 border-b border-border text-[10px] uppercase tracking-wider text-muted-foreground font-medium select-none">
-                                            <div className="flex-1 min-w-0 pl-5">Project</div>
-                                            <div className="hidden sm:block w-20">Type</div>
-                                            <div className="hidden md:block w-24">Status</div>
-                                            <div className="hidden lg:block w-20 text-right">Screens</div>
-                                            <div className="w-28 text-right">Value</div>
-                                            <div className="hidden xl:block w-28 text-right">Updated</div>
-                                            <div className="w-16" />
-                                        </div>
+                                    <div className="space-y-px">
                                         {projects.map((project) => (
                                             <ProjectCard
                                                 key={project.id}

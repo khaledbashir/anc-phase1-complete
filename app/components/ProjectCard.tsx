@@ -39,16 +39,16 @@ interface ProjectCardProps {
     viewMode?: "grid" | "list";
 }
 
-const statusConfig: Record<string, { label: string; dot: string }> = {
-    DRAFT: { label: "Draft", dot: "bg-[#878787]" },
-    SHARED: { label: "Sent", dot: "bg-[#0A52EF]" },
-    APPROVED: { label: "Approved", dot: "bg-[#16a34a]" },
-    SIGNED: { label: "Signed", dot: "bg-[#16a34a]" },
-    CANCELLED: { label: "Lost", dot: "bg-[#878787]" },
-    PENDING_VERIFICATION: { label: "Pending", dot: "bg-[#0A52EF]" },
-    AUDIT: { label: "Audit", dot: "bg-[#d97706]" },
-    CLOSED: { label: "Closed", dot: "bg-[#878787]" },
-    ARCHIVED: { label: "Archived", dot: "bg-[#878787]" },
+const statusConfig: Record<string, { label: string }> = {
+    DRAFT: { label: "Draft" },
+    SHARED: { label: "Sent" },
+    APPROVED: { label: "Approved" },
+    SIGNED: { label: "Signed" },
+    CANCELLED: { label: "Lost" },
+    PENDING_VERIFICATION: { label: "Pending" },
+    AUDIT: { label: "Audit" },
+    CLOSED: { label: "Closed" },
+    ARCHIVED: { label: "Archived" },
 };
 
 const statusOptions: Array<{ value: DashboardStatus; label: string }> = [
@@ -159,15 +159,12 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
         return (
             <div
                 onClick={() => router.push(`/projects/${project.id}`)}
-                className="group flex items-center gap-4 px-4 py-3 border-b border-border cursor-pointer transition-colors duration-100 hover:bg-accent"
+                className="group flex items-center gap-4 px-4 py-3 border-b border-white/5 cursor-pointer"
             >
-                {/* Status dot + Name */}
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className={cn("w-2 h-2 rounded-full shrink-0", status.dot)} />
-                    <div className="min-w-0">
-                        <div className="text-[13px] font-medium text-foreground truncate">{project.clientName}</div>
-                        {venue && <div className="text-[11px] text-muted-foreground truncate">{venue}</div>}
-                    </div>
+                {/* Name */}
+                <div className="flex-1 min-w-0">
+                    <div className="text-[13px] font-medium text-foreground truncate">{project.clientName}</div>
+                    {venue && <div className="text-[11px] text-muted-foreground truncate">{venue}</div>}
                 </div>
 
                 {/* Type */}
@@ -180,7 +177,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                     <select
                         value={selectedStatus}
                         onChange={(e) => handleStatusChange(e.target.value as DashboardStatus)}
-                        className="w-full bg-transparent text-[11px] text-muted-foreground cursor-pointer border-0 outline-none p-0 appearance-none hover:text-foreground transition-colors"
+                        className="w-full bg-transparent text-[11px] text-muted-foreground cursor-pointer border-0 outline-none p-0 appearance-none hover:text-foreground"
                         aria-label="Change project status"
                     >
                         {statusOptions.map((opt) => (
@@ -206,10 +203,10 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-0.5 w-16 justify-end shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                <div className="flex items-center gap-0.5 w-16 justify-end shrink-0 opacity-0 group-hover:opacity-100">
                     <button
                         onClick={handleQuickExport}
-                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                        className="p-1 text-muted-foreground hover:text-foreground"
                         title="Export PDF"
                         disabled={isExporting}
                     >
@@ -221,7 +218,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                                 e.stopPropagation();
                                 if (confirm("Delete this project?")) onDelete(project.id);
                             }}
-                            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                            className="p-1 text-muted-foreground hover:text-destructive"
                             title="Delete"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -243,7 +240,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
     return (
         <div
             onClick={() => router.push(`/projects/${project.id}`)}
-            className="group relative bg-card border border-border overflow-hidden cursor-pointer transition-colors duration-100 hover:bg-accent rounded flex flex-col"
+            className="group relative bg-card border border-border overflow-hidden cursor-pointer rounded flex flex-col"
         >
             <div className="p-4 flex flex-col gap-3 flex-1">
                 {/* Row 1: Name + value */}
@@ -257,10 +254,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
 
                 {/* Row 2: Meta chips */}
                 <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                        <div className={cn("w-1.5 h-1.5 rounded-full", status.dot)} />
-                        <span>{status.label}</span>
-                    </div>
+                    <span>{status.label}</span>
                     <span>{project.documentMode === "LOI" ? "LOI" : project.documentMode.charAt(0) + project.documentMode.slice(1).toLowerCase()}</span>
                     {project.screenCount > 0 && <span>{project.screenCount} screens</span>}
                 </div>
@@ -271,10 +265,10 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                 <div className="text-[11px] text-muted-foreground">
                     {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
                 </div>
-                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
                     <button
                         onClick={handleQuickExport}
-                        className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                        className="p-1 text-muted-foreground hover:text-foreground"
                         title="Export PDF"
                         disabled={isExporting}
                     >
@@ -286,7 +280,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                                 e.stopPropagation();
                                 if (confirm("Delete this project?")) onDelete(project.id);
                             }}
-                            className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                            className="p-1 text-muted-foreground hover:text-destructive"
                             title="Delete"
                         >
                             <Trash2 className="w-3.5 h-3.5" />
