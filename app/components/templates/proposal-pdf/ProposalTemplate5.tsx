@@ -250,7 +250,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     );
 
     // Hybrid Spec Table - Modern styling with blue headers, zebra striping
-    const SpecTable = ({ screen }: { screen: any }) => (
+    const SpecTable = ({ screen, screenIndex }: { screen: any; screenIndex: number }) => (
         <div className="mb-6 rounded-lg overflow-hidden border break-inside-avoid" style={{ borderColor: colors.border, background: colors.white, pageBreakInside: 'avoid', breakInside: 'avoid', pageBreakBefore: 'auto' }}>
             {/* Blue Header */}
             <div className="px-4 py-2.5 border-b break-inside-avoid" style={{ borderColor: colors.primary, background: colors.primary }}>
@@ -304,73 +304,85 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 const storedHw = screen?.calculatedPricing?.hardwareCost;
                 const effectiveHw = typeof storedHw === "number" && Number.isFinite(storedHw) ? storedHw : hwCost;
 
-                const constantValues: Record<string, string> = {
-                    moduleMfg: product ? `${product.manufacturer} (${product.hardware})` : "—",
-                    processorMfg: product?.processing || "—",
-                    ledDiode: product?.diode || "—",
-                    pixelPitch: product ? `${product.pitchMm} mm` : "—",
-                    brightness: product?.brightnessNits ? `${formatNumberWithCommas(product.brightnessNits)} nits` : "—",
-                    colorTemp: product?.colorTempK ? `${product.colorTempK.nominal}K (${product.colorTempK.min}–${product.colorTempK.max}K)` : "—",
-                    pixelDensity: product?.pixelDensityPPF ? `${formatNumberWithCommas(product.pixelDensityPPF)} px/ft²` : "—",
-                    lifespan: product?.lifespanHours ? `${formatNumberWithCommas(product.lifespanHours)} hrs` : "—",
-                };
-                const calculatedValues: Record<string, string> = exhibitG ? {
-                    screenWidthFt: `${exhibitG.displayWidthFt} ft`,
-                    screenHeightFt: `${exhibitG.displayHeightFt} ft`,
-                    screenWidthPx: `${exhibitG.resolutionW}px`,
-                    screenHeightPx: `${exhibitG.resolutionH}px`,
-                    panelGrid: "—",
-                    totalPanels: `${screen?.quantity || 1}`,
-                    totalMaxPower: `${formatNumberWithCommas(exhibitG.maxPowerW)} W`,
-                    totalAvgPower: `${formatNumberWithCommas(exhibitG.avgPowerW)} W`,
-                    totalWeight: `${formatNumberWithCommas(exhibitG.totalWeightLbs)} lbs`,
-                } : {};
+                const formLetter = String.fromCharCode(97 + screenIndex); // a, b, c...
+                const locationName = (screen?.externalName || screen?.customDisplayName || screen?.name || "Display").toString().trim();
 
-                const labelMap: Record<string, string> = {
-                    moduleMfg: "Module Mfg",
-                    processorMfg: "Processor Mfg",
-                    ledDiode: "LED Diode",
-                    pixelPitch: "Pixel Pitch",
-                    brightness: "Brightness",
-                    colorTemp: "Color Temp",
-                    pixelDensity: "Pixel Density",
-                    lifespan: "Lifespan",
-                    screenWidthFt: "Width (ft)",
-                    screenHeightFt: "Height (ft)",
-                    screenWidthPx: "Resolution W",
-                    screenHeightPx: "Resolution H",
-                    panelGrid: "Panel Grid",
-                    totalPanels: "Total Panels",
-                    totalMaxPower: "Max Power",
-                    totalAvgPower: "Avg Power",
-                    totalWeight: "Total Weight",
-                };
+                const widthFtDisplay = exhibitG ? `${exhibitG.displayWidthFt}'` : "—";
+                const heightFtDisplay = exhibitG ? `${exhibitG.displayHeightFt}'` : "—";
+                const resDisplay = exhibitG ? `${formatNumberWithCommas(exhibitG.resolutionW)} × ${formatNumberWithCommas(exhibitG.resolutionH)}` : "—";
+
+                type FieldRow = { label: string; value: string };
+                type FieldGroup = { title: string; rows: FieldRow[] };
+
+                const groups: FieldGroup[] = [
+                    {
+                        title: "Component Specifications",
+                        rows: [
+                            { label: "OEM LED Module", value: product ? `${product.manufacturer} (${product.hardware})` : "—" },
+                            { label: "Processor", value: product?.processing || "—" },
+                            { label: "LED Lamp Die", value: product?.diode || "—" },
+                            { label: "Pixel Pitch", value: product ? `${product.pitchMm} mm` : "—" },
+                        ],
+                    },
+                    {
+                        title: "Display Dimensions",
+                        rows: [
+                            { label: "Overall Display Size", value: exhibitG ? `${widthFtDisplay} × ${heightFtDisplay}` : "—" },
+                            { label: "Resolution (px)", value: resDisplay },
+                            { label: "Panel Configuration", value: "—" },
+                            { label: "Total Panels / Qty", value: `${screen?.quantity || 1}` },
+                        ],
+                    },
+                    {
+                        title: "Performance Specifications",
+                        rows: [
+                            { label: "Brightness", value: product?.brightnessNits ? `${formatNumberWithCommas(product.brightnessNits)} nits` : "—" },
+                            { label: "Pixel Density", value: product?.pixelDensityPPF ? `${formatNumberWithCommas(product.pixelDensityPPF)} px/ft²` : "—" },
+                            { label: "Color Temperature", value: product?.colorTempK ? `${product.colorTempK.nominal}K (${product.colorTempK.min}–${product.colorTempK.max}K)` : "—" },
+                            { label: "Lifespan", value: product?.lifespanHours ? `${formatNumberWithCommas(product.lifespanHours)} hrs` : "—" },
+                        ],
+                    },
+                    {
+                        title: "Power & Weight",
+                        rows: [
+                            { label: "Max Power Consumption", value: exhibitG ? `${formatNumberWithCommas(exhibitG.maxPowerW)} W` : "—" },
+                            { label: "Avg Power Consumption", value: exhibitG ? `${formatNumberWithCommas(exhibitG.avgPowerW)} W` : "—" },
+                            { label: "Assembly Weight", value: exhibitG ? `${formatNumberWithCommas(exhibitG.totalWeightLbs)} lbs` : "—" },
+                            ...(effectiveHw != null && effectiveHw > 0
+                                ? [{ label: "Hardware Cost (ROM)", value: formatCurrency(effectiveHw) }]
+                                : []),
+                        ],
+                    },
+                ];
 
                 return (
-                    <div className="border-t" style={{ borderColor: colors.borderLight }}>
-                        <div className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest" style={{ color: colors.primaryDark, background: colors.primaryLight }}>
-                            Exhibit G Fields
+                    <div className="border-t" style={{ borderColor: colors.border }}>
+                        <div className="px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest" style={{ color: '#FFFFFF', background: colors.primary }}>
+                            Exhibit G — Form 1{formLetter}: {locationName}
                         </div>
-                        <div className="grid grid-cols-2 text-[10px]">
-                            {EXHIBIT_G_CONSTANT_FIELDS.map((field, idx) => (
-                                <div key={`const-${field}`} className="px-4 py-1.5 flex justify-between border-b" style={{ borderColor: colors.borderLight, background: idx % 2 === 0 ? colors.white : colors.surface }}>
-                                    <span style={{ color: colors.textMuted }}>{labelMap[field] || field}</span>
-                                    <span className="font-semibold text-right ml-2" style={{ color: colors.text }}>{constantValues[field] || "—"}</span>
-                                </div>
-                            ))}
-                            {EXHIBIT_G_CALCULATED_FIELDS.map((field, idx) => (
-                                <div key={`calc-${field}`} className="px-4 py-1.5 flex justify-between border-b" style={{ borderColor: colors.borderLight, background: idx % 2 === 0 ? colors.white : colors.surface }}>
-                                    <span style={{ color: colors.textMuted }}>{labelMap[field] || field}</span>
-                                    <span className="font-semibold text-right ml-2" style={{ color: colors.text }}>{calculatedValues[field] || "—"}</span>
-                                </div>
-                            ))}
-                            {effectiveHw != null && effectiveHw > 0 && (
-                                <div className="col-span-2 px-4 py-1.5 flex justify-between border-b" style={{ borderColor: colors.borderLight, background: colors.primaryLight }}>
-                                    <span className="font-bold" style={{ color: colors.primaryDark }}>Hardware Cost (ROM)</span>
-                                    <span className="font-bold text-right ml-2" style={{ color: colors.primaryDark }}>{formatCurrency(effectiveHw)}</span>
-                                </div>
-                            )}
-                        </div>
+                        <table className="w-full text-[10px] border-collapse">
+                            <tbody>
+                                {groups.map((group) => (
+                                    <React.Fragment key={group.title}>
+                                        <tr>
+                                            <td colSpan={2} className="px-4 py-1.5 font-bold text-[9px] uppercase tracking-widest" style={{ background: colors.primaryLight, color: colors.primaryDark, borderBottom: `1px solid ${colors.borderLight}` }}>
+                                                {group.title}
+                                            </td>
+                                        </tr>
+                                        {group.rows.map((row, rIdx) => (
+                                            <tr key={row.label} style={{ background: rIdx % 2 === 0 ? colors.white : colors.surface }}>
+                                                <td className="px-4 py-1.5 w-1/2" style={{ color: colors.textMuted, borderBottom: `1px solid ${colors.borderLight}` }}>
+                                                    {row.label}
+                                                </td>
+                                                <td className="px-4 py-1.5 w-1/2 font-semibold text-right" style={{ color: colors.text, borderBottom: `1px solid ${colors.borderLight}` }}>
+                                                    {row.value}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 );
             })()}
@@ -1287,7 +1299,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
                                     <div className="break-inside-avoid">
                                         {screens.map((screen: any, idx: number) => (
-                                            <SpecTable key={idx} screen={screen} />
+                                            <SpecTable key={idx} screen={screen} screenIndex={idx} />
                                         ))}
                                     </div>
                                 </div>
@@ -1367,7 +1379,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
                                     <div className="break-inside-avoid">
                                         {screens.map((screen: any, idx: number) => (
-                                            <SpecTable key={idx} screen={screen} />
+                                            <SpecTable key={idx} screen={screen} screenIndex={idx} />
                                         ))}
                                     </div>
                                 </div>
@@ -1444,7 +1456,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <SectionHeader title={specsSectionTitle} subtitle="Technical details for each display" />
                                 <div className="break-inside-avoid">
                                     {screens.map((screen: any, idx: number) => (
-                                        <SpecTable key={idx} screen={screen} />
+                                        <SpecTable key={idx} screen={screen} screenIndex={idx} />
                                     ))}
                                 </div>
                             </div>
