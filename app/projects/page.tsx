@@ -287,7 +287,7 @@ export default function ProjectsPage() {
             <DashboardSidebar />
 
             <div className="flex-1 flex flex-col min-w-0 relative ml-16 md:ml-20 overflow-x-hidden">
-                <header className="fixed top-0 left-16 md:left-20 right-0 h-14 border-b border-border/60 flex items-center justify-between gap-3 px-4 sm:px-6 bg-background/80 backdrop-blur-xl z-50 min-w-0">
+                <header className="fixed top-0 left-16 md:left-20 right-0 h-14 border-b border-border flex items-center justify-between gap-3 px-4 sm:px-6 bg-card/80 backdrop-blur-xl z-50 min-w-0">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                         <Link href="/" className="flex items-center gap-2 shrink-0">
                             <span className="text-foreground font-semibold text-sm tracking-tight">ANC</span>
@@ -296,15 +296,15 @@ export default function ProjectsPage() {
                         <div className="h-5 w-px bg-border/60 hidden sm:block" />
 
                         <div className="relative group max-w-sm w-full">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 group-focus-within:text-foreground transition-colors duration-200" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-primary transition-colors duration-200" />
                             <input
                                 type="text"
                                 placeholder="Search projects..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-9 pr-4 py-1.5 bg-transparent border border-border/50 rounded-md text-sm text-foreground placeholder-muted-foreground/50 outline-none focus:border-foreground/20 focus:ring-0 transition-all duration-200"
+                                className="w-full pl-9 pr-4 py-1.5 bg-transparent border-b border-border text-sm text-foreground placeholder-muted-foreground outline-none focus:border-primary transition-all duration-200"
                             />
-                            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground/50 rounded border border-border/40">
+                            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground rounded-sm border border-border">
                                 ⌘K
                             </kbd>
                         </div>
@@ -319,7 +319,7 @@ export default function ProjectsPage() {
                         </button>
                         <div className="h-5 w-px bg-border/60 mx-1" />
                         <NewProjectModal>
-                            <button className="px-3.5 py-1.5 bg-foreground text-background rounded-md hover:opacity-90 active:opacity-80 transition-opacity text-xs font-medium flex items-center gap-1.5">
+                            <button className="px-3.5 py-1.5 bg-primary text-primary-foreground rounded hover:shadow-lift hover:-translate-y-[1px] active:translate-y-0 transition-all duration-200 text-xs font-semibold flex items-center gap-1.5">
                                 <Plus className="w-3.5 h-3.5" />
                                 <span className="hidden sm:inline">New Project</span>
                                 <span className="sm:hidden">New</span>
@@ -340,14 +340,14 @@ export default function ProjectsPage() {
                             </div>
 
                             <div className="flex items-center gap-2">
-                                <div className="flex p-0.5 rounded-md border border-border/50 shrink-0">
+                                <div className="flex p-0.5 rounded bg-secondary border border-border shrink-0">
                                     {statusFilters.map((filter) => (
                                         <button
                                             key={filter.key}
                                             onClick={() => setStatusFilter(filter.key)}
                                             className={cn(
-                                                "px-2.5 py-1 text-[11px] font-medium rounded-[3px] transition-all",
-                                                statusFilter === filter.key ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                                                "px-2.5 py-1 text-[11px] font-medium rounded-sm transition-all",
+                                                statusFilter === filter.key ? "bg-card text-primary shadow-card font-semibold" : "text-muted-foreground hover:text-foreground"
                                             )}
                                         >
                                             {filter.label}

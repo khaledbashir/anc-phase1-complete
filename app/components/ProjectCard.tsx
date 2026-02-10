@@ -191,10 +191,10 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                 clearHoverTimer();
                 if (!quickViewPinned) setQuickViewVisible(false);
             }}
-            className="group relative bg-card border border-border/60 rounded-lg overflow-visible cursor-pointer transition-all duration-300 hover:border-foreground/15 hover:shadow-lg hover:shadow-black/[0.03] dark:hover:shadow-white/[0.02] flex flex-col h-full min-h-[220px]"
+            className="group relative bg-card border border-border overflow-visible cursor-pointer transition-all duration-200 hover:shadow-card-hover hover:-translate-y-[1px] flex flex-col h-full min-h-[220px] rounded shadow-card"
         >
             {/* Status accent — thin left bar */}
-            <div className={cn("absolute left-0 top-4 bottom-4 w-[3px] rounded-full transition-all duration-300", status.accent, "opacity-60 group-hover:opacity-100")} />
+            <div className={cn("absolute left-0 top-3 bottom-3 w-[2px] transition-all duration-200", status.accent, "opacity-50 group-hover:opacity-100")} />
 
             <div className="p-5 pl-6 flex flex-col h-full">
                 {/* Header: meta line */}
@@ -223,7 +223,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                                 setIsStatusUpdating(false);
                             }
                         }}
-                        className="h-6 px-1.5 rounded border border-transparent hover:border-border bg-transparent text-[10px] text-muted-foreground cursor-pointer focus:border-border focus:outline-none transition-colors"
+                        className="h-6 px-1.5 rounded-sm border border-transparent hover:border-border bg-transparent text-[10px] text-muted-foreground cursor-pointer focus:border-border focus:outline-none transition-colors"
                         aria-label="Change project status"
                     >
                         {statusOptions.map((option) => (
@@ -236,7 +236,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
 
                 {/* Title + subtitle */}
                 <div className="flex-1 min-h-0">
-                    <h3 className="text-[17px] font-semibold text-card-foreground leading-snug truncate group-hover:text-foreground transition-colors">
+                    <h3 className="text-[15px] font-semibold text-card-foreground leading-snug truncate group-hover:text-primary transition-colors">
                         {title}
                     </h3>
                     <p className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -271,14 +271,14 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                         <button
                             onClick={(e) => { e.stopPropagation(); onBriefMe(project.id); }}
-                            className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted/60 transition-colors"
+                            className="p-1.5 text-muted-foreground hover:text-primary rounded-sm hover:bg-primary/5 transition-colors"
                             title="Brief Me"
                         >
                             <Sparkles className="w-3.5 h-3.5" />
                         </button>
                         <button
                             onClick={handleQuickExport}
-                            className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted/60 transition-colors"
+                            className="p-1.5 text-muted-foreground hover:text-primary rounded-sm hover:bg-primary/5 transition-colors"
                             title="Export PDF"
                             disabled={isExporting}
                         >
@@ -292,7 +292,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                                         onDelete(project.id);
                                     }
                                 }}
-                                className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted/60 transition-colors"
+                                className="p-1.5 text-muted-foreground hover:text-destructive rounded-sm hover:bg-destructive/5 transition-colors"
                                 title="Delete"
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -307,7 +307,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
             {(quickViewVisible || quickViewPinned) && (
                 <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute z-40 top-2 right-2 w-72 rounded-lg border border-border bg-background/98 backdrop-blur-xl p-4 shadow-2xl"
+                    className="absolute z-40 top-2 right-2 w-72 rounded border border-border bg-card/95 backdrop-blur-xl p-4 shadow-card-hover"
                 >
                     <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{getDocModeLabel(project.documentMode)} · {workflowLabel}</div>
                     <div className="text-sm font-semibold text-foreground mt-1 truncate">{project.clientName}</div>
@@ -319,13 +319,13 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                     <div className="mt-3 flex items-center gap-2">
                         <button
                             onClick={() => router.push(`/projects/${project.id}`)}
-                            className="px-3 py-1.5 text-xs rounded-md border border-border text-foreground hover:bg-muted transition-colors"
+                            className="px-3 py-1.5 text-xs rounded-sm border border-border text-foreground hover:bg-muted transition-colors"
                         >
                             Open
                         </button>
                         <button
                             onClick={handleQuickExport}
-                            className="px-3 py-1.5 text-xs rounded-md border border-border text-foreground hover:bg-muted transition-colors"
+                            className="px-3 py-1.5 text-xs rounded-sm border border-border text-foreground hover:bg-muted transition-colors"
                         >
                             Export PDF
                         </button>

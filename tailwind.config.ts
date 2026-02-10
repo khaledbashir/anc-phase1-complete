@@ -59,9 +59,14 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: '0.75rem',
-        md: '0.5rem',
-        sm: '0.375rem',
+        lg: '4px',
+        md: '3px',
+        sm: '2px',
+      },
+      boxShadow: {
+        'card': '0 1px 3px rgba(0,0,0,0.05)',
+        'card-hover': '0 4px 6px rgba(0,0,0,0.08)',
+        'lift': '0 2px 8px rgba(0,0,0,0.06)',
       },
     },
   },

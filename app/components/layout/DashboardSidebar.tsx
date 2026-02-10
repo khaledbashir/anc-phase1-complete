@@ -67,17 +67,17 @@ export default function DashboardSidebar() {
                             key={item.label}
                             href={item.href}
                             className={cn(
-                                "group relative p-3 rounded-xl transition-all duration-300",
+                                "group relative p-3 rounded transition-all duration-200",
                                 isActive
-                                    ? "bg-[#0A52EF]/10 text-[#0A52EF]"
-                                    : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                                    ? "bg-primary/10 text-primary"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary",
                                 item.soon && "pointer-events-none opacity-40"
                             )}
                         >
                             <item.icon className="w-5 h-5" />
 
                             {/* Tooltip */}
-                            <div className="absolute left-full ml-4 px-2 py-1 rounded bg-popover border border-border text-popover-foreground text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-md">
+                            <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
                                 {item.label} {item.soon && "(Soon)"}
                             </div>
                         </Link>
