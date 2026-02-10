@@ -217,7 +217,7 @@ model Proposal {
 model ManualOverride {
   id              String   @id @default(cuid())
   proposalId      String
-  proposal        Proposal @relation(fields: [proposalId], references: [id])
+  proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   
   // What was overridden
   entityType      String   // "screen", "charge", "proposalTotal"
@@ -241,7 +241,7 @@ model ManualOverride {
 model ProposalVersion {
   id              String   @id @default(cuid())
   proposalId      String
-  proposal        Proposal @relation(fields: [proposalId], references: [id])
+  proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   
   // Immutable snapshot
   versionNumber   Int
@@ -264,7 +264,7 @@ model RfpDocument {
   url        String
   createdAt  DateTime @default(now())
   proposalId String?
-  proposal   Proposal? @relation(fields: [proposalId], references: [id])
+  proposal   Proposal? @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 }
 
 model ProposalSnapshot {
@@ -307,7 +307,7 @@ model ScreenConfig {
   manufacturerProductId   String?               // Phase 2: linked product from spec query
   manufacturerProduct     ManufacturerProduct?  @relation(fields: [manufacturerProductId], references: [id])
   lineItems               CostLineItem[]
-  proposal                Proposal              @relation(fields: [proposalId], references: [id])
+  proposal                Proposal              @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 }
 
 model CostLineItem {
@@ -317,7 +317,7 @@ model CostLineItem {
   cost           Decimal
   margin         Decimal
   price          Decimal
-  screenConfig   ScreenConfig @relation(fields: [screenConfigId], references: [id])
+  screenConfig   ScreenConfig @relation(fields: [screenConfigId], references: [id], onDelete: Cascade)
 }
 
 // NEW: Collaboration & History
@@ -385,7 +385,7 @@ model ActivityLog {
 model SignatureAuditTrail {
   id              String   @id @default(cuid())
   proposalId      String
-  proposal        Proposal @relation(fields: [proposalId], references: [id])
+  proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 
   // Signer Identity
   signerEmail     String

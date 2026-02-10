@@ -349,7 +349,7 @@ export async function PATCH(
 
 /**
  * DELETE /api/projects/[id]
- * Delete a project (soft delete recommended, but hard delete for now)
+ * Hard-delete a project and all child records in a transaction.
  */
 export async function DELETE(
     req: NextRequest,
@@ -357,9 +357,32 @@ export async function DELETE(
 ) {
     const { id } = await params;
     try {
-        await prisma.proposal.delete({
-            where: { id },
+        // Get screen IDs so we can delete their CostLineItems first
+        const screens = await prisma.screenConfig.findMany({
+            where: { proposalId: id },
+            select: { id: true },
         });
+        const screenIds = screens.map((s) => s.id);
+
+        await prisma.$transaction([
+            // Deep children first: CostLineItem → ScreenConfig
+            ...(screenIds.length > 0
+                ? [prisma.costLineItem.deleteMany({ where: { screenConfigId: { in: screenIds } } })]
+                : []),
+            prisma.screenConfig.deleteMany({ where: { proposalId: id } }),
+            // Direct children
+            prisma.manualOverride.deleteMany({ where: { proposalId: id } }),
+            prisma.proposalVersion.deleteMany({ where: { proposalId: id } }),
+            prisma.signatureAuditTrail.deleteMany({ where: { proposalId: id } }),
+            prisma.comment.deleteMany({ where: { proposalId: id } }),
+            prisma.changeRequest.deleteMany({ where: { proposalId: id } }),
+            prisma.activityLog.deleteMany({ where: { proposalId: id } }),
+            prisma.bidVersion.deleteMany({ where: { proposalId: id } }),
+            prisma.proposalSnapshot.deleteMany({ where: { proposalId: id } }),
+            prisma.rfpDocument.deleteMany({ where: { proposalId: id } }),
+            // Finally the proposal itself
+            prisma.proposal.delete({ where: { id } }),
+        ]);
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
@@ -370,7 +393,7 @@ export async function DELETE(
         }
 
         return NextResponse.json(
-            { error: "Failed to delete project" },
+            { error: "Failed to delete project", detail: error.message },
             { status: 500 }
         );
     }
