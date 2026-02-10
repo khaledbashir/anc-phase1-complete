@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { calculateProposalAudit, ScreenInput } from "@/lib/estimator";
 import { logActivity } from "@/services/proposal/server/activityLogService";
+import { provisionProjectWorkspace } from "@/lib/anything-llm";
 
 export interface CreateProposalRequest {
   workspaceId: string;
@@ -132,6 +133,15 @@ export async function POST(request: NextRequest) {
       null,
       { clientName: body.clientName, screenCount: body.screens.length },
     );
+
+    // Provision dedicated AnythingLLM workspace (non-blocking)
+    provisionProjectWorkspace(body.clientName, proposal.id).then(async (slug) => {
+      if (!slug) return;
+      await prisma.proposal.update({
+        where: { id: proposal.id },
+        data: { aiWorkspaceSlug: slug },
+      });
+    }).catch((e) => console.error("[Proposals/Create] AI provisioning failed:", e));
 
     return NextResponse.json(
       {

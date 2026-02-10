@@ -324,6 +324,90 @@ export async function updateWorkspaceSettings(slug: string, settings: any): Prom
     }
 }
 
+// ============================================================================
+// PROJECT WORKSPACE PROVISIONING
+// ============================================================================
+
+const DASHBOARD_WORKSPACE_SLUG = process.env.ANYTHING_LLM_WORKSPACE || "nata-estimator";
+
+/**
+ * Provision a dedicated AnythingLLM workspace for a project.
+ * - Creates the workspace with a unique slug
+ * - Configures temperature and chat mode
+ * - Provisions master catalog (background, non-blocking)
+ *
+ * @param projectName Human-readable project/client name (used for slug generation)
+ * @param uniqueSuffix A unique suffix (e.g. workspace ID or proposal ID) to prevent slug collisions
+ * @returns The workspace slug, or null if provisioning failed
+ */
+export async function provisionProjectWorkspace(
+    projectName: string,
+    uniqueSuffix: string
+): Promise<string | null> {
+    if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) {
+        console.warn("[AnythingLLM] Not configured — skipping workspace provisioning");
+        return null;
+    }
+
+    try {
+        const safeName = projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 20);
+        const slugName = `${safeName}-${uniqueSuffix.slice(-6)}`;
+
+        const res = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/new`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
+            },
+            body: JSON.stringify({ name: slugName, chatMode: "chat" }),
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error(`[AnythingLLM] Workspace creation failed (${res.status}): ${errText}`);
+            return null;
+        }
+
+        let created: any;
+        try {
+            created = await res.json();
+        } catch {
+            const text = await res.text();
+            console.error("[AnythingLLM] Workspace creation returned non-JSON:", text.slice(0, 200));
+            return null;
+        }
+
+        const slug = created?.workspace?.slug || slugName;
+        console.log(`[AnythingLLM] Created project workspace: ${slug}`);
+
+        // Configure workspace settings (non-blocking)
+        updateWorkspaceSettings(slug, {
+            openAiTemp: 0.2,
+            chatMode: "chat",
+        }).catch((e) => console.error("[AnythingLLM] Settings config failed:", e));
+
+        // Provision master catalog (non-blocking)
+        const masterUrl = process.env.ANYTHING_LLM_MASTER_CATALOG_URL;
+        if (masterUrl) {
+            import("@/lib/rag-sync").then(({ uploadLinkToWorkspace }) => {
+                uploadLinkToWorkspace(slug, masterUrl).catch(console.error);
+            }).catch(console.error);
+        }
+
+        return slug;
+    } catch (error: any) {
+        console.error("[AnythingLLM] Workspace provisioning failed:", error.message);
+        return null;
+    }
+}
+
+/**
+ * Get the dashboard workspace slug (the "master brain" that knows about all projects).
+ */
+export function getDashboardWorkspaceSlug(): string {
+    return DASHBOARD_WORKSPACE_SLUG;
+}
+
 /**
  * Client Review Annotator: AI Triage
  * Categorizes client feedback annotations into actionable categories.

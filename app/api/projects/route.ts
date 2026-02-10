@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
+import { provisionProjectWorkspace } from "@/lib/anything-llm";
 
 import { prisma } from "@/lib/prisma";
 
@@ -182,58 +182,28 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Create a dedicated AnythingLLM workspace for this project
-        let aiWorkspaceSlug: string | null = null;
-
-        if (ANYTHING_LLM_BASE_URL && ANYTHING_LLM_KEY) {
-            try {
-                const slugName = `project-${clientName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${Date.now()}`;
-
-                // Endpoint: /api/v1/workspace/new
-                const workspaceRes = await fetch(`${ANYTHING_LLM_BASE_URL}/v1/workspace/new`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
-                    },
-                    body: JSON.stringify({ name: slugName, chatMode: "chat" }),
-                });
-
-                if (workspaceRes.ok) {
-                    const workspaceData = await workspaceRes.json();
-                    aiWorkspaceSlug = workspaceData.workspace?.slug || slugName;
-                    console.log(`Created isolated AnythingLLM workspace: ${aiWorkspaceSlug}`);
-                } else {
-                    const errText = await workspaceRes.text();
-                    console.warn(`AnythingLLM workspace creation returned ${workspaceRes.status}: ${errText}`);
-                }
-            } catch (aiError) {
-                console.error("Failed to create AnythingLLM workspace:", aiError);
-                // Continue without AI workspace
-            }
-        } else {
-            console.warn("AnythingLLM config missing, skipping isolated workspace creation.");
-        }
-
-
-        // Track warnings for honest response
-        const warnings: string[] = [];
-
-        if (!aiWorkspaceSlug && ANYTHING_LLM_BASE_URL && ANYTHING_LLM_KEY) {
-            warnings.push("AI workspace creation failed — project created without AI features");
-        } else if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) {
-            warnings.push("AnythingLLM not configured — AI features unavailable");
-        }
-
-        // Create the project in the database
+        // Create the project in the database first (so we have an ID for the slug)
         const project = await prisma.proposal.create({
             data: {
                 workspaceId,
                 clientName,
                 status: "DRAFT",
-                aiWorkspaceSlug,
             },
         });
+
+        // Provision a dedicated AnythingLLM workspace (non-blocking for fast UI)
+        const warnings: string[] = [];
+        const aiWorkspaceSlug = await provisionProjectWorkspace(clientName, project.id);
+
+        if (aiWorkspaceSlug) {
+            await prisma.proposal.update({
+                where: { id: project.id },
+                data: { aiWorkspaceSlug },
+            });
+            project.aiWorkspaceSlug = aiWorkspaceSlug;
+        } else {
+            warnings.push("AI workspace creation failed — project created without AI features");
+        }
 
         return NextResponse.json({ project, warnings }, { status: 201 });
     } catch (error) {
