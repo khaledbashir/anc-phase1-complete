@@ -220,6 +220,21 @@
     40% { opacity: 1; transform: scale(1); }
 }
 
+@keyframes copilot-dot-bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
+    40% { transform: translateY(-2px); opacity: 1; }
+}
+
+@keyframes copilot-message-in {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes copilot-action-in {
+    0% { opacity: 0; transform: translateX(-10px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+
 /* ── Copilot Panel Layout Adjustment ── */
 /* When copilot is open, shrink main content to make room */
 body.copilot-open #main-content,

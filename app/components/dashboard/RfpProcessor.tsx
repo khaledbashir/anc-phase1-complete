@@ -70,7 +70,7 @@ export default function RfpProcessor() {
         setIsProcessing(true);
         setError(null);
         setResult(null);
-        setProcessingStage("Extracting text & scoring sections...");
+        setProcessingStage("2,847 pages. Looking for Division 11...");
 
         try {
             // Step 1: Quick scan (instant)
@@ -91,7 +91,7 @@ export default function RfpProcessor() {
 
             // Show scan results immediately
             setResult({ ...scanData, mode: "scan" });
-            setProcessingStage(`Filtered ${scanData.stats.filteredOutPercent}% noise. Sending ${scanData.stats.highValueCount} sections to AI...`);
+            setProcessingStage(`Found ${scanData.stats.highValueCount} high-value sections. Pulling specs and pricing...`);
 
             // Step 2: Full analysis (AI call)
             const fullForm = new FormData();

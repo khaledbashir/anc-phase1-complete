@@ -63,6 +63,10 @@ export async function POST(req: NextRequest) {
     } catch (err) {
         Sentry.captureException(err, { tags: { area: "excelImport" } });
         console.error("Excel import error:", err);
-        return NextResponse.json({ error: String(err) }, { status: 500 });
+        const rawError = String(err || "");
+        const normalizedError = /margin\s*analysis/i.test(rawError)
+            ? "No Margin Analysis sheet in here. Wrong workbook?"
+            : rawError;
+        return NextResponse.json({ error: normalizedError }, { status: 500 });
     }
 }

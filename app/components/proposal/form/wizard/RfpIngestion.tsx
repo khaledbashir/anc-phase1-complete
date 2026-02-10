@@ -388,10 +388,10 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
     ];
 
     const pipelineSteps = [
-        { label: "Structure", status: pipeline.overview },
-        { label: "Specs", status: pipeline.specs },
-        { label: "Pricing", status: pipeline.pricing },
-        { label: "Schedule", status: pipeline.schedule },
+        { label: "Looking for Division 11...", status: pipeline.overview },
+        { label: "Pulling display specs...", status: pipeline.specs },
+        { label: "Found Margin Analysis — pulling pricing sections...", status: pipeline.pricing },
+        { label: "Extracting schedule and warranty terms...", status: pipeline.schedule },
     ];
 
     // ── RENDER ───────────────────────────────────────────────────────────
@@ -556,6 +556,22 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                 {/* Results */}
                 {isDone && !error && !applied && (
                     <div className="space-y-4">
+                        {pricingData?.sections && pricingData.sections.length > 0 && (
+                            <div className="rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
+                                <p className="font-medium text-foreground">
+                                    {pricingData.sections.length} sections, {pricingData.sections.reduce((sum, s) => sum + (s.lineItemCount || 0), 0)} line items. Clean file.
+                                </p>
+                                {pricingData.stats?.estimatedProjectTotal ? (
+                                    <p className="mt-1">
+                                        Grand total: {fmt(pricingData.stats.estimatedProjectTotal)}.{" "}
+                                        {pricingData.stats.estimatedProjectTotal >= 5_000_000
+                                            ? "That's a major deployment. Let's get it right."
+                                            : "Solid build."}
+                                    </p>
+                                ) : null}
+                            </div>
+                        )}
+
                         {/* Tab Bar */}
                         <div className="flex items-center gap-1 border-b border-border pb-px">
                             {tabs.map(t => {

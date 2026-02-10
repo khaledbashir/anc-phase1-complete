@@ -91,7 +91,7 @@ export function ExcelDropzone({ onFileParsed, onError }: ExcelDropzoneProps) {
         {isLoading ? (
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
-            <p className="text-muted-foreground text-sm">Extracting data from Excel...</p>
+            <p className="text-muted-foreground text-sm">Cracking open the workbook...</p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">

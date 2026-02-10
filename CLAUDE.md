@@ -32,6 +32,18 @@ We build enterprise-grade only. If asked for lower quality, refuse and propose t
 - **NEVER merge branches without explicit command.** Merging requires 3 confirmations.
 - **Branch:** `phase2/product-database` — never merge into `rag` or vice versa.
 
+## CORE RULE 3 — POST-TASK REPORT (MANDATORY)
+
+After EVERY completed task (commit, feature, fix, etc.), always end with a brief report:
+
+### What We Did
+[1-3 sentences on the technical change]
+
+### What Users Can Now Do
+[Bullet points or table showing user-facing impact — what changed for them, what they can now do that they couldn't before]
+
+**This is mandatory. Never skip it.**
+
 ## STACK
 
 - Next.js 15.3, React 18, TypeScript, Prisma + PostgreSQL
