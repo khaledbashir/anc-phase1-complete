@@ -449,7 +449,7 @@ export function SOWGeneratorPanel() {
               <Switch
                 checked={showExhibitA || false}
                 onCheckedChange={(checked) => setValue("details.showExhibitA", checked, { shouldDirty: true })}
-                className="data-[state=checked]:bg-brand-blue"
+                className="data-[state=checked]:bg-[#0A52EF]"
               />
             </div>
           </div>

@@ -524,7 +524,7 @@ const Step3Math = () => {
                         <Switch
                             checked={mirrorMode}
                             onCheckedChange={(checked) => setValue("details.mirrorMode", checked)}
-                            className="data-[state=checked]:bg-brand-blue"
+                            className="data-[state=checked]:bg-[#0A52EF]"
                         />
                     </CardContent>
                 </Card>
