@@ -926,14 +926,15 @@ function DrawingTriageView({ drawingPages, drawingCategories, onToggleCategory, 
                 const isOn = drawingCategories.has(cat.id);
                 return (
                   <button key={cat.id} onClick={() => onToggleCategory(cat.id)}
-                    className={cn("w-full flex items-center gap-2 px-3 py-2 rounded-lg border text-xs text-left transition-all",
-                      isOn ? "border-brand-blue/30 bg-brand-blue/5" : "border-border hover:border-muted-foreground"
+                    className={cn("w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border text-sm text-left transition-all",
+                      isOn ? "border-brand-blue bg-brand-blue/10" : "border-border bg-muted/30 hover:border-muted-foreground"
                     )}>
-                    <span className={cn("w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0",
-                      isOn ? "bg-brand-blue border-brand-blue" : "border-muted-foreground")}>
-                      {isOn && <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                    <span className={cn("w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+                      isOn ? "bg-brand-blue border-brand-blue" : "border-muted-foreground/50 bg-background")}>
+                      {isOn && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5L4 7L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                     </span>
-                    <span className={cn("font-medium", isOn ? "text-foreground" : "text-muted-foreground")}>{cat.label}</span>
+                    <span className={cn("font-medium", isOn ? "text-brand-blue" : "text-muted-foreground")}>{cat.label}</span>
+                    {isOn && <span className="ml-auto text-[10px] font-medium text-brand-blue bg-brand-blue/10 px-1.5 py-0.5 rounded">ON</span>}
                   </button>
                 );
               })}
