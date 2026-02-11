@@ -53,12 +53,27 @@ module.exports = {
   			card: {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
-  			}
+  			},
+  			navy: {
+  				DEFAULT: '#002C73',
+  				foreground: '#ffffff',
+  			},
+  			brand: {
+  				blue: '#0A52EF',
+  				splash: '#03B8FF',
+  				malibu: '#0385DD',
+  				opal: '#002C73',
+  			},
   		},
   		borderRadius: {
-  			lg: 'var(--radius)',
-  			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+  			lg: '4px',
+  			md: '3px',
+  			sm: '2px',
+  		},
+  		boxShadow: {
+  			'card': '0 1px 3px rgba(0,0,0,0.05)',
+  			'card-hover': '0 4px 6px rgba(0,0,0,0.08)',
+  			'lift': '0 2px 8px rgba(0,0,0,0.06)',
   		},
   		keyframes: {
   			'accordion-down': {

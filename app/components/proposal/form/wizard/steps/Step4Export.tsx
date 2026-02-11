@@ -708,7 +708,7 @@ const Step4Export = () => {
                                                     id="showExhibitA"
                                                     checked={watch("details.showExhibitA") || false}
                                                     onCheckedChange={(checked) => setValue("details.showExhibitA", checked)}
-                                                    className="data-[state=checked]:bg-[#0A52EF] shrink-0 mt-0.5"
+                                                    className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5"
                                                 />
                                             </div>
                                             {watch("details.showExhibitA") && (
@@ -745,7 +745,7 @@ const Step4Export = () => {
                                                     <Label htmlFor="showSpecifications" className="text-sm font-semibold text-foreground block">Technical Specifications</Label>
                                                     <p className="text-[11px] text-muted-foreground leading-relaxed">Include detailed screen specifications</p>
                                                 </div>
-                                                <Switch id="showSpecifications" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-[#0A52EF] shrink-0 mt-0.5" />
+                                                <Switch id="showSpecifications" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
                                             </div>
                                             {(watch("details.showSpecifications") ?? true) && (
                                                 <div className="flex items-center gap-2 py-2 pl-4 border-b border-border/30">
@@ -775,14 +775,14 @@ const Step4Export = () => {
                                                     <Label htmlFor="showPricingTables" className="text-sm font-semibold text-foreground block">Pricing Tables</Label>
                                                     <p className="text-[11px] text-muted-foreground leading-relaxed">Include pricing breakdown in the PDF</p>
                                                 </div>
-                                                <Switch id="showPricingTables" checked={watch("details.showPricingTables") ?? true} onCheckedChange={(checked) => setValue("details.showPricingTables", checked)} className="data-[state=checked]:bg-[#0A52EF] shrink-0 mt-0.5" />
+                                                <Switch id="showPricingTables" checked={watch("details.showPricingTables") ?? true} onCheckedChange={(checked) => setValue("details.showPricingTables", checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
                                             </div>
                                             <div className="flex items-start justify-between py-3 gap-4">
                                                 <div className="flex flex-col min-w-0">
                                                     <Label htmlFor="showNotes" className="text-sm font-semibold text-foreground block">Notes Section</Label>
                                                     <p className="text-[11px] text-muted-foreground leading-relaxed">Include additional notes in the PDF</p>
                                                 </div>
-                                                <Switch id="showNotes" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-[#0A52EF] shrink-0 mt-0.5" />
+                                                <Switch id="showNotes" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
                                             </div>
                                         </TabsContent>
 
@@ -793,7 +793,7 @@ const Step4Export = () => {
                                                     <Label htmlFor="showSpecifications-proposal" className="text-sm font-semibold text-foreground">Technical Specifications</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include detailed screen specifications</p>
                                                 </div>
-                                                <Switch id="showSpecifications-proposal" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-[#0A52EF]" />
+                                                <Switch id="showSpecifications-proposal" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                             {(watch("details.showSpecifications") ?? true) && (
                                                 <div className="flex items-center gap-2 py-2 pl-4 border-b border-border/30">
@@ -823,21 +823,21 @@ const Step4Export = () => {
                                                     <Label htmlFor="showPricingTables-proposal" className="text-sm font-semibold text-foreground">Pricing Tables</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include pricing breakdown in the PDF</p>
                                                 </div>
-                                                <Switch id="showPricingTables-proposal" checked={watch("details.showPricingTables") ?? true} onCheckedChange={(checked) => setValue("details.showPricingTables", checked)} className="data-[state=checked]:bg-[#0A52EF]" />
+                                                <Switch id="showPricingTables-proposal" checked={watch("details.showPricingTables") ?? true} onCheckedChange={(checked) => setValue("details.showPricingTables", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                             <div className="flex items-center justify-between py-3 border-b border-border/30">
                                                 <div className="flex flex-col">
                                                     <Label htmlFor="showPaymentTerms-proposal" className="text-sm font-semibold text-foreground">Payment Terms</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include payment terms section</p>
                                                 </div>
-                                                <Switch id="showPaymentTerms-proposal" checked={watch("details.showPaymentTerms") ?? true} onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked)} className="data-[state=checked]:bg-[#0A52EF]" />
+                                                <Switch id="showPaymentTerms-proposal" checked={watch("details.showPaymentTerms") ?? true} onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                             <div className="flex items-center justify-between py-3">
                                                 <div className="flex flex-col">
                                                     <Label htmlFor="showNotes-proposal" className="text-sm font-semibold text-foreground">Notes Section</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include additional notes in the PDF</p>
                                                 </div>
-                                                <Switch id="showNotes-proposal" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-[#0A52EF]" />
+                                                <Switch id="showNotes-proposal" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                         </TabsContent>
 
@@ -848,7 +848,7 @@ const Step4Export = () => {
                                                     <Label htmlFor="showSpecifications-loi" className="text-sm font-semibold text-foreground">Technical Specifications</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include detailed screen specifications</p>
                                                 </div>
-                                                <Switch id="showSpecifications-loi" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-[#0A52EF]" />
+                                                <Switch id="showSpecifications-loi" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                             {(watch("details.showSpecifications") ?? true) && (
                                                 <div className="flex items-center gap-2 py-2 pl-4 border-b border-border/30">
@@ -878,35 +878,35 @@ const Step4Export = () => {
                                                     <Label htmlFor="showPricingTables-loi" className="text-sm font-semibold text-foreground">Pricing Tables</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include pricing breakdown in the PDF</p>
                                                 </div>
-                                                <Switch id="showPricingTables-loi" checked={watch("details.showPricingTables") ?? true} onCheckedChange={(checked) => setValue("details.showPricingTables", checked)} className="data-[state=checked]:bg-[#0A52EF]" />
+                                                <Switch id="showPricingTables-loi" checked={watch("details.showPricingTables") ?? true} onCheckedChange={(checked) => setValue("details.showPricingTables", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                             <div className="flex items-center justify-between py-3 border-b border-border/30">
                                                 <div className="flex flex-col">
                                                     <Label htmlFor="showPaymentTerms-loi" className="text-sm font-semibold text-foreground">Payment Terms</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include payment terms section</p>
                                                 </div>
-                                                <Switch id="showPaymentTerms-loi" checked={watch("details.showPaymentTerms") ?? true} onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked)} className="data-[state=checked]:bg-[#0A52EF]" />
+                                                <Switch id="showPaymentTerms-loi" checked={watch("details.showPaymentTerms") ?? true} onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                             <div className="flex items-center justify-between py-3 border-b border-border/30">
                                                 <div className="flex flex-col">
                                                     <Label htmlFor="showSignatureBlock" className="text-sm font-semibold text-foreground">Signature Lines</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include signature block for both parties</p>
                                                 </div>
-                                                <Switch id="showSignatureBlock" checked={watch("details.showSignatureBlock") ?? true} onCheckedChange={(checked) => setValue("details.showSignatureBlock", checked)} className="data-[state=checked]:bg-[#0A52EF]" />
+                                                <Switch id="showSignatureBlock" checked={watch("details.showSignatureBlock") ?? true} onCheckedChange={(checked) => setValue("details.showSignatureBlock", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                             <div className="flex items-center justify-between py-3 border-b border-border/30">
                                                 <div className="flex flex-col">
                                                     <Label htmlFor="showScopeOfWork" className="text-sm font-semibold text-foreground">Scope of Work</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include custom Scope of Work text (Exhibit B)</p>
                                                 </div>
-                                                <Switch id="showScopeOfWork" checked={watch("details.showScopeOfWork") || false} onCheckedChange={(checked) => setValue("details.showScopeOfWork", checked)} className="data-[state=checked]:bg-[#0A52EF]" />
+                                                <Switch id="showScopeOfWork" checked={watch("details.showScopeOfWork") || false} onCheckedChange={(checked) => setValue("details.showScopeOfWork", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                             <div className="flex items-center justify-between py-3">
                                                 <div className="flex flex-col">
                                                     <Label htmlFor="showNotes-loi" className="text-sm font-semibold text-foreground">Notes Section</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include additional notes in the PDF</p>
                                                 </div>
-                                                <Switch id="showNotes-loi" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-[#0A52EF]" />
+                                                <Switch id="showNotes-loi" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                         </TabsContent>
                                     </Tabs>
