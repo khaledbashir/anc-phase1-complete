@@ -430,8 +430,8 @@ function PricingSection({
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider shrink-0 w-20">Header:</span>
                         <DebouncedInput
                             placeholder={table.name}
-                            value={headerOverride}
-                            onChange={(val) => onHeaderChange(table.id, val)}
+                            value={headerOverride || table.name}
+                            onChange={(val) => onHeaderChange(table.id, val === table.name ? "" : val)}
                             className="flex-1 min-w-0 px-2 py-1.5 text-xs bg-background border border-border rounded-md focus:border-[#0A52EF] focus:ring-1 focus:ring-[#0A52EF]/20 transition-colors"
                         />
                         {headerOverride && (

@@ -61,7 +61,7 @@ const computePixels = (feetValue: any, pitchMm: any) => {
 
 export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, headingMode = "exhibit" }: ExhibitATechnicalSpecsProps) {
     const { details } = data;
-    const screens = details?.screens || [];
+    const screens = (details?.screens || []).filter((s: any) => !s?.hiddenFromSpecs);
     const sowText = (details as any)?.scopeOfWorkText;
     const hasSOWContent = showSOW && sowText && sowText.trim().length > 0;
     const specsDisplayMode: "condensed" | "extended" = (details as any)?.specsDisplayMode || "extended";

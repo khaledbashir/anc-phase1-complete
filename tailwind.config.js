@@ -7,6 +7,29 @@ module.exports = {
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
   ],
+  // Force-generate brand-blue utilities — JIT scanner misses them despite correct config
+  safelist: [
+    // Base utilities
+    'bg-brand-blue', 'text-brand-blue', 'border-brand-blue', 'ring-brand-blue',
+    'from-brand-blue', 'accent-brand-blue', 'border-t-brand-blue',
+    // Opacity modifiers
+    'bg-brand-blue/5', 'bg-brand-blue/10', 'bg-brand-blue/15', 'bg-brand-blue/20',
+    'bg-brand-blue/30', 'bg-brand-blue/80', 'bg-brand-blue/90',
+    'text-brand-blue/70', 'text-brand-blue/80', 'text-brand-blue/90',
+    'border-brand-blue/10', 'border-brand-blue/20', 'border-brand-blue/30',
+    'border-brand-blue/40', 'border-brand-blue/50',
+    'ring-brand-blue/30', 'shadow-brand-blue/10', 'shadow-brand-blue/20',
+    // Variant prefixes
+    'hover:bg-brand-blue/10', 'hover:bg-brand-blue/15', 'hover:bg-brand-blue/20',
+    'hover:bg-brand-blue/80', 'hover:bg-brand-blue/90',
+    'hover:text-brand-blue', 'hover:text-brand-blue/80', 'hover:text-brand-blue/90',
+    'hover:border-brand-blue/30', 'hover:border-brand-blue/40', 'hover:border-brand-blue/50',
+    'focus:border-brand-blue', 'focus:border-brand-blue/50', 'focus:ring-brand-blue',
+    'focus-visible:ring-brand-blue/30',
+    'group-hover:bg-brand-blue', 'group-hover:bg-brand-blue/20', 'group-hover:text-brand-blue',
+    'data-[state=checked]:bg-brand-blue',
+    'selection:bg-brand-blue/30',
+  ],
   theme: {
   	container: {
   		center: true,

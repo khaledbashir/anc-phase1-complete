@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
-import { Calculator, Info, ChevronDown, ChevronUp, RotateCcw, Tv, ClipboardList } from "lucide-react";
+import { Calculator, Info, ChevronDown, ChevronUp, RotateCcw, Tv, ClipboardList, EyeOff, Eye } from "lucide-react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Screens } from "@/app/components";
@@ -349,7 +349,7 @@ const Step2Intelligence = () => {
                                         setValue("details.responsibilityMatrix" as any, DEFAULT_RESP_MATRIX, { shouldDirty: true });
                                     }
                                 }}
-                                className="data-[state=checked]:bg-[#0A52EF]"
+                                className="data-[state=checked]:bg-brand-blue"
                             />
                         </div>
                         {watch("details.includeResponsibilityMatrix" as any) !== false && (
@@ -381,7 +381,17 @@ const Step2Intelligence = () => {
                             <div className="flex items-start gap-2">
                                 <Tv className="w-4 h-4 text-muted-foreground mt-0.5" />
                                 <div className="space-y-0.5">
-                                    <h4 className="text-sm font-semibold text-foreground">Screen Details for Exhibit A</h4>
+                                    <h4 className="text-sm font-semibold text-foreground">
+                                        Screen Details for Exhibit A
+                                        {(() => {
+                                            const hiddenCount = (screens as any[]).filter((s: any) => s?.hiddenFromSpecs).length;
+                                            return hiddenCount > 0 ? (
+                                                <span className="ml-2 text-[11px] font-normal text-amber-600">
+                                                    ({hiddenCount} hidden)
+                                                </span>
+                                            ) : null;
+                                        })()}
+                                    </h4>
                                     <p className="text-xs text-muted-foreground">Edit display names and brightness for the specs table</p>
                                 </div>
                             </div>
@@ -394,6 +404,7 @@ const Step2Intelligence = () => {
                                         const originalBrightness = original?.brightness ?? "";
                                         setValue(`details.screens.${idx}.customDisplayName` as any, "", { shouldDirty: true, shouldValidate: true });
                                         setValue(`details.screens.${idx}.brightness` as any, originalBrightness, { shouldDirty: true, shouldValidate: true });
+                                        setValue(`details.screens.${idx}.hiddenFromSpecs` as any, false, { shouldDirty: true, shouldValidate: true });
                                     });
                                 }}
                                 className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
@@ -404,9 +415,10 @@ const Step2Intelligence = () => {
                         </div>
 
                         <div className="space-y-3">
-                            <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_10rem_auto] gap-3 px-1">
+                            <div className="hidden md:grid md:grid-cols-[minmax(0,1fr)_10rem_auto_auto] gap-3 px-1">
                                 <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Display Name</span>
                                 <span className="text-[11px] uppercase tracking-wide text-muted-foreground">Brightness (nits)</span>
+                                <span />
                                 <span />
                             </div>
 
@@ -417,13 +429,15 @@ const Step2Intelligence = () => {
                                 const customDisplayName = (screen?.customDisplayName || "").toString();
                                 const currentDisplayName = customDisplayName.trim() !== "" ? customDisplayName : fallbackName;
                                 const isNameEdited = customDisplayName.trim() !== "" && customDisplayName.trim() !== fallbackName.trim();
+                                const isHidden = screen?.hiddenFromSpecs === true;
 
                                 return (
-                                    <div key={key} className="rounded-md border border-border/70 bg-background/40 p-3">
-                                        <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_10rem_auto] gap-2 md:gap-3 items-start">
+                                    <div key={key} className={`rounded-md border p-3 transition-colors ${isHidden ? "border-border/40 bg-muted/30 opacity-50" : "border-border/70 bg-background/40"}`}>
+                                        <div className="flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_10rem_auto_auto] gap-2 md:gap-3 items-start">
                                             <input
                                                 type="text"
                                                 value={currentDisplayName}
+                                                disabled={isHidden}
                                                 onChange={(e) => {
                                                     const nextValue = e.target.value;
                                                     const normalized = nextValue.trim();
@@ -434,12 +448,13 @@ const Step2Intelligence = () => {
                                                         { shouldDirty: true, shouldValidate: true }
                                                     );
                                                 }}
-                                                className="w-full h-9 px-3 text-sm bg-background border border-input rounded-md focus:ring-1 focus:ring-[#0A52EF] focus:outline-none"
+                                                className={`w-full h-9 px-3 text-sm border rounded-md focus:ring-1 focus:ring-[#0A52EF] focus:outline-none ${isHidden ? "bg-muted text-muted-foreground line-through border-border/50" : "bg-background border-input"}`}
                                             />
                                             <input
                                                 type="number"
                                                 placeholder="e.g., 6000"
                                                 value={screen?.brightness ?? ""}
+                                                disabled={isHidden}
                                                 onChange={(e) => {
                                                     const nextValue = e.target.value;
                                                     setValue(
@@ -448,7 +463,7 @@ const Step2Intelligence = () => {
                                                         { shouldDirty: true, shouldValidate: true }
                                                     );
                                                 }}
-                                                className="w-full h-9 px-3 text-sm bg-background border border-input rounded-md focus:ring-1 focus:ring-[#0A52EF] focus:outline-none"
+                                                className={`w-full h-9 px-3 text-sm border rounded-md focus:ring-1 focus:ring-[#0A52EF] focus:outline-none ${isHidden ? "bg-muted text-muted-foreground border-border/50" : "bg-background border-input"}`}
                                             />
                                             <button
                                                 type="button"
@@ -463,11 +478,31 @@ const Step2Intelligence = () => {
                                             >
                                                 <RotateCcw className="w-3.5 h-3.5" />
                                             </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setValue(
+                                                        `details.screens.${idx}.hiddenFromSpecs` as any,
+                                                        !isHidden,
+                                                        { shouldDirty: true, shouldValidate: true }
+                                                    );
+                                                }}
+                                                className={`inline-flex items-center justify-center h-9 w-9 rounded-md border transition-colors ${isHidden ? "border-amber-300 text-amber-500 hover:text-amber-600 hover:border-amber-400 bg-amber-50" : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"}`}
+                                                title={isHidden ? "Show in specs table" : "Hide from specs table"}
+                                                aria-label={isHidden ? "Show in specs table" : "Hide from specs table"}
+                                            >
+                                                {isHidden ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                                            </button>
                                         </div>
 
-                                        {isNameEdited && (
+                                        {isNameEdited && !isHidden && (
                                             <p className="mt-2 text-[11px] text-muted-foreground truncate">
                                                 Original: {fallbackName}
+                                            </p>
+                                        )}
+                                        {isHidden && (
+                                            <p className="mt-2 text-[11px] text-amber-600">
+                                                Hidden from Exhibit A specs table
                                             </p>
                                         )}
                                     </div>

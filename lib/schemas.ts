@@ -250,6 +250,7 @@ const ProposalDetailsSchema = z.object({
         serviceType: z.string().optional(), // "Top" or "Front/Rear"
         formFactor: z.string().optional(), // "Straight" or "Curved"
         outletDistance: z.coerce.number().nonnegative().optional(),
+        hiddenFromSpecs: z.boolean().optional().default(false),
         isReplacement: z.boolean().default(false),
         useExistingStructure: z.boolean().default(false),
         includeSpareParts: z.boolean().default(true),
