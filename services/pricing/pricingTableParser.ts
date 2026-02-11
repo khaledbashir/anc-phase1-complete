@@ -37,6 +37,7 @@ interface RawRow {
   isTax: boolean;
   isBond: boolean;
   isGrandTotal: boolean;
+  isDocumentSummary: boolean;
   isAlternateHeader: boolean;
   isAlternateLine: boolean;
 }
@@ -330,6 +331,19 @@ function isSubtotalRow(labelNorm: string, hasNumericData: boolean): boolean {
   return false;
 }
 
+/**
+ * Detect sheet-level summary rows that must never be treated as section headers
+ * or line items (e.g. "Total Project Value", "Travel", "LG Rebate").
+ */
+function isDocumentSummaryRow(labelNorm: string): boolean {
+  if (!labelNorm) return false;
+  return (
+    labelNorm === "total project value" ||
+    labelNorm === "travel" ||
+    labelNorm === "lg rebate"
+  );
+}
+
 // ============================================================================
 // ROW PARSING
 // ============================================================================
@@ -357,9 +371,9 @@ function parseAllRows(
     const label = String(row[columnMap.label] ?? "").trim();
     const labelNorm = norm(label);
 
-    const cost = parseNumber(row[columnMap.cost]);
-    const sell = parseNumber(row[columnMap.sell]);
-    const margin = parseNumber(row[columnMap.margin]);
+    const cost = roundCurrency(parseNumber(row[columnMap.cost]));
+    const sell = roundCurrency(parseNumber(row[columnMap.sell]));
+    const margin = roundCurrency(parseNumber(row[columnMap.margin]));
     const marginPct = parseNumber(row[columnMap.marginPct]);
 
     const isEmpty = !label && !Number.isFinite(sell);
@@ -376,15 +390,19 @@ function parseAllRows(
       || sellCellNorm === "selling price" || sellCellNorm === "sell price"
       || sellCellNorm === "revenue" || sellCellNorm === "price";
     const isAlternateAddToCost = /alternate[s]?\s*[-–—]?\s*add\s+to\s+cost/i.test(label);
+    const isAlternateDeduct = /alternate[s]?\s*[-–—]?\s*deduct(\s+cost(\s+above)?)?/i.test(label);
     const looksLikeAlternateHeader = labelNorm.includes("alternate") && !hasNumericData && !hasColumnHeaders;
+    const isDocumentSummary = isDocumentSummaryRow(labelNorm);
     const isHeader = !isEmpty && !hasNumericData && label.length > 0
+      && !isDocumentSummary
       && (!labelNorm.includes("alternate") || hasColumnHeaders)
-      && !isAlternateAddToCost;
+      && !isAlternateAddToCost
+      && !isAlternateDeduct;
     const isSubtotal = isSubtotalRow(labelNorm, hasNumericData);
     const isTax = labelNorm === "tax" || labelNorm.startsWith("tax ");
     const isBond = labelNorm === "bond";
     const isGrandTotal = labelNorm.includes("grand total") || labelNorm.includes("sub total (bid form)") || labelNorm === "total" || labelNorm === "project total";
-    const isAlternateHeader = isAlternateAddToCost || (looksLikeAlternateHeader && !hasColumnHeaders);
+    const isAlternateHeader = isAlternateAddToCost || isAlternateDeduct || (looksLikeAlternateHeader && !hasColumnHeaders);
     const isAlternateLine = labelNorm.startsWith("alt ") || labelNorm.startsWith("alt-") || labelNorm.includes("alternate");
 
     rows.push({
@@ -402,6 +420,7 @@ function parseAllRows(
       isTax,
       isBond,
       isGrandTotal,
+      isDocumentSummary,
       isAlternateHeader,
       isAlternateLine: isAlternateLine && hasNumericData,
     });
@@ -445,6 +464,11 @@ function parseNumber(value: any): number {
   } catch {
     return NaN;
   }
+}
+
+function roundCurrency(value: number): number {
+  if (!Number.isFinite(value)) return NaN;
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 /**
@@ -636,7 +660,9 @@ function findTableBoundaries(rows: RawRow[], headerRowLabel?: string): TableBoun
     if (row.isHeader && !row.isAlternateHeader) {
       // Close previous table
       if (currentTable && currentTable.name) {
-        currentTable.endRow = i - 1;
+        if (currentTable.endRow === -1) {
+          currentTable.endRow = i - 1;
+        }
         boundaries.push(currentTable as TableBoundary);
       }
 
@@ -814,6 +840,11 @@ function extractTable(
       if (Number.isFinite(row.sell) && (!row.label || /sub\s*-?\s*total/.test(row.labelNorm))) {
         subtotal = row.sell;
       }
+      continue;
+    }
+
+    // Sheet-level summary rows are not section items
+    if (row.isDocumentSummary) {
       continue;
     }
 
