@@ -909,7 +909,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         };
 
         return (
-            <div className="px-6 break-before-page">
+            <div className="px-6" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
                 <div className="text-center mb-3">
                     <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit B</h2>
                     <h3 className="text-[11px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: colors.primaryDark }}>

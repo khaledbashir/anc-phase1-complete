@@ -1,7 +1,7 @@
 import React from "react";
 import type { Proposal, ScreenConfig, CostLineItem } from "@prisma/client";
 
-import { formatNumberWithCommas } from "@/lib/helpers";
+import { formatNumberWithCommas, normalizePitch } from "@/lib/helpers";
 import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 
 interface Props {
@@ -13,8 +13,9 @@ interface Props {
 export default function SalesQuotation({ proposal }: Props) {
   const screens = proposal.screens || [];
 
-  const computePixels = (height: number, width: number, pitch: number) => {
-    if (!pitch || pitch <= 0) return { h: 0, w: 0, total: 0 };
+  const computePixels = (height: number, width: number, rawPitch: number) => {
+    const pitch = normalizePitch(rawPitch);
+    if (pitch <= 0) return { h: 0, w: 0, total: 0 };
     const pitchFeet = pitch / 304.8; // mm -> ft
 
     const pixelsHeight = Math.round(height / pitchFeet);
@@ -85,7 +86,7 @@ export default function SalesQuotation({ proposal }: Props) {
               {screens.map((screen) => {
                 const height = screen.height ?? 0;
                 const width = screen.width ?? 0;
-                const pitch = screen.pixelPitch ?? 0;
+                const pitch = normalizePitch(screen.pixelPitch ?? 0);
 
                 const { h, w } = computePixels(height, width, pitch);
 
