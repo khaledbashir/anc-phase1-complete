@@ -62,8 +62,6 @@ const computePixels = (feetValue: any, pitchMm: any) => {
 export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, headingMode = "exhibit" }: ExhibitATechnicalSpecsProps) {
     const { details } = data;
     const screens = details?.screens || [];
-    const pricingDocument = (details as any)?.pricingDocument;
-    const tableHeaderOverrides: Record<string, string> = (details as any)?.tableHeaderOverrides || {};
     const sowText = (details as any)?.scopeOfWorkText;
     const hasSOWContent = showSOW && sowText && sowText.trim().length > 0;
     const specsDisplayMode: "condensed" | "extended" = (details as any)?.specsDisplayMode || "extended";
@@ -74,15 +72,6 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
             ? "EXHIBIT A: STATEMENT OF WORK & TECHNICAL SPECIFICATIONS"
             : "EXHIBIT A: TECHNICAL SPECIFICATIONS")
         : "TECHNICAL SPECIFICATIONS";
-
-    const rollUpRegex = /\b(total|roll.?up|summary|project\s+grand|grand\s+total|project\s+total|cost\s+summary|pricing\s+summary)\b/i;
-    const metadataRegex = /\b(margin\s+analysis|margin\s+report|analysis\s+sheet|metadata|internal|config)\b/i;
-    const nonDisplayRegex = /\b(warranty|warrantee|extended\s+warranty|annual\s+check|maintenance|service\s+agreement|option\s+[c-z]|yearly|check.?up)\b/i;
-    const pricingTables = (pricingDocument?.tables || []) as Array<{ id?: string; name?: string }>;
-    const detailTables = pricingTables.filter((t) => {
-        const name = (t?.name || "").toString();
-        return !rollUpRegex.test(name) && !metadataRegex.test(name) && !nonDisplayRegex.test(name);
-    });
 
     const normalizedScreenRows = screens.map((screen: any, idx: number) => {
         const h = screen?.heightFt ?? screen?.height ?? 0;
@@ -120,29 +109,9 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
         return { ...screen, __displayName: `${base} (${duplicateSeen[base]})` };
     });
 
-    // Ensure at least one row per pricing section in mirror mode
-    const screenNames = new Set(numberedScreens.map((s: any) => (s.__cleanName || "").toLowerCase().trim()));
-    const synthesizedFromTables = detailTables
-        .map((table, idx) => {
-            const override = table.id ? tableHeaderOverrides[table.id] : undefined;
-            const name = cleanDisplayName(override || table.name || `Display ${idx + 1}`, numberedScreens.length + idx);
-            if (screenNames.has(name.toLowerCase())) return null;
-            return {
-                id: `synthetic-${table.id || idx}`,
-                __cleanName: name,
-                __displayName: name,
-                heightFt: null,
-                widthFt: null,
-                pitchMm: null,
-                quantity: 1,
-                pixelsH: null,
-                pixelsW: null,
-                brightness: null,
-            };
-        })
-        .filter(Boolean) as any[];
-
-    const specRows = [...numberedScreens, ...synthesizedFromTables];
+    // Only show real screens with actual spec data — synthesized rows from pricing
+    // tables have no dimensions/pitch/resolution and add noise to a specs table.
+    const specRows = numberedScreens;
 
     // Prompt 46: Hide BRIGHTNESS column if all values are null/empty/dash
     const hasAnyBrightness = specRows.some((screen: any) => {
