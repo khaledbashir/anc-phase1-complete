@@ -77,10 +77,11 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
 
     const rollUpRegex = /\b(total|roll.?up|summary|project\s+grand|grand\s+total|project\s+total|cost\s+summary|pricing\s+summary)\b/i;
     const metadataRegex = /\b(margin\s+analysis|margin\s+report|analysis\s+sheet|metadata|internal|config)\b/i;
+    const nonDisplayRegex = /\b(warranty|warrantee|extended\s+warranty|annual\s+check|maintenance|service\s+agreement|option\s+[c-z]|yearly|check.?up)\b/i;
     const pricingTables = (pricingDocument?.tables || []) as Array<{ id?: string; name?: string }>;
     const detailTables = pricingTables.filter((t) => {
         const name = (t?.name || "").toString();
-        return !rollUpRegex.test(name) && !metadataRegex.test(name);
+        return !rollUpRegex.test(name) && !metadataRegex.test(name) && !nonDisplayRegex.test(name);
     });
 
     const normalizedScreenRows = screens.map((screen: any, idx: number) => {
@@ -173,12 +174,12 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                             </>
                         ) : (
                             <>
-                                <col style={{ width: "30%" }} />
-                                <col style={{ width: "15%" }} />
-                                <col style={{ width: "10%" }} />
-                                <col style={{ width: "15%" }} />
-                                {hasAnyBrightness && <col style={{ width: "15%" }} />}
-                                <col style={{ width: hasAnyBrightness ? "10%" : "15%" }} />
+                                <col style={{ width: "28%" }} />
+                                <col style={{ width: "18%" }} />
+                                <col style={{ width: "12%" }} />
+                                <col style={{ width: "18%" }} />
+                                {hasAnyBrightness && <col style={{ width: "14%" }} />}
+                                <col style={{ width: hasAnyBrightness ? "10%" : "12%" }} />
                             </>
                         )}
                     </colgroup>
@@ -223,16 +224,16 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                                         <td className="py-1 px-2 font-semibold text-[8px] break-words align-top" style={{ wordBreak: "break-word" }}>
                                             {name}
                                         </td>
-                                        <td className="py-1 px-2 text-gray-800 text-[8px] whitespace-nowrap align-top">
+                                        <td className="py-1 px-2 text-gray-800 text-[8px] align-top" style={{ overflow: 'hidden' }}>
                                             {formatFeet(h)} x {formatFeet(w)}
                                         </td>
                                         {!isCondensed && (
-                                            <td className="py-1 px-2 text-right tabular-nums text-[8px] whitespace-nowrap align-top">
+                                            <td className="py-1 px-2 text-right tabular-nums text-[8px] align-top" style={{ overflow: 'hidden' }}>
                                                 {pitch ? `${formatPitchMm(pitch)}mm` : "—"}
                                             </td>
                                         )}
                                         {!isCondensed && (
-                                            <td className="py-1 px-2 text-right tabular-nums text-[8px] whitespace-nowrap align-top">
+                                            <td className="py-1 px-2 text-right tabular-nums text-[8px] align-top" style={{ overflow: 'hidden' }}>
                                                 {resolution}
                                             </td>
                                         )}
