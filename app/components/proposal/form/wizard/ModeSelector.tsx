@@ -1,7 +1,8 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
-import { FileSpreadsheet, PenTool } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { FileSpreadsheet, PenTool, FileSearch } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type WorkflowMode = "mirror" | "intelligence";
@@ -16,6 +17,7 @@ interface ModeSelectorProps {
  */
 const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
   const { setValue } = useFormContext();
+  const router = useRouter();
 
   const handleSelect = (mode: WorkflowMode) => {
     if (mode === "mirror") {
@@ -40,8 +42,8 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
     {
       id: "intelligence" as WorkflowMode,
       icon: PenTool,
-      title: "Build a Proposal",
-      description: "Create a proposal from scratch or import from an RFP document.",
+      title: "Build from Scratch",
+      description: "Start a new proposal without an RFP. Add screens and configure pricing manually.",
       label: "Select",
     },
   ];
@@ -57,7 +59,35 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl w-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-4xl w-full">
+        {/* RFP Filter — primary path */}
+        <button
+          type="button"
+          onClick={() => router.push("/tools/pdf-filter")}
+          className={cn(
+            "group relative flex flex-col items-center text-center p-8 rounded-xl border-2 border-brand-blue/30 bg-brand-blue/5",
+            "hover:border-brand-blue/50 hover:bg-brand-blue/10",
+            "transition-all duration-200 cursor-pointer"
+          )}
+        >
+          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-brand-blue text-white text-[10px] font-bold uppercase tracking-wider">
+            Recommended
+          </div>
+          <div className="w-12 h-12 rounded-xl bg-brand-blue/10 flex items-center justify-center mb-5 group-hover:bg-brand-blue/20 transition-colors duration-200">
+            <FileSearch className="w-6 h-6 text-brand-blue" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground mb-2">
+            I Have an RFP
+          </h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Got a large RFP PDF? Filter it down to only the relevant pages first, then build your proposal from the clean version.
+          </p>
+          <div className="mt-5 px-4 py-1.5 rounded-md border border-brand-blue/30 text-xs font-medium text-brand-blue group-hover:bg-brand-blue group-hover:text-white transition-all duration-200">
+            Filter RFP
+          </div>
+        </button>
+
+        {/* Existing modes */}
         {modes.map((mode) => (
           <button
             key={mode.id}
