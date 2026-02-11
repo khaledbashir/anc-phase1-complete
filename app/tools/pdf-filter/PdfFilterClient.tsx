@@ -4,11 +4,16 @@ import React, { useState, useCallback, useRef, useEffect, useMemo } from "react"
 import {
   Upload, X, Download, AlertTriangle, ChevronLeft, Eye, ArrowRight,
   ArrowLeft, FileText, Loader2, ChevronDown, Zap, Pencil, Image as ImageIcon,
-  Package,
+  Package, GripVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import {
+  DndContext, DragOverlay, useDraggable, useDroppable,
+  PointerSensor, useSensor, useSensors,
+  type DragStartEvent, type DragEndEvent,
+} from "@dnd-kit/core";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { PageScore, ClassificationResult } from "./lib/scoring";
 import { classifyAndScorePages, splitByThreshold } from "./lib/scoring";
@@ -86,6 +91,7 @@ export default function PdfFilterClient() {
   const [thumbnailCache, setThumbnailCache] = useState<Map<number, string>>(new Map());
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const drawingAbortRef = useRef<AbortController | null>(null);
 
   // ─── Derived ───
   const allKeywords = useMemo(
@@ -231,18 +237,54 @@ export default function PdfFilterClient() {
     setTextSelected(new Set());
   }, [textSelected]);
 
+  const handleTextDragMove = useCallback((pageIndex: number, from: "keep" | "discard", to: "keep" | "discard") => {
+    setTextTriage((prev) => {
+      const sourceList = from === "keep" ? prev.keep : prev.discard;
+      const targetList = to === "keep" ? prev.keep : prev.discard;
+      const page = sourceList.find((p) => p.pageIndex === pageIndex);
+      if (!page) return prev;
+      const newSource = sourceList.filter((p) => p.pageIndex !== pageIndex);
+      const newTarget = [...targetList, page];
+      if (to === "keep") newTarget.sort((a, b) => b.score - a.score);
+      else newTarget.sort((a, b) => a.score - b.score);
+      return {
+        keep: from === "keep" ? newSource : newTarget,
+        discard: from === "discard" ? newSource : newTarget,
+      };
+    });
+  }, []);
+
   // ─── Drawing analysis ───
   const handleAnalyzeDrawings = useCallback(async () => {
     if (!pdfDoc || !classification || classification.drawingPages.length === 0) return;
+
+    drawingAbortRef.current?.abort();
+    const controller = new AbortController();
+    drawingAbortRef.current = controller;
+
+    const totalDrawings = classification.drawingPages.length;
     setIsAnalyzingDrawings(true);
-    setDrawingProgress({ completed: 0, total: classification.drawingPages.length, results: [] });
+    setDrawingProgress({ completed: 0, total: totalDrawings, results: [] });
 
     try {
+      // Render thumbnails in batches of 20 with progress
       const drawingImages: { pageIndex: number; pageNumber: number; base64: string }[] = [];
-      for (const page of classification.drawingPages) {
-        const thumb = await renderPageThumbnail(pdfDoc, page.pageNumber, 300);
-        drawingImages.push({ pageIndex: page.pageIndex, pageNumber: page.pageNumber, base64: thumb });
+      const THUMB_BATCH = 20;
+      for (let i = 0; i < classification.drawingPages.length; i += THUMB_BATCH) {
+        if (controller.signal.aborted) return;
+        const batch = classification.drawingPages.slice(i, i + THUMB_BATCH);
+        const thumbs = await Promise.all(
+          batch.map(async (page) => {
+            const thumb = await renderPageThumbnail(pdfDoc, page.pageNumber, 300);
+            // Cache for reuse in UI
+            setThumbnailCache((prev) => new Map(prev).set(page.pageNumber, thumb));
+            return { pageIndex: page.pageIndex, pageNumber: page.pageNumber, base64: thumb };
+          })
+        );
+        drawingImages.push(...thumbs);
       }
+
+      if (controller.signal.aborted) return;
 
       const results = await analyzeAllDrawings(
         drawingImages,
@@ -252,18 +294,24 @@ export default function PdfFilterClient() {
           setDrawingProgress(prog);
           const { keep, discard } = splitDrawingsByConfidence(prog.results, drawingCategories);
           setDrawingTriage({ keep, discard });
-        }
+        },
+        controller.signal
       );
+
+      if (controller.signal.aborted) return;
 
       setDrawingResults(results);
       const { keep, discard } = splitDrawingsByConfidence(results, drawingCategories);
       setDrawingTriage({ keep, discard });
       setDrawingsAnalyzed(true);
     } catch (err) {
+      if (controller.signal.aborted) return;
       console.error("Drawing analysis failed:", err);
       alert(`Drawing analysis failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
-      setIsAnalyzingDrawings(false);
+      if (!controller.signal.aborted) {
+        setIsAnalyzingDrawings(false);
+      }
     }
   }, [pdfDoc, classification, drawingCategories, drawingCustomInstructions]);
 
@@ -295,6 +343,23 @@ export default function PdfFilterClient() {
     });
     setDrawingSelected(new Set());
   }, [drawingSelected]);
+
+  const handleDrawingDragMove = useCallback((pageIndex: number, from: "keep" | "discard", to: "keep" | "discard") => {
+    setDrawingTriage((prev) => {
+      const sourceList = from === "keep" ? prev.keep : prev.discard;
+      const targetList = to === "keep" ? prev.keep : prev.discard;
+      const item = sourceList.find((r) => r.pageIndex === pageIndex);
+      if (!item) return prev;
+      const newSource = sourceList.filter((r) => r.pageIndex !== pageIndex);
+      const newTarget = [...targetList, item];
+      if (to === "keep") newTarget.sort((a, b) => b.confidence - a.confidence);
+      else newTarget.sort((a, b) => a.confidence - b.confidence);
+      return {
+        keep: from === "keep" ? newSource : newTarget,
+        discard: from === "discard" ? newSource : newTarget,
+      };
+    });
+  }, []);
 
   // ─── Preview ───
   const openPreview = useCallback(async (pageNumber: number) => {
@@ -354,6 +419,8 @@ export default function PdfFilterClient() {
 
   // ─── Reset ───
   const handleReset = useCallback(() => {
+    drawingAbortRef.current?.abort();
+    drawingAbortRef.current = null;
     setPhase("upload");
     setFile(null);
     setFileBuffer(null);
@@ -367,6 +434,7 @@ export default function PdfFilterClient() {
     setDrawingSelected(new Set());
     setDrawingsAnalyzed(false);
     setDrawingProgress(null);
+    setIsAnalyzingDrawings(false);
     setThumbnailCache(new Map());
     setPreviewPage(null);
     setPreviewImage(null);
@@ -571,6 +639,7 @@ export default function PdfFilterClient() {
             onPreview={openPreview}
             thumbnailCache={thumbnailCache}
             onLoadThumbnail={loadThumbnail}
+            onDragMove={handleTextDragMove}
           />
         )}
         {activeTab === "drawings" && (
@@ -601,6 +670,7 @@ export default function PdfFilterClient() {
             onPreview={openPreview}
             thumbnailCache={thumbnailCache}
             onLoadThumbnail={loadThumbnail}
+            onDragMove={handleDrawingDragMove}
           />
         )}
         {activeTab === "export" && (
@@ -663,81 +733,122 @@ function TabButton({ active, onClick, icon, label, badge, dot }: {
 // TEXT TRIAGE VIEW
 // ═══════════════════════════════════════════════════════
 function TextTriageView({ triage, threshold, onThresholdChange, selected, keepSelected, discardSelected,
-  onPageClick, onMoveToKeep, onMoveToDiscard, onPreview, thumbnailCache, onLoadThumbnail }: {
+  onPageClick, onMoveToKeep, onMoveToDiscard, onPreview, thumbnailCache, onLoadThumbnail,
+  onDragMove }: {
   triage: TriageState; threshold: number; onThresholdChange: (v: number) => void;
   selected: Set<number>; keepSelected: number; discardSelected: number;
   onPageClick: (idx: number, col: "keep" | "discard", e: React.MouseEvent) => void;
   onMoveToKeep: () => void; onMoveToDiscard: () => void; onPreview: (pn: number) => void;
   thumbnailCache: Map<number, string>; onLoadThumbnail: (pn: number) => void;
+  onDragMove: (pageIndex: number, from: "keep" | "discard", to: "keep" | "discard") => void;
 }) {
+  const [activeDragId, setActiveDragId] = useState<number | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const id = event.active.id as number;
+    setActiveDragId(id);
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveDragId(null);
+    const { active, over } = event;
+    if (!over) return;
+    const pageIndex = active.id as number;
+    const targetColumn = over.id as "keep" | "discard";
+    const isInKeep = triage.keep.some((p) => p.pageIndex === pageIndex);
+    const sourceColumn = isInKeep ? "keep" : "discard";
+    if (sourceColumn !== targetColumn) {
+      onDragMove(pageIndex, sourceColumn, targetColumn);
+    }
+  }, [triage, onDragMove]);
+
+  const activePage = activeDragId !== null
+    ? (triage.keep.find((p) => p.pageIndex === activeDragId) || triage.discard.find((p) => p.pageIndex === activeDragId))
+    : null;
+
   return (
-    <div className="h-full flex flex-col">
-      {/* Threshold bar */}
-      <div className="h-9 shrink-0 border-b border-border flex items-center justify-between px-4">
-        <span className="text-xs text-muted-foreground">
-          Keeping <span className="font-medium text-foreground">{triage.keep.length}</span> of {triage.keep.length + triage.discard.length} text pages
-        </span>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Threshold</span>
-          <input type="range" min={0} max={0.5} step={0.005} value={threshold}
-            onChange={(e) => onThresholdChange(parseFloat(e.target.value))}
-            className="w-24 h-1 accent-brand-blue" />
-          <span className="w-8 text-right font-mono">{threshold.toFixed(3)}</span>
-        </div>
-      </div>
-
-      <div className="flex-1 flex overflow-hidden">
-        {/* KEEP */}
-        <div className="flex-1 flex flex-col border-r border-border">
-          <div className="h-10 shrink-0 border-b border-border flex items-center justify-between px-4 bg-emerald-50/50">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Keep · {triage.keep.length}</span>
-            {keepSelected > 0 && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={onMoveToDiscard}>
-                <ArrowRight className="w-3 h-3" /> Discard {keepSelected}
-              </Button>
-            )}
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="h-full flex flex-col">
+        {/* Threshold bar */}
+        <div className="h-9 shrink-0 border-b border-border flex items-center justify-between px-4">
+          <span className="text-xs text-muted-foreground">
+            Keeping <span className="font-medium text-foreground">{triage.keep.length}</span> of {triage.keep.length + triage.discard.length} text pages
+          </span>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>Threshold</span>
+            <input type="range" min={0} max={0.5} step={0.005} value={threshold}
+              onChange={(e) => onThresholdChange(parseFloat(e.target.value))}
+              className="w-24 h-1 accent-brand-blue" />
+            <span className="w-8 text-right font-mono">{threshold.toFixed(3)}</span>
           </div>
-          <div className="flex-1 overflow-y-auto p-3">
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {triage.keep.map((page) => (
-                <KeepCard key={page.pageIndex} page={page} isSelected={selected.has(page.pageIndex)}
-                  thumbnail={thumbnailCache.get(page.pageNumber)}
-                  onSelect={(e) => onPageClick(page.pageIndex, "keep", e)}
-                  onPreview={() => onPreview(page.pageNumber)}
-                  onLoadThumbnail={() => onLoadThumbnail(page.pageNumber)} />
-              ))}
-            </div>
-            {triage.keep.length === 0 && (
-              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                No pages above threshold. Adjust the slider or move pages from Discard.
+        </div>
+
+        <div className="flex-1 flex overflow-hidden">
+          {/* KEEP */}
+          <DroppableColumn id="keep">
+            <div className="flex-1 flex flex-col border-r border-border">
+              <div className="h-10 shrink-0 border-b border-border flex items-center justify-between px-4 bg-emerald-50/50">
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Keep · {triage.keep.length}</span>
+                {keepSelected > 0 && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={onMoveToDiscard}>
+                    <ArrowRight className="w-3 h-3" /> Discard {keepSelected}
+                  </Button>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+              <div className="flex-1 overflow-y-auto p-3">
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {triage.keep.map((page) => (
+                    <DraggableKeepCard key={page.pageIndex} page={page} isSelected={selected.has(page.pageIndex)}
+                      thumbnail={thumbnailCache.get(page.pageNumber)}
+                      onSelect={(e) => onPageClick(page.pageIndex, "keep", e)}
+                      onPreview={() => onPreview(page.pageNumber)}
+                      onLoadThumbnail={() => onLoadThumbnail(page.pageNumber)} />
+                  ))}
+                </div>
+                {triage.keep.length === 0 && (
+                  <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                    No pages above threshold. Adjust the slider or move pages from Discard.
+                  </div>
+                )}
+              </div>
+            </div>
+          </DroppableColumn>
 
-        {/* DISCARD */}
-        <div className="w-[380px] xl:w-[440px] flex flex-col shrink-0">
-          <div className="h-10 shrink-0 border-b border-border flex items-center justify-between px-4 bg-red-50/50">
-            <span className="text-xs font-semibold uppercase tracking-wider text-red-700">Discard · {triage.discard.length}</span>
-            {discardSelected > 0 && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={onMoveToKeep}>
-                <ArrowLeft className="w-3 h-3" /> Keep {discardSelected}
-              </Button>
-            )}
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {triage.discard.map((page) => (
-              <DiscardRow key={page.pageIndex} page={page} isSelected={selected.has(page.pageIndex)}
-                onSelect={(e) => onPageClick(page.pageIndex, "discard", e)}
-                onPreview={() => onPreview(page.pageNumber)} />
-            ))}
-            {triage.discard.length === 0 && (
-              <div className="flex items-center justify-center h-full p-8 text-sm text-muted-foreground">All pages matched your keywords.</div>
-            )}
-          </div>
+          {/* DISCARD */}
+          <DroppableColumn id="discard">
+            <div className="w-[380px] xl:w-[440px] flex flex-col shrink-0">
+              <div className="h-10 shrink-0 border-b border-border flex items-center justify-between px-4 bg-red-50/50">
+                <span className="text-xs font-semibold uppercase tracking-wider text-red-700">Discard · {triage.discard.length}</span>
+                {discardSelected > 0 && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={onMoveToKeep}>
+                    <ArrowLeft className="w-3 h-3" /> Keep {discardSelected}
+                  </Button>
+                )}
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {triage.discard.map((page) => (
+                  <DraggableDiscardRow key={page.pageIndex} page={page} isSelected={selected.has(page.pageIndex)}
+                    onSelect={(e) => onPageClick(page.pageIndex, "discard", e)}
+                    onPreview={() => onPreview(page.pageNumber)} />
+                ))}
+                {triage.discard.length === 0 && (
+                  <div className="flex items-center justify-center h-full p-8 text-sm text-muted-foreground">All pages matched your keywords.</div>
+                )}
+              </div>
+            </div>
+          </DroppableColumn>
         </div>
       </div>
-    </div>
+
+      <DragOverlay>
+        {activePage && (
+          <div className="bg-background border border-brand-blue rounded-lg shadow-lg px-3 py-2 text-xs font-medium text-foreground opacity-90">
+            Page {activePage.pageNumber} — {activePage.score.toFixed(3)}
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 }
 
@@ -747,7 +858,7 @@ function TextTriageView({ triage, threshold, onThresholdChange, selected, keepSe
 function DrawingTriageView({ drawingPages, drawingCategories, onToggleCategory, customInstructions,
   onCustomInstructionsChange, isAnalyzing, progress, analyzed, triage, selected, keepSelected,
   discardSelected, costEstimate, onAnalyze, onPageClick, onMoveToKeep, onMoveToDiscard,
-  onPreview, thumbnailCache, onLoadThumbnail }: {
+  onPreview, thumbnailCache, onLoadThumbnail, onDragMove }: {
   drawingPages: PageScore[]; drawingCategories: Set<string>;
   onToggleCategory: (id: string) => void; customInstructions: string;
   onCustomInstructionsChange: (v: string) => void; isAnalyzing: boolean;
@@ -758,6 +869,7 @@ function DrawingTriageView({ drawingPages, drawingCategories, onToggleCategory, 
   onMoveToKeep: () => void; onMoveToDiscard: () => void;
   onPreview: (pn: number) => void; thumbnailCache: Map<number, string>;
   onLoadThumbnail: (pn: number) => void;
+  onDragMove: (pageIndex: number, from: "keep" | "discard", to: "keep" | "discard") => void;
 }) {
   if (drawingPages.length === 0) {
     return (
@@ -858,67 +970,122 @@ function DrawingTriageView({ drawingPages, drawingCategories, onToggleCategory, 
     );
   }
 
-  // Post-analysis: KEEP / DISCARD columns
+  // Post-analysis: KEEP / DISCARD columns with DnD
+  return <DrawingTriageColumns triage={triage} drawingPages={drawingPages}
+    selected={selected} keepSelected={keepSelected} discardSelected={discardSelected}
+    onPageClick={onPageClick} onMoveToKeep={onMoveToKeep} onMoveToDiscard={onMoveToDiscard}
+    onPreview={onPreview} thumbnailCache={thumbnailCache} onLoadThumbnail={onLoadThumbnail}
+    onDragMove={onDragMove} />;
+}
+
+function DrawingTriageColumns({ triage, drawingPages, selected, keepSelected, discardSelected,
+  onPageClick, onMoveToKeep, onMoveToDiscard, onPreview, thumbnailCache, onLoadThumbnail, onDragMove }: {
+  triage: DrawingTriageState; drawingPages: PageScore[];
+  selected: Set<number>; keepSelected: number; discardSelected: number;
+  onPageClick: (idx: number, e: React.MouseEvent) => void;
+  onMoveToKeep: () => void; onMoveToDiscard: () => void;
+  onPreview: (pn: number) => void; thumbnailCache: Map<number, string>;
+  onLoadThumbnail: (pn: number) => void;
+  onDragMove: (pageIndex: number, from: "keep" | "discard", to: "keep" | "discard") => void;
+}) {
+  const [activeDragId, setActiveDragId] = useState<number | null>(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragId(event.active.id as number);
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveDragId(null);
+    const { active, over } = event;
+    if (!over) return;
+    const pageIndex = active.id as number;
+    const targetColumn = over.id as "keep" | "discard";
+    const isInKeep = triage.keep.some((r) => r.pageIndex === pageIndex);
+    const sourceColumn = isInKeep ? "keep" : "discard";
+    if (sourceColumn !== targetColumn) {
+      onDragMove(pageIndex, sourceColumn, targetColumn);
+    }
+  }, [triage, onDragMove]);
+
+  const activeResult = activeDragId !== null
+    ? (triage.keep.find((r) => r.pageIndex === activeDragId) || triage.discard.find((r) => r.pageIndex === activeDragId))
+    : null;
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="h-9 shrink-0 border-b border-border flex items-center justify-between px-4">
-        <span className="text-xs text-muted-foreground">
-          Keeping <span className="font-medium text-foreground">{triage.keep.length}</span> of {drawingPages.length} drawings
-        </span>
-      </div>
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <div className="h-full flex flex-col">
+        <div className="h-9 shrink-0 border-b border-border flex items-center justify-between px-4">
+          <span className="text-xs text-muted-foreground">
+            Keeping <span className="font-medium text-foreground">{triage.keep.length}</span> of {drawingPages.length} drawings
+          </span>
+        </div>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* KEEP */}
-        <div className="flex-1 flex flex-col border-r border-border">
-          <div className="h-10 shrink-0 border-b border-border flex items-center justify-between px-4 bg-emerald-50/50">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Keep · {triage.keep.length}</span>
-            {keepSelected > 0 && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={onMoveToDiscard}>
-                <ArrowRight className="w-3 h-3" /> Discard {keepSelected}
-              </Button>
-            )}
-          </div>
-          <div className="flex-1 overflow-y-auto p-3">
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-              {triage.keep.map((result) => (
-                <DrawingKeepCard key={result.pageIndex} result={result}
-                  isSelected={selected.has(result.pageIndex)}
-                  thumbnail={thumbnailCache.get(result.pageNumber)}
-                  onSelect={(e) => onPageClick(result.pageIndex, e)}
-                  onPreview={() => onPreview(result.pageNumber)}
-                  onLoadThumbnail={() => onLoadThumbnail(result.pageNumber)} />
-              ))}
+        <div className="flex-1 flex overflow-hidden">
+          {/* KEEP */}
+          <DroppableColumn id="keep">
+            <div className="flex-1 flex flex-col border-r border-border">
+              <div className="h-10 shrink-0 border-b border-border flex items-center justify-between px-4 bg-emerald-50/50">
+                <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Keep · {triage.keep.length}</span>
+                {keepSelected > 0 && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={onMoveToDiscard}>
+                    <ArrowRight className="w-3 h-3" /> Discard {keepSelected}
+                  </Button>
+                )}
+              </div>
+              <div className="flex-1 overflow-y-auto p-3">
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                  {triage.keep.map((result) => (
+                    <DraggableDrawingKeepCard key={result.pageIndex} result={result}
+                      isSelected={selected.has(result.pageIndex)}
+                      thumbnail={thumbnailCache.get(result.pageNumber)}
+                      onSelect={(e) => onPageClick(result.pageIndex, e)}
+                      onPreview={() => onPreview(result.pageNumber)}
+                      onLoadThumbnail={() => onLoadThumbnail(result.pageNumber)} />
+                  ))}
+                </div>
+                {triage.keep.length === 0 && (
+                  <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No relevant drawings found.</div>
+                )}
+              </div>
             </div>
-            {triage.keep.length === 0 && (
-              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">No relevant drawings found.</div>
-            )}
-          </div>
-        </div>
+          </DroppableColumn>
 
-        {/* DISCARD */}
-        <div className="w-[380px] xl:w-[440px] flex flex-col shrink-0">
-          <div className="h-10 shrink-0 border-b border-border flex items-center justify-between px-4 bg-red-50/50">
-            <span className="text-xs font-semibold uppercase tracking-wider text-red-700">Discard · {triage.discard.length}</span>
-            {discardSelected > 0 && (
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={onMoveToKeep}>
-                <ArrowLeft className="w-3 h-3" /> Keep {discardSelected}
-              </Button>
-            )}
-          </div>
-          <div className="flex-1 overflow-y-auto">
-            {triage.discard.map((result) => (
-              <DrawingDiscardRow key={result.pageIndex} result={result}
-                isSelected={selected.has(result.pageIndex)}
-                onSelect={(e) => onPageClick(result.pageIndex, e)}
-                onPreview={() => onPreview(result.pageNumber)} />
-            ))}
-            {triage.discard.length === 0 && (
-              <div className="flex items-center justify-center h-full p-8 text-sm text-muted-foreground">All drawings matched.</div>
-            )}
-          </div>
+          {/* DISCARD */}
+          <DroppableColumn id="discard">
+            <div className="w-[380px] xl:w-[440px] flex flex-col shrink-0">
+              <div className="h-10 shrink-0 border-b border-border flex items-center justify-between px-4 bg-red-50/50">
+                <span className="text-xs font-semibold uppercase tracking-wider text-red-700">Discard · {triage.discard.length}</span>
+                {discardSelected > 0 && (
+                  <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={onMoveToKeep}>
+                    <ArrowLeft className="w-3 h-3" /> Keep {discardSelected}
+                  </Button>
+                )}
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {triage.discard.map((result) => (
+                  <DraggableDrawingDiscardRow key={result.pageIndex} result={result}
+                    isSelected={selected.has(result.pageIndex)}
+                    onSelect={(e) => onPageClick(result.pageIndex, e)}
+                    onPreview={() => onPreview(result.pageNumber)} />
+                ))}
+                {triage.discard.length === 0 && (
+                  <div className="flex items-center justify-center h-full p-8 text-sm text-muted-foreground">All drawings matched.</div>
+                )}
+              </div>
+            </div>
+          </DroppableColumn>
         </div>
       </div>
-    </div>
+
+      <DragOverlay>
+        {activeResult && (
+          <div className="bg-background border border-brand-blue rounded-lg shadow-lg px-3 py-2 text-xs font-medium text-foreground opacity-90">
+            Page {activeResult.pageNumber} — {activeResult.confidence}% — {activeResult.categoryLabel}
+          </div>
+        )}
+      </DragOverlay>
+    </DndContext>
   );
 }
 
@@ -1008,10 +1175,55 @@ function ExportView({ textKeepCount, textTotalCount, drawingKeepCount, drawingTo
 }
 
 // ═══════════════════════════════════════════════════════
-// SHARED CARD COMPONENTS
+// DND PRIMITIVES
 // ═══════════════════════════════════════════════════════
 
-function KeepCard({ page, isSelected, thumbnail, onSelect, onPreview, onLoadThumbnail }: {
+function DroppableColumn({ id, children }: { id: string; children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  return (
+    <div ref={setNodeRef} className={cn("flex-1 flex flex-col transition-colors relative",
+      isOver && "ring-2 ring-inset ring-brand-blue/30")}>
+      {children}
+    </div>
+  );
+}
+
+function DraggableWrapper({ id, children }: { id: number; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
+  return (
+    <div ref={setNodeRef} {...attributes} style={{ opacity: isDragging ? 0.4 : 1 }} className="relative group/drag">
+      <div {...listeners}
+        className="absolute top-1 left-1 z-10 p-0.5 rounded cursor-grab opacity-0 group-hover/drag:opacity-60 hover:!opacity-100 transition-opacity bg-background/80">
+        <GripVertical className="w-3 h-3 text-muted-foreground" />
+      </div>
+      {children}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// CONFIDENCE ZONE HELPER
+// ═══════════════════════════════════════════════════════
+
+function ConfidenceBadge({ confidence }: { confidence: number }) {
+  if (confidence >= 70) {
+    return <span className="text-[10px] font-mono text-emerald-600">{confidence}%</span>;
+  }
+  if (confidence >= 30) {
+    return (
+      <span className="text-[10px] font-mono px-1 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-200" title="Review zone (30-70% confidence)">
+        {confidence}% ⚠
+      </span>
+    );
+  }
+  return <span className="text-[10px] font-mono text-red-400">{confidence}%</span>;
+}
+
+// ═══════════════════════════════════════════════════════
+// SHARED CARD COMPONENTS (with drag wrappers)
+// ═══════════════════════════════════════════════════════
+
+function KeepCardInner({ page, isSelected, thumbnail, onSelect, onPreview, onLoadThumbnail }: {
   page: PageScore; isSelected: boolean; thumbnail?: string;
   onSelect: (e: React.MouseEvent) => void; onPreview: () => void; onLoadThumbnail: () => void;
 }) {
@@ -1054,7 +1266,18 @@ function KeepCard({ page, isSelected, thumbnail, onSelect, onPreview, onLoadThum
   );
 }
 
-function DrawingKeepCard({ result, isSelected, thumbnail, onSelect, onPreview, onLoadThumbnail }: {
+function DraggableKeepCard(props: {
+  page: PageScore; isSelected: boolean; thumbnail?: string;
+  onSelect: (e: React.MouseEvent) => void; onPreview: () => void; onLoadThumbnail: () => void;
+}) {
+  return (
+    <DraggableWrapper id={props.page.pageIndex}>
+      <KeepCardInner {...props} />
+    </DraggableWrapper>
+  );
+}
+
+function DrawingKeepCardInner({ result, isSelected, thumbnail, onSelect, onPreview, onLoadThumbnail }: {
   result: DrawingAnalysisResult; isSelected: boolean; thumbnail?: string;
   onSelect: (e: React.MouseEvent) => void; onPreview: () => void; onLoadThumbnail: () => void;
 }) {
@@ -1070,11 +1293,20 @@ function DrawingKeepCard({ result, isSelected, thumbnail, onSelect, onPreview, o
     return () => observer.disconnect();
   }, [thumbnail, onLoadThumbnail]);
 
+  const isReviewZone = result.confidence >= 30 && result.confidence < 70;
+
   return (
     <div ref={cardRef} onClick={onSelect}
       className={cn("rounded-lg border cursor-pointer transition-all group relative",
-        isSelected ? "border-brand-blue ring-1 ring-brand-blue/30 bg-brand-blue/5" : "border-border hover:border-muted-foreground")}>
-      <div className="aspect-[3/4] bg-muted/30 rounded-t-lg overflow-hidden relative">
+        isSelected ? "border-brand-blue ring-1 ring-brand-blue/30 bg-brand-blue/5"
+          : isReviewZone ? "border-amber-300 bg-amber-50/30"
+          : "border-border hover:border-muted-foreground")}>
+      {isReviewZone && (
+        <div className="absolute top-0 left-0 right-0 bg-amber-100 text-amber-700 text-[9px] font-semibold text-center py-0.5 rounded-t-lg z-10">
+          NEEDS REVIEW
+        </div>
+      )}
+      <div className={cn("aspect-[3/4] bg-muted/30 rounded-t-lg overflow-hidden relative", isReviewZone && "mt-4")}>
         {thumbnail ? <img src={thumbnail} alt={`Page ${result.pageNumber}`} className="w-full h-full object-cover" />
           : <div className="w-full h-full flex items-center justify-center"><Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /></div>}
         <button onClick={(e) => { e.stopPropagation(); onPreview(); }}
@@ -1085,7 +1317,7 @@ function DrawingKeepCard({ result, isSelected, thumbnail, onSelect, onPreview, o
       <div className="p-2 space-y-0.5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-foreground">Page {result.pageNumber}</span>
-          <span className="text-[10px] font-mono text-muted-foreground">{result.confidence}%</span>
+          <ConfidenceBadge confidence={result.confidence} />
         </div>
         <span className="inline-block text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium truncate max-w-full">
           {result.categoryLabel}
@@ -1096,7 +1328,18 @@ function DrawingKeepCard({ result, isSelected, thumbnail, onSelect, onPreview, o
   );
 }
 
-function DiscardRow({ page, isSelected, onSelect, onPreview }: {
+function DraggableDrawingKeepCard(props: {
+  result: DrawingAnalysisResult; isSelected: boolean; thumbnail?: string;
+  onSelect: (e: React.MouseEvent) => void; onPreview: () => void; onLoadThumbnail: () => void;
+}) {
+  return (
+    <DraggableWrapper id={props.result.pageIndex}>
+      <DrawingKeepCardInner {...props} />
+    </DraggableWrapper>
+  );
+}
+
+function DiscardRowInner({ page, isSelected, onSelect, onPreview }: {
   page: PageScore; isSelected: boolean; onSelect: (e: React.MouseEvent) => void; onPreview: () => void;
 }) {
   return (
@@ -1115,15 +1358,27 @@ function DiscardRow({ page, isSelected, onSelect, onPreview }: {
   );
 }
 
-function DrawingDiscardRow({ result, isSelected, onSelect, onPreview }: {
+function DraggableDiscardRow(props: {
+  page: PageScore; isSelected: boolean; onSelect: (e: React.MouseEvent) => void; onPreview: () => void;
+}) {
+  return (
+    <DraggableWrapper id={props.page.pageIndex}>
+      <DiscardRowInner {...props} />
+    </DraggableWrapper>
+  );
+}
+
+function DrawingDiscardRowInner({ result, isSelected, onSelect, onPreview }: {
   result: DrawingAnalysisResult; isSelected: boolean; onSelect: (e: React.MouseEvent) => void; onPreview: () => void;
 }) {
+  const isReviewZone = result.confidence >= 30 && result.confidence < 70;
   return (
     <div onClick={onSelect}
       className={cn("group flex items-center gap-3 px-4 py-2 border-b border-border cursor-pointer transition-colors text-sm",
-        isSelected ? "bg-brand-blue/5" : "hover:bg-accent")}>
+        isSelected ? "bg-brand-blue/5" : isReviewZone ? "bg-amber-50/50" : "hover:bg-accent")}>
       <input type="checkbox" checked={isSelected} readOnly className="h-3.5 w-3.5 shrink-0 rounded border border-primary shadow accent-brand-blue" />
       <span className="w-14 shrink-0 font-medium text-foreground text-xs">Pg {result.pageNumber}</span>
+      <ConfidenceBadge confidence={result.confidence} />
       <span className="w-20 shrink-0 text-[10px] text-amber-600 font-medium truncate">{result.categoryLabel}</span>
       <span className="flex-1 text-xs text-muted-foreground truncate">{result.description}</span>
       <button onClick={(e) => { e.stopPropagation(); onPreview(); }}
@@ -1131,5 +1386,15 @@ function DrawingDiscardRow({ result, isSelected, onSelect, onPreview }: {
         <Eye className="w-3 h-3 text-muted-foreground" />
       </button>
     </div>
+  );
+}
+
+function DraggableDrawingDiscardRow(props: {
+  result: DrawingAnalysisResult; isSelected: boolean; onSelect: (e: React.MouseEvent) => void; onPreview: () => void;
+}) {
+  return (
+    <DraggableWrapper id={props.result.pageIndex}>
+      <DrawingDiscardRowInner {...props} />
+    </DraggableWrapper>
   );
 }

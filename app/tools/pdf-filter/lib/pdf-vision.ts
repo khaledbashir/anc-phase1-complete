@@ -108,44 +108,51 @@ export async function analyzeAllDrawings(
   drawings: { pageIndex: number; pageNumber: number; base64: string }[],
   enabledCategories: string[],
   customInstructions: string,
-  onProgress: (progress: VisionProgress) => void
+  onProgress: (progress: VisionProgress) => void,
+  signal?: AbortSignal
 ): Promise<DrawingAnalysisResult[]> {
   const batches = splitIntoBatches(drawings, BATCH_SIZE);
   const allResults: DrawingAnalysisResult[] = [];
   let completed = 0;
 
-  const processBatch = async (batch: typeof drawings): Promise<void> => {
+  const processBatch = async (
+    batch: typeof drawings
+  ): Promise<DrawingAnalysisResult[]> => {
+    if (signal?.aborted) return [];
     try {
-      const results = await analyzeDrawingBatch(
+      return await analyzeDrawingBatch(
         batch,
         enabledCategories,
         customInstructions
       );
-      allResults.push(...results);
     } catch (err) {
       console.error("Batch failed:", err);
-      for (const img of batch) {
-        allResults.push({
-          pageIndex: img.pageIndex,
-          pageNumber: img.pageNumber,
-          category: "other",
-          categoryLabel: "Error",
-          description: `Analysis failed: ${err instanceof Error ? err.message : String(err)}`,
-          confidence: 0,
-        });
-      }
+      return batch.map((img) => ({
+        pageIndex: img.pageIndex,
+        pageNumber: img.pageNumber,
+        category: "other",
+        categoryLabel: "Error",
+        description: `Analysis failed: ${err instanceof Error ? err.message : String(err)}`,
+        confidence: 0,
+      }));
     }
-    completed += batch.length;
+  };
+
+  for (let i = 0; i < batches.length; i += MAX_CONCURRENT) {
+    if (signal?.aborted) break;
+    const concurrentBatches = batches.slice(i, i + MAX_CONCURRENT);
+    const waveResults = await Promise.all(concurrentBatches.map(processBatch));
+
+    for (const batchResults of waveResults) {
+      allResults.push(...batchResults);
+      completed += batchResults.length;
+    }
+
     onProgress({
       completed,
       total: drawings.length,
       results: [...allResults],
     });
-  };
-
-  for (let i = 0; i < batches.length; i += MAX_CONCURRENT) {
-    const concurrentBatches = batches.slice(i, i + MAX_CONCURRENT);
-    await Promise.all(concurrentBatches.map(processBatch));
   }
 
   return allResults;
