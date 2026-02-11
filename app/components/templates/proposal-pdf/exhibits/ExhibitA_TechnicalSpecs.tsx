@@ -152,10 +152,13 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
 
     return (
         <div className="pt-4 break-inside-avoid">
-            <div className="text-center mb-4 break-inside-avoid">
-                <h2 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-[0.15em] pb-1 border-b-2 border-[#0A52EF] inline-block">
-                    {headerText}
-                </h2>
+            <div className="mb-3 mt-4 break-inside-avoid">
+                <div className="flex items-center gap-2">
+                    <div className="w-[3px] h-4 rounded-sm" style={{ background: '#0A52EF' }} />
+                    <h2 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-[0.15em]">
+                        {headerText}
+                    </h2>
+                </div>
             </div>
 
             <div className="border border-gray-300 break-inside-avoid overflow-hidden">

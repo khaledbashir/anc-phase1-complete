@@ -223,15 +223,18 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // ===== COMPONENTS =====
 
-    // Unified Section Header — small text + thin blue underline (Natalia-approved)
+    // Unified Section Header — blue vertical bar accent + text (Natalia-approved)
     const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
         <div className="mb-3 mt-4 break-inside-avoid">
-            <h2 className="text-[11px] font-semibold tracking-wider uppercase pb-1 border-b-2"
-                style={{ color: colors.primaryDark, borderColor: colors.primary }}
-            >
-                {title}
-            </h2>
-            {subtitle && <p className="text-[9px] mt-1" style={{ color: colors.textMuted }}>{subtitle}</p>}
+            <div className="flex items-center gap-2">
+                <div className="w-[3px] h-4 rounded-sm" style={{ background: colors.primary }} />
+                <h2 className="text-[11px] font-semibold tracking-wider uppercase"
+                    style={{ color: colors.primaryDark }}
+                >
+                    {title}
+                </h2>
+            </div>
+            {subtitle && <p className="text-[9px] mt-1 ml-[11px]" style={{ color: colors.textMuted }}>{subtitle}</p>}
         </div>
     );
 
@@ -315,8 +318,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
         return (
             <div className="px-6 mt-2 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                <div className="mb-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: colors.primaryDark }}>
-                    Project Pricing
+                <div className="mb-1 flex items-center gap-2">
+                    <div className="w-[3px] h-4 rounded-sm" style={{ background: colors.primary }} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: colors.primaryDark }}>Project Pricing</span>
                 </div>
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     {/* Clean header — text + thin blue underline (no background fill) */}
@@ -441,7 +445,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         const override = tableId ? tableHeaderOverrides[tableId] : undefined;
                         const label = (override || screenNameMap[tableName] || (tableName || "Section")).toString().trim();
                         const items = (table?.items || []) as any[];
-                        const alternates = (table?.alternates || []) as any[];
+                        // Fix 5: Only include alternates that have actual content (non-empty description AND non-zero price)
+                        const alternates = ((table?.alternates || []) as any[]).filter((alt: any) => {
+                            const desc = (alt?.description || "").toString().trim();
+                            const price = Number(alt?.priceDifference ?? alt?.price ?? 0);
+                            return desc.length > 0 && Math.abs(price) >= 0.01;
+                        });
                         const originalSubtotal = Number(table?.subtotal ?? 0);
                         const taxInfo = table?.tax;
                         const originalTaxAmount = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
@@ -879,8 +888,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         );
     };
 
-    // Resp Matrix Statement of Work — from Excel "Resp Matrix" sheet OR Intelligence Mode default
-    const intelligenceRespMatrix = (details as any)?.includeResponsibilityMatrix !== false
+    // Resp Matrix Statement of Work — from Excel "Resp Matrix" sheet OR Intelligence Mode explicit opt-in
+    // Fix 10: Only use intelligence resp matrix if explicitly opted in (not just "not false")
+    const intelligenceRespMatrix = (details as any)?.includeResponsibilityMatrix === true
         ? ((details as any)?.responsibilityMatrix ?? null)
         : null;
     const respMatrixRaw: RespMatrix | null = pricingDocument?.respMatrix ?? intelligenceRespMatrix;
@@ -910,15 +920,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
         return (
             <div className="px-6" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
-                <div className="text-center mb-3">
-                    <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit B</h2>
-                    <h3 className="text-[11px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: colors.primaryDark }}>
-                        Statement of Work
-                    </h3>
-                    <div className="text-[10px] font-semibold uppercase tracking-wide mt-1" style={{ color: colors.textMuted }}>
-                        {receiver?.name || "Client"}
-                    </div>
-                </div>
+                <SectionHeader title="Exhibit B — Statement of Work" />
                 <div className="border rounded overflow-hidden" style={{ borderColor: colors.border }}>
                     {nonEmptyCategories.map((cat, catIdx) => {
                         const sectionType = respMatrix.format === "short"
@@ -931,7 +933,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <div key={catIdx} className="break-inside-avoid">
                                 {/* Category header — text + thin blue underline */}
                                 <div
-                                    className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                                    className="grid grid-cols-12 px-4 py-1.5 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
                                     style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                                 >
                                     <div className={sectionType === "table" ? "col-span-8" : "col-span-12"}>{cat.name}</div>
@@ -947,10 +949,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     cat.items.map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="grid grid-cols-12 px-4 py-1.5 text-[9px] break-inside-avoid border-b items-start"
+                                            className="grid grid-cols-12 px-4 py-2 text-[8px] break-inside-avoid border-b items-start"
                                             style={{ borderColor: colors.borderLight, background: idx % 2 === 1 ? colors.surface : colors.white }}
                                         >
-                                            <div className="col-span-8 leading-relaxed pr-2" style={{ color: colors.text }}>{item.description}</div>
+                                            <div className="col-span-8 leading-snug pr-2" style={{ color: colors.text }}>{item.description}</div>
                                             <div className="col-span-2 text-center font-medium" style={{ color: colors.text }}>
                                                 {item.anc && !isIncludeStatement(item.anc) && item.anc.toUpperCase() !== "NA" ? item.anc : ""}
                                             </div>
@@ -963,7 +965,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     cat.items.filter(item => isIncludeStatement(item.anc)).map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="px-4 py-2 text-[9px] leading-relaxed break-inside-avoid border-b"
+                                            className="px-4 py-2 text-[8px] leading-snug break-inside-avoid border-b"
                                             style={{ borderColor: colors.borderLight, color: colors.text, background: idx % 2 === 1 ? colors.surface : colors.white }}
                                         >
                                             {item.description}
@@ -1041,41 +1043,51 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         );
     };
 
-    // Simplified Footer — www.anc.com + decorative slashes
-    const HybridFooter = () => (
+    // Simplified Footer — www.anc.com + blue vertical accent (matches header style)
+    const HybridFooter = ({ isLastPage = false }: { isLastPage?: boolean }) => (
         <div className="mt-8 pt-3 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
             <div className="flex justify-between items-center break-inside-avoid">
                 <div className="text-[9px] font-semibold tracking-wide" style={{ color: colors.primary }}>
                     www.anc.com
                 </div>
-                <div className="flex items-center gap-1 break-inside-avoid">
-                    {[...Array(5)].map((_, i) => (
+                <div className="flex items-center gap-1.5 break-inside-avoid">
+                    {[...Array(3)].map((_, i) => (
                         <div
                             key={i}
-                            className="w-4 h-1 rounded-full opacity-30 break-inside-avoid"
-                            style={{ background: colors.primaryDark, transform: `skewX(-20deg)` }}
+                            className="w-[3px] h-3 rounded-sm opacity-40 break-inside-avoid"
+                            style={{ background: colors.primary, transform: 'skewX(-12deg)' }}
                         />
                     ))}
                 </div>
             </div>
+            {isLastPage && (
+                <div className="mt-2 text-[8px] tracking-wide break-inside-avoid" style={{ color: colors.textMuted }}>
+                    <div>ANC Sports Enterprises, LLC</div>
+                    <div>2 Manhattanville Road, Suite 402, Purchase, NY 10577</div>
+                    <div className="mt-0.5">
+                        <span style={{ color: colors.primary }}>NY</span> 914.696.2100 &nbsp;
+                        <span style={{ color: '#D97706' }}>TX</span> 940.464.2320
+                    </div>
+                </div>
+            )}
         </div>
     );
 
     return (
         <ProposalLayout data={data} disableFixedFooter>
             {/* Compact Header — logo + document label, half the original height */}
-            <div className="flex justify-between items-center px-6 pt-3 pb-2 mb-3 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent' }}>
-                <LogoSelectorServer theme="light" width={90} height={45} className="p-0" />
+            <div className="flex justify-between items-center px-6 pt-2 pb-1 mb-3 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent' }}>
+                <LogoSelectorServer theme="light" width={70} height={35} className="p-0" />
                 <div className="text-right break-inside-avoid" style={{ background: 'transparent' }}>
-                    <div className="text-[9px] uppercase tracking-widest font-semibold" style={{ color: colors.primary, background: 'transparent' }}>{docLabel}</div>
-                    <h1 className="text-sm font-bold mt-0.5" style={{ color: colors.text, background: 'transparent' }}>{details?.proposalName || receiver?.name || "Client Name"}</h1>
+                    <div className="text-[8px] uppercase tracking-widest font-semibold" style={{ color: colors.primary, background: 'transparent' }}>{docLabel}</div>
+                    <h1 className="text-xs font-bold mt-0.5" style={{ color: colors.text, background: 'transparent' }}>{details?.proposalName || receiver?.name || "Client Name"}</h1>
                 </div>
             </div>
 
             {/* Intro - 10pt font */}
             {showIntroText && (
                 <div className={`px-6 ${isLOI ? "mb-2" : "mb-3"} break-inside-avoid`}>
-                    <div className={`${isLOI ? "text-[10px]" : "text-xs"} leading-relaxed`} style={{ color: colors.textMuted }}>
+                    <div className={`${isLOI ? "text-[10px]" : "text-xs"} leading-snug`} style={{ color: colors.textMuted }}>
                         {(shouldRenderLegalIntro && (details as any)?.loiHeaderText?.trim()) ? (
                             <p className="text-justify whitespace-pre-wrap">{(details as any).loiHeaderText.trim()}</p>
                         ) : customIntroText?.trim() ? (
@@ -1174,10 +1186,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <PageBreak />
                                 <ContinuationPageHeader />
                                 <div className="px-6 break-inside-avoid">
-                                    <div className="text-center mb-4 break-inside-avoid">
-                                        <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit B</h2>
-                                        <h3 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-widest">Statement of Work</h3>
-                                    </div>
+                                    <SectionHeader title="Exhibit B — Statement of Work" />
                                     <ScopeOfWorkSection />
                                 </div>
                             </>
@@ -1188,16 +1197,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                         {shouldRenderCompanyFooter && (
                             <div className="px-6">
-                                <HybridFooter />
+                                <HybridFooter isLastPage />
                             </div>
                         )}
                     </>
                 ) : (
                     /* ── Structure B: No master table — detail tables first ── */
                     <>
-                        {/* LOI fallback summary (document total) */}
-                        {showPricingTables && <LOISummaryTable />}
-
                         {/* Pricing tables immediately after intro */}
                         {showPricingTables && (
                             <div className="px-6 break-inside-avoid">
@@ -1250,10 +1256,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <PageBreak />
                                 <ContinuationPageHeader />
                                 <div className="px-6 break-inside-avoid">
-                                    <div className="text-center mb-4 break-inside-avoid">
-                                        <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit B</h2>
-                                        <h3 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-widest">Statement of Work</h3>
-                                    </div>
+                                    <SectionHeader title="Exhibit B — Statement of Work" />
                                     <ScopeOfWorkSection />
                                 </div>
                             </>
@@ -1264,7 +1267,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                         {shouldRenderCompanyFooter && (
                             <div className="px-6">
-                                <HybridFooter />
+                                <HybridFooter isLastPage />
                             </div>
                         )}
                     </>
@@ -1317,17 +1320,14 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <PageBreak />
                             <ContinuationPageHeader />
                             <div className="px-6 break-inside-avoid">
-                                <div className="text-center mb-4 break-inside-avoid">
-                                    <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit B</h2>
-                                    <h3 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-widest">Statement of Work</h3>
-                                </div>
+                                <SectionHeader title="Exhibit B — Statement of Work" />
                                 <ScopeOfWorkSection />
                             </div>
                         </>
                     )}
                     {shouldRenderCompanyFooter && (
                         <div className="px-6">
-                            <HybridFooter />
+                            <HybridFooter isLastPage />
                         </div>
                     )}
                     {/* Resp Matrix SOW (if present in Excel) — own page */}
