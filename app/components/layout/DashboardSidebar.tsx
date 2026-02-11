@@ -12,6 +12,7 @@ import {
     Users,
     Workflow,
     Settings,
+    SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,10 @@ const menuItems = [
     { icon: Users, label: "Team", href: "/admin/users", soon: false },
 ];
 
+const toolsMenuItems = [
+    { icon: SlidersHorizontal, label: "PDF Filter", href: "/tools/pdf-filter", soon: false },
+];
+
 const adminMenuItems = [
     { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", soon: false },
 ];
@@ -30,7 +35,7 @@ export default function DashboardSidebar() {
     const pathname = usePathname();
     const { data: session } = useSession();
     const isAdmin = session?.user?.authRole === "admin";
-    const allItems = [...menuItems, ...(isAdmin ? adminMenuItems : [])];
+    const allItems = [...menuItems, ...toolsMenuItems, ...(isAdmin ? adminMenuItems : [])];
 
     return (
         <aside className="w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-8 z-50 transition-colors duration-300">
