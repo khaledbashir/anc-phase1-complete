@@ -5,7 +5,7 @@ import { useFormContext, useWatch } from "react-hook-form";
 import { ProposalType } from "@/types";
 import { PricingDocument, PricingTable } from "@/types/pricing";
 import { Textarea } from "@/components/ui/textarea";
-import { DollarSign, FileText, ChevronDown, ChevronUp, RotateCcw } from "lucide-react";
+import { DollarSign, FileText, ChevronDown, ChevronUp, RotateCcw, EyeOff, Eye } from "lucide-react";
 import { formatCurrency } from "@/lib/helpers";
 
 // ─── Debounced Inputs ────────────────────────────────────────────────────────
@@ -179,7 +179,7 @@ function computeEffectiveGrandTotal(
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export default function PricingTableEditor() {
-    const { setValue, control } = useFormContext<ProposalType>();
+    const { setValue, getValues, control } = useFormContext<ProposalType>();
 
     const pricingDocument: PricingDocument | null = useWatch({
         control,
@@ -260,6 +260,35 @@ export default function PricingTableEditor() {
         setValue("details.customProposalNotes" as any, notes, { shouldDirty: true });
     };
 
+    const handleToggleItemInclusion = (tableId: string, itemIndex: number) => {
+        const current = getValues("details.pricingDocument" as any) as PricingDocument | null;
+        if (!current?.tables?.length) return;
+
+        const nextTables = (current.tables || []).map((table) => {
+            if (table.id !== tableId) return table;
+            const nextItems = (table.items || []).map((item, idx) => {
+                if (idx !== itemIndex) return item;
+                return {
+                    ...item,
+                    isIncluded: !item.isIncluded,
+                };
+            });
+            return {
+                ...table,
+                items: nextItems,
+            };
+        });
+
+        setValue(
+            "details.pricingDocument" as any,
+            {
+                ...current,
+                tables: nextTables,
+            },
+            { shouldDirty: true }
+        );
+    };
+
     const handleResetAll = () => {
         setValue("details.tableHeaderOverrides" as any, {}, { shouldDirty: true });
         setValue("details.descriptionOverrides" as any, {}, { shouldDirty: true });
@@ -323,6 +352,7 @@ export default function PricingTableEditor() {
                     onDescriptionReset={handleDescriptionReset}
                     onPriceChange={handlePriceChange}
                     onPriceReset={handlePriceReset}
+                    onToggleItemInclusion={handleToggleItemInclusion}
                 />
             ))}
 
@@ -369,6 +399,7 @@ function PricingSection({
     onDescriptionReset,
     onPriceChange,
     onPriceReset,
+    onToggleItemInclusion,
 }: {
     table: PricingTable;
     tableHeaderOverrides: Record<string, string>;
@@ -379,6 +410,7 @@ function PricingSection({
     onDescriptionReset: (tableId: string, idx: number) => void;
     onPriceChange: (tableId: string, idx: number, price: number) => void;
     onPriceReset: (tableId: string, idx: number) => void;
+    onToggleItemInclusion: (tableId: string, idx: number) => void;
 }) {
     const [isExpanded, setIsExpanded] = useState(true);
     const items = table.items || [];
@@ -446,7 +478,7 @@ function PricingSection({
                     </div>
 
                     {/* Column Headers */}
-                    <div className="grid grid-cols-[1fr_120px_28px] gap-2 px-1">
+                    <div className="grid grid-cols-[1fr_120px_56px] gap-2 px-1">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Description</span>
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider text-right">Amount</span>
                         <span />
@@ -471,7 +503,7 @@ function PricingSection({
                             return (
                                 <div
                                     key={key}
-                                    className={`grid grid-cols-[1fr_120px_28px] gap-2 items-center rounded-md px-1 py-0.5 ${
+                                    className={`grid grid-cols-[1fr_120px_56px] gap-2 items-center rounded-md px-1 py-0.5 ${
                                         anyOverride ? "bg-amber-500/5" : ""
                                     }`}
                                 >
@@ -504,21 +536,35 @@ function PricingSection({
                                         />
                                     )}
                                     {/* Reset */}
-                                    {anyOverride ? (
+                                    <div className="flex items-center justify-end gap-1">
                                         <button
                                             type="button"
-                                            onClick={() => {
-                                                if (isDescOverridden) onDescriptionReset(table.id, idx);
-                                                if (isPriceOverridden) onPriceReset(table.id, idx);
-                                            }}
-                                            className="flex items-center justify-center w-7 h-7 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 rounded transition-colors"
-                                            title="Reset to Excel original"
+                                            onClick={() => onToggleItemInclusion(table.id, idx)}
+                                            className={`flex items-center justify-center w-7 h-7 rounded transition-colors ${
+                                                isIncluded
+                                                    ? "text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                                                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                            }`}
+                                            title={isIncluded ? "Include in totals" : "Exclude from totals"}
                                         >
-                                            <RotateCcw className="w-3 h-3" />
+                                            {isIncluded ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
                                         </button>
-                                    ) : (
-                                        <div className="w-7" />
-                                    )}
+                                        {anyOverride ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (isDescOverridden) onDescriptionReset(table.id, idx);
+                                                    if (isPriceOverridden) onPriceReset(table.id, idx);
+                                                }}
+                                                className="flex items-center justify-center w-7 h-7 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10 rounded transition-colors"
+                                                title="Reset to Excel original"
+                                            >
+                                                <RotateCcw className="w-3 h-3" />
+                                            </button>
+                                        ) : (
+                                            <div className="w-7" />
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}
