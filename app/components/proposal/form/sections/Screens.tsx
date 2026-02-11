@@ -82,6 +82,7 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
             pitchMm: 10,
             costPerSqFt: 120,
             desiredMargin: 0.25,
+            hiddenFromSpecs: false,
             isReplacement: false,
             useExistingStructure: false,
             includeSpareParts: false,
