@@ -691,23 +691,23 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {primaryItems.map((item, idx) => (
                         <div
                             key={item.key}
-                            className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
+                            className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid items-center"
                             style={{
                                 borderColor: colors.borderLight,
                                 background: idx % 2 === 1 ? colors.surface : colors.white,
-                                minHeight: '36px',
+                                minHeight: '28px',
                                 pageBreakInside: 'avoid',
                                 breakInside: 'avoid',
                             }}
                         >
                             <div className="col-span-8 pr-2">
                                 {/* Line 1: UPPERCASE BOLD - allow wrapping */}
-                                <div className="font-bold text-xs tracking-wide uppercase" style={{ color: colors.text }}>
+                                <div className="font-bold text-[10px] tracking-wide uppercase leading-tight" style={{ color: colors.text }}>
                                     {item.name}
                                 </div>
                                 {/* Line 2: Specs - allow wrapping, compact */}
                                 {item.description && (
-                                    <div className="text-xs leading-none mt-0.5" style={{ color: colors.textMuted, fontSize: '9px' }}>
+                                    <div className="text-[8px] leading-tight mt-0.5" style={{ color: colors.textMuted }}>
                                         {item.description}
                                     </div>
                                 )}
@@ -906,12 +906,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         return (
             <div className="px-6 break-before-page">
                 <div className="text-center mb-3">
-                    <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textMuted }}>
+                    <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit B</h2>
+                    <h3 className="text-[11px] font-semibold uppercase tracking-widest mt-0.5" style={{ color: colors.primaryDark }}>
+                        Statement of Work
+                    </h3>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide mt-1" style={{ color: colors.textMuted }}>
                         {receiver?.name || "Client"}
                     </div>
-                    <h2 className="text-[11px] font-semibold uppercase tracking-wider pb-1 mt-1 border-b-2" style={{ color: colors.primaryDark, borderColor: colors.primary }}>
-                        STATEMENT OF WORK
-                    </h2>
                 </div>
                 <div className="border rounded overflow-hidden" style={{ borderColor: colors.border }}>
                     {nonEmptyCategories.map((cat, catIdx) => {
@@ -941,7 +942,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     cat.items.map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="grid grid-cols-12 px-4 py-2 text-[10px] break-inside-avoid border-b items-start"
+                                            className="grid grid-cols-12 px-4 py-1.5 text-[9px] break-inside-avoid border-b items-start"
                                             style={{ borderColor: colors.borderLight, background: idx % 2 === 1 ? colors.surface : colors.white }}
                                         >
                                             <div className="col-span-8 leading-relaxed pr-2" style={{ color: colors.text }}>{item.description}</div>
@@ -957,7 +958,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     cat.items.filter(item => isIncludeStatement(item.anc)).map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="px-4 py-2.5 text-[10px] leading-relaxed break-inside-avoid border-b"
+                                            className="px-4 py-2 text-[9px] leading-relaxed break-inside-avoid border-b"
                                             style={{ borderColor: colors.borderLight, color: colors.text, background: idx % 2 === 1 ? colors.surface : colors.white }}
                                         >
                                             {item.description}
@@ -1162,13 +1163,22 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </>
                         )}
 
+                        {/* SOW sections — each on own page with Exhibit B header */}
                         {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
-                            <div className="px-6 break-inside-avoid">
-                                <ScopeOfWorkSection />
-                            </div>
+                            <>
+                                <PageBreak />
+                                <ContinuationPageHeader />
+                                <div className="px-6 break-inside-avoid">
+                                    <div className="text-center mb-4 break-inside-avoid">
+                                        <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit B</h2>
+                                        <h3 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-widest">Statement of Work</h3>
+                                    </div>
+                                    <ScopeOfWorkSection />
+                                </div>
+                            </>
                         )}
 
-                        {/* Resp Matrix SOW (if present in Excel) */}
+                        {/* Resp Matrix SOW (if present in Excel) — own page */}
                         <RespMatrixSOW />
 
                         {shouldRenderCompanyFooter && (
@@ -1229,13 +1239,22 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </>
                         )}
 
+                        {/* SOW sections — each on own page with Exhibit B header */}
                         {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
-                            <div className="px-6 break-inside-avoid">
-                                <ScopeOfWorkSection />
-                            </div>
+                            <>
+                                <PageBreak />
+                                <ContinuationPageHeader />
+                                <div className="px-6 break-inside-avoid">
+                                    <div className="text-center mb-4 break-inside-avoid">
+                                        <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit B</h2>
+                                        <h3 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-widest">Statement of Work</h3>
+                                    </div>
+                                    <ScopeOfWorkSection />
+                                </div>
+                            </>
                         )}
 
-                        {/* Resp Matrix SOW (if present in Excel) */}
+                        {/* Resp Matrix SOW (if present in Excel) — own page */}
                         <RespMatrixSOW />
 
                         {shouldRenderCompanyFooter && (
@@ -1269,11 +1288,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <NotesSection />
                         </div>
                     )}
-                    {showScopeOfWork && (
-                        <div className="px-6 break-inside-avoid">
-                            <ScopeOfWorkSection />
-                        </div>
-                    )}
                     {(showSpecifications || showExhibitA) && screens.length > 0 && (
                         <>
                             <PageBreak />
@@ -1292,12 +1306,26 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         </>
                     )}
+                    {/* SOW on own page with Exhibit B header */}
+                    {showScopeOfWork && (
+                        <>
+                            <PageBreak />
+                            <ContinuationPageHeader />
+                            <div className="px-6 break-inside-avoid">
+                                <div className="text-center mb-4 break-inside-avoid">
+                                    <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit B</h2>
+                                    <h3 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-widest">Statement of Work</h3>
+                                </div>
+                                <ScopeOfWorkSection />
+                            </div>
+                        </>
+                    )}
                     {shouldRenderCompanyFooter && (
                         <div className="px-6">
                             <HybridFooter />
                         </div>
                     )}
-                    {/* Resp Matrix SOW (if present in Excel) */}
+                    {/* Resp Matrix SOW (if present in Excel) — own page */}
                     <RespMatrixSOW />
 
                     {shouldRenderPaymentTerms && (

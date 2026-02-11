@@ -306,12 +306,7 @@ export default function PricingTableEditor() {
                             Reset All
                         </button>
                     )}
-                    <div className="text-right ml-2">
-                        <div className="text-[10px] text-white/60 uppercase tracking-wider">Total</div>
-                        <div className={`text-sm font-bold ${totalChanged ? "text-amber-300" : "text-white"}`}>
-                            {formatCurrency(effectiveDocumentTotal)}
-                        </div>
-                    </div>
+                    {/* Grand Total intentionally hidden — Natalia request */}
                 </div>
             </div>
 
