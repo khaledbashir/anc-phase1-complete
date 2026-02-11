@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useFormContext } from "react-hook-form";
 import {
     Upload,
@@ -15,6 +15,8 @@ import {
     Calendar,
     Shield,
     AlertTriangle,
+    Plus,
+    Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { buildAutoFillValues } from "@/services/rfp/proposalAutoFill";
@@ -82,6 +84,28 @@ interface WarrantyData {
     terms: string[];
 }
 
+/** Per-file upload state */
+interface FileUploadState {
+    file: File;
+    key: string;
+    status: "queued" | "processing" | "done" | "error";
+    pipeline: PipelineStatus;
+    results: {
+        specData: { specs: ExtractedSpec[]; method?: string } | null;
+        pricingData: { sections: PricingSection[]; alternates: Alternate[]; stats?: { estimatedProjectTotal?: number } } | null;
+        scheduleData: { schedule: SchedulePhase[]; warranty: WarrantyData; method?: string } | null;
+        overviewData: any;
+    };
+    error?: string;
+}
+
+/** Source-tagged wrapper for merged results */
+interface SourceTagged<T> {
+    data: T;
+    sourceFile: string;
+    sourceKey: string;
+}
+
 interface RfpIngestionProps {
     onComplete: () => void;
 }
@@ -91,18 +115,10 @@ interface RfpIngestionProps {
 // ============================================================================
 
 export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
-    const { setValue, getValues, reset } = useFormContext();
+    const { getValues, reset } = useFormContext();
 
     const [activeTab, setActiveTab] = useState<TabId>("specs");
-    const [pipeline, setPipeline] = useState<PipelineStatus>({
-        overview: "idle", specs: "idle", pricing: "idle", schedule: "idle",
-    });
-    const [specData, setSpecData] = useState<{ specs: ExtractedSpec[]; method?: string } | null>(null);
-    const [pricingData, setPricingData] = useState<{ sections: PricingSection[]; alternates: Alternate[]; stats?: { estimatedProjectTotal?: number } } | null>(null);
-    const [scheduleData, setScheduleData] = useState<{ schedule: SchedulePhase[]; warranty: WarrantyData; method?: string } | null>(null);
-    const [overviewData, setOverviewData] = useState<any>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [fileName, setFileName] = useState<string | null>(null);
+    const [uploads, setUploads] = useState<Map<string, FileUploadState>>(new Map());
     const [isDragging, setIsDragging] = useState(false);
     const [applied, setApplied] = useState<{ screensCount: number; fields: string[]; warnings: string[] } | null>(null);
     const [exhibitOverrides, setExhibitOverrides] = useState<Record<number, {
@@ -114,31 +130,108 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
         engCost?: number;
     }>>({});
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const addMoreInputRef = useRef<HTMLInputElement>(null);
     const dragCounter = useRef(0);
+    const processingRef = useRef(false);
 
-    const isProcessing = Object.values(pipeline).some(s => s === "running");
-    const isDone = Object.values(pipeline).some(s => s === "done" || s === "failed") && !isProcessing;
+    // ── COMPUTED STATE ────────────────────────────────────────────────────
+
+    const allUploads = useMemo(() => Array.from(uploads.values()), [uploads]);
+    const hasFiles = allUploads.length > 0;
+    const isProcessing = allUploads.some(u => u.status === "processing" || u.status === "queued");
+    const completedCount = allUploads.filter(u => u.status === "done").length;
+    const isDone = hasFiles && allUploads.every(u => u.status === "done" || u.status === "error") && !isProcessing;
+    const allFailed = hasFiles && allUploads.every(u => u.status === "error");
+    const globalError = allFailed ? "All files failed extraction. Check the PDF formats and try again." : null;
+
+    // Merged results across all completed files with source tracking
+    const mergedSpecs: SourceTagged<ExtractedSpec>[] = useMemo(() =>
+        allUploads
+            .filter(u => u.status === "done" && u.results.specData?.specs)
+            .flatMap(u => u.results.specData!.specs.map(spec => ({
+                data: spec,
+                sourceFile: u.file.name,
+                sourceKey: u.key,
+            }))),
+        [allUploads]
+    );
+
+    const mergedPricingSections: SourceTagged<PricingSection>[] = useMemo(() =>
+        allUploads
+            .filter(u => u.status === "done" && u.results.pricingData?.sections)
+            .flatMap(u => u.results.pricingData!.sections.map(s => ({
+                data: s,
+                sourceFile: u.file.name,
+                sourceKey: u.key,
+            }))),
+        [allUploads]
+    );
+
+    const mergedAlternates: SourceTagged<Alternate>[] = useMemo(() =>
+        allUploads
+            .filter(u => u.status === "done" && u.results.pricingData?.alternates)
+            .flatMap(u => u.results.pricingData!.alternates.map(a => ({
+                data: a,
+                sourceFile: u.file.name,
+                sourceKey: u.key,
+            }))),
+        [allUploads]
+    );
+
+    const mergedSchedulePhases: SourceTagged<SchedulePhase>[] = useMemo(() =>
+        allUploads
+            .filter(u => u.status === "done" && u.results.scheduleData?.schedule)
+            .flatMap(u => u.results.scheduleData!.schedule.map(p => ({
+                data: p,
+                sourceFile: u.file.name,
+                sourceKey: u.key,
+            }))),
+        [allUploads]
+    );
+
+    // First warranty found (take the most complete one)
+    const mergedWarranty: (WarrantyData & { sourceFile: string }) | null = useMemo(() => {
+        for (const u of allUploads) {
+            if (u.status === "done" && u.results.scheduleData?.warranty && u.results.scheduleData.warranty.terms.length > 0) {
+                return { ...u.results.scheduleData.warranty, sourceFile: u.file.name };
+            }
+        }
+        return null;
+    }, [allUploads]);
+
+    const estimatedProjectTotal = useMemo(() =>
+        allUploads.reduce((sum, u) => sum + (u.results.pricingData?.stats?.estimatedProjectTotal || 0), 0) || null,
+        [allUploads]
+    );
+
+    // Display name for header
+    const fileLabel = allUploads.length === 0
+        ? null
+        : allUploads.length === 1
+            ? allUploads[0].file.name
+            : `${allUploads.length} files`;
 
     // ── FILE PROCESSING ──────────────────────────────────────────────────
 
-    const processFile = useCallback(async (file: File) => {
-        if (!file || file.type !== "application/pdf") return;
+    const generateFileKey = (file: File): string =>
+        `${file.name}__${file.size}__${Date.now()}__${Math.random().toString(36).slice(2, 6)}`;
 
-        setError(null);
-        setSpecData(null);
-        setPricingData(null);
-        setScheduleData(null);
-        setOverviewData(null);
-        setFileName(file.name);
-        setActiveTab("specs");
-        setExhibitOverrides({});
-        setPipeline({ overview: "running", specs: "running", pricing: "running", schedule: "running" });
+    const processSingleFile = useCallback(async (fileState: FileUploadState): Promise<FileUploadState> => {
+        const { file } = fileState;
 
         const makeForm = () => {
             const fd = new FormData();
             fd.append("file", file);
             return fd;
         };
+
+        const results = {
+            specData: null as FileUploadState["results"]["specData"],
+            pricingData: null as FileUploadState["results"]["pricingData"],
+            scheduleData: null as FileUploadState["results"]["scheduleData"],
+            overviewData: null as any,
+        };
+        const pipeline: PipelineStatus = { overview: "running", specs: "running", pricing: "running", schedule: "running" };
 
         const [ovRes, spRes, prRes, scRes] = await Promise.allSettled([
             (async () => {
@@ -147,54 +240,114 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                 const res = await fetch("/api/rfp/process", { method: "POST", body: fd });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || `${res.status}`);
-                setOverviewData(data);
-                setPipeline(p => ({ ...p, overview: "done" }));
+                results.overviewData = data;
+                pipeline.overview = "done";
                 return data;
             })(),
             (async () => {
                 const res = await fetch("/api/rfp/extract-specs", { method: "POST", body: makeForm() });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || `${res.status}`);
-                setSpecData(data);
-                setPipeline(p => ({ ...p, specs: "done" }));
+                results.specData = data;
+                pipeline.specs = "done";
                 return data;
             })(),
             (async () => {
                 const res = await fetch("/api/rfp/extract-pricing", { method: "POST", body: makeForm() });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || `${res.status}`);
-                setPricingData(data);
-                setPipeline(p => ({ ...p, pricing: "done" }));
+                results.pricingData = data;
+                pipeline.pricing = "done";
                 return data;
             })(),
             (async () => {
                 const res = await fetch("/api/rfp/extract-schedule", { method: "POST", body: makeForm() });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || `${res.status}`);
-                setScheduleData(data);
-                setPipeline(p => ({ ...p, schedule: "done" }));
+                results.scheduleData = data;
+                pipeline.schedule = "done";
                 return data;
             })(),
         ]);
 
-        if (ovRes.status === "rejected") setPipeline(p => ({ ...p, overview: "failed" }));
-        if (spRes.status === "rejected") setPipeline(p => ({ ...p, specs: "failed" }));
-        if (prRes.status === "rejected") setPipeline(p => ({ ...p, pricing: "failed" }));
-        if (scRes.status === "rejected") setPipeline(p => ({ ...p, schedule: "failed" }));
+        if (ovRes.status === "rejected") pipeline.overview = "failed";
+        if (spRes.status === "rejected") pipeline.specs = "failed";
+        if (prRes.status === "rejected") pipeline.pricing = "failed";
+        if (scRes.status === "rejected") pipeline.schedule = "failed";
 
-        if ([ovRes, spRes, prRes, scRes].every(r => r.status === "rejected")) {
-            setError("All extractors failed. Check the PDF format and try again.");
+        const allRejected = [ovRes, spRes, prRes, scRes].every(r => r.status === "rejected");
+
+        return {
+            ...fileState,
+            status: allRejected ? "error" : "done",
+            pipeline,
+            results,
+            error: allRejected ? "All extractors failed" : undefined,
+        };
+    }, []);
+
+    const processFiles = useCallback(async (files: File[]) => {
+        if (processingRef.current) return;
+        processingRef.current = true;
+
+        const pdfFiles = files.filter(f => f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf"));
+        if (pdfFiles.length === 0) {
+            processingRef.current = false;
+            return;
+        }
+
+        // Initialize all files as queued
+        const fileStates: FileUploadState[] = pdfFiles.map(file => ({
+            file,
+            key: generateFileKey(file),
+            status: "queued" as const,
+            pipeline: { overview: "idle", specs: "idle", pricing: "idle", schedule: "idle" },
+            results: { specData: null, pricingData: null, scheduleData: null, overviewData: null },
+        }));
+
+        setUploads(prev => {
+            const next = new Map(prev);
+            for (const fs of fileStates) next.set(fs.key, fs);
+            return next;
+        });
+        setExhibitOverrides({});
+
+        // Process sequentially — one file at a time, 4 parallel requests each
+        for (const fileState of fileStates) {
+            // Mark as processing
+            setUploads(prev => {
+                const next = new Map(prev);
+                const current = next.get(fileState.key);
+                if (current) {
+                    next.set(fileState.key, {
+                        ...current,
+                        status: "processing",
+                        pipeline: { overview: "running", specs: "running", pricing: "running", schedule: "running" },
+                    });
+                }
+                return next;
+            });
+
+            const result = await processSingleFile(fileState);
+
+            setUploads(prev => {
+                const next = new Map(prev);
+                next.set(fileState.key, result);
+                return next;
+            });
         }
 
         if (fileInputRef.current) fileInputRef.current.value = "";
-    }, []);
+        if (addMoreInputRef.current) addMoreInputRef.current.value = "";
+        processingRef.current = false;
+    }, [processSingleFile]);
 
     // ── DRAG & DROP ──────────────────────────────────────────────────────
 
     const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) processFile(file);
-    }, [processFile]);
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) processFiles(files);
+    }, [processFiles]);
 
     const handleDragEnter = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -220,47 +373,63 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
         e.stopPropagation();
         setIsDragging(false);
         dragCounter.current = 0;
-        const file = e.dataTransfer.files?.[0];
-        if (file) processFile(file);
-    }, [processFile]);
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length > 0) processFiles(files);
+    }, [processFiles]);
+
+    // ── FILE MANAGEMENT ──────────────────────────────────────────────────
+
+    const removeFile = useCallback((key: string) => {
+        setUploads(prev => {
+            const next = new Map(prev);
+            next.delete(key);
+            return next;
+        });
+        setExhibitOverrides({});
+    }, []);
+
+    const removeAllFiles = useCallback(() => {
+        setUploads(new Map());
+        setExhibitOverrides({});
+        setApplied(null);
+    }, []);
 
     // ── AUTO-FILL ────────────────────────────────────────────────────────
 
     const handleApplyToProposal = useCallback(() => {
-        const displays = (specData?.specs || []).map(s => ({
-            name: s.screenName || s.formId || "Display",
-            widthFt: s.widthFt,
-            heightFt: s.heightFt,
-            pitchMm: s.pitchMm,
-            brightness: s.brightness,
-            maxPower: s.maxPower,
-            weight: s.weight,
-            hardware: s.hardware,
-            processing: s.processing,
+        const displays = mergedSpecs.map(tagged => ({
+            name: tagged.data.screenName || tagged.data.formId || "Display",
+            widthFt: tagged.data.widthFt,
+            heightFt: tagged.data.heightFt,
+            pitchMm: tagged.data.pitchMm,
+            brightness: tagged.data.brightness,
+            maxPower: tagged.data.maxPower,
+            weight: tagged.data.weight,
+            hardware: tagged.data.hardware,
+            processing: tagged.data.processing,
             quantity: 1,
             environment: "Indoor" as const,
-            confidence: s.confidence,
+            confidence: tagged.data.confidence,
         }));
 
         const { values, result } = buildAutoFillValues({
             displays,
             specialRequirements: [],
-            bondRequired: pricingData?.sections?.some(s => s.hasBond),
+            bondRequired: mergedPricingSections.some(s => s.data.hasBond),
             extractionAccuracy: "Standard",
-            extractedSchedulePhases: (scheduleData?.schedule || []).map((phase) => ({
-                phaseName: phase.phaseName,
-                phaseNumber: phase.phaseNumber != null ? String(phase.phaseNumber) : null,
-                duration: phase.duration || null,
+            extractedSchedulePhases: mergedSchedulePhases.map(tagged => ({
+                phaseName: tagged.data.phaseName,
+                phaseNumber: tagged.data.phaseNumber != null ? String(tagged.data.phaseNumber) : null,
+                duration: tagged.data.duration || null,
                 startDate: null,
                 endDate: null,
-                tasks: (phase.tasks || []).map((task) => ({
+                tasks: (tagged.data.tasks || []).map(task => ({
                     name: task.name,
                     duration: task.duration || null,
                 })),
             })),
         }, exhibitOverrides);
 
-        // Use reset with merged values so useFieldArray picks up screens
         const current = getValues();
         const merged = { ...current };
 
@@ -281,19 +450,17 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             fields: result.fieldsPopulated,
             warnings: result.warnings,
         });
-    }, [specData, pricingData, scheduleData, exhibitOverrides, getValues, reset]);
+    }, [mergedSpecs, mergedPricingSections, mergedSchedulePhases, exhibitOverrides, getValues, reset]);
 
-    const handleReset = () => {
-        setSpecData(null);
-        setPricingData(null);
-        setScheduleData(null);
-        setOverviewData(null);
-        setError(null);
-        setFileName(null);
-        setPipeline({ overview: "idle", specs: "idle", pricing: "idle", schedule: "idle" });
+    const handleReset = useCallback(() => {
+        setUploads(new Map());
+        setApplied(null);
         setActiveTab("specs");
         setExhibitOverrides({});
-    };
+        processingRef.current = false;
+    }, []);
+
+    // ── HELPERS ───────────────────────────────────────────────────────────
 
     const fmt = (n: number | null | undefined) => n != null ? `$${n.toLocaleString()}` : "—";
     const allProducts = getAllProducts();
@@ -324,7 +491,9 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
         if (zoneSize === "medium") return "medium";
         return "standard";
     };
-    const exhibitRows = (specData?.specs || []).map((s, idx) => {
+
+    const exhibitRows = mergedSpecs.map((tagged, idx) => {
+        const s = tagged.data;
         const pitch = toNum(s.pitchMm);
         const widthFt = toNum(s.widthFt) ?? 0;
         const heightFt = toNum(s.heightFt) ?? 0;
@@ -334,6 +503,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             return {
                 idx,
                 screenName: s.screenName || s.formId || `Display ${idx + 1}`,
+                sourceFile: tagged.sourceFile,
                 extracted: s,
                 calculated: null as any,
                 productLabel: product?.name || "No match",
@@ -347,6 +517,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             return {
                 idx,
                 screenName: s.screenName || s.formId || `Display ${idx + 1}`,
+                sourceFile: tagged.sourceFile,
                 extracted: s,
                 calculated: null as any,
                 productLabel: product.name,
@@ -360,6 +531,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
         return {
             idx,
             screenName: s.screenName || s.formId || `Display ${idx + 1}`,
+            sourceFile: tagged.sourceFile,
             extracted: s,
             calculated: {
                 maxPowerW: ovr.maxPowerW ?? exhibit.maxPowerW,
@@ -373,10 +545,21 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
             zoneSize,
         };
     });
+
     const hasDiff = (a: number | null | undefined, b: number | null | undefined, tolerance = 1) => {
         if (a == null || b == null) return false;
         return Math.abs(Number(a) - Number(b)) > tolerance;
     };
+
+    // Check if ANY pipeline in ANY upload has a specific status
+    const anyPipelineStatus = (key: keyof PipelineStatus): "idle" | "running" | "done" | "failed" => {
+        if (allUploads.some(u => u.pipeline[key] === "done")) return "done";
+        if (allUploads.some(u => u.pipeline[key] === "running")) return "running";
+        if (allUploads.some(u => u.pipeline[key] === "failed")) return "failed";
+        return "idle";
+    };
+
+    const showMultiFileSource = allUploads.length > 1;
 
     // ── TABS CONFIG ──────────────────────────────────────────────────────
 
@@ -385,13 +568,6 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
         { id: "pricing", label: "Pricing", icon: <DollarSign className="w-3.5 h-3.5" />, status: "pricing" },
         { id: "schedule", label: "Schedule & Warranty", icon: <Calendar className="w-3.5 h-3.5" />, status: "schedule" },
         { id: "exhibitg", label: "Exhibit G Preview", icon: <Shield className="w-3.5 h-3.5" />, status: "specs" },
-    ];
-
-    const pipelineSteps = [
-        { label: "Looking for Division 11...", status: pipeline.overview },
-        { label: "Pulling display specs...", status: pipeline.specs },
-        { label: "Found Margin Analysis — pulling pricing sections...", status: pipeline.pricing },
-        { label: "Extracting schedule and warranty terms...", status: pipeline.schedule },
     ];
 
     // ── RENDER ───────────────────────────────────────────────────────────
@@ -406,23 +582,25 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                         RFP Extraction
                     </h1>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                        {fileName
-                            ? `Analyzing ${fileName}`
-                            : "Upload a client RFP to extract specs, pricing, and schedule"}
+                        {isProcessing
+                            ? `Processing ${completedCount} of ${allUploads.length} file${allUploads.length !== 1 ? "s" : ""}...`
+                            : fileLabel
+                                ? `Analyzed ${fileLabel}`
+                                : "Upload your RFP package to extract specs, pricing, and schedule"}
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
                     {!applied && (
                         <button
                             type="button"
-                            onClick={handleReset}
+                            onClick={() => { handleReset(); onComplete(); }}
                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted/30 transition-colors"
                         >
                             <ArrowLeft className="w-3.5 h-3.5" />
                             Back
                         </button>
                     )}
-                    {isDone && !applied && specData?.specs && specData.specs.length > 0 && (
+                    {isDone && !applied && mergedSpecs.length > 0 && (
                         <button
                             type="button"
                             onClick={handleApplyToProposal}
@@ -454,7 +632,8 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                             <CheckCircle2 className="w-8 h-8 text-foreground mb-3" />
                             <h2 className="text-lg font-semibold text-foreground">Data Applied to Proposal</h2>
                             <p className="text-xs text-muted-foreground mt-1">
-                                {applied.screensCount} display{applied.screensCount !== 1 ? "s" : ""} and {applied.fields.length} field{applied.fields.length !== 1 ? "s" : ""} populated from {fileName}
+                                {applied.screensCount} display{applied.screensCount !== 1 ? "s" : ""} and {applied.fields.length} field{applied.fields.length !== 1 ? "s" : ""} populated
+                                {showMultiFileSource ? ` from ${completedCount} file${completedCount !== 1 ? "s" : ""}` : fileLabel ? ` from ${fileLabel}` : ""}
                             </p>
                         </div>
 
@@ -492,61 +671,91 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                     </div>
                 )}
 
-                {/* Upload Zone */}
-                {!isDone && !isProcessing && !error && !applied && (
-                    <div
-                        className="max-w-2xl mx-auto"
-                        onDragEnter={handleDragEnter}
-                        onDragLeave={handleDragLeave}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                    >
-                        <label htmlFor="rfp-ingestion-upload" className={cn(
-                            "flex flex-col items-center justify-center w-full py-20 border border-dashed rounded-xl cursor-pointer transition-all",
-                            isDragging
-                                ? "border-foreground/40 bg-muted/30"
-                                : "border-border hover:border-foreground/20 hover:bg-muted/20"
-                        )}>
-                            <div className={cn(
-                                "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors",
-                                isDragging ? "bg-muted" : "bg-muted/50"
-                            )}>
-                                <Upload className={cn("w-6 h-6", isDragging ? "text-foreground" : "text-muted-foreground")} />
+                {/* Upload Zone — Show when no files yet, or show compact "add more" when files exist */}
+                {!applied && !isProcessing && (
+                    <>
+                        {/* Full upload zone when no files */}
+                        {!hasFiles && (
+                            <div
+                                className="max-w-2xl mx-auto"
+                                onDragEnter={handleDragEnter}
+                                onDragLeave={handleDragLeave}
+                                onDragOver={handleDragOver}
+                                onDrop={handleDrop}
+                            >
+                                <label htmlFor="rfp-ingestion-upload" className={cn(
+                                    "flex flex-col items-center justify-center w-full py-20 border border-dashed rounded-xl cursor-pointer transition-all",
+                                    isDragging
+                                        ? "border-foreground/40 bg-muted/30"
+                                        : "border-border hover:border-foreground/20 hover:bg-muted/20"
+                                )}>
+                                    <div className={cn(
+                                        "w-12 h-12 rounded-xl flex items-center justify-center mb-4 transition-colors",
+                                        isDragging ? "bg-muted" : "bg-muted/50"
+                                    )}>
+                                        <Upload className={cn("w-6 h-6", isDragging ? "text-foreground" : "text-muted-foreground")} />
+                                    </div>
+                                    <p className="text-sm font-medium text-foreground">
+                                        {isDragging ? "Drop PDFs to analyze" : "Drop your RFP package here"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        One PDF or multiple — select the whole package
+                                    </p>
+                                </label>
+                                <input ref={fileInputRef} id="rfp-ingestion-upload" type="file" accept=".pdf" multiple onChange={handleFileSelect} className="hidden" />
                             </div>
-                            <p className="text-sm font-medium text-foreground">
-                                {isDragging ? "Drop PDF to analyze" : "Drop your RFP or bid document here"}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">PDF up to 50MB — or click to browse</p>
-                        </label>
-                        <input ref={fileInputRef} id="rfp-ingestion-upload" type="file" accept=".pdf" onChange={handleFileSelect} className="hidden" />
-                    </div>
+                        )}
+                    </>
                 )}
 
-                {/* Processing */}
+                {/* Processing: File list with per-file progress */}
                 {isProcessing && !applied && (
-                    <div className="max-w-lg mx-auto py-16 flex flex-col items-center gap-6">
-                        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                        <p className="text-sm font-medium text-foreground">Extracting from {fileName}...</p>
-                        <div className="w-full space-y-2">
-                            {pipelineSteps.map(step => (
-                                <div key={step.label} className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-border">
-                                    {step.status === "running" && <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground shrink-0" />}
-                                    {step.status === "done" && <CheckCircle2 className="w-3.5 h-3.5 text-foreground shrink-0" />}
-                                    {step.status === "failed" && <XCircle className="w-3.5 h-3.5 text-destructive shrink-0" />}
-                                    {step.status === "idle" && <div className="w-3.5 h-3.5 rounded-full border border-border shrink-0" />}
-                                    <span className="text-xs font-medium text-foreground">{step.label}</span>
-                                </div>
-                            ))}
+                    <div className="max-w-lg mx-auto py-8 space-y-4">
+                        <div className="flex items-center gap-3 mb-2">
+                            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                            <p className="text-sm font-medium text-foreground">
+                                Processing {completedCount} of {allUploads.length} file{allUploads.length !== 1 ? "s" : ""}...
+                            </p>
                         </div>
+                        {allUploads.map(upload => (
+                            <div key={upload.key} className="border border-border rounded-lg p-3 space-y-2">
+                                <div className="flex items-center gap-2 text-xs">
+                                    <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                    <span className="font-medium text-foreground flex-1 truncate">{upload.file.name}</span>
+                                    <span className="text-muted-foreground shrink-0">{(upload.file.size / 1024 / 1024).toFixed(1)} MB</span>
+                                    {upload.status === "done" && <CheckCircle2 className="w-3.5 h-3.5 text-foreground shrink-0" />}
+                                    {upload.status === "error" && <XCircle className="w-3.5 h-3.5 text-destructive shrink-0" />}
+                                    {upload.status === "queued" && <div className="w-3.5 h-3.5 rounded-full border border-border shrink-0" />}
+                                </div>
+                                {upload.status === "processing" && (
+                                    <div className="space-y-1 pl-5">
+                                        {([
+                                            { label: "Looking for Division 11...", status: upload.pipeline.overview },
+                                            { label: "Pulling display specs...", status: upload.pipeline.specs },
+                                            { label: "Extracting pricing sections...", status: upload.pipeline.pricing },
+                                            { label: "Extracting schedule & warranty...", status: upload.pipeline.schedule },
+                                        ]).map(step => (
+                                            <div key={step.label} className="flex items-center gap-2 text-xs">
+                                                {step.status === "running" && <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />}
+                                                {step.status === "done" && <CheckCircle2 className="w-3 h-3 text-foreground" />}
+                                                {step.status === "failed" && <XCircle className="w-3 h-3 text-destructive" />}
+                                                {step.status === "idle" && <div className="w-3 h-3 rounded-full border border-border" />}
+                                                <span className="text-muted-foreground">{step.label}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 )}
 
-                {/* Error */}
-                {error && !isProcessing && !applied && (
+                {/* Global Error */}
+                {globalError && !isProcessing && !applied && (
                     <div className="max-w-md mx-auto py-16 flex flex-col items-center">
                         <AlertTriangle className="w-6 h-6 text-destructive mb-3" />
                         <p className="text-sm font-medium text-destructive mb-1">Extraction Failed</p>
-                        <p className="text-xs text-muted-foreground text-center mb-4">{error}</p>
+                        <p className="text-xs text-muted-foreground text-center mb-4">{globalError}</p>
                         <button type="button" onClick={handleReset} className="px-4 py-1.5 rounded-lg text-xs font-medium border border-border hover:bg-muted/30 transition-colors">
                             Try Again
                         </button>
@@ -554,17 +763,69 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                 )}
 
                 {/* Results */}
-                {isDone && !error && !applied && (
-                    <div className="space-y-4">
-                        {pricingData?.sections && pricingData.sections.length > 0 && (
+                {isDone && !globalError && !applied && (
+                    <div className="space-y-4"
+                        onDragEnter={handleDragEnter}
+                        onDragLeave={handleDragLeave}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                    >
+                        {/* File summary + add more */}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-2 text-xs">
+                                <span className="font-medium text-foreground">
+                                    {mergedSpecs.length} display{mergedSpecs.length !== 1 ? "s" : ""}, {mergedPricingSections.length} pricing section{mergedPricingSections.length !== 1 ? "s" : ""}, {mergedSchedulePhases.length} phase{mergedSchedulePhases.length !== 1 ? "s" : ""}
+                                </span>
+                                {showMultiFileSource && (
+                                    <span className="text-muted-foreground">from {completedCount} file{completedCount !== 1 ? "s" : ""}</span>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-2 ml-auto">
+                                <label className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground border border-dashed border-border rounded-lg hover:bg-muted/30 cursor-pointer transition-colors">
+                                    <Plus className="w-3 h-3" />
+                                    Add Files
+                                    <input ref={addMoreInputRef} type="file" accept=".pdf" multiple className="hidden" onChange={handleFileSelect} />
+                                </label>
+                                <button
+                                    type="button"
+                                    onClick={removeAllFiles}
+                                    className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground hover:text-destructive border border-border rounded-lg hover:bg-muted/30 transition-colors"
+                                >
+                                    <Trash2 className="w-3 h-3" />
+                                    Clear
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* File chips */}
+                        {showMultiFileSource && (
+                            <div className="flex flex-wrap gap-1.5">
+                                {allUploads.map(u => (
+                                    <div key={u.key} className="flex items-center gap-1.5 px-2 py-1 rounded-md border border-border text-[10px]">
+                                        {u.status === "done" ? (
+                                            <CheckCircle2 className="w-3 h-3 text-foreground shrink-0" />
+                                        ) : (
+                                            <XCircle className="w-3 h-3 text-destructive shrink-0" />
+                                        )}
+                                        <span className="text-foreground truncate max-w-[180px]">{u.file.name}</span>
+                                        <button type="button" onClick={() => removeFile(u.key)} className="text-muted-foreground hover:text-destructive transition-colors ml-0.5">
+                                            <XCircle className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Pricing summary */}
+                        {mergedPricingSections.length > 0 && (
                             <div className="rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
                                 <p className="font-medium text-foreground">
-                                    {pricingData.sections.length} sections, {pricingData.sections.reduce((sum, s) => sum + (s.lineItemCount || 0), 0)} line items. Clean file.
+                                    {mergedPricingSections.length} section{mergedPricingSections.length !== 1 ? "s" : ""}, {mergedPricingSections.reduce((sum, s) => sum + (s.data.lineItemCount || 0), 0)} line items.
                                 </p>
-                                {pricingData.stats?.estimatedProjectTotal ? (
+                                {estimatedProjectTotal ? (
                                     <p className="mt-1">
-                                        Grand total: {fmt(pricingData.stats.estimatedProjectTotal)}.{" "}
-                                        {pricingData.stats.estimatedProjectTotal >= 5_000_000
+                                        Grand total: {fmt(estimatedProjectTotal)}.{" "}
+                                        {estimatedProjectTotal >= 5_000_000
                                             ? "That's a major deployment. Let's get it right."
                                             : "Solid build."}
                                     </p>
@@ -575,7 +836,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                         {/* Tab Bar */}
                         <div className="flex items-center gap-1 border-b border-border pb-px">
                             {tabs.map(t => {
-                                const status = pipeline[t.status];
+                                const status = anyPipelineStatus(t.status);
                                 const isActive = activeTab === t.id;
                                 return (
                                     <button
@@ -600,12 +861,8 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                         {/* Specs Tab */}
                         {activeTab === "specs" && (
                             <div className="space-y-3">
-                                {specData?.specs && specData.specs.length > 0 ? (
+                                {mergedSpecs.length > 0 ? (
                                     <>
-                                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <span className="font-medium text-foreground">{specData.specs.length} display{specData.specs.length !== 1 ? "s" : ""} extracted</span>
-                                            {specData.method && <span className="px-1.5 py-0.5 rounded border border-border text-[10px]">{specData.method}</span>}
-                                        </div>
                                         <div className="border border-border rounded-lg overflow-hidden">
                                             <table className="w-full text-xs">
                                                 <thead>
@@ -616,27 +873,36 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                                                         <th className="px-3 py-2 font-medium">Pitch</th>
                                                         <th className="px-3 py-2 font-medium">Brightness</th>
                                                         <th className="px-3 py-2 font-medium text-right">Confidence</th>
+                                                        {showMultiFileSource && <th className="px-3 py-2 font-medium">Source</th>}
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-border">
-                                                    {specData.specs.map((s, i) => (
-                                                        <tr key={i} className="text-foreground">
-                                                            <td className="px-3 py-2 font-medium">{s.screenName || s.formId || `Display ${i + 1}`}</td>
-                                                            <td className="px-3 py-2 text-muted-foreground">{s.location || "—"}</td>
-                                                            <td className="px-3 py-2">{s.widthFt && s.heightFt ? `${s.heightFt}' × ${s.widthFt}'` : "—"}</td>
-                                                            <td className="px-3 py-2">{s.pitchMm ? `${s.pitchMm}mm` : "—"}</td>
-                                                            <td className="px-3 py-2">{s.brightness ? `${s.brightness.toLocaleString()} nits` : "—"}</td>
-                                                            <td className="px-3 py-2 text-right">{Math.round(s.confidence * 100)}%</td>
-                                                        </tr>
-                                                    ))}
+                                                    {mergedSpecs.map((tagged, i) => {
+                                                        const s = tagged.data;
+                                                        return (
+                                                            <tr key={i} className="text-foreground">
+                                                                <td className="px-3 py-2 font-medium">{s.screenName || s.formId || `Display ${i + 1}`}</td>
+                                                                <td className="px-3 py-2 text-muted-foreground">{s.location || "—"}</td>
+                                                                <td className="px-3 py-2">{s.widthFt && s.heightFt ? `${s.heightFt}' x ${s.widthFt}'` : "—"}</td>
+                                                                <td className="px-3 py-2">{s.pitchMm ? `${s.pitchMm}mm` : "—"}</td>
+                                                                <td className="px-3 py-2">{s.brightness ? `${s.brightness.toLocaleString()} nits` : "—"}</td>
+                                                                <td className="px-3 py-2 text-right">{Math.round(s.confidence * 100)}%</td>
+                                                                {showMultiFileSource && (
+                                                                    <td className="px-3 py-2 text-muted-foreground text-[10px] truncate max-w-[140px]" title={tagged.sourceFile}>
+                                                                        {tagged.sourceFile}
+                                                                    </td>
+                                                                )}
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
                                     </>
-                                ) : pipeline.specs === "failed" ? (
+                                ) : anyPipelineStatus("specs") === "failed" ? (
                                     <EmptyState text="Spec extraction failed" />
                                 ) : (
-                                    <EmptyState text="No display specs found in this document" />
+                                    <EmptyState text="No display specs found in uploaded documents" />
                                 )}
                             </div>
                         )}
@@ -644,7 +910,7 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                         {/* Pricing Tab */}
                         {activeTab === "pricing" && (
                             <div className="space-y-4">
-                                {pricingData?.sections && pricingData.sections.length > 0 ? (
+                                {mergedPricingSections.length > 0 ? (
                                     <>
                                         <div className="border border-border rounded-lg overflow-hidden">
                                             <table className="w-full text-xs">
@@ -656,50 +922,65 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                                                         <th className="px-3 py-2 font-medium text-center">Items</th>
                                                         <th className="px-3 py-2 font-medium text-center">Tax</th>
                                                         <th className="px-3 py-2 font-medium text-center">Bond</th>
+                                                        {showMultiFileSource && <th className="px-3 py-2 font-medium">Source</th>}
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-border">
-                                                    {pricingData.sections.map((s, i) => (
-                                                        <tr key={i} className="text-foreground">
-                                                            <td className="px-3 py-2 text-muted-foreground">{s.sectionNumber || i + 1}</td>
-                                                            <td className="px-3 py-2 font-medium">{s.sectionName}</td>
-                                                            <td className="px-3 py-2 text-right font-mono">{fmt(s.estimatedTotal)}</td>
-                                                            <td className="px-3 py-2 text-center">{s.lineItemCount}</td>
-                                                            <td className="px-3 py-2 text-center">{s.hasTax ? "Yes" : "—"}</td>
-                                                            <td className="px-3 py-2 text-center">{s.hasBond ? "Yes" : "—"}</td>
-                                                        </tr>
-                                                    ))}
+                                                    {mergedPricingSections.map((tagged, i) => {
+                                                        const s = tagged.data;
+                                                        return (
+                                                            <tr key={i} className="text-foreground">
+                                                                <td className="px-3 py-2 text-muted-foreground">{s.sectionNumber || i + 1}</td>
+                                                                <td className="px-3 py-2 font-medium">{s.sectionName}</td>
+                                                                <td className="px-3 py-2 text-right font-mono">{fmt(s.estimatedTotal)}</td>
+                                                                <td className="px-3 py-2 text-center">{s.lineItemCount}</td>
+                                                                <td className="px-3 py-2 text-center">{s.hasTax ? "Yes" : "—"}</td>
+                                                                <td className="px-3 py-2 text-center">{s.hasBond ? "Yes" : "—"}</td>
+                                                                {showMultiFileSource && (
+                                                                    <td className="px-3 py-2 text-muted-foreground text-[10px] truncate max-w-[140px]" title={tagged.sourceFile}>
+                                                                        {tagged.sourceFile}
+                                                                    </td>
+                                                                )}
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
-                                                {pricingData.stats?.estimatedProjectTotal && (
+                                                {estimatedProjectTotal && (
                                                     <tfoot>
                                                         <tr className="bg-muted/30 font-medium text-foreground">
                                                             <td className="px-3 py-2" colSpan={2}>Estimated Total</td>
-                                                            <td className="px-3 py-2 text-right font-mono">{fmt(pricingData.stats.estimatedProjectTotal)}</td>
-                                                            <td colSpan={3} />
+                                                            <td className="px-3 py-2 text-right font-mono">{fmt(estimatedProjectTotal)}</td>
+                                                            <td colSpan={showMultiFileSource ? 4 : 3} />
                                                         </tr>
                                                     </tfoot>
                                                 )}
                                             </table>
                                         </div>
 
-                                        {pricingData.alternates.length > 0 && (
+                                        {mergedAlternates.length > 0 && (
                                             <div className="space-y-2">
-                                                <p className="text-xs font-medium text-foreground">Alternates ({pricingData.alternates.length})</p>
+                                                <p className="text-xs font-medium text-foreground">Alternates ({mergedAlternates.length})</p>
                                                 <div className="space-y-1">
-                                                    {pricingData.alternates.map((a, i) => (
-                                                        <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-xs">
-                                                            <span className="px-1.5 py-0.5 rounded border border-border text-[10px] font-medium uppercase">{a.type}</span>
-                                                            <span className="flex-1 text-foreground">{a.description}</span>
-                                                            {a.priceDifference != null && (
-                                                                <span className="font-mono font-medium">{a.priceDifference >= 0 ? "+" : ""}{fmt(a.priceDifference)}</span>
-                                                            )}
-                                                        </div>
-                                                    ))}
+                                                    {mergedAlternates.map((tagged, i) => {
+                                                        const a = tagged.data;
+                                                        return (
+                                                            <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border text-xs">
+                                                                <span className="px-1.5 py-0.5 rounded border border-border text-[10px] font-medium uppercase">{a.type}</span>
+                                                                <span className="flex-1 text-foreground">{a.description}</span>
+                                                                {a.priceDifference != null && (
+                                                                    <span className="font-mono font-medium">{a.priceDifference >= 0 ? "+" : ""}{fmt(a.priceDifference)}</span>
+                                                                )}
+                                                                {showMultiFileSource && (
+                                                                    <span className="text-[10px] text-muted-foreground truncate max-w-[100px]" title={tagged.sourceFile}>{tagged.sourceFile}</span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}
                                     </>
-                                ) : pipeline.pricing === "failed" ? (
+                                ) : anyPipelineStatus("pricing") === "failed" ? (
                                     <EmptyState text="Pricing extraction failed" />
                                 ) : (
                                     <EmptyState text="No pricing sections found" />
@@ -710,42 +991,52 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                         {/* Schedule & Warranty Tab */}
                         {activeTab === "schedule" && (
                             <div className="space-y-6">
-                                {scheduleData?.schedule && scheduleData.schedule.length > 0 ? (
+                                {mergedSchedulePhases.length > 0 ? (
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                            <span className="font-medium text-foreground">{scheduleData.schedule.length} phase{scheduleData.schedule.length !== 1 ? "s" : ""}</span>
-                                            {scheduleData.method && <span className="px-1.5 py-0.5 rounded border border-border text-[10px]">{scheduleData.method}</span>}
+                                            <span className="font-medium text-foreground">{mergedSchedulePhases.length} phase{mergedSchedulePhases.length !== 1 ? "s" : ""}</span>
                                         </div>
                                         <div className="space-y-1">
-                                            {scheduleData.schedule.map((phase, idx) => (
-                                                <div key={idx} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border text-xs">
-                                                    <span className="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center text-[10px] font-semibold text-foreground shrink-0">
-                                                        {phase.phaseNumber || idx + 1}
-                                                    </span>
-                                                    <span className="flex-1 font-medium text-foreground">{phase.phaseName}</span>
-                                                    {phase.duration && <span className="text-muted-foreground shrink-0">{phase.duration}</span>}
-                                                </div>
-                                            ))}
+                                            {mergedSchedulePhases.map((tagged, idx) => {
+                                                const phase = tagged.data;
+                                                return (
+                                                    <div key={idx} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border text-xs">
+                                                        <span className="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center text-[10px] font-semibold text-foreground shrink-0">
+                                                            {phase.phaseNumber || idx + 1}
+                                                        </span>
+                                                        <span className="flex-1 font-medium text-foreground">{phase.phaseName}</span>
+                                                        {phase.duration && <span className="text-muted-foreground shrink-0">{phase.duration}</span>}
+                                                        {showMultiFileSource && (
+                                                            <span className="text-[10px] text-muted-foreground truncate max-w-[100px]" title={tagged.sourceFile}>{tagged.sourceFile}</span>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
-                                ) : pipeline.schedule !== "failed" ? (
+                                ) : anyPipelineStatus("schedule") !== "failed" ? (
                                     <EmptyState text="No schedule data found" />
                                 ) : (
                                     <EmptyState text="Schedule extraction failed" />
                                 )}
 
-                                {scheduleData?.warranty && scheduleData.warranty.terms.length > 0 && (
+                                {mergedWarranty && mergedWarranty.terms.length > 0 && (
                                     <div className="space-y-3">
-                                        <p className="text-xs font-medium text-foreground">Warranty & Service</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="text-xs font-medium text-foreground">Warranty & Service</p>
+                                            {showMultiFileSource && (
+                                                <span className="text-[10px] text-muted-foreground">from {mergedWarranty.sourceFile}</span>
+                                            )}
+                                        </div>
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                            <InfoCard label="Base Warranty" value={scheduleData.warranty.baseYears ? `${scheduleData.warranty.baseYears} yr` : null} />
-                                            <InfoCard label="Extended" value={scheduleData.warranty.extendedYears ? `${scheduleData.warranty.extendedYears} yr` : null} />
-                                            <InfoCard label="Response Time" value={scheduleData.warranty.responseTime} />
-                                            <InfoCard label="SLA" value={scheduleData.warranty.slaLevel} />
+                                            <InfoCard label="Base Warranty" value={mergedWarranty.baseYears ? `${mergedWarranty.baseYears} yr` : null} />
+                                            <InfoCard label="Extended" value={mergedWarranty.extendedYears ? `${mergedWarranty.extendedYears} yr` : null} />
+                                            <InfoCard label="Response Time" value={mergedWarranty.responseTime} />
+                                            <InfoCard label="SLA" value={mergedWarranty.slaLevel} />
                                         </div>
                                         <div className="border border-border rounded-lg p-3 space-y-1 max-h-[160px] overflow-y-auto">
                                             <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Terms</p>
-                                            {scheduleData.warranty.terms.map((t, i) => (
+                                            {mergedWarranty.terms.map((t, i) => (
                                                 <p key={i} className="text-[11px] text-muted-foreground leading-relaxed">• {t}</p>
                                             ))}
                                         </div>
@@ -777,14 +1068,17 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                                                     >
                                                         <div className="px-3 py-2 border-b border-border/60 flex items-center justify-between">
                                                             <div className="text-xs font-semibold text-foreground">{row.screenName}</div>
-                                                            <div className="text-[10px] text-muted-foreground">{row.productLabel} • {row.zoneSize}</div>
+                                                            <div className="text-[10px] text-muted-foreground">
+                                                                {row.productLabel} • {row.zoneSize}
+                                                                {showMultiFileSource && <span className="ml-2">{row.sourceFile}</span>}
+                                                            </div>
                                                         </div>
                                                         <div className="grid grid-cols-2">
                                                             <div className="p-3 border-r border-border/60">
                                                                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Extracted from RFP</div>
                                                                 <div className="space-y-1 text-xs">
                                                                     <div className="flex justify-between"><span className="text-muted-foreground">Pitch</span><span>{row.extracted.pitchMm ? `${row.extracted.pitchMm}mm` : "—"}</span></div>
-                                                                    <div className="flex justify-between"><span className="text-muted-foreground">Dimensions</span><span>{row.extracted.widthFt && row.extracted.heightFt ? `${row.extracted.heightFt}' × ${row.extracted.widthFt}'` : "—"}</span></div>
+                                                                    <div className="flex justify-between"><span className="text-muted-foreground">Dimensions</span><span>{row.extracted.widthFt && row.extracted.heightFt ? `${row.extracted.heightFt}' x ${row.extracted.widthFt}'` : "—"}</span></div>
                                                                     <div className={cn("flex justify-between", mismatchPower && "text-amber-300")}><span className="text-muted-foreground">Max Power</span><span>{row.extracted.maxPower ? `${Math.round(row.extracted.maxPower).toLocaleString()} W` : "—"}</span></div>
                                                                     <div className={cn("flex justify-between", mismatchWeight && "text-amber-300")}><span className="text-muted-foreground">Weight</span><span>{row.extracted.weight ? `${Math.round(row.extracted.weight).toLocaleString()} lbs` : "—"}</span></div>
                                                                     <div className="flex justify-between"><span className="text-muted-foreground">Brightness</span><span>{row.extracted.brightness ? `${Math.round(row.extracted.brightness).toLocaleString()} nits` : "—"}</span></div>
@@ -833,14 +1127,14 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                         )}
 
                         {/* Apply Button (bottom) */}
-                        {specData?.specs && specData.specs.length > 0 && (
+                        {mergedSpecs.length > 0 && (
                             <div className="pt-4 border-t border-border">
                                 <button
                                     type="button"
                                     onClick={handleApplyToProposal}
                                     className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-foreground rounded-lg hover:bg-foreground/90 transition-colors"
                                 >
-                                    Apply {specData.specs.length} Display{specData.specs.length !== 1 ? "s" : ""} to Proposal
+                                    Apply {mergedSpecs.length} Display{mergedSpecs.length !== 1 ? "s" : ""} to Proposal
                                     <ArrowRight className="w-4 h-4" />
                                 </button>
                                 <p className="text-[10px] text-muted-foreground text-center mt-2">
