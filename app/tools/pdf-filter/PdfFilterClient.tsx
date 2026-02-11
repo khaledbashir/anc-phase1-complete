@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import Link from "next/link";
 import {
   Upload, X, Download, AlertTriangle, ChevronLeft, Eye, ArrowRight,
   ArrowLeft, FileText, Loader2, ChevronDown, Zap, Pencil, Image as ImageIcon,
-  Package, GripVertical,
+  Package, GripVertical, FolderOpen, ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -458,8 +459,8 @@ export default function PdfFilterClient() {
         <div className="w-full max-w-2xl space-y-6">
           <div className="text-center space-y-2">
             <h1 className="text-2xl font-semibold text-foreground tracking-tight">PDF Page Triage</h1>
-            <p className="text-sm text-muted-foreground">
-              Upload a PDF to classify pages as text or drawings, score by keyword relevance, and export only what matters.
+            <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+              Drop your RFP PDF here. We&apos;ll filter out the noise and keep only the pages relevant to your scope — ready to use in a new proposal.
             </p>
           </div>
 
@@ -1155,22 +1156,43 @@ function ExportView({ textKeepCount, textTotalCount, drawingKeepCount, drawingTo
           </div>
         </div>
 
-        {/* Export buttons */}
-        <div className="space-y-2">
-          <Button className="w-full" disabled={totalKeep === 0 || isExporting} onClick={() => onExport("combined")}>
-            {isExporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
-            Download Filtered PDF — {totalKeep} pages
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" className="flex-1" size="sm" disabled={textKeepCount === 0 || isExporting}
-              onClick={() => onExport("text")}>
-              Text only ({textKeepCount})
+        {/* What's Next — workflow bridge */}
+        <div className="border border-brand-blue/20 bg-brand-blue/5 rounded-lg p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <Zap className="w-4 h-4 text-brand-blue" />
+            What&apos;s Next?
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            Your filtered PDF is ready. Download it below, then use it to start a new proposal.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button className="w-full" disabled={totalKeep === 0 || isExporting} onClick={() => onExport("combined")}>
+              {isExporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
+              Download Filtered PDF — {totalKeep} pages
             </Button>
-            <Button variant="outline" className="flex-1" size="sm"
-              disabled={drawingKeepCount === 0 || isExporting || !drawingsAnalyzed}
-              onClick={() => onExport("drawings")}>
-              Drawings only ({drawingKeepCount})
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" size="sm" disabled={textKeepCount === 0 || isExporting}
+                onClick={() => onExport("text")}>
+                Text only ({textKeepCount})
+              </Button>
+              <Button variant="outline" className="flex-1" size="sm"
+                disabled={drawingKeepCount === 0 || isExporting || !drawingsAnalyzed}
+                onClick={() => onExport("drawings")}>
+                Drawings only ({drawingKeepCount})
+              </Button>
+            </div>
+          </div>
+          <div className="border-t border-border pt-4 flex flex-col gap-2">
+            <Link href="/projects/new">
+              <Button variant="outline" className="w-full gap-2">
+                <FolderOpen className="w-4 h-4" />
+                Create Proposal from This
+                <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
+              </Button>
+            </Link>
+            <p className="text-[10px] text-muted-foreground text-center">
+              Opens a new project. Upload your filtered PDF there as the RFP reference document.
+            </p>
           </div>
         </div>
 
