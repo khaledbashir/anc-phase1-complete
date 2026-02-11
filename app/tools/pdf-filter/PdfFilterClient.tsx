@@ -55,6 +55,7 @@ export default function PdfFilterClient() {
   const [customKeywords, setCustomKeywords] = useState<string[]>([]);
   const [customInput, setCustomInput] = useState("");
   const [showCustom, setShowCustom] = useState(false);
+  const [expandedPreset, setExpandedPreset] = useState<string | null>(null);
   const [progress, setProgress] = useState<ExtractionProgress | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -499,20 +500,41 @@ export default function PdfFilterClient() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {KEYWORD_PRESETS.map((cat) => {
                 const isOn = enabledCategories.has(cat.id);
+                const isExpanded = expandedPreset === cat.id;
                 return (
-                  <button key={cat.id} onClick={() => togglePresetCategory(cat.id)}
-                    className={cn("px-3 py-2 rounded-lg border text-xs font-medium transition-all text-left",
-                      isOn ? "border-brand-blue bg-brand-blue/5 text-brand-blue" : "border-border text-muted-foreground hover:border-muted-foreground"
+                  <div key={cat.id}
+                    className={cn("rounded-lg border text-xs font-medium transition-all text-left",
+                      isOn ? "border-brand-blue bg-brand-blue/5" : "border-border hover:border-muted-foreground",
+                      isExpanded && "col-span-2 sm:col-span-4"
                     )}>
-                    <span className="flex items-center gap-1.5">
-                      <span className={cn("w-3 h-3 rounded-sm border flex items-center justify-center shrink-0 transition-colors",
-                        isOn ? "bg-brand-blue border-brand-blue" : "border-muted-foreground")}>
+                    <div className="flex items-center gap-1.5 px-3 py-2">
+                      <button onClick={(e) => { e.stopPropagation(); togglePresetCategory(cat.id); }}
+                        className={cn("w-3.5 h-3.5 rounded-sm border flex items-center justify-center shrink-0 transition-colors",
+                          isOn ? "bg-brand-blue border-brand-blue" : "border-muted-foreground hover:border-foreground")}>
                         {isOn && <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-                      </span>
-                      {cat.label}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5 block pl-[18px]">{cat.keywords.length} terms</span>
-                  </button>
+                      </button>
+                      <button onClick={() => setExpandedPreset(isExpanded ? null : cat.id)}
+                        className="flex-1 flex items-center justify-between min-w-0">
+                        <span className={cn("truncate", isOn ? "text-brand-blue" : "text-muted-foreground")}>{cat.label}</span>
+                        <span className="flex items-center gap-1 shrink-0 ml-1">
+                          <span className="text-[10px] text-muted-foreground">{cat.keywords.length}</span>
+                          <ChevronDown className={cn("w-3 h-3 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+                        </span>
+                      </button>
+                    </div>
+                    {isExpanded && (
+                      <div className="px-3 pb-2.5 pt-0.5 border-t border-border/50">
+                        <div className="flex flex-wrap gap-1">
+                          {cat.keywords.map((kw) => (
+                            <span key={kw} className={cn("inline-block px-1.5 py-0.5 rounded text-[10px]",
+                              isOn ? "bg-brand-blue/10 text-brand-blue" : "bg-muted text-muted-foreground")}>
+                              {kw}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
