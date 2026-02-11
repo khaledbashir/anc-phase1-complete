@@ -74,8 +74,12 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
         : "TECHNICAL SPECIFICATIONS";
 
     const rollUpRegex = /\b(total|roll.?up|summary|project\s+grand|grand\s+total|project\s+total|cost\s+summary|pricing\s+summary)\b/i;
+    const metadataRegex = /\b(margin\s+analysis|margin\s+report|analysis\s+sheet|metadata|internal|config)\b/i;
     const pricingTables = (pricingDocument?.tables || []) as Array<{ id?: string; name?: string }>;
-    const detailTables = pricingTables.filter((t) => !rollUpRegex.test((t?.name || "").toString()));
+    const detailTables = pricingTables.filter((t) => {
+        const name = (t?.name || "").toString();
+        return !rollUpRegex.test(name) && !metadataRegex.test(name);
+    });
 
     const normalizedScreenRows = screens.map((screen: any, idx: number) => {
         const h = screen?.heightFt ?? screen?.height ?? 0;
@@ -145,9 +149,9 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
     });
 
     return (
-        <div className="pt-8 break-inside-avoid">
-            <div className="text-center mb-8 break-inside-avoid">
-                <h2 className="text-[12px] font-bold text-[#0A52EF] uppercase tracking-[0.2em]">
+        <div className="pt-4 break-inside-avoid">
+            <div className="text-center mb-4 break-inside-avoid">
+                <h2 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-[0.15em] pb-1 border-b-2 border-[#0A52EF] inline-block">
                     {headerText}
                 </h2>
             </div>
@@ -164,13 +168,13 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                         <col style={{ width: hasAnyBrightness ? "10%" : "15%" }} />
                     </colgroup>
                     <thead>
-                        <tr className="text-[10px] font-bold uppercase tracking-wider text-white" style={{ background: "#0A52EF", pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                            <th className="text-left py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>DISPLAY NAME</th>
-                            <th className="text-left py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>DIMENSIONS</th>
-                            <th className="text-right py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>PITCH</th>
-                            <th className="text-right py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>RESOLUTION</th>
-                            {hasAnyBrightness && <th className="text-right py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>BRIGHTNESS</th>}
-                            <th className="text-right py-2 px-2" style={{ whiteSpace: "nowrap", padding: "8px" }}>QTY</th>
+                        <tr className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#002C73", borderBottom: "2px solid #0A52EF", background: "transparent", pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                            <th className="text-left py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "6px 8px" }}>DISPLAY NAME</th>
+                            <th className="text-left py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "6px 8px" }}>DIMENSIONS</th>
+                            <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "6px 8px" }}>PITCH</th>
+                            <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "6px 8px" }}>RESOLUTION</th>
+                            {hasAnyBrightness && <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "6px 8px" }}>BRIGHTNESS</th>}
+                            <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "6px 8px" }}>QTY</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-900">

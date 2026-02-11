@@ -145,26 +145,25 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
         <>
             {head}
             <section style={{ fontFamily: "'Work Sans', 'Inter', system-ui, sans-serif", position: 'relative' }}>
-                <div className="block p-4 sm:p-10 bg-white dark:bg-white !bg-white text-[#1a1a1a] dark:text-[#1a1a1a] !text-black relative overflow-hidden print:bg-white">
-                    <BrandSlashes className="absolute -top-10 -right-10" width={220} height={220} opacity={0.18} count={10} />
-                    <div className="relative z-10 mb-16">
+                <div className="block p-4 sm:p-8 bg-white dark:bg-white !bg-white text-[#1a1a1a] dark:text-[#1a1a1a] !text-black relative overflow-hidden print:bg-white">
+                    <BrandSlashes className="absolute top-0 right-0" width={140} height={70} opacity={0.12} count={8} />
+                    <div className="relative z-10 mb-10">
                         {children}
                     </div>
 
-                    {/* FIXED FOOTER - ANC Enterprise Style */}
+                    {/* FIXED FOOTER — www.anc.com + decorative slashes */}
                     {!disableFixedFooter && (
-                        <div className="absolute bottom-8 right-10 flex items-center gap-4 opacity-80">
-                            <div className="text-right">
-                                <p className="text-[9px] font-bold text-[#0A52EF] tracking-wide">www.anc.com/contact</p>
-                                <p className="text-[7px] text-gray-600 tracking-wider">NY 914.696.2100 TX 940.464.2320</p>
+                        <div className="absolute bottom-4 left-10 right-10 flex items-center justify-between border-t pt-2" style={{ borderColor: '#E5E7EB' }}>
+                            <p className="text-[8px] font-semibold text-[#0A52EF] tracking-wide">www.anc.com</p>
+                            <div className="flex items-center gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                    <div
+                                        key={i}
+                                        className="w-3 h-0.5 opacity-30"
+                                        style={{ background: '#002C73', transform: 'skewX(-20deg)' }}
+                                    />
+                                ))}
                             </div>
-                            <img
-                                src="/ANC_Logo_2023_blue.png"
-                                alt="ANC"
-                                width={48}
-                                height={24}
-                                style={{ width: '48px', height: '24px', objectFit: 'contain' }}
-                            />
                         </div>
                     )}
                 </div>

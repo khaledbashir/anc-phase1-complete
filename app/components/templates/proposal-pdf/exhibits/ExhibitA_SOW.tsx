@@ -65,10 +65,10 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
     const hasAIGeneratedContent = aiGeneratedSOW.designServices || aiGeneratedSOW.constructionLogistics;
 
     return (
-        <div className="pt-8">
-            <div className="text-center mb-10">
-                <h2 className="text-2xl font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit A</h2>
-                <h3 className="text-lg font-bold text-gray-900 uppercase tracking-widest">Statement of Work</h3>
+        <div className="pt-4">
+            <div className="text-center mb-4">
+                <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wider">Exhibit A</h2>
+                <h3 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-widest">Statement of Work</h3>
             </div>
 
             {/* AI-Generated Risk Detection Banner */}
@@ -102,8 +102,8 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
 
             {/* 1. DESIGN SERVICES - AI-Enhanced */}
             {(designSections.length > 0 || hasAIGeneratedContent) && (
-                <div className="mb-12">
-                    <h4 className="text-sm font-bold bg-[#0A52EF] text-white py-1 px-3 mb-6 uppercase tracking-widest">1. Design & Engineering Services</h4>
+                <div className="mb-6">
+                    <h4 className="text-[10px] font-semibold bg-transparent text-[#002C73] py-1 px-0 mb-4 uppercase tracking-wider border-b-2 border-[#0A52EF]">1. Design & Engineering Services</h4>
                     <div className="space-y-6 px-2">
                         {/* AI-Generated Design Services */}
                         {aiGeneratedSOW.designServices && (
@@ -129,8 +129,8 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
 
             {/* 2. CONSTRUCTION SERVICES - AI-Enhanced */}
             {(constructionSections.length > 0 || hasAIGeneratedContent) && (
-                <div className="mb-12">
-                    <h4 className="text-sm font-bold bg-[#0A52EF] text-white py-1 px-3 mb-6 uppercase tracking-widest">2. Construction & Technical Logistics</h4>
+                <div className="mb-6">
+                    <h4 className="text-[10px] font-semibold bg-transparent text-[#002C73] py-1 px-0 mb-4 uppercase tracking-wider border-b-2 border-[#0A52EF]">2. Construction & Technical Logistics</h4>
                     <div className="space-y-6 px-2">
                         {/* AI-Generated Construction Logistics */}
                         {aiGeneratedSOW.constructionLogistics && (
@@ -156,8 +156,8 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
 
             {/* 3. PROJECT CONSTRAINTS - AI-Enhanced */}
             {(constraintSections.length > 0 || aiGeneratedSOW.constraints) && (
-                <div className="mb-12">
-                    <h4 className="text-sm font-bold bg-[#0A52EF] text-white py-1 px-3 mb-6 uppercase tracking-widest">3. Project Constraints & Compliance</h4>
+                <div className="mb-6">
+                    <h4 className="text-[10px] font-semibold bg-transparent text-[#002C73] py-1 px-0 mb-4 uppercase tracking-wider border-b-2 border-[#0A52EF]">3. Project Constraints & Compliance</h4>
 
                     {/* Venue Specific Dates (REQ-47) - Integrated into Constraints */}
                     {(details?.venue === "Milan Puskar Stadium" || details?.venue === "WVU Coliseum") && (
@@ -205,7 +205,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
             {/* OTHER / GENERAL */}
             {
                 otherSections.length > 0 && (
-                    <div className="mb-12">
+                    <div className="mb-6">
                         <div className="space-y-6 px-2">
                             {otherSections.map((section, idx) => (
                                 <div key={idx} className="break-inside-avoid">

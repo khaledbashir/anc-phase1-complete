@@ -965,14 +965,21 @@ export const ProposalContextProvider = ({
                 setValue("details.clientSummary", clientSummary);
 
                 // Sync line items for PDF template (Polished Mode)
+                // Update each screen's lineItems individually instead of overwriting the entire array.
+                // Bulk setValue("details.screens", ...) conflicts with useFieldArray's internal state
+                // when screens are deleted, causing deleted screens to reappear.
                 const screensWithLineItems = syncLineItemsFromAudit(
                     screens,
                     internalAudit,
                 );
 
-                // Only setValue if lineItems actually differ to prevent flickering
-                setValue("details.screens", screensWithLineItems, {
-                    shouldValidate: false,
+                screensWithLineItems.forEach((screen: any, idx: number) => {
+                    const currentScreen = (screens as any[])?.[idx];
+                    if (screen.lineItems && JSON.stringify(screen.lineItems) !== JSON.stringify(currentScreen?.lineItems)) {
+                        setValue(`details.screens.${idx}.lineItems` as any, screen.lineItems, {
+                            shouldValidate: false,
+                        });
+                    }
                 });
             }
         } catch (e) {

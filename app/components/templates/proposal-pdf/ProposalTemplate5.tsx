@@ -223,14 +223,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // ===== COMPONENTS =====
 
-    // Hybrid Section Header - Vertical blue bar (client-approved look)
+    // Unified Section Header — small text + thin blue underline (Natalia-approved)
     const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
-        <div className="mb-6 mt-8 break-inside-avoid">
-            <div className="flex items-center gap-3 mb-2">
-                <div className="w-1 h-5 shrink-0" style={{ background: colors.primary }} />
-                <h2 className="text-base font-bold tracking-wide uppercase" style={{ color: colors.text }}>{title}</h2>
-            </div>
-            {subtitle && <p className="text-xs ml-4" style={{ color: colors.textMuted }}>{subtitle}</p>}
+        <div className="mb-3 mt-4 break-inside-avoid">
+            <h2 className="text-[11px] font-semibold tracking-wider uppercase pb-1 border-b-2"
+                style={{ color: colors.primaryDark, borderColor: colors.primary }}
+            >
+                {title}
+            </h2>
+            {subtitle && <p className="text-[9px] mt-1" style={{ color: colors.textMuted }}>{subtitle}</p>}
         </div>
     );
 
@@ -318,10 +319,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     Project Pricing
                 </div>
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
-                    {/* Darker French Blue header to distinguish from detail tables */}
+                    {/* Clean header — text + thin blue underline (no background fill) */}
                     <div
-                        className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
-                        style={{ background: colors.primaryDark, color: colors.white }}
+                        className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                        style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                     >
                         <div className="col-span-8">{colHeaderLeft}</div>
                         <div className="col-span-4 text-right">{colHeaderRight}</div>
@@ -460,10 +461,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         return (
                             <div key={tableId || `table-${origIdx}`} className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
-                                    {/* Table header */}
+                                    {/* Table header — text + thin blue underline */}
                                     <div
-                                        className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
-                                        style={{ background: colors.primary, color: colors.white }}
+                                        className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                                        style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                                     >
                                         <div className="col-span-8">{label.toUpperCase()}</div>
                                         <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
@@ -529,8 +530,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 {alternates.length > 0 && (
                                     <div className="mt-4 rounded-lg border overflow-hidden break-inside-avoid" style={{ borderColor: colors.border }}>
                                         <div
-                                            className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
-                                            style={{ background: colors.primary, color: colors.white }}
+                                            className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                                            style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                                         >
                                             <div className="col-span-8">ALTERNATES — ADD TO COST ABOVE</div>
                                             <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
@@ -677,10 +678,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             <div className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 {/* Modern table container */}
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
-                    {/* Header */}
+                    {/* Header — text + thin blue underline */}
                     <div
-                        className="grid grid-cols-12 px-4 py-2.5 text-xs font-bold uppercase tracking-wider break-inside-avoid"
-                        style={{ background: colors.primary, color: colors.white }}
+                        className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                        style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                     >
                         <div className="col-span-8">{colHeaderLeft}</div>
                         <div className="col-span-4 text-right">{colHeaderRight}</div>
@@ -863,15 +864,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         </div>
     );
 
-    // Continuation page header — slim blue bar with client + project name
+    // Continuation page header — thin blue underline with client + project name
     const ContinuationPageHeader = () => {
         const label = details?.proposalName
             ? `${purchaserName} — ${details.proposalName}`.toUpperCase()
             : purchaserName.toUpperCase();
         return (
             <div
-                className="text-center py-2 text-[9px] font-bold uppercase tracking-widest break-inside-avoid"
-                style={{ background: colors.primary, color: colors.white }}
+                className="text-center py-1.5 text-[9px] font-semibold uppercase tracking-widest border-b-2 break-inside-avoid mb-4"
+                style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
             >
                 {label}
             </div>
@@ -886,6 +887,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     const RespMatrixSOW = () => {
         if (!respMatrix || !respMatrix.categories || respMatrix.categories.length === 0) return null;
+        // Filter out categories with no actual items to prevent empty page generation
+        const nonEmptyCategories = respMatrix.categories.filter(cat => cat.items && cat.items.length > 0);
+        if (nonEmptyCategories.length === 0) return null;
 
         const isIncludeStatement = (anc: string) => {
             const upper = anc.toUpperCase().trim();
@@ -901,16 +905,16 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
         return (
             <div className="px-6 break-before-page">
-                <div className="text-center mb-6">
-                    <div className="text-sm font-bold uppercase tracking-wide" style={{ color: colors.text }}>
+                <div className="text-center mb-3">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: colors.textMuted }}>
                         {receiver?.name || "Client"}
                     </div>
-                    <h2 className="text-lg font-bold uppercase tracking-wide pb-2 mt-1 border-b-2" style={{ color: colors.primary, borderColor: colors.primary }}>
+                    <h2 className="text-[11px] font-semibold uppercase tracking-wider pb-1 mt-1 border-b-2" style={{ color: colors.primaryDark, borderColor: colors.primary }}>
                         STATEMENT OF WORK
                     </h2>
                 </div>
                 <div className="border rounded overflow-hidden" style={{ borderColor: colors.border }}>
-                    {respMatrix.categories.map((cat, catIdx) => {
+                    {nonEmptyCategories.map((cat, catIdx) => {
                         const sectionType = respMatrix.format === "short"
                             ? "paragraph"
                             : respMatrix.format === "long"
@@ -919,10 +923,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                         return (
                             <div key={catIdx} className="break-inside-avoid">
-                                {/* Category header bar */}
+                                {/* Category header — text + thin blue underline */}
                                 <div
-                                    className="grid grid-cols-12 px-4 py-2 text-[10px] font-bold uppercase tracking-wider break-inside-avoid"
-                                    style={{ background: '#6b7280', color: '#ffffff' }}
+                                    className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                                    style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                                 >
                                     <div className={sectionType === "table" ? "col-span-8" : "col-span-12"}>{cat.name}</div>
                                     {sectionType === "table" && (
@@ -991,7 +995,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <div className="col-span-4 text-right">Duration: {totalDuration > 0 ? `${totalDuration} business days` : "—"}</div>
                     </div>
 
-                    <div className="grid grid-cols-12 px-4 py-2 text-[10px] font-bold uppercase tracking-wider border-t" style={{ borderColor: colors.borderLight, background: colors.primary, color: colors.white }}>
+                    <div className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2" style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}>
                         <div className="col-span-1">#</div>
                         <div className="col-span-4">Task</div>
                         <div className="col-span-2">Location</div>
@@ -1031,15 +1035,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         );
     };
 
-    // Bold-style Footer with dark blue slash
+    // Simplified Footer — www.anc.com + decorative slashes
     const HybridFooter = () => (
-        <div className="mt-16 pt-6 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
-            <div className="flex justify-between items-end break-inside-avoid">
-                <div className="break-inside-avoid">
-                    <div className="font-bold text-xs tracking-wide uppercase" style={{ color: colors.text }}>ANC Sports Enterprises, LLC</div>
-                    <div className="text-xs mt-1" style={{ color: colors.textMuted }}>2 Manhattanville Road, Suite 402 · Purchase, NY 10577 · anc.com</div>
+        <div className="mt-8 pt-3 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
+            <div className="flex justify-between items-center break-inside-avoid">
+                <div className="text-[9px] font-semibold tracking-wide" style={{ color: colors.primary }}>
+                    www.anc.com
                 </div>
-                {/* Dark blue slash accent from Bold template */}
                 <div className="flex items-center gap-1 break-inside-avoid">
                     {[...Array(5)].map((_, i) => (
                         <div
@@ -1055,19 +1057,19 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     return (
         <ProposalLayout data={data} disableFixedFooter>
-            {/* Hybrid Header - Clean Modern style with left-aligned logo (no badge box) */}
-            <div className="flex justify-between items-start px-6 pt-6 pb-4 mb-6 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent' }}>
-                <LogoSelectorServer theme="light" width={140} height={70} className="p-0" />
+            {/* Compact Header — logo + document label, half the original height */}
+            <div className="flex justify-between items-center px-6 pt-3 pb-2 mb-3 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent' }}>
+                <LogoSelectorServer theme="light" width={90} height={45} className="p-0" />
                 <div className="text-right break-inside-avoid" style={{ background: 'transparent' }}>
-                    <div className="text-xs uppercase tracking-widest font-bold" style={{ color: colors.primary, background: 'transparent' }}>{docLabel}</div>
-                    <h1 className="text-xl font-bold mt-1" style={{ color: colors.text, background: 'transparent' }}>{details?.proposalName || receiver?.name || "Client Name"}</h1>
+                    <div className="text-[9px] uppercase tracking-widest font-semibold" style={{ color: colors.primary, background: 'transparent' }}>{docLabel}</div>
+                    <h1 className="text-sm font-bold mt-0.5" style={{ color: colors.text, background: 'transparent' }}>{details?.proposalName || receiver?.name || "Client Name"}</h1>
                 </div>
             </div>
 
             {/* Intro - 10pt font */}
             {showIntroText && (
-                <div className={`px-6 ${isLOI ? "mb-3" : "mb-6"} break-inside-avoid`}>
-                    <div className={`${isLOI ? "text-[10px]" : "text-sm"} leading-relaxed`} style={{ color: colors.textMuted }}>
+                <div className={`px-6 ${isLOI ? "mb-2" : "mb-3"} break-inside-avoid`}>
+                    <div className={`${isLOI ? "text-[10px]" : "text-xs"} leading-relaxed`} style={{ color: colors.textMuted }}>
                         {(shouldRenderLegalIntro && (details as any)?.loiHeaderText?.trim()) ? (
                             <p className="text-justify whitespace-pre-wrap">{(details as any).loiHeaderText.trim()}</p>
                         ) : customIntroText?.trim() ? (
