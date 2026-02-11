@@ -389,6 +389,9 @@ const ProposalDetailsSchema = z.object({
     introductionText: z.string().optional(),
     // Prompt 10: LOI opening legal paragraph (editable in LOI tab of Document Text Settings)
     loiHeaderText: z.string().optional(),
+    // RFP Pipeline: source tracking + async embedding status
+    source: z.string().nullable().optional(),
+    embeddingStatus: z.string().nullable().optional(),
 });
 
 const ProposalSchema = z.object({

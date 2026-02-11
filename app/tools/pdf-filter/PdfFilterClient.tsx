@@ -506,8 +506,9 @@ export default function PdfFilterClient() {
         }).catch((e) => console.warn("[PDF Filter] Background PDF build failed:", e));
       }
 
-      // Redirect to project with fromFilter flag
-      router.push(`/projects/${data.proposalId}?fromFilter=true`);
+      // Redirect to project — source: "rfp_filter" is stored on the DB record,
+      // so ProposalPage reads it from initialData (no URL params needed)
+      router.push(`/projects/${data.proposalId}`);
     } catch (err) {
       console.error("Create proposal failed:", err);
       setProposalError(err instanceof Error ? err.message : String(err));

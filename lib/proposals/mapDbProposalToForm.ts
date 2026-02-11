@@ -103,6 +103,8 @@ export function mapDbProposalToFormSchema(dbProject: any) {
             pricingMode: dbProject.pricingMode || "STANDARD",
             masterTableIndex: dbProject.masterTableIndex ?? null,
             status: dbProject.status || "DRAFT",
+            source: dbProject.source || null,
+            embeddingStatus: dbProject.embeddingStatus || null,
         },
         marginAnalysis: dbProject.marginAnalysis || undefined,
     };

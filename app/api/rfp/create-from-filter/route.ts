@@ -76,14 +76,17 @@ export async function POST(req: NextRequest) {
         status: "DRAFT",
         calculationMode: "INTELLIGENCE",
         mirrorMode: false,
+        source: "rfp_filter",
+        embeddingStatus: "pending",
       },
     });
 
     console.log(`[create-from-filter] Created proposal ${proposal.id} for "${clientName}" / "${projectTitle}"`);
 
     // ── 2. ASYNC: Provision AI workspace + embed + extract (fire-and-forget) ──
-    runAsyncEmbedding(workspace.id, proposal.id, body).catch((err) => {
+    runAsyncEmbedding(workspace.id, proposal.id, body).catch(async (err) => {
       console.error(`[create-from-filter] Async embedding failed for proposal ${proposal.id}:`, err);
+      await prisma.proposal.update({ where: { id: proposal.id }, data: { embeddingStatus: "failed" } }).catch(() => {});
     });
 
     // ── 3. Return immediately ──
@@ -111,9 +114,12 @@ async function runAsyncEmbedding(
   const { clientName, projectTitle, extractedText, drawingManifest } = body;
 
   // ── 1. Provision AnythingLLM workspace ──
+  await prisma.proposal.update({ where: { id: proposalId }, data: { embeddingStatus: "embedding" } });
+
   const slug = await provisionProjectWorkspace(projectTitle || clientName, workspaceId);
   if (!slug) {
     console.error(`[create-from-filter] Failed to provision AI workspace for ${proposalId}`);
+    await prisma.proposal.update({ where: { id: proposalId }, data: { embeddingStatus: "failed" } });
     return;
   }
 
@@ -203,6 +209,7 @@ async function runAsyncEmbedding(
   }
 
   // ── 5. AI Extraction (Division 11 priority, 20 critical fields) ──
+  await prisma.proposal.update({ where: { id: proposalId }, data: { embeddingStatus: "extracting" } });
   console.log(`[create-from-filter] Running AI extraction against embedded text...`);
 
   const extractionPrompt = `
@@ -280,5 +287,7 @@ Include extractionSummary with totalFields, extractedFields, completionRate, hig
     console.error("[create-from-filter] AI Extraction failed:", e);
   }
 
+  // Mark pipeline complete
+  await prisma.proposal.update({ where: { id: proposalId }, data: { embeddingStatus: "complete" } });
   console.log(`[create-from-filter] Async pipeline complete for proposal ${proposalId}`);
 }

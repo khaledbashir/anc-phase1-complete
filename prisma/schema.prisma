@@ -155,6 +155,10 @@ model Proposal {
   structuralTonnage    Decimal?            // New steel columns/beams tonnage (e.g., 17 tons)
   reinforcingTonnage   Decimal?            // Reinforcing steel tonnage (e.g., 17 tons)
   
+  // RFP Pipeline: source tracking + async embedding status
+  source               String?             // "rfp_filter" | "excel_import" | "manual" | null
+  embeddingStatus      String?             // "pending" | "embedding" | "extracting" | "complete" | "failed"
+
   // REQ-114: Immutability & Lifecycle (Section 4.14 & 9.2)
   isLocked             Boolean             @default(false)  // True when SIGNED/CLOSED
   lockedAt             DateTime?                            // Timestamp of lock
