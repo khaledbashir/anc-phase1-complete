@@ -101,6 +101,7 @@ If, for any reason, Purchaser terminates this Agreement prior to the completion 
             widthFt: 0,
             heightFt: 0,
             pitchMm: 0,
+            hiddenFromSpecs: false,
             isReplacement: false,
             useExistingStructure: false,
             includeSpareParts: false,
