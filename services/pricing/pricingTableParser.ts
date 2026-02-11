@@ -37,7 +37,6 @@ interface RawRow {
   isTax: boolean;
   isBond: boolean;
   isGrandTotal: boolean;
-  isDocumentSummary: boolean;
   isAlternateHeader: boolean;
   isAlternateLine: boolean;
 }
@@ -331,19 +330,6 @@ function isSubtotalRow(labelNorm: string, hasNumericData: boolean): boolean {
   return false;
 }
 
-/**
- * Detect sheet-level summary rows that must never be treated as section headers
- * or line items (e.g. "Total Project Value", "Travel", "LG Rebate").
- */
-function isDocumentSummaryRow(labelNorm: string): boolean {
-  if (!labelNorm) return false;
-  return (
-    labelNorm === "total project value" ||
-    labelNorm === "travel" ||
-    labelNorm === "lg rebate"
-  );
-}
-
 // ============================================================================
 // ROW PARSING
 // ============================================================================
@@ -371,9 +357,9 @@ function parseAllRows(
     const label = String(row[columnMap.label] ?? "").trim();
     const labelNorm = norm(label);
 
-    const cost = roundCurrency(parseNumber(row[columnMap.cost]));
-    const sell = roundCurrency(parseNumber(row[columnMap.sell]));
-    const margin = roundCurrency(parseNumber(row[columnMap.margin]));
+    const cost = parseNumber(row[columnMap.cost]);
+    const sell = parseNumber(row[columnMap.sell]);
+    const margin = parseNumber(row[columnMap.margin]);
     const marginPct = parseNumber(row[columnMap.marginPct]);
 
     const isEmpty = !label && !Number.isFinite(sell);
@@ -392,9 +378,7 @@ function parseAllRows(
     const isAlternateAddToCost = /alternate[s]?\s*[-–—]?\s*add\s+to\s+cost/i.test(label);
     const isAlternateDeduct = /alternate[s]?\s*[-–—]?\s*deduct(\s+cost(\s+above)?)?/i.test(label);
     const looksLikeAlternateHeader = labelNorm.includes("alternate") && !hasNumericData && !hasColumnHeaders;
-    const isDocumentSummary = isDocumentSummaryRow(labelNorm);
     const isHeader = !isEmpty && !hasNumericData && label.length > 0
-      && !isDocumentSummary
       && (!labelNorm.includes("alternate") || hasColumnHeaders)
       && !isAlternateAddToCost
       && !isAlternateDeduct;
@@ -420,7 +404,6 @@ function parseAllRows(
       isTax,
       isBond,
       isGrandTotal,
-      isDocumentSummary,
       isAlternateHeader,
       isAlternateLine: isAlternateLine && hasNumericData,
     });
@@ -464,11 +447,6 @@ function parseNumber(value: any): number {
   } catch {
     return NaN;
   }
-}
-
-function roundCurrency(value: number): number {
-  if (!Number.isFinite(value)) return NaN;
-  return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 /**
@@ -647,6 +625,24 @@ function findTableBoundaries(rows: RawRow[], headerRowLabel?: string): TableBoun
   }
 
   // --- Standard section-header detection ------------------------------------
+  // Only treat a header row as a real section start if it is followed by at
+  // least one regular numeric line item before another header or grand total.
+  // This prevents sheet-summary labels (e.g. rebate banners) from creating
+  // ghost tables.
+  const isViableSectionStart = (headerIdx: number): boolean => {
+    const scanLimit = Math.min(rows.length - 1, headerIdx + 40);
+    for (let j = headerIdx + 1; j <= scanLimit; j++) {
+      const candidate = rows[j];
+      if (!candidate || candidate.isEmpty) continue;
+      if (candidate.isHeader && !candidate.isAlternateHeader) return false;
+      if (candidate.isGrandTotal) return false;
+      if (candidate.isTax || candidate.isBond || candidate.isSubtotal || candidate.isAlternateLine || candidate.isAlternateHeader) continue;
+      const hasLineValue = Number.isFinite(candidate.sell) || Number.isFinite(candidate.cost);
+      if (candidate.label && hasLineValue) return true;
+    }
+    return false;
+  };
+
   let currentTable: Partial<TableBoundary> | null = null;
   let inAlternates = false;
 
@@ -658,6 +654,9 @@ function findTableBoundaries(rows: RawRow[], headerRowLabel?: string): TableBoun
 
     // New section header starts a new table
     if (row.isHeader && !row.isAlternateHeader) {
+      if (!isViableSectionStart(i)) {
+        continue;
+      }
       // Close previous table
       if (currentTable && currentTable.name) {
         if (currentTable.endRow === -1) {
@@ -840,11 +839,6 @@ function extractTable(
       if (Number.isFinite(row.sell) && (!row.label || /sub\s*-?\s*total/.test(row.labelNorm))) {
         subtotal = row.sell;
       }
-      continue;
-    }
-
-    // Sheet-level summary rows are not section items
-    if (row.isDocumentSummary) {
       continue;
     }
 

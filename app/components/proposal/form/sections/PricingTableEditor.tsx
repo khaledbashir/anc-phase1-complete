@@ -63,10 +63,15 @@ const DebouncedNumberInput = ({
     placeholder: string;
     className?: string;
 }) => {
-    const [localValue, setLocalValue] = useState(String(value));
+    const formatEditableNumber = (n: number) => {
+        if (!Number.isFinite(n)) return "";
+        return n.toFixed(2);
+    };
+
+    const [localValue, setLocalValue] = useState(formatEditableNumber(value));
 
     useEffect(() => {
-        setLocalValue(String(value));
+        setLocalValue(formatEditableNumber(value));
     }, [value]);
 
     const handleBlur = () => {
@@ -75,7 +80,7 @@ const DebouncedNumberInput = ({
             onChange(parsed);
         } else if (localValue.trim() === "" || isNaN(parsed)) {
             // Reset to original if invalid
-            setLocalValue(String(value));
+            setLocalValue(formatEditableNumber(value));
         }
     };
 

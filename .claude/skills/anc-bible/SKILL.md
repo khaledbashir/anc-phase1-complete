@@ -5,7 +5,7 @@ description: Complete ANC Proposal Engine project bible. Use at the START of eve
 
 # ANC Proposal Engine — Project Bible
 
-> Last Updated: February 11, 2026 | 268 commits since last major update (Feb 5)
+> Last Updated: February 11, 2026 | 272 commits since last major update (Feb 5)
 > All 39 Phase 2 prompts COMPLETE. RFP Pipeline (Phase 3) in progress.
 
 ## What This App Does
@@ -337,6 +337,24 @@ ZONE 2 — Detail Sections (repeats for each section):
 2. **Grand total in wrong boundary**: After summary becomes first boundary, `findGlobalDocumentTotal` looks INSIDE it.
 3. **Column misalignment**: `deriveBestShiftedColumnMap` fallback handles shifted columns.
 4. **isGrandTotal detection**: Matches "grand total", "sub total (bid form)", "total" (exact), "project total".
+5. **Ghost sections from summary labels** (Feb 2026): labels like "LG Rebate" can look like section headers. Fix: structural section viability gate (`isViableSectionStart`) requires at least one real numeric line item after header.
+6. **Alternate deduct rendered as $0** (Feb 2026): rows like "9C Alternate - Deduct Cost Above" were misclassified. Fix: explicit `isAlternateDeduct` detection + alternate capture.
+7. **CMS totals inflated by summary leakage** (Feb 2026): summary rows after section grand total were leaking into CMS. Fix: preserve grand-total boundary; do not overwrite `endRow` when next header appears.
+8. **Mirror precision vs display formatting** (Feb 2026): parser must preserve raw Excel numbers; rounding is presentation-only in UI/PDF formatting.
+
+### Bug Tracker (Recent)
+| Date | Bug | Impact | Fix |
+|------|-----|--------|-----|
+| Feb 11, 2026 | CMS section included `Total Project Value` / summary rows | Inflated subtotals, tax, grand total | Boundary fix in `pricingTableParser.ts` + structural header viability gate |
+| Feb 11, 2026 | `9C Alternate - Deduct Cost Above` showed `$0` | Alternate deduct lost in output | Added `isAlternateDeduct` detection and alternate extraction |
+| Feb 11, 2026 | Ghost `LG Rebate` pricing section | Confusing extra table in LOI | Prevent non-viable headers from starting sections |
+| Feb 11, 2026 | Long decimal values in editor display | Poor UX, trust issues | Keep raw parse precision; format input display to 2 decimals |
+
+### Regression Commands (Required Before Shipping Parser Changes)
+1. Synthetic suite (deterministic edge cases):  
+   `pnpm run test:pricing-parser`
+2. Real workbook suite (fixtures on disk):  
+   `pnpm run test:pricing-parser:real`
 
 ## Bundle Download
 - 4 separate sequential downloads (NOT a zip):
