@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { useFormContext, useWatch } from "react-hook-form";
 import { isMirrorMode as checkMirrorMode } from "@/lib/modeDetection";
 import { Wizard, useWizard } from "react-use-wizard";
@@ -48,9 +49,25 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
   const { onFormSubmit, importANCExcel, excelImportLoading, setInitialDataApplied } = useProposalContext();
   const wizard = useWizard();
   const { activeStep } = wizard;
+  const searchParams = useSearchParams();
 
   const details = useWatch({ name: "details", control });
   const isMirrorMode = checkMirrorMode(details);
+
+  // Phase 1d: Skip to Step 2 (Intelligence) when arriving from PDF Filter
+  const fromFilterHandled = useRef(false);
+  useEffect(() => {
+    if (fromFilterHandled.current) return;
+    const fromFilter = searchParams.get("fromFilter");
+    if (fromFilter === "true" && activeStep === 0) {
+      fromFilterHandled.current = true;
+      // Set Intelligence mode (not mirror)
+      setValue("details.mirrorMode", false, { shouldDirty: true });
+      setValue("details.calculationMode", "INTELLIGENCE", { shouldDirty: true });
+      // Skip to Step 2 (Intelligence)
+      wizard.goToStep(1);
+    }
+  }, [searchParams, activeStep, wizard, setValue]);
 
   // PROMPT 56: Single hydration path - ONE function that sets EVERYTHING
   const normalizedProjectId = projectId && projectId !== "new" ? projectId : null;

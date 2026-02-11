@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Upload, X, Download, AlertTriangle, ChevronLeft, Eye, ArrowRight,
   ArrowLeft, FileText, Loader2, ChevronDown, Zap, Pencil, Image as ImageIcon,
-  Package, GripVertical, FolderOpen, ExternalLink,
+  Package, GripVertical, CheckCircle2, Rocket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -31,6 +32,7 @@ import {
   analyzeAllDrawings, estimateCost, splitDrawingsByConfidence,
   type DrawingAnalysisResult, type VisionProgress,
 } from "./lib/pdf-vision";
+import { extractProjectMeta, type ExtractedMeta } from "./lib/meta-extraction";
 
 type Phase = "upload" | "triage";
 type TriageTab = "text" | "drawings" | "export";
@@ -46,6 +48,9 @@ interface DrawingTriageState {
 }
 
 export default function PdfFilterClient() {
+  const router = useRouter();
+  const { data: session } = useSession();
+
   // ─── Phase 0 state ───
   const [phase, setPhase] = useState<Phase>("upload");
   const [file, setFile] = useState<File | null>(null);
@@ -91,6 +96,12 @@ export default function PdfFilterClient() {
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [thumbnailCache, setThumbnailCache] = useState<Map<number, string>>(new Map());
+
+  // ─── Meta extraction + proposal creation ───
+  const [extractedMeta, setExtractedMeta] = useState<ExtractedMeta>({ clientName: "", venue: "", projectTitle: "", confidence: 0 });
+  const [pageTextsRef, setPageTextsRef] = useState<{ pageNumber: number; text: string }[]>([]);
+  const [isCreatingProposal, setIsCreatingProposal] = useState(false);
+  const [proposalError, setProposalError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const drawingAbortRef = useRef<AbortController | null>(null);
@@ -154,6 +165,14 @@ export default function PdfFilterClient() {
     try {
       const { pageTexts, pdfDoc: doc } = await extractPageTexts(fileBuffer, setProgress);
       setPdfDoc(doc);
+
+      // Store page texts for later embedding (convert string[] to {pageNumber, text}[])
+      const structuredTexts = pageTexts.map((text, i) => ({ pageNumber: i + 1, text }));
+      setPageTextsRef(structuredTexts);
+
+      // Smart meta extraction from first 5 pages
+      const meta = extractProjectMeta(structuredTexts, 5);
+      setExtractedMeta(meta);
 
       const result = classifyAndScorePages(pageTexts, allKeywords);
       setClassification(result);
@@ -419,6 +438,84 @@ export default function PdfFilterClient() {
     } catch { /* non-critical */ }
   }, [pdfDoc, thumbnailCache]);
 
+  // ─── Create Proposal from Filter ───
+  const handleCreateProposal = useCallback(async (meta: ExtractedMeta) => {
+    if (isCreatingProposal) return;
+    setIsCreatingProposal(true);
+    setProposalError(null);
+
+    try {
+      const userEmail = session?.user?.email;
+      if (!userEmail) {
+        throw new Error("You must be logged in to create a proposal. Please sign in first.");
+      }
+
+      // Build extracted text from kept text pages
+      const keptPageIndices = new Set(textTriage.keep.map((p) => p.pageIndex));
+      const keptTexts = pageTextsRef
+        .filter((pt) => keptPageIndices.has(pt.pageNumber - 1))
+        .map((pt) => `--- PAGE ${pt.pageNumber} ---\n${pt.text}`)
+        .join("\n\n");
+
+      // Build drawing manifest from kept drawings
+      const drawingManifest = drawingTriage.keep.map((d) => ({
+        pageNumber: d.pageNumber,
+        pageIndex: d.pageIndex,
+        category: d.category,
+        categoryLabel: d.categoryLabel,
+        description: d.description,
+        confidence: d.confidence,
+      }));
+
+      // All kept page indices (text + drawings)
+      const allKeptIndices = [
+        ...textTriage.keep.map((p) => p.pageIndex),
+        ...drawingTriage.keep.map((r) => r.pageIndex),
+      ].sort((a, b) => a - b);
+
+      const res = await fetch("/api/rfp/create-from-filter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientName: meta.clientName,
+          venue: meta.venue,
+          projectTitle: meta.projectTitle,
+          extractedText: keptTexts,
+          keptPageIndices: allKeptIndices,
+          drawingManifest,
+          userEmail,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || `Server error: ${res.status}`);
+      }
+
+      // Background: upload filtered PDF for archival (non-blocking)
+      if (fileBuffer) {
+        const archiveKeptIndices = [...new Set(allKeptIndices)].sort((a, b) => a - b);
+        buildFilteredPdf(fileBuffer, archiveKeptIndices).then(async (pdfBytes) => {
+          const blob = new Blob([pdfBytes], { type: "application/pdf" });
+          const fd = new FormData();
+          fd.append("file", blob, `${meta.clientName.replace(/[^a-zA-Z0-9]/g, "_")}_filtered.pdf`);
+          fd.append("proposalId", data.proposalId);
+          fetch("/api/rfp/upload", { method: "POST", body: fd }).catch((e) =>
+            console.warn("[PDF Filter] Background PDF archive failed:", e)
+          );
+        }).catch((e) => console.warn("[PDF Filter] Background PDF build failed:", e));
+      }
+
+      // Redirect to project with fromFilter flag
+      router.push(`/projects/${data.proposalId}?fromFilter=true`);
+    } catch (err) {
+      console.error("Create proposal failed:", err);
+      setProposalError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsCreatingProposal(false);
+    }
+  }, [isCreatingProposal, session, textTriage.keep, drawingTriage.keep, pageTextsRef, fileBuffer, router]);
+
   // ─── Reset ───
   const handleReset = useCallback(() => {
     drawingAbortRef.current?.abort();
@@ -440,6 +537,9 @@ export default function PdfFilterClient() {
     setThumbnailCache(new Map());
     setPreviewPage(null);
     setPreviewImage(null);
+    setExtractedMeta({ clientName: "", venue: "", projectTitle: "", confidence: 0 });
+    setPageTextsRef([]);
+    setProposalError(null);
   }, []);
 
   // ─── Derived counts ───
@@ -708,6 +808,11 @@ export default function PdfFilterClient() {
             onExport={handleExport}
             textKeepPages={textTriage.keep}
             drawingKeepResults={drawingTriage.keep}
+            extractedMeta={extractedMeta}
+            onMetaChange={setExtractedMeta}
+            onCreateProposal={handleCreateProposal}
+            isCreatingProposal={isCreatingProposal}
+            proposalError={proposalError}
           />
         )}
       </div>
@@ -1117,11 +1222,16 @@ function DrawingTriageColumns({ triage, drawingPages, selected, keepSelected, di
 // EXPORT VIEW
 // ═══════════════════════════════════════════════════════
 function ExportView({ textKeepCount, textTotalCount, drawingKeepCount, drawingTotalCount,
-  totalPages, drawingsAnalyzed, isExporting, onExport, textKeepPages, drawingKeepResults }: {
+  totalPages, drawingsAnalyzed, isExporting, onExport, textKeepPages, drawingKeepResults,
+  extractedMeta, onMetaChange, onCreateProposal, isCreatingProposal, proposalError,
+}: {
   textKeepCount: number; textTotalCount: number; drawingKeepCount: number;
   drawingTotalCount: number; totalPages: number; drawingsAnalyzed: boolean;
   isExporting: boolean; onExport: (mode: "combined" | "text" | "drawings") => void;
   textKeepPages: PageScore[]; drawingKeepResults: DrawingAnalysisResult[];
+  extractedMeta: ExtractedMeta; onMetaChange: (meta: ExtractedMeta) => void;
+  onCreateProposal: (meta: ExtractedMeta) => void; isCreatingProposal: boolean;
+  proposalError: string | null;
 }) {
   const totalKeep = textKeepCount + drawingKeepCount;
   const reduction = totalPages > 0 ? ((1 - totalKeep / totalPages) * 100).toFixed(1) : "0";
@@ -1150,23 +1260,73 @@ function ExportView({ textKeepCount, textTotalCount, drawingKeepCount, drawingTo
             <span className="text-muted-foreground">Size reduction:</span>
             <span className="font-medium text-emerald-600">~{reduction}%</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Page order:</span>
-            <span className="text-foreground">Original PDF order</span>
-          </div>
         </div>
 
-        {/* What's Next — workflow bridge */}
+        {/* ── Create Proposal — confirmation card ── */}
         <div className="border border-brand-blue/20 bg-brand-blue/5 rounded-lg p-5 space-y-4">
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-            <Zap className="w-4 h-4 text-brand-blue" />
-            What&apos;s Next?
+            <Rocket className="w-4 h-4 text-brand-blue" />
+            Create Proposal &amp; Embed
           </h3>
           <p className="text-xs text-muted-foreground">
-            Your filtered PDF is ready. Download it below, then use it to start a new proposal.
+            This will create a new project, embed the filtered text into the AI workspace, and take you straight to the drafting table.
+            {drawingKeepCount > 0 && ` ${drawingKeepCount} drawing descriptions will be embedded as searchable context.`}
           </p>
+
+          {/* Inline editable meta fields */}
+          <div className="space-y-2">
+            <MetaField label="Client Name" value={extractedMeta.clientName} placeholder="e.g. Indiana Pacers"
+              onChange={(v) => onMetaChange({ ...extractedMeta, clientName: v })} />
+            <MetaField label="Venue" value={extractedMeta.venue} placeholder="e.g. Gainbridge Fieldhouse"
+              onChange={(v) => onMetaChange({ ...extractedMeta, venue: v })} />
+            <MetaField label="Project Title" value={extractedMeta.projectTitle} placeholder="e.g. 2026 LED Display Refresh"
+              onChange={(v) => onMetaChange({ ...extractedMeta, projectTitle: v })} />
+          </div>
+
+          {extractedMeta.confidence > 0 && extractedMeta.confidence < 0.6 && (
+            <p className="text-[10px] text-amber-600 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              Low confidence extraction — please verify the fields above
+            </p>
+          )}
+
+          {proposalError && (
+            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2">
+              {proposalError}
+            </div>
+          )}
+
+          <Button
+            className="w-full gap-2"
+            disabled={totalKeep === 0 || isCreatingProposal || !extractedMeta.clientName.trim()}
+            onClick={() => onCreateProposal(extractedMeta)}
+          >
+            {isCreatingProposal ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Creating project...</>
+            ) : (
+              <><CheckCircle2 className="w-4 h-4" /> Create Proposal &amp; Embed — {totalKeep} pages</>
+            )}
+          </Button>
+
+          {!extractedMeta.clientName.trim() && (
+            <p className="text-[10px] text-muted-foreground text-center">
+              Enter at least a client name to continue
+            </p>
+          )}
+
+          <p className="text-[10px] text-muted-foreground text-center">
+            This will create a new project. Embedding and AI extraction run in the background.
+          </p>
+        </div>
+
+        {/* ── Download section ── */}
+        <div className="border border-border rounded-lg p-5 space-y-3">
+          <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+            <Download className="w-4 h-4 text-muted-foreground" />
+            Download PDF
+          </h3>
           <div className="flex flex-col gap-2">
-            <Button className="w-full" disabled={totalKeep === 0 || isExporting} onClick={() => onExport("combined")}>
+            <Button variant="outline" className="w-full" disabled={totalKeep === 0 || isExporting} onClick={() => onExport("combined")}>
               {isExporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
               Download Filtered PDF — {totalKeep} pages
             </Button>
@@ -1181,18 +1341,6 @@ function ExportView({ textKeepCount, textTotalCount, drawingKeepCount, drawingTo
                 Drawings only ({drawingKeepCount})
               </Button>
             </div>
-          </div>
-          <div className="border-t border-border pt-4 flex flex-col gap-2">
-            <Link href="/projects/new">
-              <Button variant="outline" className="w-full gap-2">
-                <FolderOpen className="w-4 h-4" />
-                Create Proposal from This
-                <ExternalLink className="w-3 h-3 ml-auto text-muted-foreground" />
-              </Button>
-            </Link>
-            <p className="text-[10px] text-muted-foreground text-center">
-              Opens a new project. Upload your filtered PDF there as the RFP reference document.
-            </p>
           </div>
         </div>
 
@@ -1215,6 +1363,26 @@ function ExportView({ textKeepCount, textTotalCount, drawingKeepCount, drawingTo
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════
+// META FIELD (inline editable input for confirmation card)
+// ═══════════════════════════════════════════════════════
+function MetaField({ label, value, placeholder, onChange }: {
+  label: string; value: string; placeholder: string; onChange: (v: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <label className="text-xs text-muted-foreground w-24 shrink-0 text-right">{label}</label>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="flex-1 text-sm text-foreground bg-transparent border-b border-border focus:border-brand-blue focus:outline-none py-1 px-0 placeholder:text-muted-foreground/50 transition-colors"
+      />
     </div>
   );
 }
