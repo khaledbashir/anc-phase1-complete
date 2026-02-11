@@ -747,6 +747,29 @@ const Step4Export = () => {
                                                 </div>
                                                 <Switch id="showSpecifications" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
                                             </div>
+                                            {(watch("details.showSpecifications") ?? true) && (
+                                                <div className="flex items-center gap-2 py-2 pl-4 border-b border-border/30">
+                                                    <span className="text-[11px] text-muted-foreground mr-1">Display:</span>
+                                                    {(["condensed", "extended"] as const).map((mode) => (
+                                                        <button
+                                                            key={mode}
+                                                            type="button"
+                                                            onClick={() => setValue("details.specsDisplayMode" as any, mode)}
+                                                            className={cn(
+                                                                "px-2.5 py-1 rounded text-[11px] font-medium transition-colors",
+                                                                (watch("details.specsDisplayMode" as any) || "extended") === mode
+                                                                    ? "bg-brand-blue text-white"
+                                                                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                                            )}
+                                                        >
+                                                            {mode === "condensed" ? "Condensed" : "Extended"}
+                                                        </button>
+                                                    ))}
+                                                    <span className="text-[10px] text-muted-foreground ml-1">
+                                                        {(watch("details.specsDisplayMode" as any) || "extended") === "condensed" ? "Name, Dims, Qty" : "All columns"}
+                                                    </span>
+                                                </div>
+                                            )}
                                             <div className="flex items-start justify-between py-3 border-b border-border/30 gap-4">
                                                 <div className="flex flex-col min-w-0">
                                                     <Label htmlFor="showPricingTables" className="text-sm font-semibold text-foreground block">Pricing Tables</Label>
@@ -772,6 +795,29 @@ const Step4Export = () => {
                                                 </div>
                                                 <Switch id="showSpecifications-proposal" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
+                                            {(watch("details.showSpecifications") ?? true) && (
+                                                <div className="flex items-center gap-2 py-2 pl-4 border-b border-border/30">
+                                                    <span className="text-[11px] text-muted-foreground mr-1">Display:</span>
+                                                    {(["condensed", "extended"] as const).map((mode) => (
+                                                        <button
+                                                            key={mode}
+                                                            type="button"
+                                                            onClick={() => setValue("details.specsDisplayMode" as any, mode)}
+                                                            className={cn(
+                                                                "px-2.5 py-1 rounded text-[11px] font-medium transition-colors",
+                                                                (watch("details.specsDisplayMode" as any) || "extended") === mode
+                                                                    ? "bg-brand-blue text-white"
+                                                                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                                            )}
+                                                        >
+                                                            {mode === "condensed" ? "Condensed" : "Extended"}
+                                                        </button>
+                                                    ))}
+                                                    <span className="text-[10px] text-muted-foreground ml-1">
+                                                        {(watch("details.specsDisplayMode" as any) || "extended") === "condensed" ? "Name, Dims, Qty" : "All columns"}
+                                                    </span>
+                                                </div>
+                                            )}
                                             <div className="flex items-center justify-between py-3 border-b border-border/30">
                                                 <div className="flex flex-col">
                                                     <Label htmlFor="showPricingTables-proposal" className="text-sm font-semibold text-foreground">Pricing Tables</Label>
@@ -804,6 +850,29 @@ const Step4Export = () => {
                                                 </div>
                                                 <Switch id="showSpecifications-loi" checked={watch("details.showSpecifications") ?? true} onCheckedChange={(checked) => setValue("details.showSpecifications", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
+                                            {(watch("details.showSpecifications") ?? true) && (
+                                                <div className="flex items-center gap-2 py-2 pl-4 border-b border-border/30">
+                                                    <span className="text-[11px] text-muted-foreground mr-1">Display:</span>
+                                                    {(["condensed", "extended"] as const).map((mode) => (
+                                                        <button
+                                                            key={mode}
+                                                            type="button"
+                                                            onClick={() => setValue("details.specsDisplayMode" as any, mode)}
+                                                            className={cn(
+                                                                "px-2.5 py-1 rounded text-[11px] font-medium transition-colors",
+                                                                (watch("details.specsDisplayMode" as any) || "extended") === mode
+                                                                    ? "bg-brand-blue text-white"
+                                                                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                                                            )}
+                                                        >
+                                                            {mode === "condensed" ? "Condensed" : "Extended"}
+                                                        </button>
+                                                    ))}
+                                                    <span className="text-[10px] text-muted-foreground ml-1">
+                                                        {(watch("details.specsDisplayMode" as any) || "extended") === "condensed" ? "Name, Dims, Qty" : "All columns"}
+                                                    </span>
+                                                </div>
+                                            )}
                                             <div className="flex items-center justify-between py-3 border-b border-border/30">
                                                 <div className="flex flex-col">
                                                     <Label htmlFor="showPricingTables-loi" className="text-sm font-semibold text-foreground">Pricing Tables</Label>

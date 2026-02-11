@@ -66,6 +66,8 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
     const tableHeaderOverrides: Record<string, string> = (details as any)?.tableHeaderOverrides || {};
     const sowText = (details as any)?.scopeOfWorkText;
     const hasSOWContent = showSOW && sowText && sowText.trim().length > 0;
+    const specsDisplayMode: "condensed" | "extended" = (details as any)?.specsDisplayMode || "extended";
+    const isCondensed = specsDisplayMode === "condensed";
 
     const headerText = headingMode === "exhibit"
         ? (hasSOWContent
@@ -160,20 +162,30 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                 {/* Use HTML table for reliable PDF column separation (avoids merged headers in Puppeteer) */}
                 <table className="w-full text-[8px] border-collapse" style={{ tableLayout: "fixed", pageBreakInside: 'auto' }}>
                     <colgroup>
-                        <col style={{ width: "30%" }} />
-                        <col style={{ width: "15%" }} />
-                        <col style={{ width: "10%" }} />
-                        <col style={{ width: "15%" }} />
-                        {hasAnyBrightness && <col style={{ width: "15%" }} />}
-                        <col style={{ width: hasAnyBrightness ? "10%" : "15%" }} />
+                        {isCondensed ? (
+                            <>
+                                <col style={{ width: "55%" }} />
+                                <col style={{ width: "30%" }} />
+                                <col style={{ width: "15%" }} />
+                            </>
+                        ) : (
+                            <>
+                                <col style={{ width: "30%" }} />
+                                <col style={{ width: "15%" }} />
+                                <col style={{ width: "10%" }} />
+                                <col style={{ width: "15%" }} />
+                                {hasAnyBrightness && <col style={{ width: "15%" }} />}
+                                <col style={{ width: hasAnyBrightness ? "10%" : "15%" }} />
+                            </>
+                        )}
                     </colgroup>
                     <thead>
                         <tr className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: "#002C73", borderBottom: "2px solid #0A52EF", background: "transparent", pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                             <th className="text-left py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>DISPLAY NAME</th>
                             <th className="text-left py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>DIMENSIONS</th>
-                            <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>PITCH</th>
-                            <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>RESOLUTION</th>
-                            {hasAnyBrightness && <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>BRIGHTNESS</th>}
+                            {!isCondensed && <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>PITCH</th>}
+                            {!isCondensed && <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>RESOLUTION</th>}
+                            {!isCondensed && hasAnyBrightness && <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>BRIGHTNESS</th>}
                             <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>QTY</th>
                         </tr>
                     </thead>
@@ -190,13 +202,14 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                                 const resolution = pixelsH && pixelsW ? `${pixelsH} x ${pixelsW}` : "—";
                                 const rawBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits;
                                 const brightnessNumber = Number(rawBrightness);
-                                // Validate that brightness is a valid number, not a hex color or other string
                                 const brightnessText =
                                     rawBrightness == null || rawBrightness === "" || rawBrightness === 0
                                         ? "—"
                                         : isFinite(brightnessNumber) && brightnessNumber > 0
                                             ? formatNumberWithCommas(brightnessNumber)
                                             : "—";
+
+                                const colCount = isCondensed ? 3 : (hasAnyBrightness ? 6 : 5);
 
                                 return (
                                     <tr
@@ -210,13 +223,17 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                                         <td className="py-1 px-2 text-gray-800 text-[8px] whitespace-nowrap align-top">
                                             {formatFeet(h)} x {formatFeet(w)}
                                         </td>
-                                        <td className="py-1 px-2 text-right tabular-nums text-[8px] whitespace-nowrap align-top">
-                                            {pitch ? `${formatPitchMm(pitch)}mm` : "—"}
-                                        </td>
-                                        <td className="py-1 px-2 text-right tabular-nums text-[8px] whitespace-nowrap align-top">
-                                            {resolution}
-                                        </td>
-                                        {hasAnyBrightness && (
+                                        {!isCondensed && (
+                                            <td className="py-1 px-2 text-right tabular-nums text-[8px] whitespace-nowrap align-top">
+                                                {pitch ? `${formatPitchMm(pitch)}mm` : "—"}
+                                            </td>
+                                        )}
+                                        {!isCondensed && (
+                                            <td className="py-1 px-2 text-right tabular-nums text-[8px] whitespace-nowrap align-top">
+                                                {resolution}
+                                            </td>
+                                        )}
+                                        {!isCondensed && hasAnyBrightness && (
                                             <td className="py-1 px-2 text-right tabular-nums text-[8px] whitespace-nowrap align-top">
                                                 {brightnessText}
                                             </td>
@@ -229,7 +246,7 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                             })
                         ) : (
                             <tr>
-                                <td colSpan={hasAnyBrightness ? 6 : 5} className="px-3 py-6 text-center text-gray-400 italic">
+                                <td colSpan={isCondensed ? 3 : (hasAnyBrightness ? 6 : 5)} className="px-3 py-6 text-center text-gray-400 italic">
                                     No screens configured.
                                 </td>
                             </tr>

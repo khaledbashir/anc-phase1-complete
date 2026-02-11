@@ -883,7 +883,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const intelligenceRespMatrix = (details as any)?.includeResponsibilityMatrix !== false
         ? ((details as any)?.responsibilityMatrix ?? null)
         : null;
-    const respMatrix: RespMatrix | null = pricingDocument?.respMatrix ?? intelligenceRespMatrix;
+    const respMatrixRaw: RespMatrix | null = pricingDocument?.respMatrix ?? intelligenceRespMatrix;
+    // Apply manual format override if set (auto = use detected format)
+    const respMatrixFormatOverride: string = (details as any)?.respMatrixFormatOverride || "auto";
+    const respMatrix: RespMatrix | null = respMatrixRaw
+        ? { ...respMatrixRaw, format: respMatrixFormatOverride !== "auto" ? (respMatrixFormatOverride as RespMatrix["format"]) : respMatrixRaw.format }
+        : null;
 
     const RespMatrixSOW = () => {
         if (!respMatrix || !respMatrix.categories || respMatrix.categories.length === 0) return null;

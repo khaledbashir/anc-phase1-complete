@@ -154,12 +154,13 @@ export async function generateProposalPdfService(req: NextRequest) {
 			preferCSSPageSize: false,
 			printBackground: true,
 			displayHeaderFooter: true,
+			// Simplified footer: www.anc.com + page number (Natalia-approved)
 			footerTemplate: `
-                <div style="font-family: 'Work Sans', sans-serif; font-size: 8px; width: 100%; padding: 0 40px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 10px;">
-                    <div>ANC Intelligence Core - Confidential Proposal</div>
-                    <div>Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
-                </div>
-            `,
+				<div style="font-family: 'Helvetica Neue', Arial, sans-serif; width: 100%; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; padding-top: 4px; box-sizing: border-box;">
+					<div style="font-size: 7.5px; font-weight: 600; color: #0A52EF; letter-spacing: 0.3px;">www.anc.com</div>
+					<div style="font-size: 7px; color: #94a3b8;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
+				</div>
+			`,
 			margin: {
 				top: "60px",
 				bottom: "70px",

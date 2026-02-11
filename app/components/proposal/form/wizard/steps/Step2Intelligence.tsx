@@ -332,24 +332,45 @@ const Step2Intelligence = () => {
 
                 {/* Responsibility Matrix toggle (LOI default on, others off) */}
                 {mode === "LOI" && (
-                    <div className="flex items-center justify-between px-4 py-3 rounded-lg border border-border bg-card/50">
-                        <div className="flex items-start gap-2">
-                            <ClipboardList className="w-4 h-4 text-muted-foreground mt-0.5" />
-                            <div className="space-y-0.5">
-                                <h4 className="text-sm font-semibold text-foreground">Include Responsibility Matrix</h4>
-                                <p className="text-xs text-muted-foreground">Statement of Work — who is responsible for each task</p>
+                    <div className="flex flex-col gap-2 px-4 py-3 rounded-lg border border-border bg-card/50">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-start gap-2">
+                                <ClipboardList className="w-4 h-4 text-muted-foreground mt-0.5" />
+                                <div className="space-y-0.5">
+                                    <h4 className="text-sm font-semibold text-foreground">Include Responsibility Matrix</h4>
+                                    <p className="text-xs text-muted-foreground">Statement of Work — who is responsible for each task</p>
+                                </div>
                             </div>
+                            <Switch
+                                checked={watch("details.includeResponsibilityMatrix" as any) !== false}
+                                onCheckedChange={(checked) => {
+                                    setValue("details.includeResponsibilityMatrix" as any, checked, { shouldDirty: true });
+                                    if (checked && !watch("details.responsibilityMatrix" as any)) {
+                                        setValue("details.responsibilityMatrix" as any, DEFAULT_RESP_MATRIX, { shouldDirty: true });
+                                    }
+                                }}
+                                className="data-[state=checked]:bg-[#0A52EF]"
+                            />
                         </div>
-                        <Switch
-                            checked={watch("details.includeResponsibilityMatrix" as any) !== false}
-                            onCheckedChange={(checked) => {
-                                setValue("details.includeResponsibilityMatrix" as any, checked, { shouldDirty: true });
-                                if (checked && !watch("details.responsibilityMatrix" as any)) {
-                                    setValue("details.responsibilityMatrix" as any, DEFAULT_RESP_MATRIX, { shouldDirty: true });
-                                }
-                            }}
-                            className="data-[state=checked]:bg-[#0A52EF]"
-                        />
+                        {watch("details.includeResponsibilityMatrix" as any) !== false && (
+                            <div className="flex items-center gap-2 pl-6">
+                                <span className="text-[11px] text-muted-foreground">Format:</span>
+                                <Select
+                                    value={watch("details.respMatrixFormatOverride" as any) || "auto"}
+                                    onValueChange={(val) => setValue("details.respMatrixFormatOverride" as any, val, { shouldDirty: true })}
+                                >
+                                    <SelectTrigger className="h-7 w-[130px] text-[11px]">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="auto">Auto-detect</SelectItem>
+                                        <SelectItem value="short">Short (paragraphs)</SelectItem>
+                                        <SelectItem value="long">Long (table)</SelectItem>
+                                        <SelectItem value="hybrid">Hybrid (mixed)</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                     </div>
                 )}
 

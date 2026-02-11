@@ -193,17 +193,11 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 			displayHeaderFooter: true,
 			// Empty header (1px font hides default browser header)
 			headerTemplate: '<div style="font-size:1px;"></div>',
-			// Professional repeating footer: page numbers + contact info
+			// Simplified footer: www.anc.com + page number (Natalia-approved)
 			footerTemplate: `
-				<div style="font-family: 'Helvetica Neue', Arial, sans-serif; width: 100%; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e2e8f0; padding-top: 6px; box-sizing: border-box;">
-					<div style="font-size: 7px; color: #94a3b8;">ANC Sports Enterprises, LLC &middot; 2 Manhattanville Road, Suite 402 &middot; Purchase, NY 10577</div>
-					<div style="display: flex; align-items: center; gap: 12px;">
-						<div style="text-align: right;">
-							<div style="font-size: 7.5px; font-weight: 700; color: #0A52EF; letter-spacing: 0.3px;">www.anc.com/contact</div>
-							<div style="font-size: 6px; color: #6b7280; letter-spacing: 0.5px;">NY 914.696.2100 &nbsp; TX 940.464.2320</div>
-						</div>
-						<div style="font-size: 7px; color: #94a3b8;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
-					</div>
+				<div style="font-family: 'Helvetica Neue', Arial, sans-serif; width: 100%; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; padding-top: 4px; box-sizing: border-box;">
+					<div style="font-size: 7.5px; font-weight: 600; color: #0A52EF; letter-spacing: 0.3px;">www.anc.com</div>
+					<div style="font-size: 7px; color: #94a3b8;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
 				</div>
 			`,
 			margin: {
