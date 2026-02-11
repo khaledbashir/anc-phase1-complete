@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { buildVisionPrompt, type VisionBatchRequest, type DrawingAnalysisResult } from "@/app/tools/pdf-filter/lib/pdf-vision";
 import { VISION_CATEGORY_LABELS } from "@/app/tools/pdf-filter/lib/drawing-categories";
 
-const ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages";
+const KIMI_API_URL = "https://api.moonshot.ai/v1/chat/completions";
 
-function getAnthropicKey(): string {
-  const key = process.env.ANTHROPIC_API_KEY;
+function getKimiKey(): string {
+  const key = process.env.KIMI_API_KEY;
   if (!key) {
-    throw new Error("ANTHROPIC_API_KEY environment variable is not set");
+    throw new Error("KIMI_API_KEY environment variable is not set");
   }
   return key;
 }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
   let apiKey: string;
   try {
-    apiKey = getAnthropicKey();
+    apiKey = getKimiKey();
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Missing API key" },
@@ -43,34 +43,35 @@ export async function POST(request: NextRequest) {
     body.customInstructions || ""
   );
 
-  const imageContent = body.images.map((img, idx) => ([
+  const imageContent = body.images.flatMap((img, idx) => [
     {
       type: "text" as const,
       text: `Image ${idx} (Page ${img.pageNumber}):`,
     },
     {
-      type: "image" as const,
-      source: {
-        type: "base64" as const,
-        media_type: "image/png" as const,
-        data: img.base64.replace(/^data:image\/\w+;base64,/, ""),
+      type: "image_url" as const,
+      image_url: {
+        url: img.base64.startsWith("data:")
+          ? img.base64
+          : `data:image/png;base64,${img.base64}`,
       },
     },
-  ])).flat();
+  ]);
 
   try {
-    const response = await fetch(ANTHROPIC_API_URL, {
+    const response = await fetch(KIMI_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "claude-3-5-haiku-20241022",
-        max_tokens: 4096,
-        system: systemPrompt,
+        model: "kimi-k2.5",
         messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
           {
             role: "user",
             content: [
@@ -82,20 +83,23 @@ export async function POST(request: NextRequest) {
             ],
           },
         ],
+        max_tokens: 4096,
+        temperature: 0.6,
+        extra_body: { thinking: { type: "disabled" } },
       }),
     });
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error("Anthropic API error:", response.status, errorBody);
+      console.error("Kimi API error:", response.status, errorBody);
       return NextResponse.json(
-        { error: `Anthropic API error (${response.status}): ${errorBody}` },
+        { error: `Kimi API error (${response.status}): ${errorBody}` },
         { status: 502 }
       );
     }
 
     const data = await response.json();
-    const textContent = data.content?.find((c: any) => c.type === "text")?.text || "[]";
+    const textContent = data.choices?.[0]?.message?.content || "[]";
 
     let parsed: any[];
     try {

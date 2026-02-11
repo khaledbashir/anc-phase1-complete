@@ -53,18 +53,13 @@ Return ONLY the JSON array, no other text.`;
 }
 
 export function estimateCost(
-  drawingCount: number,
-  model: "haiku" | "sonnet" = "haiku"
+  drawingCount: number
 ): { perImage: number; total: number; modelName: string } {
-  const rates = {
-    haiku: { perImage: 0.0005, modelName: "Claude Haiku" },
-    sonnet: { perImage: 0.003, modelName: "Claude Sonnet" },
-  };
-  const rate = rates[model];
+  const perImage = 0.0004;
   return {
-    perImage: rate.perImage,
-    total: drawingCount * rate.perImage,
-    modelName: rate.modelName,
+    perImage,
+    total: drawingCount * perImage,
+    modelName: "Kimi K2.5",
   };
 }
 
