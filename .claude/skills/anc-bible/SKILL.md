@@ -45,6 +45,54 @@ Converts Excel cost analysis spreadsheets into branded PDF proposals for **ANC S
 - Margin formula: `sellingPrice = cost / (1 - marginPercent)`
 - Features: ROM estimator, product catalog matching, schedule generator, SOW templates
 
+## Stakeholder Rules & Client Requirements
+
+> This section is business context the AI coder does NOT have from code alone.
+> These rules come directly from stakeholder conversations and must be preserved.
+
+### Natalia Kovaleva — HER RULES ARE LAW
+**Primary Quote:** *"The task is to mirror whatever is here exactly... No calculation, no thinking."*
+
+**Workflow:** Upload Excel (Margin Analysis sheet) → Select doc type → Add custom intro if needed → Preview PDF → Download
+
+**Critical Requirements (her exact words):**
+- *"We don't look at [Cost/Margin columns]... whatever is here is what your engine will show"*
+- *"Fix some typos if estimator makes any typo"*
+- *"We will feed the program already calculated file and will just need the nice PDF"*
+
+**The Six Mirror Rules (Non-Negotiable):**
+1. **NO MATH** — Use Excel totals exactly, never recalculate
+2. **Exact section order** — First section in Excel = first in PDF
+3. **Exact row order** — Preserve line item sequence within sections
+4. **Show alternates** — Don't filter rows containing "alternate"
+5. **Show tax/bond even if zero** — Display all financial rows
+6. **Trust Excel's grand total** — Use "SUB TOTAL (BID FORM)" value
+
+**Mirror Mode Column Visibility:**
+| Show | Hide |
+|------|------|
+| Description | Cost |
+| Selling Price (as "PRICING" or "AMOUNT") | Margin $ |
+| | Margin % |
+
+### Matt (Senior Estimator)
+Needs: Build quotes from scratch for non-RFP work with AI-generated SOW
+
+### Jeremy (Estimator)
+Needs: Parse 2,500+ page RFPs, extract Division 11 specs, auto-populate pricing table
+
+### Eric (Product Expert)
+Needs: Module-based math (LG/Yaham LED modules, not fixed sizes)
+
+### LOI Legal Header Template
+```
+This Sales Quotation will set forth the terms by which [Purchaser Name] ("Purchaser")
+located at [Purchaser Address] and ANC Sports Enterprises, LLC ("ANC") located at
+2 Manhattanville Road, Suite 402, Purchase, NY 10577 (collectively, the "Parties")
+agree that ANC will provide following LED Display and services (the "Display System")
+described below for the [Project Name].
+```
+
 ## Three Entry Points
 1. **Upload Excel** → Mirror Mode (Natalia's primary flow)
 2. **Start Manually** → Intelligence Mode (Matt/Jeremy build from scratch)
@@ -321,6 +369,40 @@ ZONE 2 — Detail Sections (repeats for each section):
 | Indiana Audit (`Cost-Analysis---Indiana-Fever...xlsx`) | 1 | $507,262.53 | Fallback parser |
 | Scotia CAD (`Copy of Cost Analysis - SBA PH4...xlsx`) | 7 | CAD currency, 13% tax | CAD + tax |
 
+## Test Cases for Verification
+
+**Test A: ScotiaBank Budget (CAD)**
+File: `Copy_of_Cost_Analysis_-_SBA_PH4_-_2026-01-28.xlsx`
+1. Set Budget mode, add custom intro: "Exchange rate: 1 CAD = 0.71 USD"
+2. Verify: Header, intro, multiple sections, alternates per section, 13% tax, CAD currency, no signatures
+
+**Test B: Indiana Fever LOI (Gold Standard)**
+File: `ANC_Indiana_Fever_LED_Displays_LOI_1_26_2026.xlsx`
+1. Set LOI mode, edit payment terms
+2. Verify: Legal header with addresses, PROJECT TOTAL = $2,237,069, payment terms, signatures, detailed pricing, specs
+
+**Test C: PDF Export Critical Path**
+1. Upload Excel → Set mode → Click Download
+2. Verify: Correct template, has data, all sections, alternates, totals match Excel
+
+**Test D: Field Persistence**
+1. Edit custom intro, payment terms, signature text → Save draft → Refresh
+2. Verify: All fields still there
+
+**Test E: Mode Switching**
+1. Create in Budget → Switch to Proposal → Switch to LOI
+2. Verify: Budget (ESTIMATE, no sigs), Proposal (QUOTATION, no sigs), LOI (legal header, sigs)
+
+## Key Decision Log
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| Feb 5 | Share link PDF is LOW priority | Natalia never requested it |
+| Feb 5 | MATH step hidden in Mirror Mode | Natalia: "No calculation, no thinking" |
+| Feb 5 | P&L Audit hidden in Mirror Mode | Natalia: "We don't look at this" |
+| Feb 5 | Screen name edits override pricing headers | User should be able to tweak, default = Excel |
+| Feb 5 | One-off formats deferred to Phase 2 | Low frequency, non-standard |
+| Feb 5 | LOI needs purchaser address in header | Natalia's spec requires full legal paragraph |
+
 ## Things That Will Bite You
 1. `ProposalContext.tsx` is **4409 lines**. Read it carefully before changing it.
 2. The PDF template renders whatever data it receives. If the PDF looks wrong, the **BUG IS IN THE PARSER**, not the template (usually).
@@ -332,3 +414,16 @@ ZONE 2 — Detail Sections (repeats for each section):
 8. Kimi K2.5 vision is **client-side only** (Puter.js) — no server-side Kimi service.
 9. `useSearchParams()` in client components requires Suspense boundary for Next.js 15 static generation.
 10. AnythingLLM workspace slugs must be lowercase, no spaces.
+
+## How I'll Use This
+
+When you mention ANC Proposal Engine, Mirror Mode, PDF generation, Excel parsing, Intelligence Mode, RFP pipeline, or any related topic, I will:
+- Remember Natalia's exact requirements (*"mirror exactly, no thinking"*)
+- Know which features belong in Mirror Mode vs Intelligence Mode
+- Reference the correct template files and database schema
+- Know the full file map (67 API endpoints, all parsers, all services)
+- Suggest appropriate test cases with gold standard files
+- Avoid suggesting changes that conflict with the golden rules
+- Know the deployment flow (code → push → EasyPanel auto-builds)
+- Track Phase 3 RFP pipeline progress
+- Understand the WHY behind architectural decisions, not just the code
