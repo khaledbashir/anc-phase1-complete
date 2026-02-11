@@ -226,15 +226,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     // Unified Section Header — blue vertical bar accent + text (Natalia-approved)
     const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
         <div className="mb-3 mt-4 break-inside-avoid">
-            <div className="flex items-center gap-2">
-                <div className="w-[3px] h-4 rounded-sm" style={{ background: colors.primary }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ width: '3px', height: '16px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
                 <h2 className="text-[11px] font-semibold tracking-wider uppercase"
-                    style={{ color: colors.primaryDark }}
+                    style={{ color: colors.primaryDark, margin: 0 }}
                 >
                     {title}
                 </h2>
             </div>
-            {subtitle && <p className="text-[9px] mt-1 ml-[11px]" style={{ color: colors.textMuted }}>{subtitle}</p>}
+            {subtitle && <p className="text-[9px] mt-1" style={{ color: colors.textMuted, marginLeft: '11px' }}>{subtitle}</p>}
         </div>
     );
 
@@ -318,8 +318,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
         return (
             <div className="px-6 mt-2 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                <div className="mb-1 flex items-center gap-2">
-                    <div className="w-[3px] h-4 rounded-sm" style={{ background: colors.primary }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <div style={{ width: '3px', height: '16px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
                     <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: colors.primaryDark }}>Project Pricing</span>
                 </div>
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
@@ -1046,16 +1046,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     // Simplified Footer — www.anc.com + blue vertical accent (matches header style)
     const HybridFooter = ({ isLastPage = false }: { isLastPage?: boolean }) => (
         <div className="mt-8 pt-3 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
-            <div className="flex justify-between items-center break-inside-avoid">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div className="text-[9px] font-semibold tracking-wide" style={{ color: colors.primary }}>
                     www.anc.com
                 </div>
-                <div className="flex items-center gap-1.5 break-inside-avoid">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {[...Array(3)].map((_, i) => (
                         <div
                             key={i}
-                            className="w-[3px] h-3 rounded-sm opacity-40 break-inside-avoid"
-                            style={{ background: colors.primary, transform: 'skewX(-12deg)' }}
+                            style={{ width: '3px', height: '12px', borderRadius: '1px', background: colors.primary, opacity: 0.4, transform: 'skewX(-12deg)' }}
                         />
                     ))}
                 </div>

@@ -153,9 +153,9 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
     return (
         <div className="pt-4 break-inside-avoid">
             <div className="mb-3 mt-4 break-inside-avoid">
-                <div className="flex items-center gap-2">
-                    <div className="w-[3px] h-4 rounded-sm" style={{ background: '#0A52EF' }} />
-                    <h2 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-[0.15em]">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ width: '3px', height: '16px', borderRadius: '1px', background: '#0A52EF', flexShrink: 0 }} />
+                    <h2 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-[0.15em]" style={{ margin: 0 }}>
                         {headerText}
                     </h2>
                 </div>
