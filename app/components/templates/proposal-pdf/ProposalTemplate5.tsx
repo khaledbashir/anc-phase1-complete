@@ -275,7 +275,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const total = calculateProjectTotal();
 
         return (
-            <div className="px-6 mt-4 break-inside-avoid">
+            <div className="px-6 mt-2 break-inside-avoid">
                 <SectionHeader title="Project Summary" />
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     <div
@@ -684,7 +684,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const subtotal = primaryItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
 
         return (
-            <div className="mt-5">
+            <div className="mt-2">
                 {/* Modern table container */}
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     {/* Header — text + thin blue underline */}
@@ -790,7 +790,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const lines = raw.split(/\r?\n|,/g).map((l: string) => l.trim()).filter(Boolean);
         if (lines.length === 0) return null;
         return (
-            <div className="mt-5">
+            <div className="mt-2">
                 <SectionHeader title="Payment Terms" />
                 <div className="rounded-lg p-3 text-[10px] leading-snug" style={{ background: colors.surface, color: colors.textMuted }}>
                     {lines.map((line: string, idx: number) => <div key={idx}>{line}</div>)}
@@ -804,7 +804,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const raw = (details?.additionalNotes || "").toString().trim();
         if (!raw) return null;
         return (
-            <div className="mt-5">
+            <div className="mt-2">
                 <SectionHeader title="Notes" />
                 <div className="rounded-lg p-3 text-[10px] leading-snug whitespace-pre-wrap" style={{ background: colors.surface, color: colors.text }}>
                     {raw}
@@ -817,7 +817,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const ScopeOfWorkSection = () => {
         const sowText = (details as any)?.scopeOfWorkText;
         return (
-            <div className="mt-5">
+            <div className="mt-2">
                 <SectionHeader title="Scope of Work" />
                 <div className="text-[10px] leading-snug whitespace-pre-wrap" style={{ color: colors.text }}>
                     {sowText || "No scope of work specified."}
@@ -832,7 +832,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Signature Block - Universal (available for all document types)
     const SignatureBlock = () => (
-        <div className="mt-4 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+        <div className="mt-2 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
             <div className="text-[10px] leading-snug text-justify mb-3 break-inside-avoid" style={{ color: colors.textMuted }}>
                 {((details as any)?.signatureBlockText || "").trim() || DEFAULT_SIGNATURE_BLOCK_TEXT}
             </div>
@@ -915,7 +915,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         };
 
         return (
-            <div className="px-6" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+            <div className="px-6">
                 <SectionHeader title="Exhibit B — Statement of Work" />
                 <div className="border rounded overflow-hidden" style={{ borderColor: colors.border }}>
                     {nonEmptyCategories.map((cat, catIdx) => {
@@ -990,7 +990,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         let taskNumber = 0;
 
         return (
-            <div className="mt-5">
+            <div className="mt-2">
                 <SectionHeader title="Project Schedule" subtitle="Generated from NTP date and screen configuration" />
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     <div className="grid grid-cols-12 px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ background: colors.primaryLight, color: colors.primaryDark }}>
@@ -1112,12 +1112,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 masterTableIndex !== null ? (
                     /* ── Structure A: Master table selected ── */
                     <>
-                        {/* Page 1: Master Table (project summary) */}
+                        {/* Page 1: Master Table (project summary) + Payment + Signature */}
                         {showPricingTables && <MasterTableSummary />}
-
-                        {/* Page 2: Payment Terms + Notes + Signature Block */}
-                        <PageBreak />
-                        <ContinuationPageHeader />
                         {shouldRenderPaymentTerms && (
                             <div className="px-6">
                                 <PaymentTermsSection />
@@ -1134,7 +1130,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         )}
 
-                        {/* Page 3+: Detailed Breakdown (all section pricing tables) */}
+                        {/* Page 2+: Detailed Breakdown (all section pricing tables) */}
                         {showPricingTables && <PageBreak />}
                         {showPricingTables && <ContinuationPageHeader />}
                         {showPricingTables && (

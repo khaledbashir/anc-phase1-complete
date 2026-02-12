@@ -262,7 +262,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
 
           {hasMasterTable ? (
             <>
-              {/* Structure A: Master table = project summary on page 1 */}
+              {/* Structure A: Page 1 = Summary + Payment + Signature */}
               <MasterTableSection
                 table={masterTable}
                 currency={currency}
@@ -270,17 +270,13 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
                 descriptionOverrides={descriptionOverrides}
                 priceOverrides={priceOverrides}
               />
-
-              {/* ── Page 2: Payment Terms + Signatures ── */}
-              {pageBreak}
-              {continuationHeader}
               <PaymentTermsSection paymentTerms={(details as any)?.paymentTerms} />
               {customProposalNotes && (
                 <CustomNotesSection notes={customProposalNotes} isLOI={true} />
               )}
               <SignatureSection clientName={clientName} />
 
-              {/* ── Page 3+: Detailed Breakdown ── */}
+              {/* ── Page 2+: Detailed Breakdown ── */}
               {detailTables.length > 0 && pageBreak}
               {detailTables.length > 0 && continuationHeader}
               {detailTablesBlock}
@@ -486,7 +482,7 @@ function IntroSection({
   }
 
   return (
-    <div className="px-12 py-3">
+    <div className="px-12 py-1">
       <p className="text-[11px] text-gray-600 leading-relaxed text-justify">
         {intro}
       </p>
@@ -810,8 +806,8 @@ function PaymentTermsSection({ paymentTerms }: { paymentTerms?: string }) {
   const isBulletStyle = terms.includes("•") || terms.includes("-");
 
   return (
-    <div className="px-12 py-3">
-      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-2">
+    <div className="px-12 py-1">
+      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-1">
         PAYMENT TERMS
       </h3>
       {isBulletStyle ? (
@@ -831,8 +827,8 @@ function PaymentTermsSection({ paymentTerms }: { paymentTerms?: string }) {
 
 function SignatureSection({ clientName }: { clientName: string }) {
   return (
-    <div className="px-12 py-3 break-inside-avoid">
-      <p className="text-[10px] text-gray-500 mb-4">
+    <div className="px-12 py-1 break-inside-avoid">
+      <p className="text-[10px] text-gray-500 mb-2">
         Please sign below to indicate Purchaser&apos;s agreement to purchase the
         Display System as described herein and to authorize ANC to commence
         production.
@@ -978,8 +974,8 @@ function StatementOfWorkSection({ details }: { details: any }) {
   if (!sow) return null;
 
   return (
-    <div className="px-12 py-3 break-before-page">
-      <h2 className="text-lg font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mb-3">
+    <div className="px-12 py-1 break-before-page">
+      <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mb-1">
         STATEMENT OF WORK
       </h2>
       <div
@@ -1072,9 +1068,9 @@ function RespMatrixSOWSection({
   };
 
   return (
-    <div className="px-12 py-3 break-before-page">
+    <div className="px-12 py-1 break-before-page">
       {/* Title block */}
-      <div className="text-center mb-3">
+      <div className="text-center mb-1">
         <div className="text-sm font-bold text-gray-800 uppercase tracking-wide">
           {clientName}
         </div>
@@ -1124,8 +1120,8 @@ function CustomNotesSection({
   const title = isLOI ? "ADDITIONAL NOTES" : "NOTES";
 
   return (
-    <div className="px-12 py-3">
-      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-2">
+    <div className="px-12 py-1">
+      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-1">
         {title}
       </h3>
       <div className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-wrap">
@@ -1141,7 +1137,7 @@ function CustomNotesSection({
 
 function Footer() {
   return (
-    <div className="px-12 py-2 mt-4 border-t-2 border-[#0A52EF]">
+    <div className="px-12 py-2 mt-2 border-t-2 border-[#0A52EF]">
       <div className="flex justify-between items-center">
         <div className="text-[9px] font-semibold text-[#0A52EF] tracking-wide">
           www.anc.com
