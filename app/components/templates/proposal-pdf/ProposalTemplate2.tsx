@@ -850,7 +850,12 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             )}
 
             {!isLOI && showSpecifications && (
-                <div className="break-before-page px-4">
+                <div className="break-before-page px-4" style={{ pageBreakBefore: 'always' }}>
+                    <div className="text-center mb-8 mt-6">
+                        <h2 className="text-xl font-medium tracking-[0.2em] text-gray-500 uppercase font-sans">
+                            CLIENT — {receiver?.name || "Client Name"}
+                        </h2>
+                    </div>
                     <SectionHeader title="SPECIFICATIONS" />
                     {screens && screens.length > 0 ? (
                         screens.map((screen: any, idx: number) => (
@@ -903,7 +908,12 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             )}
 
             {isLOI && (showSpecifications || showExhibitA) && (
-                <div className="break-before-page px-4">
+                <div className="break-before-page px-4" style={{ pageBreakBefore: 'always' }}>
+                    <div className="text-center mb-8 mt-6">
+                        <h2 className="text-xl font-medium tracking-[0.2em] text-gray-500 uppercase font-sans">
+                            CLIENT — {receiver?.name || "Client Name"}
+                        </h2>
+                    </div>
                     {(showExhibitA || showSpecifications) && <ExhibitA_TechnicalSpecs data={data} />}
 
                     {showExhibitA && (

@@ -218,7 +218,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   );
 
   const specsBlock = showSpecifications && screens.length > 0 ? (
-    <TechnicalSpecsSection screens={screens} />
+    <TechnicalSpecsSection screens={screens} clientName={clientName} />
   ) : null;
 
   // Resp Matrix SOW (parsed from Excel "Resp Matrix" sheet)
@@ -830,7 +830,7 @@ function SignatureSection({ clientName }: { clientName: string }) {
 // TECHNICAL SPECIFICATIONS (reads from details.screens for real-time updates)
 // ============================================================================
 
-function TechnicalSpecsSection({ screens }: { screens: any[] }) {
+function TechnicalSpecsSection({ screens, clientName }: { screens: any[], clientName: string }) {
   if (!screens || screens.length === 0) return null;
 
   const formatFeet = (value: any) => {
@@ -855,7 +855,12 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
   };
 
   return (
-    <div className="px-12 py-3 break-before-page">
+    <div className="px-12 py-3 break-before-page" style={{ pageBreakBefore: 'always' }}>
+      <div className="text-center mb-8 mt-6">
+        <h2 className="text-xl font-medium tracking-[0.2em] text-gray-500 uppercase font-sans">
+          CLIENT — {clientName}
+        </h2>
+      </div>
       <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mb-2">
         SPECIFICATIONS
       </h2>
@@ -1025,11 +1030,13 @@ function RespMatrixSOWSection({
   };
 
   return (
-    <div className="px-12 py-1 break-before-page">
+    <div className="px-12 py-1 break-before-page" style={{ pageBreakBefore: 'always' }}>
       {/* Title block */}
       <div className="text-center mb-1">
-        <div className="text-sm font-bold text-gray-800 uppercase tracking-wide">
-          {clientName}
+        <div className="text-center mb-8 mt-6">
+          <h2 className="text-xl font-medium tracking-[0.2em] text-gray-500 uppercase font-sans">
+            CLIENT — {clientName}
+          </h2>
         </div>
         <h2 className="text-lg font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mt-1">
           STATEMENT OF WORK

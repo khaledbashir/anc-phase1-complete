@@ -38,6 +38,7 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
       title: "Upload Excel → PDF",
       description: "I have a completed Excel with pricing. Convert it to a branded proposal PDF.",
       label: "Select",
+      recommended: true,
     },
     {
       id: "intelligence" as WorkflowMode,
@@ -65,16 +66,13 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
           type="button"
           onClick={() => router.push("/tools/pdf-filter")}
           className={cn(
-            "group relative flex flex-col items-center text-center p-8 rounded-xl border-2 border-brand-blue/30 bg-brand-blue/5",
-            "hover:border-brand-blue/50 hover:bg-brand-blue/10",
+            "group relative flex flex-col items-center text-center p-8 rounded-xl border border-border bg-card",
+            "hover:border-foreground/20 hover:bg-muted/30",
             "transition-all duration-200 cursor-pointer"
           )}
         >
-          <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-brand-blue text-white text-[10px] font-bold uppercase tracking-wider">
-            Recommended
-          </div>
-          <div className="w-12 h-12 rounded-xl bg-brand-blue/10 flex items-center justify-center mb-5 group-hover:bg-brand-blue/20 transition-colors duration-200">
-            <FileSearch className="w-6 h-6 text-brand-blue" />
+          <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center mb-5 group-hover:bg-muted transition-colors duration-200">
+            <FileSearch className="w-6 h-6 text-muted-foreground group-hover:text-foreground transition-colors duration-200" />
           </div>
           <h3 className="text-sm font-semibold text-foreground mb-2">
             I Have an RFP
@@ -82,7 +80,7 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
           <p className="text-xs text-muted-foreground leading-relaxed">
             Got a large RFP PDF? Filter it down to only the relevant pages first, then build your proposal from the clean version.
           </p>
-          <div className="mt-5 px-4 py-1.5 rounded-md border border-brand-blue/30 text-xs font-medium text-brand-blue group-hover:bg-brand-blue group-hover:text-white transition-all duration-200">
+          <div className="mt-5 px-4 py-1.5 rounded-md border border-border text-xs font-medium text-muted-foreground group-hover:border-foreground/30 group-hover:text-foreground transition-all duration-200">
             Filter RFP
           </div>
         </button>
@@ -96,11 +94,23 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
             className={cn(
               "group relative flex flex-col items-center text-center p-8 rounded-xl border border-border bg-card",
               "hover:border-foreground/20 hover:bg-muted/30",
-              "transition-all duration-200 cursor-pointer"
+              "transition-all duration-200 cursor-pointer",
+              mode.recommended && "border-2 border-brand-blue/30 bg-brand-blue/5 hover:border-brand-blue/50 hover:bg-brand-blue/10"
             )}
           >
-            <div className="w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center mb-5 group-hover:bg-muted transition-colors duration-200">
-              <mode.icon className="w-6 h-6 text-muted-foreground group-hover:text-foreground transition-colors duration-200" />
+            {mode.recommended && (
+              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-brand-blue text-white text-[10px] font-bold uppercase tracking-wider">
+                Recommended
+              </div>
+            )}
+            <div className={cn(
+              "w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-colors duration-200",
+              mode.recommended ? "bg-brand-blue/10 group-hover:bg-brand-blue/20" : "bg-muted/50 group-hover:bg-muted"
+            )}>
+              <mode.icon className={cn(
+                "w-6 h-6 transition-colors duration-200",
+                mode.recommended ? "text-brand-blue" : "text-muted-foreground group-hover:text-foreground"
+              )} />
             </div>
             <h3 className="text-sm font-semibold text-foreground mb-2">
               {mode.title}
@@ -108,7 +118,12 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
             <p className="text-xs text-muted-foreground leading-relaxed">
               {mode.description}
             </p>
-            <div className="mt-5 px-4 py-1.5 rounded-md border border-border text-xs font-medium text-muted-foreground group-hover:border-foreground/30 group-hover:text-foreground transition-all duration-200">
+            <div className={cn(
+              "mt-5 px-4 py-1.5 rounded-md border text-xs font-medium transition-all duration-200",
+              mode.recommended
+                ? "border-brand-blue/30 text-brand-blue group-hover:bg-brand-blue group-hover:text-white"
+                : "border-border text-muted-foreground group-hover:border-foreground/30 group-hover:text-foreground"
+            )}>
               {mode.label}
             </div>
           </button>
