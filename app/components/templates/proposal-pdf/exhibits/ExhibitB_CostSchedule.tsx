@@ -69,10 +69,10 @@ const ExhibitB_CostSchedule = ({ data }: ExhibitBProps) => {
             {alternates.length > 0 && (
                 <div className="mb-8 p-6 border border-gray-200 rounded-2xl bg-white">
                     <h4 className="text-sm font-bold border-b border-gray-300 pb-2 mb-6 uppercase tracking-widest text-[#0A52EF]">2. Project Alternates (Add/Deduct)</h4>
-                    <table className="w-full text-[11px] break-inside-avoid">
+                    <table className="w-full text-[11px]">
                         <tbody>
                             {alternates.map((item: any, idx: number) => (
-                                <tr key={idx} className="border-b border-gray-100 last:border-0 break-inside-avoid">
+                                <tr key={idx} className="border-b border-gray-100 last:border-0">
                                     <td className="py-3 pr-4 font-bold text-gray-800">{item.name}</td>
                                     <td className="py-3 text-gray-500 italic">{item.description || "Project Alternate"}</td>
                                     <td className="py-3 text-right font-bold text-[#0A52EF] min-w-[120px]">{formatCurrency(item.total || 0)}</td>

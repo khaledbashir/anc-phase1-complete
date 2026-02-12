@@ -76,7 +76,7 @@ export const MirrorPricingSection = ({
     const currency = document.currency || "USD";
     const docTotal = computeDocumentTotal(document, priceOverrides);
     return (
-        <div className="px-4 mt-4 break-inside-avoid">
+        <div className="px-4 mt-4">
             {document.tables.map((table, idx) => (
                 <ClassicMirrorTable
                     key={table.id || idx}
@@ -122,7 +122,7 @@ const ClassicMirrorTable = ({
     const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
 
     return (
-        <div className="mb-5 break-inside-avoid">
+        <div className="mb-5">
             {/* Table Name */}
             {headerName && (
                 <div className="flex justify-between items-center border-b-2 border-black pb-1 mb-2">
@@ -229,7 +229,7 @@ export const PremiumMirrorPricingSection = ({
     const currency = document.currency || "USD";
     const docTotal = computeDocumentTotal(document, priceOverrides);
     return (
-        <div className="mt-4 break-inside-avoid">
+        <div className="mt-4">
             {document.tables.map((table, idx) => (
                 <PremiumMirrorTable
                     key={table.id || idx}

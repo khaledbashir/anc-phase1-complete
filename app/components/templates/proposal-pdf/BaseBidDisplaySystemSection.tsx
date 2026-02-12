@@ -49,10 +49,10 @@ export default function BaseBidDisplaySystemSection({ data }: BaseBidDisplaySyst
                 <h4 className="text-[13px] font-bold text-black">Project Total</h4>
                 <h4 className="text-[13px] font-bold text-black">Pricing</h4>
             </div>
-            <table className="w-full text-[11px] border-collapse break-inside-avoid">
+            <table className="w-full text-[11px] border-collapse">
                 <tbody>
                     {rows.map((row, idx) => (
-                        <tr key={`${row.kind}-${idx}`} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} break-inside-avoid`}>
+                        <tr key={`${row.kind}-${idx}`} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
                             <td className={row.kind === "screen" ? "py-2 pr-4 font-medium text-gray-900" : "py-2 pr-4 text-gray-700"}>
                                 {row.label}
                             </td>

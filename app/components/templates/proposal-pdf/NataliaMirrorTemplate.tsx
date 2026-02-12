@@ -192,7 +192,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   const detailTablesBlock = isLandscape ? (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
       {detailTables.map((table) => (
-        <div key={table.id} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+        <div key={table.id}>
           <PricingTableSection
             table={table}
             currency={currency}
@@ -534,7 +534,7 @@ function MasterTableSection({
   const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
 
   return (
-    <div className="px-12 py-2 break-inside-avoid">
+    <div className="px-12 py-2">
       {/* Darker French Blue header to distinguish as summary */}
       <div className="flex justify-between items-center pb-1 mb-0" style={{ borderBottom: '3px solid #002C73' }}>
         <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#002C73' }}>
@@ -646,7 +646,7 @@ function PricingTableSection({
   const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
 
   return (
-    <div className="px-12 py-2 break-inside-avoid">
+    <div className="px-12 py-2">
       {/* Table header */}
       <div className="flex justify-between items-center border-b-2 border-gray-800 pb-1 mb-0">
         <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
@@ -734,7 +734,7 @@ function AlternatesSection({
   const currencyLabel = `PRICING (${currency})`;
 
   return (
-    <div className="px-12 pt-2 pb-1 break-inside-avoid">
+    <div className="px-12 pt-2 pb-1">
       {/* Table header — matches main pricing table header styling */}
       <div className="flex justify-between items-center border-b-2 border-gray-800 pb-1 mb-0">
         <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
@@ -810,7 +810,7 @@ function PaymentTermsSection({ paymentTerms }: { paymentTerms?: string }) {
   const isBulletStyle = terms.includes("•") || terms.includes("-");
 
   return (
-    <div className="px-12 py-3 break-inside-avoid">
+    <div className="px-12 py-3">
       <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-2">
         PAYMENT TERMS
       </h3>
@@ -907,7 +907,7 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
         SPECIFICATIONS
       </h2>
 
-      <div className="border border-gray-300 break-inside-avoid">
+      <div className="border border-gray-300">
         {/* Table Header - Fixed column widths to prevent overlapping */}
         <div className="grid grid-cols-12 text-[8px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300 bg-gray-50">
           <div className="col-span-3 px-2 py-1.5">Display Name</div>
@@ -1034,7 +1034,7 @@ function RespMatrixSOWSection({
       {items.filter(item => isIncludeStatement(item.anc)).map((item, idx) => (
         <div
           key={idx}
-          className="px-4 py-2.5 text-[10px] text-gray-700 leading-relaxed break-inside-avoid border-b border-gray-200"
+          className="px-4 py-2.5 text-[10px] text-gray-700 leading-relaxed border-b border-gray-200"
           style={{ background: idx % 2 === 1 ? '#f9fafb' : '#ffffff' }}
         >
           {item.description}
@@ -1049,7 +1049,7 @@ function RespMatrixSOWSection({
       {items.map((item, idx) => (
         <div
           key={idx}
-          className="grid grid-cols-12 px-4 py-2 text-[10px] break-inside-avoid border-b border-gray-200 items-start"
+          className="grid grid-cols-12 px-4 py-2 text-[10px] border-b border-gray-200 items-start"
           style={{ background: idx % 2 === 1 ? '#f9fafb' : '#ffffff' }}
         >
           <div className="col-span-8 text-gray-700 leading-relaxed pr-2">{item.description}</div>
@@ -1093,7 +1093,7 @@ function RespMatrixSOWSection({
             : categorizeSection(cat);
 
           return (
-            <div key={catIdx} className="break-inside-avoid">
+            <div key={catIdx}>
               <CategoryHeader name={cat.name} showColumns={sectionType === "table"} />
               {sectionType === "table" ? (
                 <TableItems items={cat.items} />
@@ -1124,7 +1124,7 @@ function CustomNotesSection({
   const title = isLOI ? "ADDITIONAL NOTES" : "NOTES";
 
   return (
-    <div className="px-12 py-3 break-inside-avoid">
+    <div className="px-12 py-3">
       <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-2">
         {title}
       </h3>

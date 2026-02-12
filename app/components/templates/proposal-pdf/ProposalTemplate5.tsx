@@ -317,7 +317,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const grandTotal = Number(masterTable?.grandTotal ?? 0);
 
         return (
-            <div className="px-6 mt-4 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <div className="px-6 mt-4">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
                     <div style={{ width: '3px', height: '12px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
                     <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: colors.primaryDark }}>Project Pricing</span>
@@ -468,7 +468,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         const grandTotal = subtotal + taxAmount + bond;
 
                         return (
-                            <div key={tableId || `table-${origIdx}`} className="mt-5 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                            <div key={tableId || `table-${origIdx}`} className="mt-5">
                                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                                     {/* Table header — text + thin blue underline */}
                                     <div
@@ -537,7 +537,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                                 {/* Alternates — separate table AFTER grand total (mirrors Excel structure) */}
                                 {alternates.length > 0 && (
-                                    <div className="mt-2 rounded-lg border overflow-hidden break-inside-avoid" style={{ borderColor: colors.border }}>
+                                    <div className="mt-2 rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                                         <div
                                             className="grid grid-cols-12 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
                                             style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
@@ -575,7 +575,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {isLandscape ? (
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                             {detailTables.map((entry) => (
-                                <div key={entry.table?.id || `table-${entry.origIdx}`} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
+                                <div key={entry.table?.id || `table-${entry.origIdx}`}>
                                     {renderDetailTable(entry)}
                                 </div>
                             ))}
@@ -586,7 +586,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Document total (when multiple detail tables and no master table) */}
                     {detailTables.length > 1 && masterTableIndex === null && (
-                        <div className="mt-5 break-inside-avoid">
+                        <div className="mt-5">
                             <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.primary }}>
                                 <div className="grid grid-cols-12 px-3 py-1" style={{ background: colors.primaryLight }}>
                                     <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
@@ -684,7 +684,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const subtotal = primaryItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
 
         return (
-            <div className="mt-5 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <div className="mt-5">
                 {/* Modern table container */}
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     {/* Header — text + thin blue underline */}
@@ -705,8 +705,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 borderColor: colors.borderLight,
                                 background: idx % 2 === 1 ? colors.surface : colors.white,
                                 minHeight: '24px',
-                                pageBreakInside: 'avoid',
-                                breakInside: 'avoid',
                             }}
                         >
                             <div className="col-span-8 pr-2">
@@ -759,8 +757,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         borderColor: colors.borderLight,
                                         background: colors.surface,
                                         minHeight: '24px',
-                                        pageBreakInside: 'avoid',
-                                        breakInside: 'avoid',
                                         opacity: 0.75,
                                     }}
                                 >
@@ -794,10 +790,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const lines = raw.split(/\r?\n|,/g).map((l: string) => l.trim()).filter(Boolean);
         if (lines.length === 0) return null;
         return (
-            <div className="mt-5 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <div className="mt-5">
                 <SectionHeader title="Payment Terms" />
-                <div className="rounded-lg p-3 text-[10px] leading-snug break-inside-avoid" style={{ background: colors.surface, color: colors.textMuted }}>
-                    {lines.map((line: string, idx: number) => <div key={idx} className="break-inside-avoid">{line}</div>)}
+                <div className="rounded-lg p-3 text-[10px] leading-snug" style={{ background: colors.surface, color: colors.textMuted }}>
+                    {lines.map((line: string, idx: number) => <div key={idx}>{line}</div>)}
                 </div>
             </div>
         );
@@ -994,7 +990,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         let taskNumber = 0;
 
         return (
-            <div className="mt-5 break-inside-avoid">
+            <div className="mt-5">
                 <SectionHeader title="Project Schedule" subtitle="Generated from NTP date and screen configuration" />
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     <div className="grid grid-cols-12 px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ background: colors.primaryLight, color: colors.primaryDark }}>
@@ -1133,12 +1129,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <PageBreak />
                         <ContinuationPageHeader />
                         {shouldRenderPaymentTerms && (
-                            <div className="px-6 break-inside-avoid">
+                            <div className="px-6">
                                 <PaymentTermsSection />
                             </div>
                         )}
                         {showNotes && (
-                            <div className="px-6 break-inside-avoid">
+                            <div className="px-6">
                                 <NotesSection />
                             </div>
                         )}
@@ -1152,10 +1148,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         {showPricingTables && <PageBreak />}
                         {showPricingTables && <ContinuationPageHeader />}
                         {showPricingTables && (
-                            <div className="px-6 break-inside-avoid">
-                                <div className="break-inside-avoid">
-                                    <PricingSection />
-                                </div>
+                            <div className="px-6">
+                                <PricingSection />
                             </div>
                         )}
 
@@ -1164,7 +1158,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <>
                                 <PageBreak />
                                 <ContinuationPageHeader />
-                                <div className="px-6 break-inside-avoid">
+                                <div className="px-6">
                                     <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="exhibit" />
                                 </div>
                             </>
@@ -1173,7 +1167,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <>
                                 <PageBreak />
                                 <ContinuationPageHeader />
-                                <div className="px-6 break-inside-avoid">
+                                <div className="px-6">
                                     <ProjectScheduleSection />
                                 </div>
                             </>
@@ -1184,7 +1178,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <>
                                 <PageBreak />
                                 <ContinuationPageHeader />
-                                <div className="px-6 break-inside-avoid">
+                                <div className="px-6">
                                     <SectionHeader title="Exhibit B — Statement of Work" />
                                     <ScopeOfWorkSection />
                                 </div>
@@ -1205,21 +1199,19 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     <>
                         {/* Pricing tables immediately after intro */}
                         {showPricingTables && (
-                            <div className="px-6 break-inside-avoid">
-                                <div className="break-inside-avoid">
-                                    <PricingSection />
-                                </div>
+                            <div className="px-6">
+                                <PricingSection />
                             </div>
                         )}
 
                         {/* Then: Payment Terms + Notes + Signature Block */}
                         {shouldRenderPaymentTerms && (
-                            <div className="px-6 break-inside-avoid">
+                            <div className="px-6">
                                 <PaymentTermsSection />
                             </div>
                         )}
                         {showNotes && (
-                            <div className="px-6 break-inside-avoid">
+                            <div className="px-6">
                                 <NotesSection />
                             </div>
                         )}
@@ -1234,7 +1226,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <>
                                 <PageBreak />
                                 <ContinuationPageHeader />
-                                <div className="px-6 break-inside-avoid">
+                                <div className="px-6">
                                     <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="exhibit" />
                                 </div>
                             </>
@@ -1243,7 +1235,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <>
                                 <PageBreak />
                                 <ContinuationPageHeader />
-                                <div className="px-6 break-inside-avoid">
+                                <div className="px-6">
                                     <ProjectScheduleSection />
                                 </div>
                             </>
@@ -1254,7 +1246,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <>
                                 <PageBreak />
                                 <ContinuationPageHeader />
-                                <div className="px-6 break-inside-avoid">
+                                <div className="px-6">
                                     <SectionHeader title="Exhibit B — Statement of Work" />
                                     <ScopeOfWorkSection />
                                 </div>
@@ -1283,15 +1275,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Pricing tables */}
                     {showPricingTables && (
-                        <div className="px-6 break-inside-avoid">
-                            <div className="break-inside-avoid">
-                                <PricingSection />
-                            </div>
+                        <div className="px-6">
+                            <PricingSection />
                         </div>
                     )}
 
                     {showNotes && (
-                        <div className="px-6 break-inside-avoid">
+                        <div className="px-6">
                             <NotesSection />
                         </div>
                     )}
@@ -1299,7 +1289,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <>
                             <PageBreak />
                             <ContinuationPageHeader />
-                            <div className="px-6 break-inside-avoid">
+                            <div className="px-6">
                                 <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="plain" />
                             </div>
                         </>
@@ -1308,7 +1298,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <>
                             <PageBreak />
                             <ContinuationPageHeader />
-                            <div className="px-6 break-inside-avoid">
+                            <div className="px-6">
                                 <ProjectScheduleSection />
                             </div>
                         </>
@@ -1318,7 +1308,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <>
                             <PageBreak />
                             <ContinuationPageHeader />
-                            <div className="px-6 break-inside-avoid">
+                            <div className="px-6">
                                 <SectionHeader title="Exhibit B — Statement of Work" />
                                 <ScopeOfWorkSection />
                             </div>
@@ -1333,7 +1323,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     <RespMatrixSOW />
 
                     {shouldRenderPaymentTerms && (
-                        <div className="px-6 break-inside-avoid">
+                        <div className="px-6">
                             <PaymentTermsSection />
                         </div>
                     )}
