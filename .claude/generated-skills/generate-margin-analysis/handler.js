@@ -50,16 +50,22 @@ module.exports.runtime = {
       const baseUrl =
         this.runtimeArgs["ANC_API_URL"] ||
         "https://basheer-therag2.prd42b.easypanel.host";
+      const apiKey = this.runtimeArgs["ANC_API_KEY"] || "";
 
       const apiUrl = `${baseUrl}/api/intelligence/generate-excel`;
 
       this.introspect(`Calling ANC API: ${apiUrl}`);
 
+      const headers = {
+        "Content-Type": "application/json",
+      };
+      if (apiKey) {
+        headers["x-api-key"] = apiKey;
+      }
+
       const response = await fetch(apiUrl, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({ project_data_json: JSON.stringify(projectData) }),
       });
 

@@ -18,6 +18,13 @@ const EXPORT_DIR = "/tmp/anc-exports";
 
 export async function POST(req: NextRequest) {
   try {
+    // API key auth — AnythingLLM skill sends this in the header
+    const apiKey = req.headers.get("x-api-key") || req.nextUrl.searchParams.get("api_key");
+    const expectedKey = process.env.INTELLIGENCE_API_KEY || process.env.ANYTHING_LLM_KEY;
+    if (expectedKey && apiKey !== expectedKey) {
+      return NextResponse.json({ error: "Unauthorized. Provide x-api-key header." }, { status: 401 });
+    }
+
     const body = await req.json();
 
     // Accept either raw object or nested under project_data_json (string)

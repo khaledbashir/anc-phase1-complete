@@ -14,6 +14,7 @@ export const authConfig = {
         nextUrl.pathname.startsWith("/api/uploadthing") ||
         nextUrl.pathname.startsWith("/api/pricing-logic") ||
         nextUrl.pathname.startsWith("/api/agent-skill") ||
+        nextUrl.pathname.startsWith("/api/intelligence/") ||
         nextUrl.pathname.startsWith("/_next") ||
         nextUrl.pathname.startsWith("/favicon") ||
         nextUrl.pathname.includes(".");
