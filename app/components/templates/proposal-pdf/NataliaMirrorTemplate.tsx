@@ -1141,16 +1141,18 @@ function CustomNotesSection({
 
 function Footer() {
   return (
-    <div className="px-12 py-2 mt-4 border-t border-gray-200">
+    <div className="px-12 py-2 mt-4 border-t-2 border-[#0A52EF]">
       <div className="flex justify-between items-center">
-        <div className="text-[9px] text-gray-400">
-          ANC Sports Enterprises, LLC · 2 Manhattanville Road, Suite 402 · Purchase, NY 10577
+        <div className="text-[9px] font-semibold text-[#0A52EF] tracking-wide">
+          www.anc.com
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <div className="text-[9px] font-bold text-[#0A52EF] tracking-wide">www.anc.com/contact</div>
-            <div className="text-[7px] text-gray-500 tracking-wider">NY 914.696.2100  TX 940.464.2320</div>
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              style={{ width: '3px', height: '12px', borderRadius: '1px', background: '#0A52EF', opacity: 0.4, transform: 'skewX(-12deg)' }}
+            />
+          ))}
         </div>
       </div>
     </div>

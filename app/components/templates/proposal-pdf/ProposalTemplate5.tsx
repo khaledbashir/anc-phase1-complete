@@ -1040,7 +1040,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     };
 
     // Simplified Footer — www.anc.com + blue vertical accent (matches header style)
-    const HybridFooter = ({ isLastPage = false }: { isLastPage?: boolean }) => (
+    const HybridFooter = () => (
         <div className="mt-4 pt-2 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div className="text-[9px] font-semibold tracking-wide" style={{ color: colors.primary }}>
@@ -1055,16 +1055,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     ))}
                 </div>
             </div>
-            {isLastPage && (
-                <div className="mt-2 text-[8px] tracking-wide break-inside-avoid" style={{ color: colors.textMuted }}>
-                    <div>ANC Sports Enterprises, LLC</div>
-                    <div>2 Manhattanville Road, Suite 402, Purchase, NY 10577</div>
-                    <div className="mt-0.5">
-                        <span style={{ color: colors.primary }}>NY</span> 914.696.2100 &nbsp;
-                        <span style={{ color: '#D97706' }}>TX</span> 940.464.2320
-                    </div>
-                </div>
-            )}
         </div>
     );
 
@@ -1190,7 +1180,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                         {shouldRenderCompanyFooter && (
                             <div className="px-6">
-                                <HybridFooter isLastPage />
+                                <HybridFooter />
                             </div>
                         )}
                     </>
@@ -1258,7 +1248,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                         {shouldRenderCompanyFooter && (
                             <div className="px-6">
-                                <HybridFooter isLastPage />
+                                <HybridFooter />
                             </div>
                         )}
                     </>
@@ -1316,7 +1306,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     )}
                     {shouldRenderCompanyFooter && (
                         <div className="px-6">
-                            <HybridFooter isLastPage />
+                            <HybridFooter />
                         </div>
                     )}
                     {/* Resp Matrix SOW (if present in Excel) — own page */}
