@@ -317,7 +317,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
 
     // Helper for Section Title
     const SectionHeader = ({ title }: { title: string }) => (
-        <div className="text-center mb-6 mt-8">
+        <div className="text-center mb-4 mt-6">
             <h2 className="text-xl font-medium tracking-[0.2em] text-gray-500 uppercase font-sans">{title}</h2>
         </div>
     );
@@ -330,7 +330,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                 <h3 className="font-bold text-sm uppercase text-[#0A52EF] font-sans">{getScreenHeader(screen)}</h3>
                 <span className="font-bold text-sm uppercase text-[#0A52EF] font-sans">Specifications</span>
             </div>
-            <table className="w-full text-[11px] border-collapse font-sans">
+            <table className="w-full text-[10px] border-collapse font-sans">
                 <tbody>
                     <tr className="bg-white border-b border-gray-200 last:border-b-0">
                         <td className="p-1.5 pl-4 text-gray-700 w-2/3">MM Pitch</td>
@@ -586,7 +586,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
                     {lineItems.map((it: any, idx: number) => (
                         <div
                             key={it.key}
-                            className={`${idx % 2 === 1 ? "bg-black/5" : ""} flex justify-between items-center py-5 px-4 -mx-4 gap-6`}
+                            className={`${idx % 2 === 1 ? "bg-black/5" : ""} flex justify-between items-center py-3 px-4 -mx-4 gap-6`}
                         >
                             <div className="min-w-0 flex-1 flex flex-col justify-center">
                                 <h3 className="font-bold text-[13px] uppercase tracking-widest mb-1 text-black font-sans">
@@ -865,7 +865,7 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
             {!isLOI && documentMode === "PROPOSAL" && showExhibitA && (
                 <div className="break-before-page px-4">
                     <SectionHeader title="STATEMENT OF WORK" />
-                    <div className="space-y-6 text-[10px] leading-relaxed text-gray-700">
+                    <div className="space-y-6 text-[9px] leading-relaxed text-gray-700">
                         <section className="break-inside-avoid">
                             <h4 className="bg-black text-white font-bold py-1 px-2 mb-2 uppercase">1. PHYSICAL INSTALLATION</h4>
                             <div className="px-2 space-y-2">

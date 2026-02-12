@@ -405,6 +405,8 @@ const ProposalDetailsSchema = z.object({
     // RFP Pipeline: source tracking + async embedding status
     source: z.string().nullable().optional(),
     embeddingStatus: z.string().nullable().optional(),
+    // Google Sheet URL for quick access button
+    googleSheetUrl: z.string().url("Invalid URL").optional().nullable().or(z.literal("")),
 });
 
 const ProposalSchema = z.object({

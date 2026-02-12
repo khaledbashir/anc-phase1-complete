@@ -16,6 +16,7 @@ import {
     Plus,
     ArrowLeftRight,
     PenTool,
+    ExternalLink,
 } from "lucide-react";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { FEATURES } from "@/lib/featureFlags";
@@ -345,7 +346,32 @@ const Step1Ingestion = () => {
                                             <div className="flex items-center gap-3">
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Workbook</span>
-                                                    <span className="text-xs font-semibold text-foreground truncate max-w-[420px]">{excelPreview.fileName}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-semibold text-foreground truncate max-w-[320px]">{excelPreview.fileName}</span>
+                                                        {/* Google Sheet Link Button */}
+                                                        <div className="flex items-center gap-1">
+                                                            <input
+                                                                type="url"
+                                                                placeholder="Paste Google Sheet URL"
+                                                                value={watch("details.googleSheetUrl") || ""}
+                                                                onChange={(e) => setValue("details.googleSheetUrl", e.target.value, { shouldDirty: true })}
+                                                                className="w-[140px] h-6 text-[10px] px-2 py-1 bg-muted/50 border border-border rounded-md text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-brand-blue/50"
+                                                            />
+                                                            {watch("details.googleSheetUrl") && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const url = getValues("details.googleSheetUrl");
+                                                                        if (url) window.open(url, "_blank");
+                                                                    }}
+                                                                    className="p-1 rounded-md hover:bg-brand-blue/10 text-brand-blue hover:text-brand-blue/80 transition-colors"
+                                                                    title="Open in Google Sheets"
+                                                                >
+                                                                    <ExternalLink className="w-3.5 h-3.5" />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <TabsList className="bg-muted/40">

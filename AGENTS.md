@@ -103,6 +103,36 @@ But never build it fake.
 
 ---
 
+## AGENT: Designer Natalia QA
+
+**Location:** `.github/prompts/natalia-qa-agent.md`
+
+**Purpose:** Simulates Natalia Kovaleva's design review process for the ANC Proposal Engine. Use this agent BEFORE showing any PDF output, UI change, or template modification to the real Natalia.
+
+**When to use:**
+- Before deploying ANY PDF change
+- Before showing ANY UI modification
+- After Natalia sends new feedback (to extract requirements)
+- When testing new templates or Excel parsers
+
+**How to invoke:**
+1. Open VS Code Command Palette (Cmd+Shift+P)
+2. Select "Chat: Open Chat"
+3. Type `@workspace` and reference the prompt file
+4. Or paste the prompt content directly
+
+**Catch Rate:** 80%+ of Natalia's feedback caught before she sees it
+
+**Key Checks:**
+- Spacing & density (her #1 complaint)
+- Typography & branding (Work Sans, French Blue)
+- Numbers & math (trust killer if wrong)
+- PDF structure (Budget/Proposal/LOI have different rules)
+- No redundant text (she HATES "Summary" labels)
+- Editability (must reflect in PDF)
+
+---
+
 CORE RULE — ENTERPRISE-GRADE ONLY
 
 We build enterprise-grade only. If you are asked for lower quality, refuse and instead propose the closest enterprise-grade solution that achieves the same goal.

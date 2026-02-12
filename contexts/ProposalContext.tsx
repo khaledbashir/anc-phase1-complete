@@ -88,6 +88,7 @@ const defaultProposalContext = {
         errors: string[];
         totalOk: boolean;
     } | null,
+    importedExcelFile: null as File | null,
     excelSourceData: null as any,
     verificationManifest: null as VerificationManifest | null,
     verificationExceptions: [] as VerificationException[],
@@ -121,6 +122,7 @@ const defaultProposalContext = {
     // Backwards-compatible alias
     exportProposalAs: (exportAs: ExportTypes) => { },
     exportAudit: () => Promise.resolve(),
+    downloadImportedExcel: () => { },
     importProposalData: (file: File) => { },
     importANCExcel: (file: File, skipSave?: boolean) => Promise.resolve(),
     // Diagnostic functions
@@ -264,6 +266,7 @@ export const ProposalContextProvider = ({
         useState<boolean>(false);
     const [excelPreview, setExcelPreview] = useState<ExcelPreview | null>(null);
     const [excelValidationOk, setExcelValidationOk] = useState<boolean>(false);
+    const [importedExcelFile, setImportedExcelFile] = useState<File | null>(null);
     const [excelSourceData, setExcelSourceData] = useState<any | null>(null);
     const [excelDiagnostics, setExcelDiagnostics] = useState<{
         warnings: string[];
@@ -367,6 +370,7 @@ export const ProposalContextProvider = ({
             console.log("[EXCEL] Clearing state for new project");
             setExcelPreview(null);
             setExcelValidationOk(false);
+            setImportedExcelFile(null);
             setExcelSourceData(null);
             setExcelDiagnostics(null);
         }
@@ -377,6 +381,7 @@ export const ProposalContextProvider = ({
             console.log(`[EXCEL] Project changed from ${prevProjectIdRef.current} to ${projectId}, clearing state`);
             setExcelPreview(null);
             setExcelValidationOk(false);
+            setImportedExcelFile(null);
             setExcelSourceData(null);
             setExcelDiagnostics(null);
         }
@@ -777,13 +782,14 @@ export const ProposalContextProvider = ({
         if (hasNoExcel) {
             setExcelPreview(null);
             setExcelValidationOk(false);
+            setImportedExcelFile(null);
             setExcelSourceData(null);
             setExcelDiagnostics(null);
         }
 
         // PROMPT 56: DO NOT call reset() here - WizardWrapper handles form hydration
         console.log("[HYDRATE] ProposalContext side effects applied (RFP, AI state, calculation mode)");
-    }, [initialData, reset, setValue, setRfpDocuments, setCalculationModeState, setAiMessages, setAiFields, setAiCitations, setVerifiedFields, setProposalPdf, setExcelPreview, setExcelValidationOk, setExcelSourceData, setExcelDiagnostics]);
+    }, [initialData, reset, setValue, setRfpDocuments, setCalculationModeState, setAiMessages, setAiFields, setAiCitations, setVerifiedFields, setProposalPdf, setExcelPreview, setExcelValidationOk, setImportedExcelFile, setExcelSourceData, setExcelDiagnostics]);
 
     // PROMPT 56: Removed legacy Prisma mapping path - all data is form-shaped from mapDbToFormSchema
     // WizardWrapper is the single hydration authority for form data
@@ -1097,6 +1103,7 @@ export const ProposalContextProvider = ({
             // 2) Wipe Excel/context state so UI never shows old workbook
             setExcelPreview(null);
             setExcelValidationOk(false);
+            setImportedExcelFile(null);
             setExcelSourceData(null);
             setProposalPdf(new Blob());
             setVerificationManifest(null);
@@ -1378,6 +1385,23 @@ export const ProposalContextProvider = ({
             }
         }
     };
+
+    const downloadImportedExcel = useCallback(() => {
+        if (!importedExcelFile) {
+            throw new Error(
+                "Original uploaded Excel is unavailable in this session. Re-upload the workbook to download the exact source file.",
+            );
+        }
+
+        const url = window.URL.createObjectURL(importedExcelFile);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = importedExcelFile.name || "uploaded-workbook.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }, [importedExcelFile]);
 
     // Enterprise Standard: Template 5 (ANC Hybrid) is the only supported template
     // Templates 1, 2, 3, 4 are deprecated but kept for backward compatibility in rendering
@@ -3074,6 +3098,7 @@ export const ProposalContextProvider = ({
         isCreatingNewRef.current = true;
         setExcelPreview(null);
         setExcelValidationOk(false);
+        setImportedExcelFile(null);
         setExcelSourceData(null);
         setVerificationManifest(null);
         setVerificationExceptions([]);
@@ -3116,6 +3141,7 @@ export const ProposalContextProvider = ({
             }
 
             const data = await res.json();
+            setImportedExcelFile(file);
 
             setExcelSourceData(data.excelData ?? null);
             setVerificationManifest(data.verificationManifest ?? null);
@@ -3466,6 +3492,7 @@ export const ProposalContextProvider = ({
                 excelPreview,
                 excelValidationOk,
                 excelDiagnostics,
+                importedExcelFile,
                 excelSourceData,
                 verificationManifest,
                 verificationExceptions,
@@ -3495,6 +3522,7 @@ export const ProposalContextProvider = ({
                 // Backwards-compatible alias
                 exportProposalAs: exportProposalDataAs,
                 exportAudit,
+                downloadImportedExcel,
                 importProposalData,
                 importANCExcel,
                 // AI & Verification

@@ -86,16 +86,16 @@ const ClassicMirrorTable = ({
             )}
 
             {/* Items — pre-filtered & pre-rounded by computeTableTotals */}
-            <div className="space-y-1.5 mb-3">
+            <div className="space-y-1 mb-3">
                 {totals.items.map((ri) => (
                     <div key={ri.originalIndex} className="flex justify-between items-start">
                         <div className="flex-1 pr-4">
-                            <p className="text-sm font-medium text-gray-900 uppercase">
+                            <p className="text-xs font-medium text-gray-900 uppercase">
                                 {ri.description}
                             </p>
                         </div>
                         <div className="text-right whitespace-nowrap">
-                            <span className="font-bold text-sm text-black">
+                            <span className="font-bold text-xs text-black">
                                 {ri.isIncluded ? "INCLUDED" : formatCurrency(ri.price, currency)}
                             </span>
                         </div>
@@ -236,14 +236,14 @@ const PremiumMirrorTable = ({
             {/* Line Items — pre-filtered & pre-rounded by computeTableTotals */}
             <div className="space-y-0">
                 {totals.items.map((ri) => (
-                    <div key={ri.originalIndex} className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
+                    <div key={ri.originalIndex} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
                         <div className="flex-1">
-                            <h3 className="font-bold text-sm uppercase text-[#002C73] font-sans">
+                            <h3 className="font-bold text-xs uppercase text-[#002C73] font-sans">
                                 {ri.description}
                             </h3>
                         </div>
                         <div className="text-right">
-                            <span className="font-bold text-xl text-[#002C73]">
+                            <span className="font-bold text-lg text-[#002C73]">
                                 {ri.isIncluded ? "INCLUDED" : formatCurrency(ri.price, currency)}
                             </span>
                         </div>

@@ -137,13 +137,12 @@ export function computeTableTotals(
     let taxLabel = "";
     if (table.tax) {
         taxLabel = table.tax.label || "Tax";
-        // Use the stored rate if available and sensible; otherwise derive from amounts
+        // Use the effective rate derived from amounts if available (handles tax-exempt items correctly)
+        // Otherwise fall back to the raw rate if no amount exists
         const rate =
-            table.tax.rate > 0
-                ? table.tax.rate
-                : table.subtotal > 0
-                    ? table.tax.amount / table.subtotal
-                    : 0;
+            (typeof table.tax.amount === "number" && table.subtotal > 0)
+                ? table.tax.amount / table.subtotal
+                : (table.tax.rate > 0 ? table.tax.rate : 0);
         tax = roundToDisplay(subtotal * rate);
     }
 
@@ -172,6 +171,13 @@ export function computeDocumentTotal(
     priceOverrides: Record<string, number> = {},
     descriptionOverrides: Record<string, string> = {},
 ): number {
+    // "Excel-Match" Strategy:
+    // If the Excel parser found a total row, trust it implicitly.
+    // Natalia prioritizes matching the source file over internal consistency.
+    if (document.documentTotal && document.documentTotal > 0) {
+        return document.documentTotal;
+    }
+
     return document.tables.reduce(
         (sum, table) => sum + computeTableTotals(table, priceOverrides, descriptionOverrides).grandTotal,
         0,

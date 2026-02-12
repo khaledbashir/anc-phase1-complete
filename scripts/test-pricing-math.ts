@@ -133,10 +133,23 @@ for (const doc of parsedDocs) {
             (s, t) => s + computeTableTotals(t).grandTotal,
             0
         );
-        assertEq(docTotal, tableGrandTotalSum, "computeDocumentTotal === sum(per-table grandTotals)");
 
+        if (doc.documentTotal && doc.documentTotal > 0) {
+            // Excel-Match Strategy: if Excel provides a total, we MUST match it
+            assertEq(docTotal, doc.documentTotal, "computeDocumentTotal === Excel documentTotal (Excel-Match Strategy)");
+
+            // "Phantom Penny" check: mismatch is expected/allowed
+            if (docTotal !== tableGrandTotalSum) {
+                console.log(`   [INFO] Excel-Match active: Document Total (${docTotal}) !== Sum of Tables (${tableGrandTotalSum}). Difference: ${docTotal - tableGrandTotalSum}`);
+            }
+        } else {
+            // Fallback: if no total in Excel, we must match the sum of tables
+            assertEq(docTotal, tableGrandTotalSum, "computeDocumentTotal === sum(per-table grandTotals)");
+        }
+
+        // computeDocumentTotalFromTables can ONLY sum tables (it has no doc context)
         const docTotalFromTables = computeDocumentTotalFromTables(doc.tables);
-        assertEq(docTotalFromTables, docTotal, "computeDocumentTotalFromTables matches computeDocumentTotal");
+        assertEq(docTotalFromTables, tableGrandTotalSum, "computeDocumentTotalFromTables === sum(per-table grandTotals)");
     }
 }
 

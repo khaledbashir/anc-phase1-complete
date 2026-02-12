@@ -54,6 +54,8 @@ const Step4Export = () => {
         pdfGenerationProgress,
         pdfBatchProgress,
         excelPreview,
+        importedExcelFile,
+        downloadImportedExcel,
         excelSourceData,
         verificationManifest,
         verificationExceptions,
@@ -225,6 +227,13 @@ const Step4Export = () => {
                 }
                 return "Add screens with dimensions to export";
             }
+        }
+        return undefined;
+    };
+
+    const getOriginalExcelErrorMessage = () => {
+        if (!importedExcelFile) {
+            return "Original uploaded Excel is unavailable in this session. Re-upload the workbook to download the exact source file.";
         }
         return undefined;
     };
@@ -1033,7 +1042,7 @@ const Step4Export = () => {
                                 </div>
 
                                 {/* Individual Options */}
-                                <div className="border-t border-border/60 grid grid-cols-2 divide-x divide-border/60">
+                                <div className="border-t border-border/60 grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/60">
                                     <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 rounded-lg bg-muted/50 text-muted-foreground">
@@ -1057,6 +1066,34 @@ const Step4Export = () => {
                                             {getExcelOnlyErrorMessage() && (
                                                 <TooltipContent side="left" className="max-w-xs">
                                                     <p className="text-xs">{getExcelOnlyErrorMessage()}</p>
+                                                </TooltipContent>
+                                            )}
+                                        </Tooltip>
+                                    </div>
+
+                                    <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-muted/50 text-muted-foreground">
+                                                <FileText className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-bold text-zinc-900 dark:text-foreground">Original Excel</div>
+                                                <div className="text-[10px] text-zinc-500 dark:text-muted-foreground">Exact uploaded file</div>
+                                            </div>
+                                        </div>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    onClick={downloadImportedExcel}
+                                                    disabled={!importedExcelFile}
+                                                    className="p-2 hover:bg-muted text-muted-foreground hover:text-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            {getOriginalExcelErrorMessage() && (
+                                                <TooltipContent side="left" className="max-w-xs">
+                                                    <p className="text-xs">{getOriginalExcelErrorMessage()}</p>
                                                 </TooltipContent>
                                             )}
                                         </Tooltip>
