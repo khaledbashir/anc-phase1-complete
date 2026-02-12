@@ -1,0 +1,48 @@
+{
+  "active": true,
+  "name": "Generate Margin Analysis Excel",
+  "hubId": "generate-margin-analysis",
+  "schema": "skill-1.0.0",
+  "version": "1.0.0",
+  "description": "Generates a multi-sheet Excel workbook with margin analysis for an LED display project. Call this when the user says 'generate Excel', 'export', 'download', 'give me the spreadsheet', or when Phase 5 of the estimation is complete. Takes a single JSON string containing the full project data with displays, services, costs, margins, tax, and bond. Returns a download link.",
+  "author": "@basheer",
+  "author_url": "https://github.com/khaledbashir",
+  "license": "MIT",
+  "setup_args": {
+    "ANC_API_URL": {
+      "type": "string",
+      "required": true,
+      "input": {
+        "type": "text",
+        "default": "https://basheer-therag2.prd42b.easypanel.host",
+        "placeholder": "https://your-anc-app.easypanel.host",
+        "hint": "Base URL of the ANC Proposal Engine (Next.js app)"
+      },
+      "value": "https://basheer-therag2.prd42b.easypanel.host"
+    }
+  },
+  "examples": [
+    {
+      "prompt": "Generate the Excel margin analysis for this project",
+      "call": "{\"project_data_json\": \"{\\\"project_name\\\":\\\"Cleveland Browns - Huntington Bank Field\\\",\\\"date\\\":\\\"2026-02-12\\\",\\\"estimate_type\\\":\\\"ROM Budget\\\",\\\"currency\\\":\\\"USD\\\",\\\"displays\\\":[{\\\"name\\\":\\\"South End Zone Video Board\\\",\\\"cost\\\":420138,\\\"selling_price\\\":494280,\\\"margin_dollars\\\":74142,\\\"margin_pct\\\":15,\\\"details\\\":{\\\"Dimensions\\\":\\\"10' x 33.6'\\\",\\\"Pixel Pitch\\\":\\\"1.875mm\\\",\\\"Sq Ft\\\":336,\\\"Manufacturer\\\":\\\"LG\\\",\\\"Display Cost\\\":252000,\\\"Sponsorship (10%)\\\":25200,\\\"Spare Parts (10%)\\\":25200,\\\"Shipping\\\":4032,\\\"Total LED Cost\\\":306432,\\\"Installation Labor\\\":50400,\\\"Electrical\\\":38640,\\\"PM/GC\\\":11765,\\\"Travel\\\":8540,\\\"Engineering\\\":4706}}],\\\"services\\\":[{\\\"category\\\":\\\"Installation Labor\\\",\\\"cost\\\":50400,\\\"selling_price\\\":63000,\\\"margin_dollars\\\":12600,\\\"margin_pct\\\":20}],\\\"subtotal_cost\\\":420138,\\\"subtotal_selling\\\":494280,\\\"tax_label\\\":\\\"No Tax\\\",\\\"tax_amount\\\":0,\\\"bond_label\\\":\\\"1.5%\\\",\\\"bond_amount\\\":7414,\\\"grand_total_cost\\\":420138,\\\"grand_total_selling\\\":501694,\\\"grand_total_margin\\\":81556,\\\"grand_total_margin_pct\\\":16.3}\"}"
+    },
+    {
+      "prompt": "Export the spreadsheet with margin analysis",
+      "call": "{\"project_data_json\": \"{}\"}"
+    },
+    {
+      "prompt": "Give me the download link for the Excel file",
+      "call": "{\"project_data_json\": \"{}\"}"
+    }
+  ],
+  "entrypoint": {
+    "file": "handler.js",
+    "params": {
+      "project_data_json": {
+        "description": "A JSON STRING containing the full project data object with: project_name, date, estimate_type, currency, displays (array with name/cost/selling_price/margin_dollars/margin_pct/details), services (array with category/cost/selling_price/margin_dollars/margin_pct), subtotal_cost, subtotal_selling, tax_label, tax_amount, bond_label, bond_amount, grand_total_cost, grand_total_selling, grand_total_margin, grand_total_margin_pct",
+        "type": "string"
+      }
+    }
+  },
+  "imported": true
+}
