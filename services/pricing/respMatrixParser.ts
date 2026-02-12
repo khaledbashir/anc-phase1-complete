@@ -16,16 +16,28 @@ import {
 } from "@/types/pricing";
 
 /**
- * Find the "Resp Matrix" sheet in a workbook (case-insensitive, tolerates trailing spaces)
+ * Find the responsibility matrix sheet in a workbook.
+ * Supports real-world naming variants:
+ * - "Resp Matrix"
+ * - "Resp Matrix-NBCU"
+ * - "Resp Matrix - XXX"
+ * Prioritizes non-example sheets when multiple candidates exist.
  */
 function findRespMatrixSheet(workbook: any): string | null {
   const names: string[] = workbook.SheetNames || [];
-  for (const name of names) {
-    if (name.trim().toLowerCase().replace(/\s+/g, " ") === "resp matrix") {
-      return name;
-    }
-  }
-  return null;
+  if (names.length === 0) return null;
+
+  const normalize = (v: string) => v.trim().toLowerCase().replace(/\s+/g, " ");
+
+  const candidates = names.filter((name) => {
+    const n = normalize(name);
+    return /^resp\s*matrix\b/.test(n);
+  });
+
+  if (candidates.length === 0) return null;
+
+  const nonExample = candidates.filter((name) => !/\bexample\b/i.test(name));
+  return (nonExample[0] || candidates[0] || null);
 }
 
 /**

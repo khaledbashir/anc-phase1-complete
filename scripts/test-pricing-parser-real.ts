@@ -13,6 +13,7 @@ type Case = {
     mustNotContainItemName?: RegExp;
     mustHaveAlternatePrice?: number;
     expectedDocumentTotal?: number;
+    minRespMatrixCategories?: number;
   };
 };
 
@@ -26,6 +27,7 @@ const cases: Case[] = [
       mustNotContainItemName: /total project value|lg rebate/i,
       mustHaveAlternatePrice: -147085.71,
       expectedDocumentTotal: 1193303.47,
+      minRespMatrixCategories: 1,
     },
   },
   {
@@ -70,6 +72,14 @@ function runCase(c: Case) {
     assert.ok(
       Math.abs(parsed.documentTotal - c.expected.expectedDocumentTotal) < 0.01,
       `${c.name}: document total mismatch. got=${parsed.documentTotal}, expected=${c.expected.expectedDocumentTotal}`
+    );
+  }
+
+  if (typeof c.expected.minRespMatrixCategories === "number") {
+    const categoryCount = parsed.respMatrix?.categories?.length || 0;
+    assert.ok(
+      categoryCount >= c.expected.minRespMatrixCategories,
+      `${c.name}: expected at least ${c.expected.minRespMatrixCategories} Resp Matrix categories, got ${categoryCount}`
     );
   }
   console.log(`PASS: ${c.name}`);
