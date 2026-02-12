@@ -262,7 +262,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
 
           {hasMasterTable ? (
             <>
-              {/* Structure A: Page 1 = Summary + Payment + Signature */}
+              {/* ═══ BUSINESS (Page 1): Pricing Summary + Detail Breakdown ═══ */}
               <MasterTableSection
                 table={masterTable}
                 currency={currency}
@@ -270,23 +270,23 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
                 descriptionOverrides={descriptionOverrides}
                 priceOverrides={priceOverrides}
               />
+              {detailTables.length > 0 && detailTablesBlock}
+
+              {/* ═══ LEGAL (Page 2): Payment Terms + Signatures at top ═══ */}
+              {pageBreak}
+              {continuationHeader}
               <PaymentTermsSection paymentTerms={(details as any)?.paymentTerms} />
               {customProposalNotes && (
                 <CustomNotesSection notes={customProposalNotes} isLOI={true} />
               )}
               <SignatureSection clientName={clientName} />
 
-              {/* ── Page 2+: Detailed Breakdown ── */}
-              {detailTables.length > 0 && pageBreak}
-              {detailTables.length > 0 && continuationHeader}
-              {detailTablesBlock}
-
-              {/* ── Last pages: Technical Specifications ── */}
+              {/* ═══ THE KICK (Page 3): Technical content on fresh page ═══ */}
               {specsBlock && pageBreak}
               {specsBlock && continuationHeader}
               {specsBlock}
 
-              {/* Resp Matrix SOW (if present in Excel) */}
+              {/* ═══ TECHNICAL (Pages 4-5): SOW + Matrix flow continuously ═══ */}
               {respMatrixBlock}
             </>
           ) : (

@@ -1119,10 +1119,19 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                ════════════════════════════════════════════════════════════ */}
             {isLOI ? (
                 masterTableIndex !== null ? (
-                    /* ── Structure A: Master table selected ── */
+                    /* ── Structure A: Business/Legal → THE KICK → Technical ── */
                     <>
-                        {/* Page 1: Master Table (project summary) + Payment + Signature */}
+                        {/* ═══ BUSINESS (Page 1): Pricing Summary + Detail Breakdown ═══ */}
                         {showPricingTables && <MasterTableSummary />}
+                        {showPricingTables && (
+                            <div className="px-6">
+                                <PricingSection />
+                            </div>
+                        )}
+
+                        {/* ═══ LEGAL (Page 2): Payment Terms + Signatures at top ═══ */}
+                        <PageBreak />
+                        <ContinuationPageHeader />
                         {shouldRenderPaymentTerms && (
                             <div className="px-6">
                                 <PaymentTermsSection />
@@ -1139,20 +1148,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         )}
 
-                        {/* Page 2+: Detailed Breakdown (all section pricing tables) */}
-                        {showPricingTables && <PageBreak />}
-                        {showPricingTables && <ContinuationPageHeader />}
-                        {showPricingTables && (
-                            <div className="px-6">
-                                <PricingSection />
-                            </div>
-                        )}
-
-                        {/* Technical Specifications — flow after pricing (no forced page break) */}
+                        {/* ═══ THE KICK (Page 3): Technical content starts on fresh page ═══ */}
                         {(showSpecifications || showExhibitA) && screens.length > 0 && (
-                            <div className="px-6">
-                                <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="exhibit" />
-                            </div>
+                            <>
+                                <PageBreak />
+                                <ContinuationPageHeader />
+                                <div className="px-6">
+                                    <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="exhibit" />
+                                </div>
+                            </>
                         )}
                         {hasGeneratedSchedule && (
                             <div className="px-6">
@@ -1160,15 +1164,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         )}
 
-                        {/* SOW — flows after specs */}
+                        {/* ═══ TECHNICAL (Pages 4-5): SOW + Matrix flow continuously ═══ */}
                         {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
                             <div className="px-6">
                                 <SectionHeader title="Exhibit B — Statement of Work" />
                                 <ScopeOfWorkSection />
                             </div>
                         )}
-
-                        {/* Resp Matrix SOW (if present in Excel) — own page per Natalia */}
                         <RespMatrixSOW />
 
                         <div className="px-6">
