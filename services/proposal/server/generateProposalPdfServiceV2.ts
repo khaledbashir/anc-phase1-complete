@@ -42,40 +42,50 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 	const isMirrorMode = (body.details as any)?.mirrorMode === true || (body.details as any)?.calculationMode === "MIRROR" || !!pricingDocument;
 	const validation = pricingDocument?.metadata?.validation;
 	const parserStrictVersion = (body.details as any)?.parserStrictVersion || pricingDocument?.metadata?.parserStrictVersion;
+	const preflightError = (error: string, guidance: string[]) =>
+		new NextResponse(JSON.stringify({ error, guidance }), {
+			status: 422,
+			headers: { "Content-Type": "application/json" },
+		});
 
 	if (isMirrorMode && (!pricingDocument || !Array.isArray(pricingDocument?.tables) || pricingDocument.tables.length === 0)) {
-		return new NextResponse(JSON.stringify({
-			code: "PARSER_VALIDATION_FAILED",
-			reasons: ["Missing pricingDocument or pricing tables"],
-			details: { projectId: (body.details as any)?.proposalId || null, documentMode },
-		}), { status: 422, headers: { "Content-Type": "application/json" } });
+		return preflightError(
+			"We couldn't generate this PDF because pricing tables were not found in the uploaded Excel.",
+			[
+				"Make sure the workbook includes a valid Margin Analysis tab.",
+				"Re-upload the Excel and try export again.",
+			]
+		);
 	}
 	if (isMirrorMode && (!validation || validation.status !== "PASS")) {
-		return new NextResponse(JSON.stringify({
-			code: "PARSER_VALIDATION_FAILED",
-			reasons: validation?.errors?.length ? validation.errors : ["Pricing parser validation was not PASS"],
-			details: { projectId: (body.details as any)?.proposalId || null, documentMode, validation: validation || null },
-		}), { status: 422, headers: { "Content-Type": "application/json" } });
+		return preflightError(
+			"We couldn't generate this PDF because the Excel data is incomplete or formatted differently than expected.",
+			[
+				"Check that the file includes a valid Margin Analysis tab with pricing columns.",
+				"Re-upload the corrected workbook and export again.",
+			]
+		);
 	}
 	if (isMirrorMode && parserStrictVersion !== PRICING_PARSER_STRICT_VERSION) {
-		return new NextResponse(JSON.stringify({
-			code: "PARSER_VALIDATION_FAILED",
-			reasons: [`Parser strict version mismatch. expected=${PRICING_PARSER_STRICT_VERSION} got=${parserStrictVersion || "missing"}`],
-			details: { projectId: (body.details as any)?.proposalId || null, documentMode },
-		}), { status: 422, headers: { "Content-Type": "application/json" } });
+		return preflightError(
+			"This project needs a fresh Excel parse before export.",
+			[
+				"Re-upload the source Excel file for this project.",
+				"Then generate a new PDF.",
+			]
+		);
 	}
 	const hadRespMatrixCandidates = Array.isArray(validation?.evidence?.respMatrixSheetCandidates) && validation.evidence.respMatrixSheetCandidates.length > 0;
 	const hasParsedRespMatrix = !!(pricingDocument?.respMatrix?.categories?.length);
 	if (isMirrorMode && documentMode === "LOI" && hadRespMatrixCandidates && !hasParsedRespMatrix) {
-		return new NextResponse(JSON.stringify({
-			code: "MISSING_RESP_MATRIX",
-			reasons: ["Resp Matrix sheet candidates were detected, but parsed matrix categories are missing"],
-			details: {
-				projectId: (body.details as any)?.proposalId || null,
-				documentMode,
-				respMatrixCandidates: validation.evidence.respMatrixSheetCandidates,
-			},
-		}), { status: 422, headers: { "Content-Type": "application/json" } });
+		return preflightError(
+			"We couldn't find a usable Responsibility Matrix in this Excel.",
+			[
+				"If your file includes one, make sure the sheet name starts with 'Resp Matrix'.",
+				"Make sure the matrix has Description, ANC, and Purchaser columns.",
+				"Upload again, or continue without the matrix section.",
+			]
+		);
 	}
 
 	try {

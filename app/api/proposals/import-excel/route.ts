@@ -29,11 +29,18 @@ export async function POST(req: NextRequest) {
             });
 
             if (validation.status === "FAIL" || !pricingDocument) {
+                const respCandidates = validation?.evidence?.respMatrixSheetCandidates || [];
+                const hasRespHint = respCandidates.length > 0 || validation.errors.some((e) => /resp matrix/i.test(e));
+                const message = hasRespHint
+                    ? "We couldn't read the Responsibility Matrix from this Excel. If your file includes one, make sure the sheet name starts with 'Resp Matrix' and includes ANC/Purchaser columns."
+                    : "We couldn't read the pricing tables from this Excel. Please confirm the workbook has a valid Margin Analysis tab with Description, Cost, and Selling Price columns.";
                 return NextResponse.json({
-                    code: "PARSER_VALIDATION_FAILED",
-                    errors: validation.errors,
-                    warnings: validation.warnings,
-                    evidence: validation.evidence,
+                    error: message,
+                    help: [
+                        "Check that the Margin Analysis tab exists and has standard pricing columns.",
+                        "If using a Responsibility Matrix, verify the tab name starts with 'Resp Matrix'.",
+                        "Upload the corrected file again.",
+                    ],
                 }, { status: 422 });
             }
 

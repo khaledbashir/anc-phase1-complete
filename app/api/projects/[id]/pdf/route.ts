@@ -48,7 +48,10 @@ export async function POST(
             const errorBody = await pdfResponse.json().catch(() => ({ error: "Unknown error" }));
             console.error("PDF generation failed:", errorBody);
             return NextResponse.json(
-                { error: "Failed to generate PDF", details: errorBody },
+                {
+                    error: typeof errorBody?.error === "string" ? errorBody.error : "We couldn't generate this PDF right now.",
+                    guidance: Array.isArray(errorBody?.guidance) ? errorBody.guidance : undefined,
+                },
                 { status: pdfResponse.status }
             );
         }
@@ -85,4 +88,3 @@ export async function POST(
         );
     }
 }
-
