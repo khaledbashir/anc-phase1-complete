@@ -107,7 +107,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                     <div className="space-y-6 px-2">
                         {/* AI-Generated Design Services */}
                         {aiGeneratedSOW.designServices && (
-                            <div className="break-inside-avoid">
+                            <div>
                                 <h5 className="text-[10px] font-bold text-[#0A52EF] border-b border-gray-100 pb-1 mb-2 uppercase tracking-wider flex items-center gap-2">
                                     Design Services
                                     <span className="text-[8px] px-1.5 py-0.5 bg-[#0A52EF]/10 text-[#0A52EF] rounded">AI-Generated</span>
@@ -118,7 +118,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                         
                         {/* Traditional Design Sections */}
                         {designSections.map((section, idx) => (
-                            <div key={idx} className="break-inside-avoid">
+                            <div key={idx}>
                                 <h5 className="text-[10px] font-bold text-[#0A52EF] border-b border-gray-100 pb-1 mb-2 uppercase tracking-wider">{section.title}</h5>
                                 <p className="text-[9px] leading-relaxed text-gray-700 whitespace-pre-wrap text-justify">{section.content}</p>
                             </div>
@@ -134,7 +134,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                     <div className="space-y-6 px-2">
                         {/* AI-Generated Construction Logistics */}
                         {aiGeneratedSOW.constructionLogistics && (
-                            <div className="break-inside-avoid">
+                            <div>
                                 <h5 className="text-[10px] font-bold text-[#0A52EF] border-b border-gray-100 pb-1 mb-2 uppercase tracking-wider flex items-center gap-2">
                                     Construction Logistics
                                     <span className="text-[8px] px-1.5 py-0.5 bg-[#0A52EF]/10 text-[#0A52EF] rounded">AI-Generated</span>
@@ -145,7 +145,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                         
                         {/* Traditional Construction Sections */}
                         {constructionSections.map((section, idx) => (
-                            <div key={idx} className="break-inside-avoid">
+                            <div key={idx}>
                                 <h5 className="text-[10px] font-bold text-[#0A52EF] border-b border-gray-100 pb-1 mb-2 uppercase tracking-wider">{section.title}</h5>
                                 <p className="text-[9px] leading-relaxed text-gray-700 whitespace-pre-wrap text-justify">{section.content}</p>
                             </div>
@@ -183,7 +183,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                     <div className="space-y-6 px-2">
                         {/* AI-Generated Constraints */}
                         {aiGeneratedSOW.constraints && (
-                            <div className="break-inside-avoid">
+                            <div>
                                 <h5 className="text-[10px] font-bold text-[#0A52EF] border-b border-gray-100 pb-1 mb-2 uppercase tracking-wider flex items-center gap-2">
                                     Project Constraints
                                     <span className="text-[8px] px-1.5 py-0.5 bg-[#0A52EF]/10 text-[#0A52EF] rounded">AI-Generated</span>
@@ -193,7 +193,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                         )}
 
                         {constraintSections.map((section, idx) => (
-                            <div key={idx} className="break-inside-avoid">
+                            <div key={idx}>
                                 <h5 className="text-[10px] font-bold text-[#0A52EF] border-b border-gray-100 pb-1 mb-2 uppercase tracking-wider">{section.title}</h5>
                                 <p className="text-[9px] leading-relaxed text-gray-700 whitespace-pre-wrap text-justify">{section.content}</p>
                             </div>
@@ -208,7 +208,7 @@ const ExhibitA_SOW = ({ data }: ExhibitAProps) => {
                     <div className="mb-6">
                         <div className="space-y-6 px-2">
                             {otherSections.map((section, idx) => (
-                                <div key={idx} className="break-inside-avoid">
+                                <div key={idx}>
                                     <h5 className="text-[11px] font-bold text-gray-900 border-b border-gray-100 pb-1 mb-2 uppercase tracking-wider">{section.title}</h5>
                                     <p className="text-[9px] leading-relaxed text-gray-700 whitespace-pre-wrap text-justify">{section.content}</p>
                                 </div>

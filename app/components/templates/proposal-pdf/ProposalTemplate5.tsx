@@ -808,9 +808,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const raw = (details?.additionalNotes || "").toString().trim();
         if (!raw) return null;
         return (
-            <div className="mt-5 break-inside-avoid">
+            <div className="mt-5">
                 <SectionHeader title="Notes" />
-                <div className="rounded-lg p-3 text-[10px] leading-snug whitespace-pre-wrap break-inside-avoid" style={{ background: colors.surface, color: colors.text }}>
+                <div className="rounded-lg p-3 text-[10px] leading-snug whitespace-pre-wrap" style={{ background: colors.surface, color: colors.text }}>
                     {raw}
                 </div>
             </div>
@@ -821,9 +821,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const ScopeOfWorkSection = () => {
         const sowText = (details as any)?.scopeOfWorkText;
         return (
-            <div className="mt-5 break-inside-avoid">
+            <div className="mt-5">
                 <SectionHeader title="Scope of Work" />
-                <div className="text-[10px] leading-snug whitespace-pre-wrap break-inside-avoid" style={{ color: colors.text }}>
+                <div className="text-[10px] leading-snug whitespace-pre-wrap" style={{ color: colors.text }}>
                     {sowText || "No scope of work specified."}
                 </div>
             </div>
@@ -930,7 +930,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             : categorizeSection(cat);
 
                         return (
-                            <div key={catIdx} className="break-inside-avoid">
+                            <div key={catIdx}>
                                 {/* Category header — text + thin blue underline */}
                                 <div
                                     className="grid grid-cols-12 px-4 py-1.5 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
@@ -949,7 +949,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     cat.items.map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="grid grid-cols-12 px-3 py-1 text-[8px] break-inside-avoid border-b items-start"
+                                            className="grid grid-cols-12 px-3 py-1 text-[8px] border-b items-start"
                                             style={{ borderColor: colors.borderLight, background: idx % 2 === 1 ? colors.surface : colors.white }}
                                         >
                                             <div className="col-span-8 leading-snug pr-2" style={{ color: colors.text }}>{item.description}</div>
@@ -965,7 +965,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     cat.items.filter(item => isIncludeStatement(item.anc)).map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="px-3 py-1 text-[8px] leading-snug break-inside-avoid border-b"
+                                            className="px-3 py-1 text-[8px] leading-snug border-b"
                                             style={{ borderColor: colors.borderLight, color: colors.text, background: idx % 2 === 1 ? colors.surface : colors.white }}
                                         >
                                             {item.description}

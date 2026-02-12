@@ -70,25 +70,13 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                             font-family: 'Work Sans', 'Inter', system-ui, sans-serif;
                         }
                         
-                        /* Prevent table rows from breaking across pages */
-                        tr, .grid-row, [class*="grid-cols"] > div {
-                            page-break-inside: avoid;
-                            break-inside: avoid;
-                        }
-                        
-                        /* Prevent tables from breaking */
-                        table {
-                            page-break-inside: avoid;
-                            break-inside: avoid;
-                        }
-                        
                         /* Ensure table headers repeat on each page */
                         thead {
                             display: table-header-group;
                         }
                         
-                        /* Prevent sections from breaking awkwardly */
-                        .break-inside-avoid, [class*="break-inside-avoid"] {
+                        /* Targeted break-avoidance — only for elements that explicitly opt in */
+                        .break-inside-avoid {
                             page-break-inside: avoid;
                             break-inside: avoid;
                         }
