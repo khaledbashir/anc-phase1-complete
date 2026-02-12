@@ -310,11 +310,20 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
         // Gather items from the master table (parser outputs "items", not "rows")
         const rows = (masterTable?.items || masterTable?.rows || []) as any[];
-        const subtotal = Number(masterTable?.subtotal ?? masterTable?.grandTotal ?? 0);
         const taxInfo = masterTable?.tax;
-        const tax = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
+        const originalSubtotal = Number(masterTable?.subtotal ?? 0);
+        const originalTax = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
         const bond = Number(masterTable?.bond ?? 0);
-        const grandTotal = Number(masterTable?.grandTotal ?? 0);
+        // Compute totals from displayed row prices (not parser pre-computed value)
+        // This guarantees what you see = what you get — no rounding discrepancy
+        const subtotal = rows.reduce((sum: number, row: any, idx: number) => {
+            const origPrice = Number(row?.sellingPrice ?? row?.price ?? row?.amount ?? 0);
+            const price = priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : origPrice;
+            return sum + Math.round(price);
+        }, 0);
+        const taxRate = originalSubtotal > 0 ? originalTax / originalSubtotal : 0;
+        const tax = Math.round(subtotal * taxRate);
+        const grandTotal = subtotal + tax + bond;
 
         return (
             <div className="px-6 mt-4">
@@ -468,7 +477,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         const grandTotal = subtotal + taxAmount + bond;
 
                         return (
-                            <div key={tableId || `table-${origIdx}`} className="mt-5">
+                            <div key={tableId || `table-${origIdx}`} className="mt-2">
                                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                                     {/* Table header — text + thin blue underline */}
                                     <div
@@ -519,7 +528,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                                 <div className="col-span-4 text-right">{formatCurrency(taxAmount, currency)}</div>
                                             </div>
                                         )}
-                                        {(Math.abs(bond) >= 0.01 || Math.abs(taxAmount) >= 0.01) && (
+                                        {Math.abs(bond) >= 0.01 && (
                                             <div className="grid grid-cols-12 px-3 py-1 text-[10px]" style={{ color: colors.textMuted }}>
                                                 <div className="col-span-8">BOND</div>
                                                 <div className="col-span-4 text-right">{formatCurrency(bond, currency)}</div>
@@ -929,7 +938,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             <div key={catIdx}>
                                 {/* Category header — text + thin blue underline */}
                                 <div
-                                    className="grid grid-cols-12 px-4 py-1.5 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                                    className="grid grid-cols-12 px-4 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
                                     style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                                 >
                                     <div className={sectionType === "table" ? "col-span-8" : "col-span-12"}>{cat.name}</div>
@@ -945,7 +954,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     cat.items.map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="grid grid-cols-12 px-3 py-1 text-[8px] border-b items-start"
+                                            className="grid grid-cols-12 px-3 py-0.5 text-[8px] border-b items-start"
                                             style={{ borderColor: colors.borderLight, background: idx % 2 === 1 ? colors.surface : colors.white }}
                                         >
                                             <div className="col-span-8 leading-snug pr-2" style={{ color: colors.text }}>{item.description}</div>
@@ -961,7 +970,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     cat.items.filter(item => isIncludeStatement(item.anc)).map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="px-3 py-1 text-[8px] leading-snug border-b"
+                                            className="px-3 py-0.5 text-[8px] leading-snug border-b"
                                             style={{ borderColor: colors.borderLight, color: colors.text, background: idx % 2 === 1 ? colors.surface : colors.white }}
                                         >
                                             {item.description}
@@ -1139,46 +1148,32 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         )}
 
-                        {/* Last pages: Technical Specifications (single render path) */}
+                        {/* Technical Specifications — flow after pricing (no forced page break) */}
                         {(showSpecifications || showExhibitA) && screens.length > 0 && (
-                            <>
-                                <PageBreak />
-                                <ContinuationPageHeader />
-                                <div className="px-6">
-                                    <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="exhibit" />
-                                </div>
-                            </>
-                        )}
-                        {hasGeneratedSchedule && (
-                            <>
-                                <PageBreak />
-                                <ContinuationPageHeader />
-                                <div className="px-6">
-                                    <ProjectScheduleSection />
-                                </div>
-                            </>
-                        )}
-
-                        {/* SOW sections — each on own page with Exhibit B header */}
-                        {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
-                            <>
-                                <PageBreak />
-                                <ContinuationPageHeader />
-                                <div className="px-6">
-                                    <SectionHeader title="Exhibit B — Statement of Work" />
-                                    <ScopeOfWorkSection />
-                                </div>
-                            </>
-                        )}
-
-                        {/* Resp Matrix SOW (if present in Excel) — own page */}
-                        <RespMatrixSOW />
-
-                        {shouldRenderCompanyFooter && (
                             <div className="px-6">
-                                <HybridFooter />
+                                <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="exhibit" />
                             </div>
                         )}
+                        {hasGeneratedSchedule && (
+                            <div className="px-6">
+                                <ProjectScheduleSection />
+                            </div>
+                        )}
+
+                        {/* SOW — flows after specs */}
+                        {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
+                            <div className="px-6">
+                                <SectionHeader title="Exhibit B — Statement of Work" />
+                                <ScopeOfWorkSection />
+                            </div>
+                        )}
+
+                        {/* Resp Matrix SOW (if present in Excel) — own page per Natalia */}
+                        <RespMatrixSOW />
+
+                        <div className="px-6">
+                            <HybridFooter />
+                        </div>
                     </>
                 ) : (
                     /* ── Structure B: No master table — detail tables first ── */
@@ -1207,46 +1202,32 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         )}
 
-                        {/* Last pages: Technical Specifications (single render path) */}
+                        {/* Technical Specifications — flow after signatures */}
                         {(showSpecifications || showExhibitA) && screens.length > 0 && (
-                            <>
-                                <PageBreak />
-                                <ContinuationPageHeader />
-                                <div className="px-6">
-                                    <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="exhibit" />
-                                </div>
-                            </>
-                        )}
-                        {hasGeneratedSchedule && (
-                            <>
-                                <PageBreak />
-                                <ContinuationPageHeader />
-                                <div className="px-6">
-                                    <ProjectScheduleSection />
-                                </div>
-                            </>
-                        )}
-
-                        {/* SOW sections — each on own page with Exhibit B header */}
-                        {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
-                            <>
-                                <PageBreak />
-                                <ContinuationPageHeader />
-                                <div className="px-6">
-                                    <SectionHeader title="Exhibit B — Statement of Work" />
-                                    <ScopeOfWorkSection />
-                                </div>
-                            </>
-                        )}
-
-                        {/* Resp Matrix SOW (if present in Excel) — own page */}
-                        <RespMatrixSOW />
-
-                        {shouldRenderCompanyFooter && (
                             <div className="px-6">
-                                <HybridFooter />
+                                <ExhibitA_TechnicalSpecs data={data} showSOW={showScopeOfWork} headingMode="exhibit" />
                             </div>
                         )}
+                        {hasGeneratedSchedule && (
+                            <div className="px-6">
+                                <ProjectScheduleSection />
+                            </div>
+                        )}
+
+                        {/* SOW — flows after specs */}
+                        {showScopeOfWork && (details as any)?.scopeOfWorkText?.trim() && (
+                            <div className="px-6">
+                                <SectionHeader title="Exhibit B — Statement of Work" />
+                                <ScopeOfWorkSection />
+                            </div>
+                        )}
+
+                        {/* Resp Matrix SOW (if present in Excel) — own page per Natalia */}
+                        <RespMatrixSOW />
+
+                        <div className="px-6">
+                            <HybridFooter />
+                        </div>
                     </>
                 )
             ) : (
@@ -1300,11 +1281,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         </>
                     )}
-                    {shouldRenderCompanyFooter && (
-                        <div className="px-6">
-                            <HybridFooter />
-                        </div>
-                    )}
                     {/* Resp Matrix SOW (if present in Excel) — own page */}
                     <RespMatrixSOW />
 
@@ -1322,6 +1298,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             </div>
                         </>
                     )}
+                    <div className="px-6">
+                        <HybridFooter />
+                    </div>
                 </>
             )}
         </ProposalLayout>
