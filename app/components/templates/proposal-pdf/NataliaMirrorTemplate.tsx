@@ -20,6 +20,12 @@ import {
   RespMatrixItem,
   formatPricingCurrency,
 } from "@/types/pricing";
+import {
+  computeTableTotals,
+  computeDocumentTotal,
+  getEffectiveDescription,
+  getEffectivePrice,
+} from "@/lib/pricingMath";
 import LogoSelectorServer from "@/app/components/reusables/LogoSelectorServer";
 
 // ============================================================================
@@ -73,35 +79,18 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   const clientZip = receiver?.zipCode || (details as any)?.clientZip || "";
   const purchaserAddress = [clientAddress, clientCity, clientZip].filter(Boolean).join(", ");
 
-  // Override-aware helpers
+  // Override-aware helpers — delegate to centralized pricingMath.ts
   const getItemDesc = (tableId: string, idx: number, original: string) =>
-    descriptionOverrides[`${tableId}:${idx}`] || original;
-  const getItemPrice = (tableId: string, idx: number, original: number) => {
-    const key = `${tableId}:${idx}`;
-    return priceOverrides[key] !== undefined ? priceOverrides[key] : original;
-  };
-  const hasPriceOverrides = Object.keys(priceOverrides).length > 0;
-  const computeTableSubtotal = (table: PricingTable) =>
-    (table.items || []).reduce((sum, item, idx) => {
-      if (item.isIncluded) return sum;
-      return sum + getItemPrice(table.id, idx, item.sellingPrice);
-    }, 0);
-  const computeTableTax = (table: PricingTable, sub: number) => {
-    if (!table.tax) return 0;
-    const rate = table.subtotal > 0 ? table.tax.amount / table.subtotal : 0;
-    return sub * rate;
-  };
-  const computeTableGrandTotal = (table: PricingTable) => {
-    const sub = computeTableSubtotal(table);
-    const tax = computeTableTax(table, sub);
-    return sub + tax + (table.bond || 0);
-  };
+    getEffectiveDescription(descriptionOverrides, tableId, idx, original);
+  const getItemPrice = (tableId: string, idx: number, original: number) =>
+    getEffectivePrice(priceOverrides, tableId, idx, original);
 
-  // Document total: ALWAYS sum per-table computed totals so the displayed
-  // grand total matches the sum of displayed per-table totals.  Never trust
-  // pricingDocument.documentTotal — it comes from Excel's own total row
-  // which may differ from the per-item sums due to rounding.
-  const documentTotal = tables.reduce((sum, t) => sum + computeTableGrandTotal(t), 0);
+  // Document total: centralized round-then-sum via pricingMath.ts
+  const documentTotal = computeDocumentTotal(
+    pricingDocument as PricingDocument,
+    priceOverrides,
+    descriptionOverrides,
+  );
 
   // Screen specifications from form (for Technical Specs section)
   const screens = (details as any)?.screens || [];
@@ -508,25 +497,8 @@ function MasterTableSection({
 }) {
   const currencyLabel = `PRICING (${currency})`;
   const headerName = displayName || table.name;
-  // Override helpers scoped to this component
-  const _getDesc = (idx: number, original: string) =>
-    descriptionOverrides[`${table.id}:${idx}`] || original;
-  const _getPrice = (idx: number, original: number) => {
-    const key = `${table.id}:${idx}`;
-    return priceOverrides[key] !== undefined ? priceOverrides[key] : original;
-  };
-  const _computeSub = () => (table.items || []).reduce((sum, item, idx) => {
-    if (item.isIncluded) return sum;
-    return sum + _getPrice(idx, item.sellingPrice);
-  }, 0);
-  const _computeTax = (sub: number) => {
-    if (!table.tax) return 0;
-    const rate = table.subtotal > 0 ? table.tax.amount / table.subtotal : 0;
-    return sub * rate;
-  };
-  const effectiveSub = _computeSub();
-  const effectiveTax = _computeTax(effectiveSub);
-  const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
+  // Centralized round-then-sum via pricingMath.ts
+  const totals = computeTableTotals(table, priceOverrides, descriptionOverrides);
 
   return (
     <div className="px-12 py-2">
@@ -540,21 +512,21 @@ function MasterTableSection({
         </span>
       </div>
 
-      {/* Line items */}
+      {/* Line items — pre-filtered & pre-rounded by computeTableTotals */}
       <div className="border-b border-gray-300">
-        {table.items.map((item, idx) => (
+        {totals.items.map((ri) => (
           <div
-            key={`master-item-${idx}`}
+            key={`master-item-${ri.originalIndex}`}
             className="flex justify-between py-0.5 border-b border-gray-100 text-[10px] leading-tight"
           >
             <div className="flex-1 pr-4">
-              <span className="text-gray-700">{_getDesc(idx, item.description)}</span>
+              <span className="text-gray-700">{ri.description}</span>
             </div>
             <div className="text-right font-medium text-gray-800 w-28">
-              {item.isIncluded ? (
+              {ri.isIncluded ? (
                 <span className="text-gray-800">INCLUDED</span>
               ) : (
-                formatPricingCurrency(_getPrice(idx, item.sellingPrice), currency)
+                formatPricingCurrency(ri.price, currency)
               )}
             </div>
           </div>
@@ -567,26 +539,26 @@ function MasterTableSection({
         <div className="flex justify-between py-0.5 text-[10px] leading-tight font-bold">
           <span className="text-gray-800">SUBTOTAL:</span>
           <span className="text-gray-800 w-28 text-right">
-            {formatPricingCurrency(effectiveSub, currency)}
+            {formatPricingCurrency(totals.subtotal, currency)}
           </span>
         </div>
 
         {/* Tax */}
         {table.tax && (
           <div className="flex justify-between py-0.5 text-[10px] leading-tight">
-            <span className="text-gray-600">{table.tax.label}</span>
+            <span className="text-gray-600">{totals.taxLabel}</span>
             <span className="text-gray-800 w-28 text-right">
-              {formatPricingCurrency(effectiveTax, currency)}
+              {formatPricingCurrency(totals.tax, currency)}
             </span>
           </div>
         )}
 
-        {/* Bond */}
-        {(table.bond !== 0 || table.tax) && (
+        {/* Bond — only show if non-zero */}
+        {totals.bond > 0 && (
           <div className="flex justify-between py-0.5 text-[10px] leading-tight">
             <span className="text-gray-600">BOND</span>
             <span className="text-gray-800 w-28 text-right">
-              {formatPricingCurrency(table.bond, currency)}
+              {formatPricingCurrency(totals.bond, currency)}
             </span>
           </div>
         )}
@@ -595,7 +567,7 @@ function MasterTableSection({
         <div className="flex justify-between py-0.5 text-[11px] leading-tight font-bold border-t border-gray-300">
           <span style={{ color: '#002C73' }}>GRAND TOTAL:</span>
           <span className="w-28 text-right" style={{ color: '#002C73', fontSize: '14px' }}>
-            {formatPricingCurrency(effectiveGrand, currency)}
+            {formatPricingCurrency(totals.grandTotal, currency)}
           </span>
         </div>
       </div>
@@ -623,22 +595,8 @@ function PricingTableSection({
 }) {
   const currencyLabel = `PRICING (${currency})`;
   const headerName = displayName || table.name;
-  const _getDesc = (idx: number, original: string) =>
-    descriptionOverrides[`${table.id}:${idx}`] || original;
-  const _getPrice = (idx: number, original: number) => {
-    const key = `${table.id}:${idx}`;
-    return priceOverrides[key] !== undefined ? priceOverrides[key] : original;
-  };
-  const effectiveSub = (table.items || []).reduce((sum, item, idx) => {
-    if (item.isIncluded) return sum;
-    return sum + _getPrice(idx, item.sellingPrice);
-  }, 0);
-  const effectiveTax = (() => {
-    if (!table.tax) return 0;
-    const rate = table.subtotal > 0 ? table.tax.amount / table.subtotal : 0;
-    return effectiveSub * rate;
-  })();
-  const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
+  // Centralized round-then-sum via pricingMath.ts
+  const totals = computeTableTotals(table, priceOverrides, descriptionOverrides);
 
   return (
     <div className="px-12 py-2">
@@ -652,21 +610,21 @@ function PricingTableSection({
         </span>
       </div>
 
-      {/* Line items */}
+      {/* Line items — pre-filtered & pre-rounded by computeTableTotals */}
       <div className="border-b border-gray-300">
-        {table.items.map((item, idx) => (
+        {totals.items.map((ri) => (
           <div
-            key={`${table.id}-item-${idx}`}
+            key={`${table.id}-item-${ri.originalIndex}`}
             className="flex justify-between py-0.5 border-b border-gray-100 text-[10px] leading-tight"
           >
             <div className="flex-1 pr-4">
-              <span className="text-gray-700">{_getDesc(idx, item.description)}</span>
+              <span className="text-gray-700">{ri.description}</span>
             </div>
             <div className="text-right font-medium text-gray-800 w-28">
-              {item.isIncluded ? (
+              {ri.isIncluded ? (
                 <span className="text-gray-800">INCLUDED</span>
               ) : (
-                formatPricingCurrency(_getPrice(idx, item.sellingPrice), currency)
+                formatPricingCurrency(ri.price, currency)
               )}
             </div>
           </div>
@@ -679,26 +637,26 @@ function PricingTableSection({
         <div className="flex justify-between py-0.5 text-[10px] leading-tight font-bold">
           <span className="text-gray-800">SUBTOTAL:</span>
           <span className="text-gray-800 w-28 text-right">
-            {formatPricingCurrency(effectiveSub, currency)}
+            {formatPricingCurrency(totals.subtotal, currency)}
           </span>
         </div>
 
         {/* Tax */}
         {table.tax && (
           <div className="flex justify-between py-0.5 text-[10px] leading-tight">
-            <span className="text-gray-600">{table.tax.label}</span>
+            <span className="text-gray-600">{totals.taxLabel}</span>
             <span className="text-gray-800 w-28 text-right">
-              {formatPricingCurrency(effectiveTax, currency)}
+              {formatPricingCurrency(totals.tax, currency)}
             </span>
           </div>
         )}
 
-        {/* Bond (only show if non-zero or if tax exists) */}
-        {(table.bond !== 0 || table.tax) && (
+        {/* Bond — only show if non-zero */}
+        {totals.bond > 0 && (
           <div className="flex justify-between py-0.5 text-[10px] leading-tight">
             <span className="text-gray-600">BOND</span>
             <span className="text-gray-800 w-28 text-right">
-              {formatPricingCurrency(table.bond, currency)}
+              {formatPricingCurrency(totals.bond, currency)}
             </span>
           </div>
         )}
@@ -707,7 +665,7 @@ function PricingTableSection({
         <div className="flex justify-between py-0.5 text-[11px] leading-tight font-bold border-t border-gray-300">
           <span className="text-gray-800">GRAND TOTAL:</span>
           <span className="text-[#0A52EF] w-28 text-right">
-            {formatPricingCurrency(effectiveGrand, currency)}
+            {formatPricingCurrency(totals.grandTotal, currency)}
           </span>
         </div>
       </div>

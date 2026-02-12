@@ -1,55 +1,11 @@
 import React from "react";
 import { PricingDocument, PricingTable } from "@/types/pricing";
 import { formatCurrency } from "@/lib/helpers";
-
-// ─── Override helpers ────────────────────────────────────────────────────────
-
-function getEffectivePrice(
-    priceOverrides: Record<string, number>,
-    tableId: string,
-    idx: number,
-    original: number
-): number {
-    const key = `${tableId}:${idx}`;
-    return priceOverrides[key] !== undefined ? priceOverrides[key] : original;
-}
-
-function getEffectiveDescription(
-    descriptionOverrides: Record<string, string>,
-    tableId: string,
-    idx: number,
-    original: string
-): string {
-    const key = `${tableId}:${idx}`;
-    return descriptionOverrides[key] || original;
-}
-
-function computeSubtotal(table: PricingTable, priceOverrides: Record<string, number>): number {
-    return (table.items || []).reduce((sum, item, idx) => {
-        if (item.isIncluded) return sum;
-        return sum + getEffectivePrice(priceOverrides, table.id, idx, item.sellingPrice);
-    }, 0);
-}
-
-function computeTax(table: PricingTable, effectiveSubtotal: number): number {
-    if (!table.tax) return 0;
-    const rate = table.subtotal > 0 ? table.tax.amount / table.subtotal : 0;
-    return effectiveSubtotal * rate;
-}
-
-function computeGrandTotal(table: PricingTable, priceOverrides: Record<string, number>): number {
-    const sub = computeSubtotal(table, priceOverrides);
-    const tax = computeTax(table, sub);
-    return sub + tax + (table.bond || 0);
-}
-
-function computeDocumentTotal(document: PricingDocument, priceOverrides: Record<string, number>): number {
-    // ALWAYS sum per-table computed totals so the displayed grand total
-    // matches the sum of displayed per-table totals.  Never trust
-    // document.documentTotal here — it comes from Excel's own total row
-    // which may differ from the per-item sums due to rounding.
-    return document.tables.reduce((s, t) => s + computeGrandTotal(t, priceOverrides), 0);
-}
+import {
+    computeTableTotals,
+    computeDocumentTotal,
+    getEffectiveDescription,
+} from "@/lib/pricingMath";
 
 // ─── Override props interface ────────────────────────────────────────────────
 
@@ -75,7 +31,7 @@ export const MirrorPricingSection = ({
     priceOverrides?: Record<string, number>;
 }) => {
     const currency = document.currency || "USD";
-    const docTotal = computeDocumentTotal(document, priceOverrides);
+    const docTotal = computeDocumentTotal(document, priceOverrides, descriptionOverrides);
     return (
         <div className="px-4 mt-4">
             {document.tables.map((table, idx) => (
@@ -118,9 +74,7 @@ const ClassicMirrorTable = ({
     priceOverrides?: Record<string, number>;
 }) => {
     const headerName = overrides?.[table.id] || overrides?.[table.name] || table.name;
-    const effectiveSub = computeSubtotal(table, priceOverrides);
-    const effectiveTax = computeTax(table, effectiveSub);
-    const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
+    const totals = computeTableTotals(table, priceOverrides, descriptionOverrides);
 
     return (
         <div className="mb-5">
@@ -131,34 +85,29 @@ const ClassicMirrorTable = ({
                 </div>
             )}
 
-            {/* Items — hide $0 rows (e.g. "BOND $0") */}
+            {/* Items — pre-filtered & pre-rounded by computeTableTotals */}
             <div className="space-y-1.5 mb-3">
-                {table.items
-                    .map((item, idx) => ({ item, idx }))
-                    .filter(({ item }) => Math.abs(item.sellingPrice) >= 0.01)
-                    .map(({ item, idx }) => (
-                        <div key={idx} className="flex justify-between items-start">
-                            <div className="flex-1 pr-4">
-                                <p className="text-sm font-medium text-gray-900 uppercase">
-                                    {getEffectiveDescription(descriptionOverrides, table.id, idx, item.description)}
-                                </p>
-                            </div>
-                            <div className="text-right whitespace-nowrap">
-                                <span className="font-bold text-sm text-black">
-                                    {item.isIncluded
-                                        ? "INCLUDED"
-                                        : formatCurrency(getEffectivePrice(priceOverrides, table.id, idx, item.sellingPrice), currency)}
-                                </span>
-                            </div>
+                {totals.items.map((ri) => (
+                    <div key={ri.originalIndex} className="flex justify-between items-start">
+                        <div className="flex-1 pr-4">
+                            <p className="text-sm font-medium text-gray-900 uppercase">
+                                {ri.description}
+                            </p>
                         </div>
-                    ))}
+                        <div className="text-right whitespace-nowrap">
+                            <span className="font-bold text-sm text-black">
+                                {ri.isIncluded ? "INCLUDED" : formatCurrency(ri.price, currency)}
+                            </span>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {/* Subtotal */}
             <div className="flex justify-end border-t border-gray-200 pt-1 mb-1">
                 <div className="w-1/2 flex justify-between items-center">
                     <span className="text-xs font-bold uppercase text-gray-500">Subtotal</span>
-                    <span className="font-bold text-sm text-black">{formatCurrency(effectiveSub, currency)}</span>
+                    <span className="font-bold text-sm text-black">{formatCurrency(totals.subtotal, currency)}</span>
                 </div>
             </div>
 
@@ -166,18 +115,18 @@ const ClassicMirrorTable = ({
             {table.tax && (
                 <div className="flex justify-end mb-1">
                     <div className="w-1/2 flex justify-between items-center">
-                        <span className="text-xs font-bold uppercase text-gray-500">{table.tax.label}</span>
-                        <span className="font-bold text-sm text-black">{formatCurrency(effectiveTax, currency)}</span>
+                        <span className="text-xs font-bold uppercase text-gray-500">{totals.taxLabel}</span>
+                        <span className="font-bold text-sm text-black">{formatCurrency(totals.tax, currency)}</span>
                     </div>
                 </div>
             )}
 
             {/* Bond */}
-            {table.bond > 0 && (
+            {totals.bond > 0 && (
                 <div className="flex justify-end mb-1">
                     <div className="w-1/2 flex justify-between items-center">
                         <span className="text-xs font-bold uppercase text-gray-500">Bond</span>
-                        <span className="font-bold text-sm text-black">{formatCurrency(table.bond, currency)}</span>
+                        <span className="font-bold text-sm text-black">{formatCurrency(totals.bond, currency)}</span>
                     </div>
                 </div>
             )}
@@ -186,7 +135,7 @@ const ClassicMirrorTable = ({
             <div className="flex justify-end border-t-2 border-gray-900 pt-1 mb-3">
                 <div className="w-1/2 flex justify-between items-center">
                     <span className="text-sm font-bold uppercase text-black">Total</span>
-                    <span className="font-bold text-lg text-black">{formatCurrency(effectiveGrand, currency)}</span>
+                    <span className="font-bold text-lg text-black">{formatCurrency(totals.grandTotal, currency)}</span>
                 </div>
             </div>
 
@@ -270,9 +219,7 @@ const PremiumMirrorTable = ({
     priceOverrides?: Record<string, number>;
 }) => {
     const headerName = overrides?.[table.id] || overrides?.[table.name] || table.name || "Pricing";
-    const effectiveSub = computeSubtotal(table, priceOverrides);
-    const effectiveTax = computeTax(table, effectiveSub);
-    const effectiveGrand = effectiveSub + effectiveTax + (table.bond || 0);
+    const totals = computeTableTotals(table, priceOverrides, descriptionOverrides);
 
     return (
         <div className="mb-6">
@@ -286,53 +233,48 @@ const PremiumMirrorTable = ({
                 ) : null}
             </div>
 
-            {/* Line Items — hide $0 rows (e.g. "BOND $0") */}
+            {/* Line Items — pre-filtered & pre-rounded by computeTableTotals */}
             <div className="space-y-0">
-                {table.items
-                    .map((it, idx) => ({ it, idx }))
-                    .filter(({ it }) => Math.abs(it.sellingPrice) >= 0.01)
-                    .map(({ it, idx }) => (
-                        <div key={idx} className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
-                            <div className="flex-1">
-                                <h3 className="font-bold text-sm uppercase text-[#002C73] font-sans">
-                                    {getEffectiveDescription(descriptionOverrides, table.id, idx, it.description)}
-                                </h3>
-                            </div>
-                            <div className="text-right">
-                                <span className="font-bold text-xl text-[#002C73]">
-                                    {it.isIncluded
-                                        ? "INCLUDED"
-                                        : formatCurrency(getEffectivePrice(priceOverrides, table.id, idx, it.sellingPrice), currency)}
-                                </span>
-                            </div>
+                {totals.items.map((ri) => (
+                    <div key={ri.originalIndex} className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
+                        <div className="flex-1">
+                            <h3 className="font-bold text-sm uppercase text-[#002C73] font-sans">
+                                {ri.description}
+                            </h3>
                         </div>
-                    ))}
+                        <div className="text-right">
+                            <span className="font-bold text-xl text-[#002C73]">
+                                {ri.isIncluded ? "INCLUDED" : formatCurrency(ri.price, currency)}
+                            </span>
+                        </div>
+                    </div>
+                ))}
             </div>
 
             {/* Subtotal & Extras */}
             <div className="mt-3 flex flex-col items-end gap-1">
                 <div className="flex justify-end items-center gap-10">
                     <span className="font-bold text-sm uppercase tracking-widest text-[#6B7280]">Subtotal:</span>
-                    <span className="font-bold text-2xl text-[#002C73]">{formatCurrency(effectiveSub, currency)}</span>
+                    <span className="font-bold text-2xl text-[#002C73]">{formatCurrency(totals.subtotal, currency)}</span>
                 </div>
 
                 {table.tax && (
                     <div className="flex justify-end items-center gap-10">
-                        <span className="font-medium text-xs uppercase tracking-widest text-[#6B7280]">{table.tax.label}:</span>
-                        <span className="font-medium text-lg text-[#002C73]">{formatCurrency(effectiveTax, currency)}</span>
+                        <span className="font-medium text-xs uppercase tracking-widest text-[#6B7280]">{totals.taxLabel}:</span>
+                        <span className="font-medium text-lg text-[#002C73]">{formatCurrency(totals.tax, currency)}</span>
                     </div>
                 )}
 
-                {table.bond > 0 && (
+                {totals.bond > 0 && (
                     <div className="flex justify-end items-center gap-10">
                         <span className="font-medium text-xs uppercase tracking-widest text-[#6B7280]">Bond:</span>
-                        <span className="font-medium text-lg text-[#002C73]">{formatCurrency(table.bond, currency)}</span>
+                        <span className="font-medium text-lg text-[#002C73]">{formatCurrency(totals.bond, currency)}</span>
                     </div>
                 )}
 
                 <div className="mt-2 pt-2 border-t border-gray-200 w-full flex justify-end items-center gap-10">
                     <span className="font-bold text-base uppercase tracking-widest text-[#6B7280]">Total:</span>
-                    <span className="font-bold text-3xl text-[#002C73]">{formatCurrency(effectiveGrand, currency)}</span>
+                    <span className="font-bold text-3xl text-[#002C73]">{formatCurrency(totals.grandTotal, currency)}</span>
                 </div>
             </div>
 

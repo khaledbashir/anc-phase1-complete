@@ -1,0 +1,194 @@
+/**
+ * pricingMath.ts — Enterprise-grade pricing arithmetic
+ *
+ * SINGLE SOURCE OF TRUTH for every pricing calculation rendered in PDFs.
+ * All templates import from here — no template should ever reimplement
+ * subtotal / tax / grandTotal / documentTotal logic.
+ *
+ * Core invariant  (round-then-sum):
+ *   displayedTotal ≡ Σ displayedLineItems + displayedTax + displayedBond
+ *
+ * Every atomic value is rounded to DISPLAY PRECISION before summing.
+ * This guarantees that what the client reads on the PDF is self-consistent
+ * — no "penny problem", no $10 rounding gaps, no manual auditing required.
+ */
+
+import type { PricingDocument, PricingTable, PricingLineItem } from "@/types/pricing";
+import { CURRENCY_FORMAT } from "@/services/rfp/productCatalog";
+
+// ============================================================================
+// DISPLAY-PRECISION ROUNDING
+// ============================================================================
+
+const DISPLAY_SCALE = 10 ** CURRENCY_FORMAT.decimals;          // 1 when decimals=0
+
+/**
+ * Round a raw number to the precision actually shown on the PDF.
+ * When CURRENCY_FORMAT.decimals is 0, this rounds to whole dollars.
+ * When it's 2, this rounds to cents.  Same formula formatCurrency uses.
+ */
+export function roundToDisplay(value: number): number {
+    return Math.round(value * DISPLAY_SCALE) / DISPLAY_SCALE;
+}
+
+// ============================================================================
+// EFFECTIVE PRICE / DESCRIPTION WITH OVERRIDES
+// ============================================================================
+
+export function getEffectivePrice(
+    priceOverrides: Record<string, number>,
+    tableId: string,
+    itemIndex: number,
+    originalPrice: number,
+): number {
+    const key = `${tableId}:${itemIndex}`;
+    return priceOverrides[key] !== undefined ? priceOverrides[key] : originalPrice;
+}
+
+export function getEffectiveDescription(
+    descriptionOverrides: Record<string, string>,
+    tableId: string,
+    itemIndex: number,
+    originalDescription: string,
+): string {
+    const key = `${tableId}:${itemIndex}`;
+    return descriptionOverrides[key] || originalDescription;
+}
+
+// ============================================================================
+// RENDERED LINE ITEM
+// ============================================================================
+
+export interface RenderedLineItem {
+    /** Display description (after overrides) */
+    description: string;
+    /** Display price — already rounded to display precision */
+    price: number;
+    /** True if the item shows "INCLUDED" instead of a dollar amount */
+    isIncluded: boolean;
+    /** Original index in table.items — needed for override key lookups */
+    originalIndex: number;
+}
+
+// ============================================================================
+// TABLE-LEVEL TOTALS
+// ============================================================================
+
+export interface RenderedTableTotals {
+    /** Line items that should actually be rendered (non-$0, with prices rounded) */
+    items: RenderedLineItem[];
+    /** Sum of rounded item prices (excludes isIncluded items) */
+    subtotal: number;
+    /** Tax label from parsed data (e.g. "Tax 13%", "HST 13%") */
+    taxLabel: string;
+    /** Tax amount — rounded(subtotal × derivedRate) */
+    tax: number;
+    /** Bond amount — rounded */
+    bond: number;
+    /** subtotal + tax + bond — guaranteed to equal the sum of rounded components */
+    grandTotal: number;
+}
+
+/**
+ * Compute all rendered totals for a single pricing table.
+ *
+ * This is THE function that enforces the round-then-sum invariant:
+ *   1. Each item price → roundToDisplay
+ *   2. subtotal = Σ rounded prices  (plain integer addition when decimals=0)
+ *   3. tax = roundToDisplay(subtotal × rate)
+ *   4. bond = roundToDisplay(bond)
+ *   5. grandTotal = subtotal + tax + bond  (no further rounding needed)
+ */
+export function computeTableTotals(
+    table: PricingTable,
+    priceOverrides: Record<string, number> = {},
+    descriptionOverrides: Record<string, string> = {},
+): RenderedTableTotals {
+    // Step 1: Build rendered items with rounded prices, filtering $0 rows
+    const items: RenderedLineItem[] = [];
+    let subtotal = 0;
+
+    for (let idx = 0; idx < (table.items || []).length; idx++) {
+        const item = table.items[idx];
+        const rawPrice = getEffectivePrice(priceOverrides, table.id, idx, item.sellingPrice);
+        const roundedPrice = roundToDisplay(rawPrice);
+        const description = getEffectiveDescription(descriptionOverrides, table.id, idx, item.description);
+
+        // Filter out $0 rows (e.g. "BOND $0") — but keep explicitly "INCLUDED" items
+        if (!item.isIncluded && Math.abs(roundedPrice) < (1 / DISPLAY_SCALE || 0.01)) {
+            continue;
+        }
+
+        items.push({
+            description,
+            price: roundedPrice,
+            isIncluded: item.isIncluded,
+            originalIndex: idx,
+        });
+
+        // Only non-INCLUDED items contribute to subtotal
+        if (!item.isIncluded) {
+            subtotal += roundedPrice;
+        }
+    }
+
+    // Step 2: Derive tax rate from ORIGINAL Excel amounts (rate doesn't change with overrides)
+    let tax = 0;
+    let taxLabel = "";
+    if (table.tax) {
+        taxLabel = table.tax.label || "Tax";
+        // Use the stored rate if available and sensible; otherwise derive from amounts
+        const rate =
+            table.tax.rate > 0
+                ? table.tax.rate
+                : table.subtotal > 0
+                    ? table.tax.amount / table.subtotal
+                    : 0;
+        tax = roundToDisplay(subtotal * rate);
+    }
+
+    // Step 3: Bond — round to display precision
+    const bond = roundToDisplay(table.bond || 0);
+
+    // Step 4: Grand total — plain sum of already-rounded components
+    const grandTotal = subtotal + tax + bond;
+
+    return { items, subtotal, taxLabel, tax, bond, grandTotal };
+}
+
+// ============================================================================
+// DOCUMENT-LEVEL TOTAL
+// ============================================================================
+
+/**
+ * Compute the document-wide total by summing per-table grandTotals.
+ *
+ * NEVER reads document.documentTotal — that value comes from Excel's own
+ * total row, which may differ from the sum of displayed tables due to
+ * Excel-side rounding.
+ */
+export function computeDocumentTotal(
+    document: PricingDocument,
+    priceOverrides: Record<string, number> = {},
+    descriptionOverrides: Record<string, string> = {},
+): number {
+    return document.tables.reduce(
+        (sum, table) => sum + computeTableTotals(table, priceOverrides, descriptionOverrides).grandTotal,
+        0,
+    );
+}
+
+/**
+ * Compute document total from raw table array (for templates that
+ * receive tables as `any[]` instead of a typed PricingDocument).
+ */
+export function computeDocumentTotalFromTables(
+    tables: PricingTable[],
+    priceOverrides: Record<string, number> = {},
+    descriptionOverrides: Record<string, string> = {},
+): number {
+    return tables.reduce(
+        (sum, table) => sum + computeTableTotals(table, priceOverrides, descriptionOverrides).grandTotal,
+        0,
+    );
+}

@@ -31,7 +31,8 @@ import type { DocumentMode as CatalogDocumentMode } from "@/services/rfp/product
 
 // Types
 import { ProposalType } from "@/types";
-import { RespMatrix, RespMatrixCategory, RespMatrixItem } from "@/types/pricing";
+import { PricingTable, RespMatrix, RespMatrixCategory, RespMatrixItem } from "@/types/pricing";
+import { computeTableTotals, computeDocumentTotalFromTables } from "@/lib/pricingMath";
 
 interface ProposalTemplate5Props extends ProposalType {
     forceWhiteLogo?: boolean;
@@ -310,20 +311,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
         // Gather items from the master table (parser outputs "items", not "rows")
         const rows = (masterTable?.items || masterTable?.rows || []) as any[];
-        const taxInfo = masterTable?.tax;
-        const originalSubtotal = Number(masterTable?.subtotal ?? 0);
-        const originalTax = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
-        const bond = Number(masterTable?.bond ?? 0);
-        // Compute totals from displayed row prices (not parser pre-computed value)
-        // This guarantees what you see = what you get — no rounding discrepancy
-        const subtotal = rows.reduce((sum: number, row: any, idx: number) => {
-            const origPrice = Number(row?.sellingPrice ?? row?.price ?? row?.amount ?? 0);
-            const price = priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : origPrice;
-            return sum + Math.round(price);
-        }, 0);
-        const taxRate = originalSubtotal > 0 ? originalTax / originalSubtotal : 0;
-        const tax = Math.round(subtotal * taxRate);
-        const grandTotal = subtotal + tax + bond;
+        // Centralized round-then-sum via pricingMath.ts
+        const masterTotals = computeTableTotals(masterTable as PricingTable, priceOverrides, descriptionOverrides);
+        const { subtotal, tax, bond, grandTotal } = masterTotals;
 
         return (
             <div className="px-6 mt-4">
@@ -429,22 +419,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 .map((table: any, origIdx: number) => ({ table, origIdx }))
                 .filter(({ origIdx }) => origIdx !== masterTableIndex);
 
-            // Document total: ALWAYS sum per-table computed totals so the
-            // displayed grand total matches the sum of displayed per-table
-            // totals.  Never trust pricingDocument.documentTotal — it comes
-            // from Excel's own total row which may differ due to rounding.
-            const documentTotal = pricingTables.reduce((sum: number, t: any) => {
-                const tItems = (t?.items || []) as any[];
-                const tSub = tItems.reduce((s: number, item: any, idx: number) => {
-                    if (item?.isIncluded) return s;
-                    const key = `${t?.id}:${idx}`;
-                    return s + Math.round(priceOverrides[key] !== undefined ? priceOverrides[key] : Number(item?.sellingPrice ?? 0));
-                }, 0);
-                const tOrigSub = Number(t?.subtotal ?? 0);
-                const tOrigTax = typeof t?.tax === 'object' ? Number(t?.tax?.amount ?? 0) : Number(t?.tax ?? 0);
-                const tRate = tOrigSub > 0 ? tOrigTax / tOrigSub : 0;
-                return sum + tSub + Math.round(tSub * tRate) + Number(t?.bond ?? 0);
-            }, 0);
+            // Document total: centralized round-then-sum via pricingMath.ts
+            const documentTotal = computeDocumentTotalFromTables(
+                pricingTables as PricingTable[],
+                priceOverrides,
+                descriptionOverrides,
+            );
 
             // Render a single detail table card (reused in both portrait and landscape)
             const renderDetailTable = ({ table, origIdx }: { table: any; origIdx: number }) => {
@@ -459,21 +439,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     const price = Number(alt?.priceDifference ?? alt?.price ?? 0);
                     return desc.length > 0 && Math.abs(price) >= 0.01;
                 });
-                const originalSubtotal = Number(table?.subtotal ?? 0);
-                const taxInfo = table?.tax;
-                const originalTaxAmount = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
-                const taxLabel = typeof taxInfo === 'object' ? (taxInfo?.label || "TAX") : "TAX";
-                const bond = Number(table?.bond ?? 0);
-                // Recompute totals from rounded row prices (matches what formatCurrency displays)
-                const subtotal = items.reduce((sum: number, item: any, idx: number) => {
-                    if (item?.isIncluded) return sum;
-                    const key = `${tableId}:${idx}`;
-                    const price = priceOverrides[key] !== undefined ? priceOverrides[key] : Number(item?.sellingPrice ?? 0);
-                    return sum + Math.round(price);
-                }, 0);
-                const taxRate = originalSubtotal > 0 ? originalTaxAmount / originalSubtotal : 0;
-                const taxAmount = Math.round(subtotal * taxRate);
-                const grandTotal = subtotal + taxAmount + bond;
+                // Centralized round-then-sum via pricingMath.ts
+                const detailTotals = computeTableTotals(table as PricingTable, priceOverrides, descriptionOverrides);
+                const { subtotal, taxLabel, tax: taxAmount, bond, grandTotal } = detailTotals;
 
                 return (
                     <div key={tableId || `table-${origIdx}`} className="mt-2">
@@ -487,10 +455,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
                             </div>
 
-                            {/* Line items (CURRENCY_FORMAT.hideZeroLineItems filters $0 rows) */}
+                            {/* Line items — pre-filtered by computeTableTotals, but render using original items for zebra striping */}
                             {items.map((item: any, idx: number) => {
-                                const itemPrice = priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : Number(item?.sellingPrice ?? 0);
-                                if (CURRENCY_FORMAT.hideZeroLineItems && !item?.isIncluded && Math.abs(itemPrice) < 0.01) return null;
+                                const itemPrice = detailTotals.items.find(ri => ri.originalIndex === idx);
+                                if (!itemPrice) return null; // filtered out by computeTableTotals ($0 items)
                                 return (
                                     <div
                                         key={`${tableId}-item-${idx}`}
@@ -502,12 +470,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         }}
                                     >
                                         <div className="col-span-8 pr-2 text-[10px]" style={{ color: colors.text }}>
-                                            {(descriptionOverrides[`${tableId}:${idx}`] || item?.description || "Item").toString()}
+                                            {itemPrice.description}
                                         </div>
                                         <div className="col-span-4 text-right font-semibold text-[10px] whitespace-nowrap" style={{ color: colors.primaryDark }}>
-                                            {item?.isIncluded
+                                            {itemPrice.isIncluded
                                                 ? <span style={{ color: colors.text }}>INCLUDED</span>
-                                                : formatCurrency(itemPrice, currency)}
+                                                : formatCurrency(itemPrice.price, currency)}
                                         </div>
                                     </div>
                                 );
