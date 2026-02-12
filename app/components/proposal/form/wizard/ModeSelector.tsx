@@ -98,11 +98,6 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
               mode.recommended && "border-2 border-brand-blue/30 bg-brand-blue/5 hover:border-brand-blue/50 hover:bg-brand-blue/10"
             )}
           >
-            {mode.recommended && (
-              <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-brand-blue text-white text-[10px] font-bold uppercase tracking-wider">
-                Recommended
-              </div>
-            )}
             <div className={cn(
               "w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-colors duration-200",
               mode.recommended ? "bg-brand-blue/10 group-hover:bg-brand-blue/20" : "bg-muted/50 group-hover:bg-muted"
