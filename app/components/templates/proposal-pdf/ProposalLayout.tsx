@@ -145,9 +145,9 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
         <>
             {head}
             <section style={{ fontFamily: "'Work Sans', 'Inter', system-ui, sans-serif", position: 'relative' }}>
-                <div className="block p-4 sm:p-8 bg-white dark:bg-white !bg-white text-[#1a1a1a] dark:text-[#1a1a1a] !text-black relative overflow-hidden print:bg-white">
+                <div className="block p-2 sm:p-4 bg-white dark:bg-white !bg-white text-[#1a1a1a] dark:text-[#1a1a1a] !text-black relative overflow-hidden print:bg-white">
                     <BrandSlashes className="absolute top-0 right-0" width={140} height={70} opacity={0.12} count={8} />
-                    <div className="relative z-10 mb-10">
+                    <div className="relative z-10 mb-2">
                         {children}
                     </div>
 

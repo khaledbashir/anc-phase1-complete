@@ -121,11 +121,11 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
     });
 
     return (
-        <div className="pt-4 break-inside-avoid">
-            <div className="mb-3 mt-4 break-inside-avoid">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ width: '3px', height: '16px', borderRadius: '1px', background: '#0A52EF', flexShrink: 0 }} />
-                    <h2 className="text-[11px] font-semibold text-[#002C73] uppercase tracking-[0.15em]" style={{ margin: 0 }}>
+        <div className="pt-1 break-inside-avoid">
+            <div className="mb-1 mt-1 break-inside-avoid">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ width: '3px', height: '12px', borderRadius: '1px', background: '#0A52EF', flexShrink: 0 }} />
+                    <h2 className="text-[10px] font-semibold text-[#002C73] uppercase tracking-[0.15em]" style={{ margin: 0 }}>
                         {headerText}
                     </h2>
                 </div>
@@ -153,13 +153,13 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                         )}
                     </colgroup>
                     <thead>
-                        <tr className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: "#002C73", borderBottom: "2px solid #0A52EF", background: "transparent", pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                            <th className="text-left py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>DISPLAY NAME</th>
-                            <th className="text-left py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>DIMENSIONS</th>
-                            {!isCondensed && <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>PITCH</th>}
-                            {!isCondensed && <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>RESOLUTION</th>}
-                            {!isCondensed && hasAnyBrightness && <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>BRIGHTNESS</th>}
-                            <th className="text-right py-1.5 px-2" style={{ whiteSpace: "nowrap", padding: "4px 6px" }}>QTY</th>
+                        <tr className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: "#002C73", borderBottom: "2px solid #0A52EF", background: "transparent", pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                            <th className="text-left" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>DISPLAY NAME</th>
+                            <th className="text-left" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>DIMENSIONS</th>
+                            {!isCondensed && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>PITCH</th>}
+                            {!isCondensed && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>RESOLUTION</th>}
+                            {!isCondensed && hasAnyBrightness && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>BRIGHTNESS</th>}
+                            <th className="text-right" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>QTY</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-900">
@@ -188,30 +188,30 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                                     <tr
                                         key={screen?.id || `${name}-${idx}`}
                                         className="border-b border-gray-200 last:border-b-0 break-inside-avoid"
-                                        style={{ minHeight: 28, pageBreakInside: 'avoid', breakInside: 'avoid' }}
+                                        style={{ minHeight: 16, pageBreakInside: 'avoid', breakInside: 'avoid' }}
                                     >
-                                        <td className="py-1 px-2 font-semibold text-[8px] break-words align-top" style={{ wordBreak: "break-word" }}>
+                                        <td className="font-semibold text-[7px] break-words align-top" style={{ wordBreak: "break-word", padding: "1px 4px" }}>
                                             {name}
                                         </td>
-                                        <td className="py-1 px-2 text-gray-800 text-[8px] align-top" style={{ overflow: 'hidden' }}>
+                                        <td className="text-gray-800 text-[7px] align-top" style={{ overflow: 'hidden', padding: "1px 4px" }}>
                                             {formatFeet(h)} x {formatFeet(w)}
                                         </td>
                                         {!isCondensed && (
-                                            <td className="py-1 px-2 text-right tabular-nums text-[8px] align-top" style={{ overflow: 'hidden' }}>
+                                            <td className="text-right tabular-nums text-[7px] align-top" style={{ overflow: 'hidden', padding: "1px 4px" }}>
                                                 {pitch ? `${formatPitchMm(pitch)}mm` : "—"}
                                             </td>
                                         )}
                                         {!isCondensed && (
-                                            <td className="py-1 px-2 text-right tabular-nums text-[8px] align-top" style={{ overflow: 'hidden' }}>
+                                            <td className="text-right tabular-nums text-[7px] align-top" style={{ overflow: 'hidden', padding: "1px 4px" }}>
                                                 {resolution}
                                             </td>
                                         )}
                                         {!isCondensed && hasAnyBrightness && (
-                                            <td className="py-1 px-2 text-right tabular-nums text-[8px] whitespace-nowrap align-top">
+                                            <td className="text-right tabular-nums text-[7px] whitespace-nowrap align-top" style={{ padding: "1px 4px" }}>
                                                 {brightnessText}
                                             </td>
                                         )}
-                                        <td className="py-1 px-2 text-right tabular-nums text-[8px] align-top">
+                                        <td className="text-right tabular-nums text-[7px] align-top" style={{ padding: "1px 4px" }}>
                                             {isFinite(qty) ? qty : "—"}
                                         </td>
                                     </tr>

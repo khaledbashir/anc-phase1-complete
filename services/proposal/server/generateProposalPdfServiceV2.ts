@@ -133,7 +133,7 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 		// won't resolve during server-side PDF generation, causing broken logos.
 		const origin = getRequestOrigin(req).replace(/\/+$/, "");
 		const baseHref = `${origin}/`;
-		const html = `<!doctype html><html><head><meta charset="utf-8"/><base href="${baseHref}"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/><link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&family=Inter:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet"/><style>body,.font-sans{font-family:'Work Sans',system-ui,sans-serif!important}h1,h2,h3,h4,h5,h6{font-family:'Work Sans',system-ui,sans-serif!important}</style></head><body>${htmlTemplate}</body></html>`;
+		const html = `<!doctype html><html><head><meta charset="utf-8"/><base href="${baseHref}"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/><link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&family=Inter:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet"/><style>body,.font-sans{font-family:'Work Sans',system-ui,sans-serif!important;line-height:1.15!important;font-size:10px!important}h1,h2,h3,h4,h5,h6{font-family:'Work Sans',system-ui,sans-serif!important;line-height:1.15!important}p,div,span,td,th{line-height:1.15!important}.leading-relaxed{line-height:1.2!important}.leading-snug{line-height:1.15!important}</style></head><body>${htmlTemplate}</body></html>`;
 
 		const puppeteer = (await import("puppeteer-core")).default;
 		const internalUrl = process.env.BROWSERLESS_INTERNAL_URL || "ws://basheer_browserless:3000";
@@ -253,10 +253,10 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 				</div>
 			`,
 			margin: {
-				top: "30px",
-				bottom: "60px",
-				left: "30px",
-				right: "30px",
+				top: "20px",
+				bottom: "40px",
+				left: "20px",
+				right: "20px",
 			},
 		});
 

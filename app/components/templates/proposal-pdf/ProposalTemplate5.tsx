@@ -225,16 +225,16 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Unified Section Header — blue vertical bar accent + text (Natalia-approved)
     const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
-        <div className="mb-3 mt-4 break-inside-avoid">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ width: '3px', height: '16px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
-                <h2 className="text-[11px] font-semibold tracking-wider uppercase"
+        <div className="mb-1 mt-2 break-inside-avoid">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ width: '3px', height: '12px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
+                <h2 className="text-[10px] font-semibold tracking-wider uppercase"
                     style={{ color: colors.primaryDark, margin: 0 }}
                 >
                     {title}
                 </h2>
             </div>
-            {subtitle && <p className="text-[9px] mt-1" style={{ color: colors.textMuted, marginLeft: '11px' }}>{subtitle}</p>}
+            {subtitle && <p className="text-[8px] mt-0.5" style={{ color: colors.textMuted, marginLeft: '9px' }}>{subtitle}</p>}
         </div>
     );
 
@@ -275,17 +275,17 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const total = calculateProjectTotal();
 
         return (
-            <div className="px-6 mt-6 break-inside-avoid">
+            <div className="px-6 mt-2 break-inside-avoid">
                 <SectionHeader title="Project Summary" />
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     <div
-                        className="grid grid-cols-12 px-4 py-4 break-inside-avoid"
+                        className="grid grid-cols-12 px-4 py-1.5 break-inside-avoid"
                         style={{ borderColor: colors.primary, background: colors.primaryLight }}
                     >
-                        <div className="col-span-8 font-bold text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>
+                        <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
                             Project Grand Total
                         </div>
-                        <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
+                        <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.primaryDark }}>
                             {formatCurrency(total, Math.abs(total) < 0.01 ? "—" : undefined, currency)}
                         </div>
                     </div>
@@ -317,15 +317,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const grandTotal = Number(masterTable?.grandTotal ?? 0);
 
         return (
-            <div className="px-6 mt-2 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                    <div style={{ width: '3px', height: '16px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
-                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: colors.primaryDark }}>Project Pricing</span>
+            <div className="px-6 mt-1 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                    <div style={{ width: '3px', height: '12px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
+                    <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: colors.primaryDark }}>Project Pricing</span>
                 </div>
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     {/* Clean header — text + thin blue underline (no background fill) */}
                     <div
-                        className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                        className="grid grid-cols-12 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
                         style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                     >
                         <div className="col-span-8">{colHeaderLeft}</div>
@@ -341,17 +341,17 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         return (
                             <div
                                 key={`master-row-${idx}`}
-                                className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid items-center"
+                                className="grid grid-cols-12 px-3 py-0.5 border-t break-inside-avoid items-center"
                                 style={{
                                     borderColor: colors.borderLight,
                                     background: idx % 2 === 1 ? colors.surface : colors.white,
-                                    minHeight: '28px',
+                                    minHeight: '18px',
                                 }}
                             >
-                                <div className="col-span-8 font-bold text-xs tracking-wide uppercase" style={{ color: colors.text }}>
+                                <div className="col-span-8 font-bold text-[10px] tracking-wide uppercase" style={{ color: colors.text }}>
                                     {desc.toUpperCase()}
                                 </div>
-                                <div className="col-span-4 text-right font-bold text-sm whitespace-nowrap" style={{ color: colors.primaryDark }}>
+                                <div className="col-span-4 text-right font-bold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
                                     {formatCurrency(price, Math.abs(price) < 0.01 ? "—" : undefined, currency)}
                                 </div>
                             </div>
@@ -360,9 +360,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Subtotal */}
                     {rows.length > 0 && Math.abs(subtotal) >= 0.01 && subtotal !== grandTotal && (
-                        <div className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
-                            <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Subtotal</div>
-                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
+                        <div className="grid grid-cols-12 px-3 py-0.5 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
+                            <div className="col-span-8 font-bold text-[10px] uppercase tracking-wide" style={{ color: colors.textMuted }}>Subtotal</div>
+                            <div className="col-span-4 text-right font-bold text-xs" style={{ color: colors.text }}>
                                 {formatCurrency(subtotal, currency)}
                             </div>
                         </div>
@@ -370,9 +370,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Tax */}
                     {Math.abs(tax) >= 0.01 && (
-                        <div className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
-                            <div className="col-span-8 text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Tax</div>
-                            <div className="col-span-4 text-right text-sm" style={{ color: colors.text }}>
+                        <div className="grid grid-cols-12 px-3 py-0.5 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
+                            <div className="col-span-8 text-[10px] uppercase tracking-wide" style={{ color: colors.textMuted }}>Tax</div>
+                            <div className="col-span-4 text-right text-xs" style={{ color: colors.text }}>
                                 {formatCurrency(tax, currency)}
                             </div>
                         </div>
@@ -380,9 +380,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Bond */}
                     {Math.abs(bond) >= 0.01 && (
-                        <div className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
-                            <div className="col-span-8 text-xs uppercase tracking-wide" style={{ color: colors.textMuted }}>Performance Bond</div>
-                            <div className="col-span-4 text-right text-sm" style={{ color: colors.text }}>
+                        <div className="grid grid-cols-12 px-3 py-0.5 border-t break-inside-avoid" style={{ borderColor: colors.borderLight }}>
+                            <div className="col-span-8 text-[10px] uppercase tracking-wide" style={{ color: colors.textMuted }}>Performance Bond</div>
+                            <div className="col-span-4 text-right text-xs" style={{ color: colors.text }}>
                                 {formatCurrency(bond, currency)}
                             </div>
                         </div>
@@ -390,13 +390,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Grand Total */}
                     <div
-                        className="grid grid-cols-12 px-4 py-2 border-t-2 break-inside-avoid"
+                        className="grid grid-cols-12 px-3 py-1 border-t-2 break-inside-avoid"
                         style={{ borderColor: colors.primary, background: colors.primaryLight }}
                     >
-                        <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
+                        <div className="col-span-8 font-bold text-[10px] uppercase tracking-wide" style={{ color: colors.primaryDark }}>
                             {label.toUpperCase()}{currency === "CAD" ? " (CAD)" : ""}
                         </div>
-                        <div className="col-span-4 text-right font-bold text-base" style={{ color: colors.primaryDark }}>
+                        <div className="col-span-4 text-right font-bold text-xs" style={{ color: colors.primaryDark }}>
                             {formatCurrency(grandTotal, Math.abs(grandTotal) < 0.01 ? "—" : undefined, currency)}
                         </div>
                     </div>
@@ -468,11 +468,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         const grandTotal = subtotal + taxAmount + bond;
 
                         return (
-                            <div key={tableId || `table-${origIdx}`} className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                            <div key={tableId || `table-${origIdx}`} className="mt-3 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                                     {/* Table header — text + thin blue underline */}
                                     <div
-                                        className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                                        className="grid grid-cols-12 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
                                         style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                                     >
                                         <div className="col-span-8">{label.toUpperCase()}</div>
@@ -486,17 +486,17 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         return (
                                         <div
                                             key={`${tableId}-item-${idx}`}
-                                            className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
+                                            className="grid grid-cols-12 px-3 py-0.5 border-t break-inside-avoid items-center"
                                             style={{
                                                 borderColor: colors.borderLight,
                                                 background: idx % 2 === 1 ? colors.surface : colors.white,
-                                                minHeight: '32px',
+                                                minHeight: '18px',
                                             }}
                                         >
-                                            <div className="col-span-8 pr-2 text-xs" style={{ color: colors.text }}>
+                                            <div className="col-span-8 pr-2 text-[10px]" style={{ color: colors.text }}>
                                                 {(descriptionOverrides[`${tableId}:${idx}`] || item?.description || "Item").toString()}
                                             </div>
-                                            <div className="col-span-4 text-right font-semibold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
+                                            <div className="col-span-4 text-right font-semibold text-[10px] whitespace-nowrap" style={{ color: colors.primaryDark }}>
                                                 {item?.isIncluded
                                                     ? <span style={{ color: colors.text }}>INCLUDED</span>
                                                     : formatCurrency(itemPrice, currency)}
@@ -508,38 +508,38 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     {/* Footer: Subtotal / Tax / Bond / Grand Total */}
                                     <div className="border-t-2" style={{ borderColor: colors.border }}>
                                         {Math.abs(subtotal) >= 0.01 && subtotal !== grandTotal && (
-                                            <div className="grid grid-cols-12 px-4 py-1.5 text-xs font-bold" style={{ color: colors.text }}>
+                                            <div className="grid grid-cols-12 px-3 py-0.5 text-[10px] font-bold" style={{ color: colors.text }}>
                                                 <div className="col-span-8">SUBTOTAL</div>
                                                 <div className="col-span-4 text-right">{formatCurrency(subtotal, currency)}</div>
                                             </div>
                                         )}
                                         {Math.abs(taxAmount) >= 0.01 && (
-                                            <div className="grid grid-cols-12 px-4 py-1 text-xs" style={{ color: colors.textMuted }}>
+                                            <div className="grid grid-cols-12 px-3 py-0.5 text-[10px]" style={{ color: colors.textMuted }}>
                                                 <div className="col-span-8">{taxLabel}</div>
                                                 <div className="col-span-4 text-right">{formatCurrency(taxAmount, currency)}</div>
                                             </div>
                                         )}
                                         {(Math.abs(bond) >= 0.01 || Math.abs(taxAmount) >= 0.01) && (
-                                            <div className="grid grid-cols-12 px-4 py-1 text-xs" style={{ color: colors.textMuted }}>
+                                            <div className="grid grid-cols-12 px-3 py-0.5 text-[10px]" style={{ color: colors.textMuted }}>
                                                 <div className="col-span-8">BOND</div>
                                                 <div className="col-span-4 text-right">{formatCurrency(bond, currency)}</div>
                                             </div>
                                         )}
                                         <div
-                                            className="grid grid-cols-12 px-4 py-2.5 border-t break-inside-avoid"
+                                            className="grid grid-cols-12 px-3 py-1 border-t break-inside-avoid"
                                             style={{ borderColor: colors.primary, background: colors.primaryLight }}
                                         >
-                                            <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>GRAND TOTAL</div>
-                                            <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.primaryDark }}>{formatCurrency(grandTotal, currency)}</div>
+                                            <div className="col-span-8 font-bold text-[10px] uppercase tracking-wide" style={{ color: colors.primaryDark }}>GRAND TOTAL</div>
+                                            <div className="col-span-4 text-right font-bold text-xs" style={{ color: colors.primaryDark }}>{formatCurrency(grandTotal, currency)}</div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Alternates — separate table AFTER grand total (mirrors Excel structure) */}
                                 {alternates.length > 0 && (
-                                    <div className="mt-4 rounded-lg border overflow-hidden break-inside-avoid" style={{ borderColor: colors.border }}>
+                                    <div className="mt-2 rounded-lg border overflow-hidden break-inside-avoid" style={{ borderColor: colors.border }}>
                                         <div
-                                            className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                                            className="grid grid-cols-12 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
                                             style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                                         >
                                             <div className="col-span-8">ALTERNATES — ADD TO COST ABOVE</div>
@@ -548,17 +548,17 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         {alternates.map((alt: any, aidx: number) => (
                                             <div
                                                 key={`alt-${aidx}`}
-                                                className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
+                                                className="grid grid-cols-12 px-3 py-0.5 border-t break-inside-avoid items-center"
                                                 style={{
                                                     borderColor: colors.borderLight,
                                                     background: aidx % 2 === 1 ? colors.surface : colors.white,
-                                                    minHeight: '32px',
+                                                    minHeight: '18px',
                                                 }}
                                             >
-                                                <div className="col-span-8 pr-2 text-xs" style={{ color: colors.text }}>
+                                                <div className="col-span-8 pr-2 text-[10px]" style={{ color: colors.text }}>
                                                     {(alt?.description || "Alternate").toString()}
                                                 </div>
-                                                <div className="col-span-4 text-right font-semibold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
+                                                <div className="col-span-4 text-right font-semibold text-[10px] whitespace-nowrap" style={{ color: colors.primaryDark }}>
                                                     {formatCurrency(Number(alt?.priceDifference ?? 0), currency)}
                                                 </div>
                                             </div>
@@ -573,7 +573,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 <>
                     {/* Landscape: two-column grid for detail tables. Portrait: single column */}
                     {isLandscape ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                             {detailTables.map((entry) => (
                                 <div key={entry.table?.id || `table-${entry.origIdx}`} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                                     {renderDetailTable(entry)}
@@ -586,13 +586,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Document total (when multiple detail tables and no master table) */}
                     {detailTables.length > 1 && masterTableIndex === null && (
-                        <div className="mt-6 break-inside-avoid">
+                        <div className="mt-3 break-inside-avoid">
                             <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.primary }}>
-                                <div className="grid grid-cols-12 px-4 py-3" style={{ background: colors.primaryLight }}>
-                                    <div className="col-span-8 font-bold text-sm uppercase tracking-wide" style={{ color: colors.primaryDark }}>
+                                <div className="grid grid-cols-12 px-3 py-1" style={{ background: colors.primaryLight }}>
+                                    <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
                                         PROJECT GRAND TOTAL{currency === "CAD" ? " (CAD)" : ""}
                                     </div>
-                                    <div className="col-span-4 text-right font-bold text-lg" style={{ color: colors.primaryDark }}>
+                                    <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.primaryDark }}>
                                         {formatCurrency(documentTotal, currency)}
                                     </div>
                                 </div>
@@ -684,12 +684,12 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const subtotal = primaryItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
 
         return (
-            <div className="mt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <div className="mt-3 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 {/* Modern table container */}
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     {/* Header — text + thin blue underline */}
                     <div
-                        className="grid grid-cols-12 px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                        className="grid grid-cols-12 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
                         style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
                     >
                         <div className="col-span-8">{colHeaderLeft}</div>
@@ -700,28 +700,28 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {primaryItems.map((item, idx) => (
                         <div
                             key={item.key}
-                            className="grid grid-cols-12 px-4 py-1.5 border-t break-inside-avoid items-center"
+                            className="grid grid-cols-12 px-3 py-0.5 border-t break-inside-avoid items-center"
                             style={{
                                 borderColor: colors.borderLight,
                                 background: idx % 2 === 1 ? colors.surface : colors.white,
-                                minHeight: '28px',
+                                minHeight: '18px',
                                 pageBreakInside: 'avoid',
                                 breakInside: 'avoid',
                             }}
                         >
                             <div className="col-span-8 pr-2">
                                 {/* Line 1: UPPERCASE BOLD - allow wrapping */}
-                                <div className="font-bold text-[10px] tracking-wide uppercase leading-tight" style={{ color: colors.text }}>
+                                <div className="font-bold text-[9px] tracking-wide uppercase leading-tight" style={{ color: colors.text }}>
                                     {item.name}
                                 </div>
                                 {/* Line 2: Specs - allow wrapping, compact */}
                                 {item.description && (
-                                    <div className="text-[8px] leading-tight mt-0.5" style={{ color: colors.textMuted }}>
+                                    <div className="text-[7px] leading-tight" style={{ color: colors.textMuted }}>
                                         {item.description}
                                     </div>
                                 )}
                             </div>
-                            <div className="col-span-4 text-right font-bold text-sm whitespace-nowrap" style={{ color: colors.primaryDark }}>
+                            <div className="col-span-4 text-right font-bold text-xs whitespace-nowrap" style={{ color: colors.primaryDark }}>
                                 {formatCurrency(item.price, Math.abs(Number(item.price)) < 0.01 ? "—" : undefined, currency)}
                             </div>
                         </div>
@@ -729,13 +729,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* PROJECT TOTAL = sum of primary items only (alternates excluded) */}
                     <div
-                        className="grid grid-cols-12 px-4 py-3 border-t-2 break-inside-avoid"
+                        className="grid grid-cols-12 px-3 py-1 border-t-2 break-inside-avoid"
                         style={{ borderColor: colors.border, background: colors.white }}
                     >
-                        <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.text }}>
+                        <div className="col-span-8 font-bold text-[10px] uppercase tracking-wide" style={{ color: colors.text }}>
                             Project Total{currency === "CAD" ? " (CAD)" : ""}
                         </div>
-                        <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.text }}>
+                        <div className="col-span-4 text-right font-bold text-xs" style={{ color: colors.text }}>
                             {formatCurrency(subtotal, Math.abs(subtotal) < 0.01 ? "—" : undefined, currency)}
                         </div>
                     </div>
@@ -744,37 +744,37 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                     {alternateItems.length > 0 && (
                         <>
                             <div
-                                className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid"
+                                className="grid grid-cols-12 px-3 py-0.5 border-t break-inside-avoid"
                                 style={{ borderColor: colors.border, background: colors.surface }}
                             >
-                                <div className="col-span-12 text-[9px] font-bold uppercase tracking-widest" style={{ color: colors.textMuted }}>
+                                <div className="col-span-12 text-[8px] font-bold uppercase tracking-widest" style={{ color: colors.textMuted }}>
                                     Alternates (not included in total)
                                 </div>
                             </div>
                             {alternateItems.map((item, idx) => (
                                 <div
                                     key={item.key}
-                                    className="grid grid-cols-12 px-4 py-2 border-t break-inside-avoid items-center"
+                                    className="grid grid-cols-12 px-3 py-0.5 border-t break-inside-avoid items-center"
                                     style={{
                                         borderColor: colors.borderLight,
                                         background: colors.surface,
-                                        minHeight: '36px',
+                                        minHeight: '18px',
                                         pageBreakInside: 'avoid',
                                         breakInside: 'avoid',
                                         opacity: 0.75,
                                     }}
                                 >
                                     <div className="col-span-8 pr-2">
-                                        <div className="text-xs tracking-wide uppercase italic" style={{ color: colors.textMuted }}>
+                                        <div className="text-[10px] tracking-wide uppercase italic" style={{ color: colors.textMuted }}>
                                             {item.name}
                                         </div>
                                         {item.description && (
-                                            <div className="text-xs leading-none mt-0.5 italic" style={{ color: colors.textMuted, fontSize: '9px' }}>
+                                            <div className="text-[8px] leading-none italic" style={{ color: colors.textMuted }}>
                                                 {item.description}
                                             </div>
                                         )}
                                     </div>
-                                    <div className="col-span-4 text-right text-sm whitespace-nowrap italic" style={{ color: colors.textMuted }}>
+                                    <div className="col-span-4 text-right text-xs whitespace-nowrap italic" style={{ color: colors.textMuted }}>
                                         {formatCurrency(item.price, Math.abs(Number(item.price)) < 0.01 ? "—" : undefined, currency)}
                                     </div>
                                 </div>
@@ -794,10 +794,10 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const lines = raw.split(/\r?\n|,/g).map((l: string) => l.trim()).filter(Boolean);
         if (lines.length === 0) return null;
         return (
-            <div className="mt-8 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <div className="mt-3 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 <SectionHeader title="Payment Terms" />
-                <div className="rounded-lg p-4 text-sm leading-relaxed break-inside-avoid" style={{ background: colors.surface, color: colors.textMuted }}>
-                    {lines.map((line: string, idx: number) => <div key={idx} className="py-0.5 break-inside-avoid">{line}</div>)}
+                <div className="rounded-lg p-2 text-[10px] leading-snug break-inside-avoid" style={{ background: colors.surface, color: colors.textMuted }}>
+                    {lines.map((line: string, idx: number) => <div key={idx} className="break-inside-avoid">{line}</div>)}
                 </div>
             </div>
         );
@@ -808,9 +808,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const raw = (details?.additionalNotes || "").toString().trim();
         if (!raw) return null;
         return (
-            <div className="mt-8 break-inside-avoid">
+            <div className="mt-3 break-inside-avoid">
                 <SectionHeader title="Notes" />
-                <div className="rounded-lg p-4 text-sm leading-relaxed whitespace-pre-wrap break-inside-avoid" style={{ background: colors.surface, color: colors.text }}>
+                <div className="rounded-lg p-2 text-[10px] leading-snug whitespace-pre-wrap break-inside-avoid" style={{ background: colors.surface, color: colors.text }}>
                     {raw}
                 </div>
             </div>
@@ -821,9 +821,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const ScopeOfWorkSection = () => {
         const sowText = (details as any)?.scopeOfWorkText;
         return (
-            <div className="mt-8 break-inside-avoid">
+            <div className="mt-3 break-inside-avoid">
                 <SectionHeader title="Scope of Work" />
-                <div className="text-sm leading-relaxed whitespace-pre-wrap break-inside-avoid" style={{ color: colors.text }}>
+                <div className="text-[10px] leading-snug whitespace-pre-wrap break-inside-avoid" style={{ color: colors.text }}>
                     {sowText || "No scope of work specified."}
                 </div>
             </div>
@@ -836,35 +836,35 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Signature Block - Universal (available for all document types)
     const SignatureBlock = () => (
-        <div className="mt-12 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-            <div className="text-xs leading-relaxed text-justify mb-8 break-inside-avoid" style={{ color: colors.textMuted }}>
+        <div className="mt-4 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <div className="text-[10px] leading-snug text-justify mb-3 break-inside-avoid" style={{ color: colors.textMuted }}>
                 {((details as any)?.signatureBlockText || "").trim() || DEFAULT_SIGNATURE_BLOCK_TEXT}
             </div>
-            <h4 className="font-bold text-xs uppercase mb-6 border-b-2 pb-1 break-inside-avoid" style={{ borderColor: colors.text, color: colors.text }}>
+            <h4 className="font-bold text-[10px] uppercase mb-3 border-b-2 pb-0.5 break-inside-avoid" style={{ borderColor: colors.text, color: colors.text }}>
                 Agreed To And Accepted:
             </h4>
-            <div className="grid grid-cols-2 gap-8 break-inside-avoid">
+            <div className="grid grid-cols-2 gap-4 break-inside-avoid">
                 {[
                     { title: "ANC Sports Enterprises, LLC", subtitle: "Seller" },
                     { title: receiver?.name || "Purchaser", subtitle: "Purchaser" }
                 ].map((party, idx) => (
-                    <div key={idx} className="space-y-4 break-inside-avoid">
+                    <div key={idx} className="space-y-2 break-inside-avoid">
                         <div className="break-inside-avoid">
-                            <div className="font-bold text-xs" style={{ color: colors.primary }}>{party.title}</div>
-                            <div className="text-xs" style={{ color: colors.textMuted }}>{party.subtitle}</div>
+                            <div className="font-bold text-[10px]" style={{ color: colors.primary }}>{party.title}</div>
+                            <div className="text-[9px]" style={{ color: colors.textMuted }}>{party.subtitle}</div>
                         </div>
                         <div className="break-inside-avoid">
-                            <div className="text-xs uppercase tracking-wide mb-1" style={{ color: colors.textMuted }}>Signature</div>
-                            <div className="h-8 border-b-2" style={{ borderColor: colors.border }} />
+                            <div className="text-[9px] uppercase tracking-wide mb-0.5" style={{ color: colors.textMuted }}>Signature</div>
+                            <div className="h-6 border-b-2" style={{ borderColor: colors.border }} />
                         </div>
-                        <div className="grid grid-cols-2 gap-4 break-inside-avoid">
+                        <div className="grid grid-cols-2 gap-3 break-inside-avoid">
                             <div className="break-inside-avoid">
-                                <div className="text-xs uppercase tracking-wide mb-1" style={{ color: colors.textMuted }}>Name</div>
-                                <div className="h-6 border-b" style={{ borderColor: colors.border }} />
+                                <div className="text-[9px] uppercase tracking-wide mb-0.5" style={{ color: colors.textMuted }}>Name</div>
+                                <div className="h-5 border-b" style={{ borderColor: colors.border }} />
                             </div>
                             <div className="break-inside-avoid">
-                                <div className="text-xs uppercase tracking-wide mb-1" style={{ color: colors.textMuted }}>Date</div>
-                                <div className="h-6 border-b" style={{ borderColor: colors.border }} />
+                                <div className="text-[9px] uppercase tracking-wide mb-0.5" style={{ color: colors.textMuted }}>Date</div>
+                                <div className="h-5 border-b" style={{ borderColor: colors.border }} />
                             </div>
                         </div>
                     </div>
@@ -880,7 +880,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             : purchaserName.toUpperCase();
         return (
             <div
-                className="text-center py-1.5 text-[9px] font-semibold uppercase tracking-widest border-b-2 break-inside-avoid mb-4"
+                className="text-center py-1 text-[8px] font-semibold uppercase tracking-widest border-b-2 break-inside-avoid mb-2"
                 style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
             >
                 {label}
@@ -949,7 +949,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     cat.items.map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="grid grid-cols-12 px-4 py-2 text-[8px] break-inside-avoid border-b items-start"
+                                            className="grid grid-cols-12 px-3 py-0.5 text-[8px] break-inside-avoid border-b items-start"
                                             style={{ borderColor: colors.borderLight, background: idx % 2 === 1 ? colors.surface : colors.white }}
                                         >
                                             <div className="col-span-8 leading-snug pr-2" style={{ color: colors.text }}>{item.description}</div>
@@ -965,7 +965,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     cat.items.filter(item => isIncludeStatement(item.anc)).map((item, idx) => (
                                         <div
                                             key={idx}
-                                            className="px-4 py-2 text-[8px] leading-snug break-inside-avoid border-b"
+                                            className="px-3 py-0.5 text-[8px] leading-snug break-inside-avoid border-b"
                                             style={{ borderColor: colors.borderLight, color: colors.text, background: idx % 2 === 1 ? colors.surface : colors.white }}
                                         >
                                             {item.description}
@@ -994,7 +994,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         let taskNumber = 0;
 
         return (
-            <div className="mt-8 break-inside-avoid">
+            <div className="mt-3 break-inside-avoid">
                 <SectionHeader title="Project Schedule" subtitle="Generated from NTP date and screen configuration" />
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     <div className="grid grid-cols-12 px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ background: colors.primaryLight, color: colors.primaryDark }}>
@@ -1045,7 +1045,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Simplified Footer — www.anc.com + blue vertical accent (matches header style)
     const HybridFooter = ({ isLastPage = false }: { isLastPage?: boolean }) => (
-        <div className="mt-8 pt-3 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
+        <div className="mt-3 pt-1 border-t break-inside-avoid" style={{ borderColor: colors.border }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div className="text-[9px] font-semibold tracking-wide" style={{ color: colors.primary }}>
                     www.anc.com
@@ -1075,7 +1075,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     return (
         <ProposalLayout data={data} disableFixedFooter>
             {/* Compact Header — logo + document label, half the original height */}
-            <div className="flex justify-between items-center px-6 pt-2 pb-1 mb-3 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent' }}>
+            <div className="flex justify-between items-center px-6 pt-1 pb-0.5 mb-1 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent' }}>
                 <LogoSelectorServer theme="light" width={70} height={35} className="p-0" />
                 <div className="text-right break-inside-avoid" style={{ background: 'transparent' }}>
                     <div className="text-[8px] uppercase tracking-widest font-semibold" style={{ color: colors.primary, background: 'transparent' }}>{docLabel}</div>
@@ -1085,8 +1085,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
             {/* Intro - 10pt font */}
             {showIntroText && (
-                <div className={`px-6 ${isLOI ? "mb-2" : "mb-3"} break-inside-avoid`}>
-                    <div className={`${isLOI ? "text-[10px]" : "text-xs"} leading-snug`} style={{ color: colors.textMuted }}>
+                <div className={`px-6 ${isLOI ? "mb-1" : "mb-1"} break-inside-avoid`}>
+                    <div className="text-[10px] leading-snug" style={{ color: colors.textMuted }}>
                         {(shouldRenderLegalIntro && (details as any)?.loiHeaderText?.trim()) ? (
                             <p className="text-justify whitespace-pre-wrap">{(details as any).loiHeaderText.trim()}</p>
                         ) : customIntroText?.trim() ? (
@@ -1110,8 +1110,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
             {/* Prompt 58: Custom Proposal Notes (Fix 3) */}
             {((details as any)?.customProposalNotes) && (
-                <div className="px-6 mb-6 break-inside-avoid">
-                    <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: colors.textMuted }}>
+                <div className="px-6 mb-2 break-inside-avoid">
+                    <div className="text-[10px] leading-snug whitespace-pre-wrap" style={{ color: colors.textMuted }}>
                         {(details as any).customProposalNotes}
                     </div>
                 </div>
