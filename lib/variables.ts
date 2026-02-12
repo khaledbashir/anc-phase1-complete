@@ -209,6 +209,13 @@ export const FORM_DEFAULT_VALUES = {
     showAssumptions: false,
     showExhibitA: false,
     showExhibitB: false,
+    showNotes: true,
+    showScopeOfWork: false,
+    pageLayout: "portrait-letter",
+    specsDisplayMode: "extended" as const,
+    includeResponsibilityMatrix: false,
+    responsibilityMatrix: null,
+    respMatrixFormatOverride: "auto" as const,
   },
 };
 

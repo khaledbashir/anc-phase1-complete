@@ -120,6 +120,10 @@ export async function PATCH(
             mirrorMode,       // Mode gate: true = Upload Excel → PDF, false = Build from Scratch
             purchaserLegalName, // Prompt 42: Purchaser legal name for LOI
             masterTableIndex,   // Prompt 51: Master table selector index
+            specsDisplayMode,   // Exhibit A display mode: condensed | extended
+            includeResponsibilityMatrix, // LOI responsibility matrix toggle
+            responsibilityMatrix, // Responsibility matrix payload
+            respMatrixFormatOverride, // auto | short | long | hybrid
             tableHeaderOverrides, // Mirror Mode: section header overrides
             descriptionOverrides, // Mirror Mode: line item description overrides
             priceOverrides,       // Mirror Mode: line item price overrides
@@ -217,6 +221,10 @@ export async function PATCH(
         if (typeof mirrorMode === 'boolean') updateData.mirrorMode = mirrorMode;
         if (purchaserLegalName !== undefined) updateData.purchaserLegalName = purchaserLegalName;
         if (masterTableIndex !== undefined) updateData.masterTableIndex = masterTableIndex;
+        if (specsDisplayMode !== undefined) updateData.specsDisplayMode = specsDisplayMode;
+        if (includeResponsibilityMatrix !== undefined) updateData.includeResponsibilityMatrix = includeResponsibilityMatrix;
+        if (responsibilityMatrix !== undefined) updateData.responsibilityMatrix = responsibilityMatrix;
+        if (respMatrixFormatOverride !== undefined) updateData.respMatrixFormatOverride = respMatrixFormatOverride;
         if (tableHeaderOverrides !== undefined) updateData.tableHeaderOverrides = tableHeaderOverrides;
         if (descriptionOverrides !== undefined) updateData.descriptionOverrides = descriptionOverrides;
         if (priceOverrides !== undefined) updateData.priceOverrides = priceOverrides;
@@ -292,6 +300,7 @@ export async function PATCH(
                             width: toNum(screen.width || screen.widthFt, 0),
                             height: toNum(screen.height || screen.heightFt, 0),
                             brightness: screen.brightness ? toNum(screen.brightness) : null,
+                            hiddenFromSpecs: screen.hiddenFromSpecs === true,
                             quantity: screen.quantity ? parseInt(String(screen.quantity), 10) : 1,
                             serviceType: screen.serviceType || null,
                             formFactor: screen.formFactor || null,

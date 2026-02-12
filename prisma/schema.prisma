@@ -187,6 +187,10 @@ model Proposal {
   pricingMode            String?             // "MIRROR" | "STANDARD"
   mirrorMode             Boolean?            // true = Upload Excel → PDF, false = Build Quote from Scratch
   masterTableIndex       Int?                // Index into pricingDocument.tables for "Project Grand Total" section
+  specsDisplayMode       String?             // "condensed" | "extended" for Exhibit A table rendering
+  includeResponsibilityMatrix Boolean?       // Mirror/LOI toggle for responsibility matrix section
+  responsibilityMatrix   Json?               // Responsibility matrix payload when manually edited/overridden
+  respMatrixFormatOverride String?           // "auto" | "short" | "long" | "hybrid"
   
   // REQ-WVU: Contractual Handover specific fields
   insuranceRateOverride  Decimal?            // Separate from Performance Bond
@@ -306,6 +310,7 @@ model ScreenConfig {
   width                   Float
   height                  Float
   brightness              Float?                // Nits (e.g., 6000)
+  hiddenFromSpecs         Boolean               @default(false) // Hide this screen from Exhibit A specs
   quantity                Int?                  @default(1)
   serviceType             String?               // "Front/Rear" | "Top"
   formFactor              String?               // "Straight" | "Curved"

@@ -329,6 +329,7 @@ const ProposalDetailsSchema = z.object({
     pricingType: z.enum(["Hard Quoted", "Budget"]).default("Budget"),
     documentMode: z.enum(["BUDGET", "PROPOSAL", "LOI"]).optional().default("BUDGET"),
     pageLayout: z.string().optional().default("portrait-letter"),
+    specsDisplayMode: z.enum(["condensed", "extended"]).optional().default("extended"),
     mirrorMode: z.boolean().default(false),
     calculationMode: z.enum(["MIRROR", "INTELLIGENCE"]).default("INTELLIGENCE"),
     status: fieldValidators.stringOptional,
@@ -384,6 +385,12 @@ const ProposalDetailsSchema = z.object({
     descriptionOverrides: z.record(z.string()).optional().default({}),
     // Mirror Mode: Line item price/amount overrides (key: "tableId:itemIndex")
     priceOverrides: z.record(z.number()).optional().default({}),
+    // Mirror LOI responsibility matrix controls
+    includeResponsibilityMatrix: z.boolean().optional().default(false),
+    responsibilityMatrix: z.any().optional().nullable(),
+    respMatrixFormatOverride: z.enum(["auto", "short", "long", "hybrid"]).optional().default("auto"),
+    // Prompt 51: index of table used for project grand total summary
+    masterTableIndex: z.number().int().nullable().optional().default(null),
     // FR-4.2: Custom Proposal Notes (ad-hoc text injection)
     customProposalNotes: z.string().optional(),
     // FR-4.3: Editable Introduction Text (custom header blurb with currency disclaimers)

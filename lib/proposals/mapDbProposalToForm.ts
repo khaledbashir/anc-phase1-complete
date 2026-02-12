@@ -57,6 +57,7 @@ export function mapDbProposalToFormSchema(dbProject: any) {
                 widthFt: Number(s.width) || 0,
                 heightFt: Number(s.height) || 0,
                 brightness: s.brightness != null ? Number(s.brightness) : "",
+                hiddenFromSpecs: !!s.hiddenFromSpecs,
                 quantity: s.quantity ?? 1,
                 serviceType: s.serviceType || "",
                 formFactor: s.formFactor || "",
@@ -92,6 +93,7 @@ export function mapDbProposalToFormSchema(dbProject: any) {
             showNotes: cfg.showNotes ?? true,
             showScopeOfWork: cfg.showScopeOfWork ?? false,
             pageLayout: cfg.pageLayout ?? "portrait-letter",
+            specsDisplayMode: dbProject.specsDisplayMode || cfg.specsDisplayMode || "extended",
             tableHeaderOverrides: (dbProject as any).tableHeaderOverrides || {},
             descriptionOverrides: (dbProject as any).descriptionOverrides || {},
             priceOverrides: (dbProject as any).priceOverrides || {},
@@ -99,6 +101,9 @@ export function mapDbProposalToFormSchema(dbProject: any) {
             loiHeaderText: dbProject.loiHeaderText || "",
             signatureBlockText: dbProject.signatureBlockText || "",
             purchaserLegalName: dbProject.purchaserLegalName || "",
+            includeResponsibilityMatrix: dbProject.includeResponsibilityMatrix ?? false,
+            responsibilityMatrix: dbProject.responsibilityMatrix || null,
+            respMatrixFormatOverride: dbProject.respMatrixFormatOverride || "auto",
             pricingDocument: dbProject.pricingDocument || undefined,
             pricingMode: dbProject.pricingMode || "STANDARD",
             masterTableIndex: dbProject.masterTableIndex ?? null,
@@ -109,4 +114,3 @@ export function mapDbProposalToFormSchema(dbProject: any) {
         marginAnalysis: dbProject.marginAnalysis || undefined,
     };
 }
-

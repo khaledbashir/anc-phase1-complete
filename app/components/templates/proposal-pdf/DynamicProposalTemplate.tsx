@@ -14,6 +14,8 @@ const DynamicProposalTemplateSkeleton = () => {
 /**
  * Always uses ProposalTemplate5 (Hybrid) — the enterprise-standard design.
  * Hybrid handles both Mirror Mode (pricingDocument.tables) and Intelligence Mode.
+ * NataliaMirrorTemplate is intentionally kept as a historical reference file and
+ * is not part of the active render path.
  */
 const DynamicProposalTemplate = (props: ProposalType) => {
     const rawId = props.details?.pdfTemplate || 5;

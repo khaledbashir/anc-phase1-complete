@@ -116,6 +116,10 @@ model Proposal {
   verifiedFields         Json?
   lastVerifiedBy         String?
   lastVerifiedAt         DateTime?
+  specsDisplayMode       String?
+  includeResponsibilityMatrix Boolean?
+  responsibilityMatrix   Json?
+  respMatrixFormatOverride String?
   insuranceRateOverride  Decimal?
   overheadRate           Decimal?            @default(0.10)
   profitRate             Decimal?            @default(0.05)
@@ -207,6 +211,9 @@ model ScreenConfig {
   pixelPitch Float
   width      Float
   height     Float
+  brightness Float?
+  hiddenFromSpecs Boolean @default(false)
+  quantity   Int?          @default(1)
   lineItems  CostLineItem[]
   proposal   Proposal       @relation(fields: [proposalId], references: [id])
 }

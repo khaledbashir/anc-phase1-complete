@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import path from "node:path";
 import * as XLSX from "xlsx";
 import { parsePricingTables } from "@/services/pricing/pricingTableParser";
 
@@ -18,7 +19,7 @@ type Case = {
 const cases: Case[] = [
   {
     name: "NBCU",
-    path: "/root/rag2/.claude/skills/anc-bible/Cost Analysis - NBCU 2025 Project - 9C - 10-30-2025.xlsx",
+    path: path.resolve(process.cwd(), "test-fixtures/pricing/Cost Analysis - NBCU 2025 Project - 9C - 10-30-2025.xlsx"),
     expected: {
       minTables: 4,
       mustContainTableName: /live sync/i,
@@ -29,7 +30,7 @@ const cases: Case[] = [
   },
   {
     name: "Indiana Fever",
-    path: "/root/rag2/.windsurf/rules/Cost Analysis - Indiana Fever - 2026-01-22 (2).xlsx",
+    path: path.resolve(process.cwd(), "test-fixtures/pricing/Cost Analysis - Indiana Fever - 2026-01-22 (2).xlsx"),
     expected: {
       minTables: 8,
       mustContainTableName: /hall of excellence/i,

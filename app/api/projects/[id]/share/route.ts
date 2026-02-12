@@ -135,10 +135,13 @@ export async function POST(
                     id: s.id,
                     name: s.name,
                     externalName: (s as any).externalName || "",
+                    customDisplayName: (s as any).customDisplayName || "",
                     pitchMm: s.pixelPitch,
                     widthFt: s.width,
                     heightFt: s.height,
-                    quantity: 1,
+                    brightness: (s as any).brightness ?? "",
+                    hiddenFromSpecs: (s as any).hiddenFromSpecs === true,
+                    quantity: (s as any).quantity ?? 1,
                     // SANITIZATION: Strictly zero out all internal cost/margin data
                     lineItems: s.lineItems.map(li => ({
                         category: li.category,
@@ -185,6 +188,11 @@ export async function POST(
                 showNotes: cfg.showNotes ?? true,
                 showScopeOfWork: cfg.showScopeOfWork ?? false,
                 pageLayout: cfg.pageLayout ?? "portrait-letter",
+                specsDisplayMode: (project as any).specsDisplayMode || "extended",
+                includeResponsibilityMatrix: (project as any).includeResponsibilityMatrix ?? false,
+                responsibilityMatrix: (project as any).responsibilityMatrix || null,
+                respMatrixFormatOverride: (project as any).respMatrixFormatOverride || "auto",
+                masterTableIndex: (project as any).masterTableIndex ?? null,
                 // FR-4.1 & FR-4.2: Manual overrides
                 tableHeaderOverrides: (project as any).tableHeaderOverrides || {},
                 descriptionOverrides: (project as any).descriptionOverrides || {},

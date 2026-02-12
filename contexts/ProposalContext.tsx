@@ -822,6 +822,14 @@ export const ProposalContextProvider = ({
     const taxRateOverride = watch("details.taxRateOverride");
     const details = watch("details");
     const globalMargin = details?.globalMargin;
+    const showSpecifications = details?.showSpecifications;
+    const showPricingTables = details?.showPricingTables;
+    const showNotes = details?.showNotes;
+    const showPaymentTerms = details?.showPaymentTerms;
+    const showSignatureBlock = details?.showSignatureBlock;
+    const showScopeOfWork = details?.showScopeOfWork;
+    const pageLayout = details?.pageLayout;
+    const specsDisplayMode = (details as any)?.specsDisplayMode;
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -878,6 +886,13 @@ export const ProposalContextProvider = ({
                         mirrorMode: typeof d?.mirrorMode === 'boolean' ? d.mirrorMode : undefined,
                         purchaserLegalName: d?.purchaserLegalName,
                         masterTableIndex: d?.masterTableIndex ?? null,
+                        specsDisplayMode: d?.specsDisplayMode,
+                        includeResponsibilityMatrix: d?.includeResponsibilityMatrix,
+                        responsibilityMatrix: d?.responsibilityMatrix,
+                        respMatrixFormatOverride: d?.respMatrixFormatOverride,
+                        tableHeaderOverrides: d?.tableHeaderOverrides,
+                        descriptionOverrides: d?.descriptionOverrides,
+                        priceOverrides: d?.priceOverrides,
                     };
 
                     // Using specific endpoint for auto-save
@@ -907,6 +922,14 @@ export const ProposalContextProvider = ({
         bondRateOverride,
         taxRateOverride,
         globalMargin,
+        showSpecifications,
+        showPricingTables,
+        showNotes,
+        showPaymentTerms,
+        showSignatureBlock,
+        showScopeOfWork,
+        pageLayout,
+        specsDisplayMode,
         aiFields,
         aiCitations,
         verifiedFields,
@@ -1948,6 +1971,13 @@ export const ProposalContextProvider = ({
                             pricingMode: d?.pricingMode,
                             purchaserLegalName: d?.purchaserLegalName,
                             masterTableIndex: d?.masterTableIndex ?? null,
+                            specsDisplayMode: d?.specsDisplayMode,
+                            includeResponsibilityMatrix: d?.includeResponsibilityMatrix,
+                            responsibilityMatrix: d?.responsibilityMatrix,
+                            respMatrixFormatOverride: d?.respMatrixFormatOverride,
+                            tableHeaderOverrides: d?.tableHeaderOverrides,
+                            descriptionOverrides: d?.descriptionOverrides,
+                            priceOverrides: d?.priceOverrides,
                         };
                         console.log("[SAVE_DRAFT] Follow-up PATCH to persist complete data:", {
                             newId,
@@ -2028,6 +2058,13 @@ export const ProposalContextProvider = ({
                 marginAnalysis: (formValues as any)?.marginAnalysis,
                 pricingMode: (formValues as any)?.details?.pricingMode,
                 masterTableIndex: (formValues as any)?.details?.masterTableIndex ?? null,
+                specsDisplayMode: (formValues as any)?.details?.specsDisplayMode,
+                includeResponsibilityMatrix: (formValues as any)?.details?.includeResponsibilityMatrix,
+                responsibilityMatrix: (formValues as any)?.details?.responsibilityMatrix,
+                respMatrixFormatOverride: (formValues as any)?.details?.respMatrixFormatOverride,
+                tableHeaderOverrides: (formValues as any)?.details?.tableHeaderOverrides,
+                descriptionOverrides: (formValues as any)?.details?.descriptionOverrides,
+                priceOverrides: (formValues as any)?.details?.priceOverrides,
             };
             const res = await fetch(`/api/projects/${effectiveId}`, {
                 method: "PATCH",
