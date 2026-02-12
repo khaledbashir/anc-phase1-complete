@@ -184,6 +184,9 @@ model Proposal {
   // Excel Import: Pricing Document & Margin Analysis persistence
   pricingDocument        Json?               // Full PricingDocument from Excel Mirror Mode
   marginAnalysis         Json?               // Margin analysis tables (non-LED items: structural, electrical, PM)
+  parserValidationReport Json?               // Strict parser validation report for reproducible audit/debug
+  sourceWorkbookHash     String?             // SHA-256 hash of uploaded workbook bytes
+  parserStrictVersion    String?             // Strict parser contract version used at import time
   pricingMode            String?             // "MIRROR" | "STANDARD"
   mirrorMode             Boolean?            // true = Upload Excel → PDF, false = Build Quote from Scratch
   masterTableIndex       Int?                // Index into pricingDocument.tables for "Project Grand Total" section

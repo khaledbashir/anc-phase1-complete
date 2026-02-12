@@ -881,6 +881,9 @@ export const ProposalContextProvider = ({
                         loiHeaderText: d?.loiHeaderText,
                         customProposalNotes: d?.customProposalNotes,
                         pricingDocument: d?.pricingDocument,
+                        parserValidationReport: d?.parserValidationReport,
+                        sourceWorkbookHash: d?.sourceWorkbookHash,
+                        parserStrictVersion: d?.parserStrictVersion,
                         marginAnalysis: (currentValues as any)?.marginAnalysis,
                         pricingMode: d?.pricingMode,
                         mirrorMode: typeof d?.mirrorMode === 'boolean' ? d.mirrorMode : undefined,
@@ -1967,6 +1970,9 @@ export const ProposalContextProvider = ({
                             loiHeaderText: d?.loiHeaderText,
                             customProposalNotes: d?.customProposalNotes,
                             pricingDocument: d?.pricingDocument,
+                            parserValidationReport: d?.parserValidationReport,
+                            sourceWorkbookHash: d?.sourceWorkbookHash,
+                            parserStrictVersion: d?.parserStrictVersion,
                             marginAnalysis: (fullValues as any)?.marginAnalysis,
                             pricingMode: d?.pricingMode,
                             purchaserLegalName: d?.purchaserLegalName,
@@ -2055,6 +2061,9 @@ export const ProposalContextProvider = ({
                 purchaserLegalName: (formValues as any)?.details?.purchaserLegalName,
                 // CRITICAL: Persist Excel pricing data to prevent data loss on navigation
                 pricingDocument: (formValues as any)?.details?.pricingDocument,
+                parserValidationReport: (formValues as any)?.details?.parserValidationReport,
+                sourceWorkbookHash: (formValues as any)?.details?.sourceWorkbookHash,
+                parserStrictVersion: (formValues as any)?.details?.parserStrictVersion,
                 marginAnalysis: (formValues as any)?.marginAnalysis,
                 pricingMode: (formValues as any)?.details?.pricingMode,
                 masterTableIndex: (formValues as any)?.details?.masterTableIndex ?? null,
@@ -3302,6 +3311,33 @@ export const ProposalContextProvider = ({
                     shouldValidate: true,
                     shouldDirty: true,
                 });
+                const parserValidationReport =
+                    (data as any).parserValidationReport ||
+                    (data.formData?.details as any)?.parserValidationReport;
+                const sourceWorkbookHash =
+                    (data as any).sourceWorkbookHash ||
+                    (data.formData?.details as any)?.sourceWorkbookHash;
+                const parserStrictVersion =
+                    (data as any).parserStrictVersion ||
+                    (data.formData?.details as any)?.parserStrictVersion;
+                if (parserValidationReport) {
+                    setValue("details.parserValidationReport" as any, parserValidationReport, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                    });
+                }
+                if (sourceWorkbookHash) {
+                    setValue("details.sourceWorkbookHash" as any, sourceWorkbookHash, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                    });
+                }
+                if (parserStrictVersion) {
+                    setValue("details.parserStrictVersion" as any, parserStrictVersion, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                    });
+                }
                 // Auto-enable mirror mode when pricingDocument is available
                 setValue("details.pricingMode" as any, "MIRROR", {
                     shouldValidate: true,

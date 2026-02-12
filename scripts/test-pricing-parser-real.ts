@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import * as XLSX from "xlsx";
-import { parsePricingTables } from "@/services/pricing/pricingTableParser";
+import { parsePricingTablesWithValidation } from "@/services/pricing/pricingTableParser";
 
 type Case = {
   name: string;
@@ -43,9 +43,10 @@ const cases: Case[] = [
 function runCase(c: Case) {
   assert.ok(fs.existsSync(c.path), `Missing workbook fixture: ${c.path}`);
   const wb = XLSX.readFile(c.path);
-  const doc = parsePricingTables(wb, c.name);
-  assert.ok(doc, `Parser returned null for ${c.name}`);
-  const parsed = doc!;
+  const { document, validation } = parsePricingTablesWithValidation(wb, c.name, { strict: true });
+  assert.equal(validation.status, "PASS", `${c.name}: strict validation failed: ${validation.errors.join("; ")}`);
+  assert.ok(document, `Parser returned null for ${c.name}`);
+  const parsed = document!;
 
   assert.ok(parsed.tables.length >= c.expected.minTables, `${c.name}: expected at least ${c.expected.minTables} tables, got ${parsed.tables.length}`);
 

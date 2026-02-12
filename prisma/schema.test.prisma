@@ -116,6 +116,11 @@ model Proposal {
   verifiedFields         Json?
   lastVerifiedBy         String?
   lastVerifiedAt         DateTime?
+  pricingDocument        Json?
+  marginAnalysis         Json?
+  parserValidationReport Json?
+  sourceWorkbookHash     String?
+  parserStrictVersion    String?
   specsDisplayMode       String?
   includeResponsibilityMatrix Boolean?
   responsibilityMatrix   Json?

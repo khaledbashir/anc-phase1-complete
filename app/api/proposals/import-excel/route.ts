@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { parseANCExcel } from "@/services/proposal/server/excelImportService";
-import { parsePricingTables } from "@/services/pricing/pricingTableParser";
+import { parsePricingTablesWithValidation, PRICING_PARSER_STRICT_VERSION } from "@/services/pricing/pricingTableParser";
 import * as xlsx from "xlsx";
+import crypto from "node:crypto";
 
 export async function POST(req: NextRequest) {
     try {
@@ -21,12 +22,28 @@ export async function POST(req: NextRequest) {
         // NEW: Also parse with PricingTable parser for Natalia Mirror Mode
         try {
             const workbook = xlsx.read(buffer, { type: "buffer" });
-            const pricingDocument = parsePricingTables(workbook, file.name);
+            const sourceWorkbookHash = crypto.createHash("sha256").update(buffer).digest("hex");
+            const { document: pricingDocument, validation } = parsePricingTablesWithValidation(workbook, file.name, {
+                strict: true,
+                sourceWorkbookHash,
+            });
+
+            if (validation.status === "FAIL" || !pricingDocument) {
+                return NextResponse.json({
+                    code: "PARSER_VALIDATION_FAILED",
+                    errors: validation.errors,
+                    warnings: validation.warnings,
+                    evidence: validation.evidence,
+                }, { status: 422 });
+            }
 
             if (pricingDocument && pricingDocument.tables.length > 0) {
                 // Attach pricingDocument to the response inside details so it persists
                 if (data.formData && data.formData.details) {
                     (data.formData.details as any).pricingDocument = pricingDocument;
+                    (data.formData.details as any).parserValidationReport = validation;
+                    (data.formData.details as any).parserStrictVersion = PRICING_PARSER_STRICT_VERSION;
+                    (data.formData.details as any).sourceWorkbookHash = sourceWorkbookHash;
 
                     // REQ-127: Backfill screen.group if missing by correlating with Pricing Tables
                     // This ensures the link between Screens (LED Sheet) and Tables (Margin Analysis) is robust
@@ -53,6 +70,7 @@ export async function POST(req: NextRequest) {
                     });
                 }
                 console.log(`[EXCEL IMPORT] PricingDocument: ${pricingDocument.tables.length} tables, ${pricingDocument.documentTotal} total`);
+                (data as any).validation = validation;
             }
         } catch (pricingErr) {
             Sentry.captureException(pricingErr, { tags: { area: "pricingTableParser" } });

@@ -30,11 +30,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Synthetic parser suite
-        run: pnpm run test:pricing-parser
-
-      - name: Real workbook parser suite
-        run: pnpm run test:pricing-parser:real
+      - name: Parser + Golden Corpus + Rendered PDF gate
+        run: pnpm run test:pricing:gate
 
       - name: Production build
         run: pnpm build

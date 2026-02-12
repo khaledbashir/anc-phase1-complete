@@ -103,7 +103,27 @@ export interface PricingDocument {
     itemsCount: number;
     alternatesCount: number;
     warnings?: string[];
+    validation?: PricingValidationReport;
+    parserStrictVersion?: string;
+    sourceWorkbookHash?: string;
   };
+}
+
+export interface PricingValidationEvidence {
+  marginSheetDetected: string | null;
+  headerRowIndex: number | null;
+  sectionCount: number;
+  respMatrixSheetCandidates: string[];
+  respMatrixSheetUsed: string | null;
+  respMatrixCategoryCount: number;
+}
+
+export interface PricingValidationReport {
+  status: "PASS" | "FAIL";
+  strict: boolean;
+  errors: string[];
+  warnings: string[];
+  evidence: PricingValidationEvidence;
 }
 
 // ============================================================================

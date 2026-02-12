@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import * as XLSX from "xlsx";
-import { parsePricingTables } from "@/services/pricing/pricingTableParser";
+import { parsePricingTables, parsePricingTablesWithValidation } from "@/services/pricing/pricingTableParser";
 
 type SheetRow = Array<string | number | null | undefined>;
 
@@ -95,10 +95,53 @@ function testCurrencyPrecisionPreserved() {
   assert.equal(table.grandTotal, 321548.810769228);
 }
 
+function testStrictFailOnMissingHeaders() {
+  const wb = workbookFromRows([["foo", "bar"], ["x", "y"]]);
+  const result = parsePricingTablesWithValidation(wb, "missing-headers.xlsx", { strict: true });
+  assert.equal(result.document, null);
+  assert.equal(result.validation.status, "FAIL");
+  assert.ok(
+    result.validation.errors.some((e) => /column headers/i.test(e)),
+    "strict validation should fail when column headers are missing"
+  );
+}
+
+function testStrictFailOnMalformedRespMatrixCandidate() {
+  const wsMargin = XLSX.utils.aoa_to_sheet([
+    ["Description", "Cost", "Selling Price", "Margin $", "Margin %"],
+    ["CMS Section"],
+    ["Line A", 10, 12],
+    ["SUB TOTAL", "", 12],
+    ["GRAND TOTAL", "", 12],
+  ]);
+  const wsResp = XLSX.utils.aoa_to_sheet([
+    ["Project:", "Bad Matrix"],
+    ["Date:", "02/12/2026"],
+    ["", "", "", ""],
+    ["", "", "", ""],
+  ]);
+  const wb = {
+    SheetNames: ["Margin Analysis", "Resp Matrix-Client"],
+    Sheets: {
+      "Margin Analysis": wsMargin,
+      "Resp Matrix-Client": wsResp,
+    },
+  } as XLSX.WorkBook;
+  const result = parsePricingTablesWithValidation(wb, "bad-matrix.xlsx", { strict: true });
+  assert.equal(result.document, null);
+  assert.equal(result.validation.status, "FAIL");
+  assert.ok(
+    result.validation.errors.some((e) => /resp matrix/i.test(e)),
+    "strict mode should fail when a resp matrix candidate exists but cannot be parsed"
+  );
+}
+
 function run() {
   testNoSummaryBleedAndTravelPreserved();
   testAlternateDeductCaptured();
   testCurrencyPrecisionPreserved();
+  testStrictFailOnMissingHeaders();
+  testStrictFailOnMalformedRespMatrixCandidate();
   console.log("PASS: pricing parser regression suite");
 }
 

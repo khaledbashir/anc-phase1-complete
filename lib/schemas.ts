@@ -332,6 +332,8 @@ const ProposalDetailsSchema = z.object({
     specsDisplayMode: z.enum(["condensed", "extended"]).optional().default("extended"),
     mirrorMode: z.boolean().default(false),
     calculationMode: z.enum(["MIRROR", "INTELLIGENCE"]).default("INTELLIGENCE"),
+    pricingDocument: z.any().optional().nullable(),
+    pricingMode: z.string().optional().nullable(),
     status: fieldValidators.stringOptional,
     pdfTemplate: z.number(),
     taxRateOverride: z.number().optional(), // e.g., 0.095 for 9.5%
@@ -389,6 +391,9 @@ const ProposalDetailsSchema = z.object({
     includeResponsibilityMatrix: z.boolean().optional().default(false),
     responsibilityMatrix: z.any().optional().nullable(),
     respMatrixFormatOverride: z.enum(["auto", "short", "long", "hybrid"]).optional().default("auto"),
+    parserValidationReport: z.any().optional().nullable(),
+    sourceWorkbookHash: z.string().optional().nullable(),
+    parserStrictVersion: z.string().optional().nullable(),
     // Prompt 51: index of table used for project grand total summary
     masterTableIndex: z.number().int().nullable().optional().default(null),
     // FR-4.2: Custom Proposal Notes (ad-hoc text injection)

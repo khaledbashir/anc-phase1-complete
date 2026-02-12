@@ -17,6 +17,9 @@ export interface CreateWorkspaceRequest {
     pricingDocument?: any;
     marginAnalysis?: any;
     pricingMode?: string;
+    parserValidationReport?: any;
+    sourceWorkbookHash?: string;
+    parserStrictVersion?: string;
     clientSummary?: any;
   };
 }
@@ -80,6 +83,9 @@ export async function POST(request: NextRequest) {
           clientSummary: body.excelData?.clientSummary ? JSON.stringify(body.excelData.clientSummary) : undefined,
           pricingDocument: body.excelData?.pricingDocument || undefined,
           marginAnalysis: body.excelData?.marginAnalysis || undefined,
+          parserValidationReport: body.excelData?.parserValidationReport || undefined,
+          sourceWorkbookHash: body.excelData?.sourceWorkbookHash || undefined,
+          parserStrictVersion: body.excelData?.parserStrictVersion || undefined,
           pricingMode: body.excelData?.pricingMode || undefined,
           screens: body.excelData?.screens ? {
             create: body.excelData.screens.map((screen: any) => ({

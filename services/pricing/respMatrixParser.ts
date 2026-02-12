@@ -15,6 +15,13 @@ import {
   RespMatrixItem,
 } from "@/types/pricing";
 
+export interface RespMatrixParseResult {
+  matrix: RespMatrix | null;
+  sheetCandidates: string[];
+  usedSheet: string | null;
+  errors: string[];
+}
+
 /**
  * Find the responsibility matrix sheet in a workbook.
  * Supports real-world naming variants:
@@ -23,9 +30,9 @@ import {
  * - "Resp Matrix - XXX"
  * Prioritizes non-example sheets when multiple candidates exist.
  */
-function findRespMatrixSheet(workbook: any): string | null {
+export function findRespMatrixSheetCandidates(workbook: any): string[] {
   const names: string[] = workbook.SheetNames || [];
-  if (names.length === 0) return null;
+  if (names.length === 0) return [];
 
   const normalize = (v: string) => v.trim().toLowerCase().replace(/\s+/g, " ");
 
@@ -34,20 +41,25 @@ function findRespMatrixSheet(workbook: any): string | null {
     return /^resp\s*matrix\b/.test(n);
   });
 
-  if (candidates.length === 0) return null;
+  if (candidates.length === 0) return [];
 
   const nonExample = candidates.filter((name) => !/\bexample\b/i.test(name));
-  return (nonExample[0] || candidates[0] || null);
+  return nonExample.length ? nonExample : candidates;
+}
+
+function findRespMatrixSheet(workbook: any): string | null {
+  const candidates = findRespMatrixSheetCandidates(workbook);
+  return candidates[0] || null;
 }
 
 /**
  * Detect if a row is a category header.
  * Category headers have text in col B and col C contains "ANC", "YES", or similar header keywords.
  */
-function isCategoryHeader(row: any[]): boolean {
-  const colB = String(row[1] ?? "").trim();
-  const colC = String(row[2] ?? "").trim().toUpperCase();
-  const colD = String(row[3] ?? "").trim().toUpperCase();
+function isCategoryHeader(row: any[], descIdx: number, ancIdx: number, purchaserIdx: number): boolean {
+  const colB = String(row[descIdx] ?? "").trim();
+  const colC = String(row[ancIdx] ?? "").trim().toUpperCase();
+  const colD = String(row[purchaserIdx] ?? "").trim().toUpperCase();
 
   if (!colB) return false;
 
@@ -64,9 +76,28 @@ function isCategoryHeader(row: any[]): boolean {
 /**
  * Check if a row is an artifact/skip row
  */
-function isArtifactRow(row: any[]): boolean {
-  const colB = String(row[1] ?? "").trim().toUpperCase();
+function isArtifactRow(row: any[], descIdx: number): boolean {
+  const colB = String(row[descIdx] ?? "").trim().toUpperCase();
   return ["COLUMN1", "COLUMN2", "COLUMN3", ""].includes(colB);
+}
+
+function detectColumns(data: any[][]): { description: number; anc: number; purchaser: number } {
+  const ancHeaders = ["ANC", "YES", "SELLER"];
+  const purchaserHeaders = ["PURCHASER", "COLUMN1", "NO", "BUYER", "OWNER", "CLIENT"];
+  for (let i = 0; i < Math.min(data.length, 30); i++) {
+    const row = data[i] || [];
+    for (let c = 0; c < row.length; c++) {
+      const val = String(row[c] ?? "").trim().toUpperCase();
+      if (!ancHeaders.some((h) => val === h || val.startsWith(h))) continue;
+      for (let p = c + 1; p < Math.min(row.length, c + 4); p++) {
+        const pVal = String(row[p] ?? "").trim().toUpperCase();
+        if (!purchaserHeaders.some((h) => pVal === h || pVal.startsWith(h))) continue;
+        const desc = Math.max(0, c - 1);
+        return { description: desc, anc: c, purchaser: p };
+      }
+    }
+  }
+  return { description: 1, anc: 2, purchaser: 3 };
 }
 
 /**
@@ -100,18 +131,38 @@ function detectFormat(categories: RespMatrixCategory[]): "short" | "long" | "hyb
  * Returns null if no "Resp Matrix" sheet is found.
  */
 export function parseRespMatrix(workbook: any): RespMatrix | null {
+  return parseRespMatrixDetailed(workbook).matrix;
+}
+
+export function parseRespMatrixDetailed(workbook: any): RespMatrixParseResult {
   const sheetName = findRespMatrixSheet(workbook);
-  if (!sheetName) return null;
+  const sheetCandidates = findRespMatrixSheetCandidates(workbook);
+  const errors: string[] = [];
+  if (!sheetName) {
+    return {
+      matrix: null,
+      sheetCandidates,
+      usedSheet: null,
+      errors,
+    };
+  }
 
   console.log(`[RESP MATRIX] Found sheet: "${sheetName}"`);
 
   const xlsx = require("xlsx");
   const sheet = workbook.Sheets[sheetName];
   const data: any[][] = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+  const col = detectColumns(data);
 
   if (data.length < 4) {
     console.warn("[RESP MATRIX] Sheet has fewer than 4 rows, skipping");
-    return null;
+    errors.push("Resp Matrix sheet has fewer than 4 rows");
+    return {
+      matrix: null,
+      sheetCandidates,
+      usedSheet: sheetName,
+      errors,
+    };
   }
 
   // Extract project name and date from top rows (rows 0-3)
@@ -141,31 +192,31 @@ export function parseRespMatrix(workbook: any): RespMatrix | null {
     const row = data[i] || [];
 
     // Skip artifact rows
-    if (isArtifactRow(row)) continue;
+    if (isArtifactRow(row, col.description)) continue;
 
     // Check for category header
-    if (isCategoryHeader(row)) {
+    if (isCategoryHeader(row, col.description, col.anc, col.purchaser)) {
       // Save previous category
       if (currentCategory && currentCategory.items.length > 0) {
         categories.push(currentCategory);
       }
       currentCategory = {
-        name: String(row[1] ?? "").trim(),
+        name: String(row[col.description] ?? "").trim(),
         items: [],
       };
       continue;
     }
 
     // Regular item row
-    const description = String(row[1] ?? "").trim();
+    const description = String(row[col.description] ?? "").trim();
     if (!description) continue;
 
     // Skip rows that look like sub-headers or repeated column labels
     const descUpper = description.toUpperCase();
     if (descUpper === "ANC" || descUpper === "PURCHASER" || descUpper === "DESCRIPTION") continue;
 
-    const ancValue = String(row[2] ?? "").trim();
-    const purchaserValue = String(row[3] ?? "").trim();
+    const ancValue = String(row[col.anc] ?? "").trim();
+    const purchaserValue = String(row[col.purchaser] ?? "").trim();
 
     // Skip rows with no values in either column (pure empty rows)
     if (!ancValue && !purchaserValue) continue;
@@ -191,7 +242,13 @@ export function parseRespMatrix(workbook: any): RespMatrix | null {
 
   if (categories.length === 0) {
     console.warn("[RESP MATRIX] No categories with items found");
-    return null;
+    errors.push("Resp Matrix sheet has no categories with items");
+    return {
+      matrix: null,
+      sheetCandidates,
+      usedSheet: sheetName,
+      errors,
+    };
   }
 
   const format = detectFormat(categories);
@@ -201,9 +258,14 @@ export function parseRespMatrix(workbook: any): RespMatrix | null {
   }
 
   return {
+    matrix: {
     projectName,
     date,
     format,
     categories,
+    },
+    sheetCandidates,
+    usedSheet: sheetName,
+    errors,
   };
 }

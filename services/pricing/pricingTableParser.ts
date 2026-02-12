@@ -12,11 +12,24 @@ import {
   AlternateItem,
   TaxInfo,
   PricingDocument,
+  PricingValidationReport,
   createTableId,
   detectCurrency,
 } from "@/types/pricing";
 import { findMarginAnalysisSheet } from "@/lib/sheetDetection";
-import { parseRespMatrix } from "@/services/pricing/respMatrixParser";
+import { parseRespMatrixDetailed } from "@/services/pricing/respMatrixParser";
+
+export const PRICING_PARSER_STRICT_VERSION = "2026.02.12.strict-v1";
+
+export interface ParsePricingOptions {
+  strict?: boolean;
+  sourceWorkbookHash?: string;
+}
+
+export interface ParsePricingResult {
+  document: PricingDocument | null;
+  validation: PricingValidationReport;
+}
 
 // ============================================================================
 // TYPES
@@ -66,10 +79,19 @@ interface TableBoundary {
  */
 export function parsePricingTables(
   workbook: any,
-  fileName: string = "import.xlsx"
+  fileName: string = "import.xlsx",
+  options: ParsePricingOptions = {}
 ): PricingDocument | null {
+  return parsePricingTablesWithValidation(workbook, fileName, options).document;
+}
+
+export function parsePricingTablesWithValidation(
+  workbook: any,
+  fileName: string = "import.xlsx",
+  options: ParsePricingOptions = {}
+): ParsePricingResult {
   try {
-    return parsePricingTablesInner(workbook, fileName);
+    return parsePricingTablesInner(workbook, fileName, options);
   } catch (err) {
     Sentry.captureException(err, { tags: { area: "pricingTableParser" }, extra: { fileName } });
     throw err;
@@ -78,15 +100,39 @@ export function parsePricingTables(
 
 function parsePricingTablesInner(
   workbook: any,
-  fileName: string = "import.xlsx"
-): PricingDocument | null {
+  fileName: string = "import.xlsx",
+  options: ParsePricingOptions = {}
+): ParsePricingResult {
+  const strict = options.strict === true;
   const parserWarnings: string[] = [];
+  const parserErrors: string[] = [];
+  let headerRowIdx: number | null = null;
+  let respMatrixCategoryCount = 0;
+  let respMatrixUsedSheet: string | null = null;
+  let respMatrixCandidates: string[] = [];
+
+  const fail = (message: string, marginSheetName: string | null): ParsePricingResult => {
+    parserErrors.push(message);
+    return {
+      document: null,
+      validation: buildValidationReport({
+        strict,
+        errors: parserErrors,
+        warnings: parserWarnings,
+        marginSheetDetected: marginSheetName,
+        headerRowIndex: headerRowIdx,
+        sectionCount: 0,
+        respMatrixSheetCandidates: respMatrixCandidates,
+        respMatrixSheetUsed: respMatrixUsedSheet,
+        respMatrixCategoryCount,
+      }),
+    };
+  };
 
   // 1. Find Margin Analysis sheet (fuzzy: Margin-Analysis, Margin Analysis (CAD), etc.)
   const sheetName = findMarginAnalysisSheet(workbook);
   if (!sheetName) {
-    console.warn("[PRICING PARSER] No sheet matching Margin/Analysis/Total found");
-    return null;
+    return fail("No sheet matching Margin/Analysis/Total found", null);
   }
   console.log(`[PRICING PARSER] Found sheet: "${sheetName}"`);
 
@@ -102,13 +148,15 @@ function parsePricingTablesInner(
   // 4. Find column headers
   let columnMap = findColumnHeaders(data);
   if (!columnMap) {
-    console.log("[PRICING PARSER] Could not find valid column headers");
-    return null;
+    return fail("Could not find valid pricing column headers", sheetName);
   }
   console.log(`[PRICING PARSER] Column map: label@${columnMap.label}, cost@${columnMap.cost}, sell@${columnMap.sell}`);
 
   // 5. Parse all rows with metadata (standard detection)
-  const headerRowIdx = findHeaderRowIndex(data, columnMap);
+  headerRowIdx = findHeaderRowIndex(data, columnMap);
+  if (!Number.isFinite(headerRowIdx) || headerRowIdx < 0) {
+    return fail("Could not locate header row for pricing columns", sheetName);
+  }
   let rows = parseAllRows(data, columnMap, headerRowIdx);
   console.log(`[PRICING PARSER] Parsed ${rows.length} rows`);
 
@@ -121,6 +169,9 @@ function parsePricingTablesInner(
 
   // Fallback: if no boundaries detected, attempt flexible column shift + single-table mode.
   if (boundaries.length === 0) {
+    if (strict) {
+      return fail("No viable pricing sections detected", sheetName);
+    }
     console.warn("[PRICING PARSER] No section headers detected. Attempting fallback parsing...");
     parserWarnings.push("No section headers detected — used fallback parsing");
 
@@ -148,11 +199,20 @@ function parsePricingTablesInner(
   }
 
   console.log(`[PRICING PARSER] Found ${boundaries.length} table(s)`);
+  if (strict && boundaries.length === 0) {
+    return fail("No pricing table boundaries detected", sheetName);
+  }
 
   // 7. Extract PricingTable for each boundary
   let tables = boundaries.map((boundary, idx) =>
     extractTable(rows, boundary, idx, currency)
   );
+  if (strict && tables.length === 0) {
+    return fail("No pricing tables extracted", sheetName);
+  }
+  if (strict && tables.some((t) => t.items.length === 0 && t.alternates.length === 0)) {
+    return fail("One or more pricing sections are empty", sheetName);
+  }
 
   // 8. Calculate document total
   // Mirror rule: trust Excel's "SUB TOTAL (BID FORM)" if present as a global total.
@@ -163,11 +223,33 @@ function parsePricingTablesInner(
   const documentTotal = Number.isFinite(globalTotal)
     ? (globalTotal as number)
     : tables.reduce((sum, t) => sum + t.grandTotal, 0);
+  if (strict && !Number.isFinite(documentTotal)) {
+    return fail("Document total is not a valid number", sheetName);
+  }
 
   // 9. Parse Resp Matrix (Statement of Work) if present
-  const respMatrix = parseRespMatrix(workbook);
+  const respMatrixResult = parseRespMatrixDetailed(workbook);
+  const respMatrix = respMatrixResult.matrix;
+  respMatrixCategoryCount = respMatrix?.categories?.length || 0;
+  respMatrixUsedSheet = respMatrixResult.usedSheet;
+  respMatrixCandidates = respMatrixResult.sheetCandidates;
+  if (strict && respMatrixCandidates.length > 0 && (!respMatrix || respMatrixCategoryCount === 0)) {
+    const details = respMatrixResult.errors.join("; ") || "Resp Matrix candidates were found but parsing returned no categories";
+    return fail(details, sheetName);
+  }
 
   // 10. Build metadata
+  const validation = buildValidationReport({
+    strict,
+    errors: parserErrors,
+    warnings: parserWarnings,
+    marginSheetDetected: sheetName,
+    headerRowIndex: headerRowIdx,
+    sectionCount: tables.length,
+    respMatrixSheetCandidates: respMatrixCandidates,
+    respMatrixSheetUsed: respMatrixUsedSheet,
+    respMatrixCategoryCount,
+  });
   const metadata = {
     importedAt: new Date().toISOString(),
     fileName,
@@ -175,6 +257,9 @@ function parsePricingTablesInner(
     itemsCount: tables.reduce((sum, t) => sum + t.items.length, 0),
     alternatesCount: tables.reduce((sum, t) => sum + t.alternates.length, 0),
     warnings: parserWarnings.length > 0 ? parserWarnings : undefined,
+    validation,
+    parserStrictVersion: PRICING_PARSER_STRICT_VERSION,
+    sourceWorkbookHash: options.sourceWorkbookHash,
   };
 
   // Diagnostic: log each table's breakdown
@@ -191,13 +276,43 @@ function parsePricingTablesInner(
   console.log(`[PRICING PARSER] Complete: ${metadata.tablesCount} tables, ${metadata.itemsCount} items, ${metadata.alternatesCount} alternates`);
 
   return {
-    tables,
-    mode: "MIRROR",
-    sourceSheet: sheetName,
-    currency,
-    documentTotal,
-    respMatrix: respMatrix ?? undefined,
-    metadata,
+    document: {
+      tables,
+      mode: "MIRROR",
+      sourceSheet: sheetName,
+      currency,
+      documentTotal,
+      respMatrix: respMatrix ?? undefined,
+      metadata,
+    },
+    validation,
+  };
+}
+
+function buildValidationReport(input: {
+  strict: boolean;
+  errors: string[];
+  warnings: string[];
+  marginSheetDetected: string | null;
+  headerRowIndex: number | null;
+  sectionCount: number;
+  respMatrixSheetCandidates: string[];
+  respMatrixSheetUsed: string | null;
+  respMatrixCategoryCount: number;
+}): PricingValidationReport {
+  return {
+    status: input.errors.length > 0 ? "FAIL" : "PASS",
+    strict: input.strict,
+    errors: input.errors,
+    warnings: input.warnings,
+    evidence: {
+      marginSheetDetected: input.marginSheetDetected,
+      headerRowIndex: input.headerRowIndex,
+      sectionCount: input.sectionCount,
+      respMatrixSheetCandidates: input.respMatrixSheetCandidates,
+      respMatrixSheetUsed: input.respMatrixSheetUsed,
+      respMatrixCategoryCount: input.respMatrixCategoryCount,
+    },
   };
 }
 

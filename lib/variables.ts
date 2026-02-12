@@ -192,6 +192,8 @@ export const FORM_DEFAULT_VALUES = {
     screens: [],
     internalAudit: {},
     clientSummary: {},
+    pricingDocument: null,
+    pricingMode: "MIRROR",
     mirrorMode: true,
     calculationMode: "MIRROR" as "MIRROR" | "INTELLIGENCE",
     taxRateOverride: 0,
@@ -216,6 +218,9 @@ export const FORM_DEFAULT_VALUES = {
     includeResponsibilityMatrix: false,
     responsibilityMatrix: null,
     respMatrixFormatOverride: "auto" as const,
+    parserValidationReport: null,
+    sourceWorkbookHash: null,
+    parserStrictVersion: null,
   },
 };
 

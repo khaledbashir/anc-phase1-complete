@@ -61,7 +61,9 @@ export async function PATCH(
                 loiHeaderText: true,
                 documentMode: true,
                 pricingDocument: true,
-            }
+                parserValidationReport: true,
+                parserStrictVersion: true,
+                }
         });
 
         if (!existingProject) {
@@ -118,6 +120,9 @@ export async function PATCH(
             marginAnalysis,   // Non-LED margin analysis tables
             pricingMode,      // MIRROR | STANDARD
             mirrorMode,       // Mode gate: true = Upload Excel → PDF, false = Build from Scratch
+            parserValidationReport, // strict parser validation report
+            sourceWorkbookHash, // sha-256 workbook hash
+            parserStrictVersion, // strict parser version
             purchaserLegalName, // Prompt 42: Purchaser legal name for LOI
             masterTableIndex,   // Prompt 51: Master table selector index
             specsDisplayMode,   // Exhibit A display mode: condensed | extended
@@ -217,6 +222,9 @@ export async function PATCH(
         if (customProposalNotes !== undefined) updateData.customProposalNotes = customProposalNotes;
         if (pricingDocument !== undefined) updateData.pricingDocument = pricingDocument;
         if (marginAnalysis !== undefined) updateData.marginAnalysis = marginAnalysis;
+        if (parserValidationReport !== undefined) updateData.parserValidationReport = parserValidationReport;
+        if (sourceWorkbookHash !== undefined) updateData.sourceWorkbookHash = sourceWorkbookHash;
+        if (parserStrictVersion !== undefined) updateData.parserStrictVersion = parserStrictVersion;
         if (pricingMode !== undefined) updateData.pricingMode = pricingMode;
         if (typeof mirrorMode === 'boolean') updateData.mirrorMode = mirrorMode;
         if (purchaserLegalName !== undefined) updateData.purchaserLegalName = purchaserLegalName;
@@ -328,6 +336,8 @@ export async function PATCH(
             status,
             documentMode,
             pricingDocument,
+            parserValidationReport,
+            parserStrictVersion,
         });
         for (const change of changes) {
             logActivity(id, change.action, change.description, null, change.metadata);

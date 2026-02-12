@@ -6,6 +6,7 @@ import { getProposalTemplate } from "@/lib/helpers";
 import { ENV, TAILWIND_CDN } from "@/lib/variables";
 import { ProposalType } from "@/types";
 import { sanitizeForClient } from "@/lib/security/sanitizeForClient";
+import { PRICING_PARSER_STRICT_VERSION } from "@/services/pricing/pricingTableParser";
 
 function safeErrorMessage(err: unknown) {
 	const msg = err instanceof Error ? err.message : String(err);
@@ -35,6 +36,47 @@ export async function generateProposalPdfServiceV2(req: NextRequest) {
 	const body: ProposalType = await req.json();
 	let browser: any;
 	let page: any;
+
+	const pricingDocument = (body.details as any)?.pricingDocument || (body as any)?.pricingDocument;
+	const documentMode = (body.details as any)?.documentMode;
+	const isMirrorMode = (body.details as any)?.mirrorMode === true || (body.details as any)?.calculationMode === "MIRROR" || !!pricingDocument;
+	const validation = pricingDocument?.metadata?.validation;
+	const parserStrictVersion = (body.details as any)?.parserStrictVersion || pricingDocument?.metadata?.parserStrictVersion;
+
+	if (isMirrorMode && (!pricingDocument || !Array.isArray(pricingDocument?.tables) || pricingDocument.tables.length === 0)) {
+		return new NextResponse(JSON.stringify({
+			code: "PARSER_VALIDATION_FAILED",
+			reasons: ["Missing pricingDocument or pricing tables"],
+			details: { projectId: (body.details as any)?.proposalId || null, documentMode },
+		}), { status: 422, headers: { "Content-Type": "application/json" } });
+	}
+	if (isMirrorMode && (!validation || validation.status !== "PASS")) {
+		return new NextResponse(JSON.stringify({
+			code: "PARSER_VALIDATION_FAILED",
+			reasons: validation?.errors?.length ? validation.errors : ["Pricing parser validation was not PASS"],
+			details: { projectId: (body.details as any)?.proposalId || null, documentMode, validation: validation || null },
+		}), { status: 422, headers: { "Content-Type": "application/json" } });
+	}
+	if (isMirrorMode && parserStrictVersion !== PRICING_PARSER_STRICT_VERSION) {
+		return new NextResponse(JSON.stringify({
+			code: "PARSER_VALIDATION_FAILED",
+			reasons: [`Parser strict version mismatch. expected=${PRICING_PARSER_STRICT_VERSION} got=${parserStrictVersion || "missing"}`],
+			details: { projectId: (body.details as any)?.proposalId || null, documentMode },
+		}), { status: 422, headers: { "Content-Type": "application/json" } });
+	}
+	const hadRespMatrixCandidates = Array.isArray(validation?.evidence?.respMatrixSheetCandidates) && validation.evidence.respMatrixSheetCandidates.length > 0;
+	const hasParsedRespMatrix = !!(pricingDocument?.respMatrix?.categories?.length);
+	if (isMirrorMode && documentMode === "LOI" && hadRespMatrixCandidates && !hasParsedRespMatrix) {
+		return new NextResponse(JSON.stringify({
+			code: "MISSING_RESP_MATRIX",
+			reasons: ["Resp Matrix sheet candidates were detected, but parsed matrix categories are missing"],
+			details: {
+				projectId: (body.details as any)?.proposalId || null,
+				documentMode,
+				respMatrixCandidates: validation.evidence.respMatrixSheetCandidates,
+			},
+		}), { status: 422, headers: { "Content-Type": "application/json" } });
+	}
 
 	try {
 		const ReactDOMServer = (await import("react-dom/server")).default;

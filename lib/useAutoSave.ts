@@ -101,6 +101,9 @@ export function useAutoSave({
                     },
                     // CRITICAL: Persist Excel pricing data to prevent data loss
                     pricingDocument: (formData.details as any)?.pricingDocument,
+                    parserValidationReport: (formData.details as any)?.parserValidationReport,
+                    sourceWorkbookHash: (formData.details as any)?.sourceWorkbookHash,
+                    parserStrictVersion: (formData.details as any)?.parserStrictVersion,
                     marginAnalysis: (formData as any)?.marginAnalysis,
                     pricingMode: (formData.details as any)?.pricingMode,
                     mirrorMode: typeof (formData.details as any)?.mirrorMode === 'boolean' ? (formData.details as any).mirrorMode : undefined,

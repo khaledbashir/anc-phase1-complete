@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ProposalType } from "@/types";
 import bcrypt from "bcrypt";
+import { PRICING_PARSER_STRICT_VERSION } from "@/services/pricing/pricingTableParser";
 
 import { prisma } from "@/lib/prisma";
 
@@ -54,7 +55,11 @@ export async function POST(
 
         // Parse request body for security options
         const body = await req.json().catch(() => ({}));
-        const forceNewVersion = body.forceNewVersion || false;
+        const forceNewVersionInput = body.forceNewVersion || false;
+        const strictVersionDrift =
+            (project as any).pricingDocument &&
+            ((project as any).parserStrictVersion || (project as any).pricingDocument?.metadata?.parserStrictVersion) !== PRICING_PARSER_STRICT_VERSION;
+        const forceNewVersion = forceNewVersionInput || strictVersionDrift;
         const password = body.password || null;
         const daysToExpire = body.daysToExpire || 30; // Default 30 days per PRD
 
@@ -69,16 +74,14 @@ export async function POST(
 
         if (forceNewVersion || !project.shareHash) {
             shareHash = `${Math.random().toString(36).substring(2, 10)}-v${versionNumber}`;
-            if (!project.shareHash) {
-                await (prisma.proposal as any).update({
-                    where: { id },
-                    data: {
-                        shareHash,
-                        shareExpiresAt: expiresAt,
-                        sharePasswordHash: passwordHash
-                    }
-                });
-            }
+            await (prisma.proposal as any).update({
+                where: { id },
+                data: {
+                    shareHash,
+                    shareExpiresAt: expiresAt,
+                    sharePasswordHash: passwordHash
+                }
+            });
         } else {
             shareHash = project.shareHash;
         }
@@ -190,6 +193,9 @@ export async function POST(
                 includeResponsibilityMatrix: (project as any).includeResponsibilityMatrix ?? false,
                 responsibilityMatrix: (project as any).responsibilityMatrix || null,
                 respMatrixFormatOverride: (project as any).respMatrixFormatOverride || "auto",
+                parserValidationReport: (project as any).parserValidationReport || (project as any).pricingDocument?.metadata?.validation || null,
+                sourceWorkbookHash: (project as any).sourceWorkbookHash || (project as any).pricingDocument?.metadata?.sourceWorkbookHash || null,
+                parserStrictVersion: (project as any).parserStrictVersion || (project as any).pricingDocument?.metadata?.parserStrictVersion || null,
                 masterTableIndex: (project as any).masterTableIndex ?? null,
                 // FR-4.1 & FR-4.2: Manual overrides
                 tableHeaderOverrides: (project as any).tableHeaderOverrides || {},
