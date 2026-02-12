@@ -915,7 +915,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         };
 
         return (
-            <div className="px-6">
+            <div className="px-6" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
                 <SectionHeader title="Exhibit B — Statement of Work" />
                 <div className="border rounded overflow-hidden" style={{ borderColor: colors.border }}>
                     {nonEmptyCategories.map((cat, catIdx) => {
