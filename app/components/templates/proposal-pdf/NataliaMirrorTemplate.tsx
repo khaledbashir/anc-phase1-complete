@@ -550,7 +550,7 @@ function MasterTableSection({
         {table.items.map((item, idx) => (
           <div
             key={`master-item-${idx}`}
-            className="flex justify-between py-1 border-b border-gray-100 text-[11px]"
+            className="flex justify-between py-0.5 border-b border-gray-100 text-[10px] leading-tight"
           >
             <div className="flex-1 pr-4">
               <span className="text-gray-700">{_getDesc(idx, item.description)}</span>
@@ -569,7 +569,7 @@ function MasterTableSection({
       {/* Footer rows */}
       <div style={{ borderTop: '3px solid #002C73' }} className="mt-0">
         {/* Subtotal */}
-        <div className="flex justify-between py-1 text-[11px] font-bold">
+        <div className="flex justify-between py-0.5 text-[10px] leading-tight font-bold">
           <span className="text-gray-800">SUBTOTAL:</span>
           <span className="text-gray-800 w-28 text-right">
             {formatPricingCurrency(effectiveSub, currency)}
@@ -578,7 +578,7 @@ function MasterTableSection({
 
         {/* Tax */}
         {table.tax && (
-          <div className="flex justify-between py-0.5 text-[11px]">
+          <div className="flex justify-between py-0.5 text-[10px] leading-tight">
             <span className="text-gray-600">{table.tax.label}</span>
             <span className="text-gray-800 w-28 text-right">
               {formatPricingCurrency(effectiveTax, currency)}
@@ -588,7 +588,7 @@ function MasterTableSection({
 
         {/* Bond */}
         {(table.bond !== 0 || table.tax) && (
-          <div className="flex justify-between py-0.5 text-[11px]">
+          <div className="flex justify-between py-0.5 text-[10px] leading-tight">
             <span className="text-gray-600">BOND</span>
             <span className="text-gray-800 w-28 text-right">
               {formatPricingCurrency(table.bond, currency)}
@@ -597,7 +597,7 @@ function MasterTableSection({
         )}
 
         {/* Grand Total - prominent */}
-        <div className="flex justify-between py-1 text-sm font-bold border-t border-gray-300">
+        <div className="flex justify-between py-0.5 text-[11px] leading-tight font-bold border-t border-gray-300">
           <span style={{ color: '#002C73' }}>GRAND TOTAL:</span>
           <span className="w-28 text-right" style={{ color: '#002C73', fontSize: '14px' }}>
             {formatPricingCurrency(effectiveGrand, currency)}
@@ -662,7 +662,7 @@ function PricingTableSection({
         {table.items.map((item, idx) => (
           <div
             key={`${table.id}-item-${idx}`}
-            className="flex justify-between py-1 border-b border-gray-100 text-[11px]"
+            className="flex justify-between py-0.5 border-b border-gray-100 text-[10px] leading-tight"
           >
             <div className="flex-1 pr-4">
               <span className="text-gray-700">{_getDesc(idx, item.description)}</span>
@@ -681,7 +681,7 @@ function PricingTableSection({
       {/* Footer rows */}
       <div className="border-t-2 border-gray-800 mt-0">
         {/* Subtotal */}
-        <div className="flex justify-between py-1 text-[11px] font-bold">
+        <div className="flex justify-between py-0.5 text-[10px] leading-tight font-bold">
           <span className="text-gray-800">SUBTOTAL:</span>
           <span className="text-gray-800 w-28 text-right">
             {formatPricingCurrency(effectiveSub, currency)}
@@ -690,7 +690,7 @@ function PricingTableSection({
 
         {/* Tax */}
         {table.tax && (
-          <div className="flex justify-between py-0.5 text-[11px]">
+          <div className="flex justify-between py-0.5 text-[10px] leading-tight">
             <span className="text-gray-600">{table.tax.label}</span>
             <span className="text-gray-800 w-28 text-right">
               {formatPricingCurrency(effectiveTax, currency)}
@@ -700,7 +700,7 @@ function PricingTableSection({
 
         {/* Bond (only show if non-zero or if tax exists) */}
         {(table.bond !== 0 || table.tax) && (
-          <div className="flex justify-between py-0.5 text-[11px]">
+          <div className="flex justify-between py-0.5 text-[10px] leading-tight">
             <span className="text-gray-600">BOND</span>
             <span className="text-gray-800 w-28 text-right">
               {formatPricingCurrency(table.bond, currency)}
@@ -709,7 +709,7 @@ function PricingTableSection({
         )}
 
         {/* Grand Total */}
-        <div className="flex justify-between py-1 text-sm font-bold border-t border-gray-300">
+        <div className="flex justify-between py-0.5 text-[11px] leading-tight font-bold border-t border-gray-300">
           <span className="text-gray-800">GRAND TOTAL:</span>
           <span className="text-[#0A52EF] w-28 text-right">
             {formatPricingCurrency(effectiveGrand, currency)}
@@ -750,7 +750,7 @@ function AlternatesSection({
         {alternates.map((alt, idx) => (
           <div
             key={`alt-${idx}`}
-            className="flex justify-between py-1 border-b border-gray-100 text-[11px]"
+            className="flex justify-between py-0.5 border-b border-gray-100 text-[10px] leading-tight"
           >
             <div className="flex-1 pr-4">
               <span className="text-gray-700">{alt.description}</span>
@@ -909,7 +909,7 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
 
       <div className="border border-gray-300 break-inside-avoid">
         {/* Table Header - Fixed column widths to prevent overlapping */}
-        <div className="grid grid-cols-12 text-[9px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300 bg-gray-50">
+        <div className="grid grid-cols-12 text-[8px] font-bold uppercase tracking-wider text-gray-700 border-b border-gray-300 bg-gray-50">
           <div className="col-span-3 px-2 py-1.5">Display Name</div>
           <div className="col-span-3 px-2 py-1.5">Dimensions</div>
           <div className="col-span-1 px-2 py-1.5 text-right">Pitch</div>
@@ -919,7 +919,7 @@ function TechnicalSpecsSection({ screens }: { screens: any[] }) {
         </div>
 
         {/* Table Body */}
-        <div className="text-[9px] text-gray-900">
+        <div className="text-[8px] text-gray-900">
           {screens.map((screen: any, idx: number) => {
             const rawName = (screen?.customDisplayName || screen?.externalName || screen?.name || "Display").toString().trim() || "Display";
             const name = rawName.replace(/\s*nits\b/gi, " Brightness").replace(/\bnits\b/gi, "Brightness").trim();
@@ -983,7 +983,7 @@ function StatementOfWorkSection({ details }: { details: any }) {
         STATEMENT OF WORK
       </h2>
       <div
-        className="text-[10px] text-gray-600 leading-relaxed whitespace-pre-wrap"
+        className="text-[8px] text-gray-600 leading-tight whitespace-pre-wrap [&_p]:my-0 [&_p]:leading-tight [&_ul]:my-0 [&_ol]:my-0 [&_li]:my-0.5"
         dangerouslySetInnerHTML={{ __html: sow }}
       />
     </div>
