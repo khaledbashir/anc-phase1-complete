@@ -77,6 +77,8 @@ const workbooks = [
     { name: "NBCU (original)", path: "test-fixtures/pricing/Cost Analysis - NBCU 2025 Project - 9C - 10-30-2025.xlsx" },
     { name: "NBCU (v7)", path: ".ai-rules/Cost Analysis - NBCU 2025 Project - 9C - 10-30-2025 (7).xlsx" },
     { name: "Indiana Fever", path: "test-fixtures/pricing/Cost Analysis - Indiana Fever - 2026-01-22 (2).xlsx" },
+    { name: "LA Dodgers", path: ".claude/LA Dodgers - 2026 Reserve Level Ribbons - Cost Analysis - JSR and DJC - 2025-12-11 EG (2).xlsx" },
+    { name: "Cleveland Browns", path: ".ai-rules/Cleveland Browns - Huntington Bank Field - Cost Analysis - JOB - 2026-01-20 (1).xlsx" },
 ];
 
 const parsedDocs: PricingDocument[] = [];
