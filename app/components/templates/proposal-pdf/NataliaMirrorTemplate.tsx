@@ -97,12 +97,11 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
     return sub + tax + (table.bond || 0);
   };
 
-  // Document total: trust Excel when no overrides, otherwise recompute
-  const documentTotal = hasPriceOverrides
-    ? tables.reduce((sum, t) => sum + computeTableGrandTotal(t), 0)
-    : (Number.isFinite(pricingDocument?.documentTotal)
-        ? (pricingDocument?.documentTotal as number)
-        : tables.reduce((sum, t) => sum + t.grandTotal, 0));
+  // Document total: ALWAYS sum per-table computed totals so the displayed
+  // grand total matches the sum of displayed per-table totals.  Never trust
+  // pricingDocument.documentTotal — it comes from Excel's own total row
+  // which may differ from the per-item sums due to rounding.
+  const documentTotal = tables.reduce((sum, t) => sum + computeTableGrandTotal(t), 0);
 
   // Screen specifications from form (for Technical Specs section)
   const screens = (details as any)?.screens || [];
@@ -115,13 +114,13 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
   // Detect product type from screens to adjust header text
   const detectProductType = (): "LED" | "LCD" | "Display" => {
     if (!screens || screens.length === 0) return "Display";
-    
+
     const productTypes = new Set<string>();
     screens.forEach((screen: any) => {
       const type = (screen?.productType || "").toString().trim().toUpperCase();
       if (type) productTypes.add(type);
     });
-    
+
     // If all screens are LCD, use LCD
     if (productTypes.size === 1 && productTypes.has("LCD")) return "LCD";
     // If all screens are LED, use LED
@@ -129,7 +128,7 @@ export default function NataliaMirrorTemplate(data: NataliaMirrorTemplateProps) 
     // Mixed or unknown, use generic "Display"
     return "Display";
   };
-  
+
   const productType = detectProductType();
   const displayTypeLabel = productType === "Display" ? "Display" : `${productType} Display`;
 
@@ -413,8 +412,8 @@ function Header({
     documentMode === "BUDGET"
       ? "BUDGET ESTIMATE"
       : documentMode === "PROPOSAL"
-      ? "SALES QUOTATION"
-      : "LETTER OF INTENT";
+        ? "SALES QUOTATION"
+        : "LETTER OF INTENT";
 
   return (
     <div className="px-12 pt-6 pb-3 border-b-2 border-[#0A52EF]">
@@ -477,8 +476,8 @@ function IntroSection({
       documentMode === "BUDGET"
         ? `ANC is pleased to present the following ${displayTypeLabel} budget for ${clientName} per the specifications and pricing below.${currencyNote}`
         : documentMode === "PROPOSAL"
-        ? `ANC is pleased to present the following ${displayTypeLabel} proposal for ${clientName} per the specifications and pricing below.${currencyNote}`
-        : `This Letter of Intent will set forth the terms by which ${purchaserLegalName || clientName} ("Purchaser")${purchaserLocationClause} and ANC Sports Enterprises, LLC ("ANC") located at ${ancAddress} (collectively, the "Parties") agree that ANC will provide the following ${displayTypeLabel} and services (the "Display System") described below for the ${projectName || "project"}.${currencyNote}`;
+          ? `ANC is pleased to present the following ${displayTypeLabel} proposal for ${clientName} per the specifications and pricing below.${currencyNote}`
+          : `This Letter of Intent will set forth the terms by which ${purchaserLegalName || clientName} ("Purchaser")${purchaserLocationClause} and ANC Sports Enterprises, LLC ("ANC") located at ${ancAddress} (collectively, the "Parties") agree that ANC will provide the following ${displayTypeLabel} and services (the "Display System") described below for the ${projectName || "project"}.${currencyNote}`;
   }
 
   return (
@@ -1085,8 +1084,8 @@ function RespMatrixSOWSection({
           const sectionType = respMatrix.format === "short"
             ? "paragraph"
             : respMatrix.format === "long"
-            ? "table"
-            : categorizeSection(cat);
+              ? "table"
+              : categorizeSection(cat);
 
           return (
             <div key={catIdx}>

@@ -698,10 +698,10 @@ const ProposalTemplate2 = (data: ProposalTemplate2Props) => {
     };
 
     const CompanyFooter = () => (
-        <div className="px-4 mt-12 pb-6 border-t border-gray-100 text-center">
+        <div className="px-4 mt-12 pb-6 border-t-2 border-gray-300 text-center">
             <p className="text-[9px] text-gray-400 font-bold tracking-[0.2em] uppercase mb-1">ANC SPORTS ENTERPRISES, LLC</p>
             <p className="text-[8px] text-gray-400 font-medium">2 Manhattanville Road, Suite 402, Purchase, NY 10577  |  www.anc.com</p>
-            <div className="flex justify-center mt-6 opacity-20">
+            <div className="flex justify-center mt-4 opacity-60">
                 <BrandSlashes count={3} width={50} height={15} />
             </div>
         </div>

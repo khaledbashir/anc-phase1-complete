@@ -44,9 +44,10 @@ function computeGrandTotal(table: PricingTable, priceOverrides: Record<string, n
 }
 
 function computeDocumentTotal(document: PricingDocument, priceOverrides: Record<string, number>): number {
-    if (Object.keys(priceOverrides).length === 0) {
-        return document.documentTotal ?? document.tables.reduce((s, t) => s + t.grandTotal, 0);
-    }
+    // ALWAYS sum per-table computed totals so the displayed grand total
+    // matches the sum of displayed per-table totals.  Never trust
+    // document.documentTotal here — it comes from Excel's own total row
+    // which may differ from the per-item sums due to rounding.
     return document.tables.reduce((s, t) => s + computeGrandTotal(t, priceOverrides), 0);
 }
 
@@ -130,24 +131,27 @@ const ClassicMirrorTable = ({
                 </div>
             )}
 
-            {/* Items */}
+            {/* Items — hide $0 rows (e.g. "BOND $0") */}
             <div className="space-y-1.5 mb-3">
-                {table.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-start">
-                        <div className="flex-1 pr-4">
-                            <p className="text-sm font-medium text-gray-900 uppercase">
-                                {getEffectiveDescription(descriptionOverrides, table.id, idx, item.description)}
-                            </p>
+                {table.items
+                    .map((item, idx) => ({ item, idx }))
+                    .filter(({ item }) => Math.abs(item.sellingPrice) >= 0.01)
+                    .map(({ item, idx }) => (
+                        <div key={idx} className="flex justify-between items-start">
+                            <div className="flex-1 pr-4">
+                                <p className="text-sm font-medium text-gray-900 uppercase">
+                                    {getEffectiveDescription(descriptionOverrides, table.id, idx, item.description)}
+                                </p>
+                            </div>
+                            <div className="text-right whitespace-nowrap">
+                                <span className="font-bold text-sm text-black">
+                                    {item.isIncluded
+                                        ? "INCLUDED"
+                                        : formatCurrency(getEffectivePrice(priceOverrides, table.id, idx, item.sellingPrice), currency)}
+                                </span>
+                            </div>
                         </div>
-                        <div className="text-right whitespace-nowrap">
-                            <span className="font-bold text-sm text-black">
-                                {item.isIncluded
-                                    ? "INCLUDED"
-                                    : formatCurrency(getEffectivePrice(priceOverrides, table.id, idx, item.sellingPrice), currency)}
-                            </span>
-                        </div>
-                    </div>
-                ))}
+                    ))}
             </div>
 
             {/* Subtotal */}
@@ -282,24 +286,27 @@ const PremiumMirrorTable = ({
                 ) : null}
             </div>
 
-            {/* Line Items */}
+            {/* Line Items — hide $0 rows (e.g. "BOND $0") */}
             <div className="space-y-0">
-                {table.items.map((it, idx) => (
-                    <div key={idx} className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
-                        <div className="flex-1">
-                            <h3 className="font-bold text-sm uppercase text-[#002C73] font-sans">
-                                {getEffectiveDescription(descriptionOverrides, table.id, idx, it.description)}
-                            </h3>
+                {table.items
+                    .map((it, idx) => ({ it, idx }))
+                    .filter(({ it }) => Math.abs(it.sellingPrice) >= 0.01)
+                    .map(({ it, idx }) => (
+                        <div key={idx} className="flex justify-between items-center py-3 border-b border-gray-100 last:border-0">
+                            <div className="flex-1">
+                                <h3 className="font-bold text-sm uppercase text-[#002C73] font-sans">
+                                    {getEffectiveDescription(descriptionOverrides, table.id, idx, it.description)}
+                                </h3>
+                            </div>
+                            <div className="text-right">
+                                <span className="font-bold text-xl text-[#002C73]">
+                                    {it.isIncluded
+                                        ? "INCLUDED"
+                                        : formatCurrency(getEffectivePrice(priceOverrides, table.id, idx, it.sellingPrice), currency)}
+                                </span>
+                            </div>
                         </div>
-                        <div className="text-right">
-                            <span className="font-bold text-xl text-[#002C73]">
-                                {it.isIncluded
-                                    ? "INCLUDED"
-                                    : formatCurrency(getEffectivePrice(priceOverrides, table.id, idx, it.sellingPrice), currency)}
-                            </span>
-                        </div>
-                    </div>
-                ))}
+                    ))}
             </div>
 
             {/* Subtotal & Extras */}

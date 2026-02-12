@@ -429,153 +429,152 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 .map((table: any, origIdx: number) => ({ table, origIdx }))
                 .filter(({ origIdx }) => origIdx !== masterTableIndex);
 
-            const hasPriceOvr = Object.keys(priceOverrides).length > 0;
-            const documentTotal = hasPriceOvr
-                ? pricingTables.reduce((sum: number, t: any) => {
-                    const tItems = (t?.items || []) as any[];
-                    const tSub = tItems.reduce((s: number, item: any, idx: number) => {
-                        if (item?.isIncluded) return s;
-                        const key = `${t?.id}:${idx}`;
-                        return s + (priceOverrides[key] !== undefined ? priceOverrides[key] : Number(item?.sellingPrice ?? 0));
-                    }, 0);
-                    const tOrigSub = Number(t?.subtotal ?? 0);
-                    const tOrigTax = typeof t?.tax === 'object' ? Number(t?.tax?.amount ?? 0) : Number(t?.tax ?? 0);
-                    const tRate = tOrigSub > 0 ? tOrigTax / tOrigSub : 0;
-                    return sum + tSub + (tSub * tRate) + Number(t?.bond ?? 0);
-                }, 0)
-                : (Number.isFinite(pricingDocument?.documentTotal)
-                    ? pricingDocument.documentTotal
-                    : pricingTables.reduce((sum: number, t: any) => sum + (Number(t?.grandTotal ?? 0) || 0), 0));
+            // Document total: ALWAYS sum per-table computed totals so the
+            // displayed grand total matches the sum of displayed per-table
+            // totals.  Never trust pricingDocument.documentTotal — it comes
+            // from Excel's own total row which may differ due to rounding.
+            const documentTotal = pricingTables.reduce((sum: number, t: any) => {
+                const tItems = (t?.items || []) as any[];
+                const tSub = tItems.reduce((s: number, item: any, idx: number) => {
+                    if (item?.isIncluded) return s;
+                    const key = `${t?.id}:${idx}`;
+                    return s + Math.round(priceOverrides[key] !== undefined ? priceOverrides[key] : Number(item?.sellingPrice ?? 0));
+                }, 0);
+                const tOrigSub = Number(t?.subtotal ?? 0);
+                const tOrigTax = typeof t?.tax === 'object' ? Number(t?.tax?.amount ?? 0) : Number(t?.tax ?? 0);
+                const tRate = tOrigSub > 0 ? tOrigTax / tOrigSub : 0;
+                return sum + tSub + Math.round(tSub * tRate) + Number(t?.bond ?? 0);
+            }, 0);
 
             // Render a single detail table card (reused in both portrait and landscape)
             const renderDetailTable = ({ table, origIdx }: { table: any; origIdx: number }) => {
-                        const tableName = (table?.name ?? "").toString().trim();
-                        const tableId = table?.id;
-                        const override = tableId ? tableHeaderOverrides[tableId] : undefined;
-                        const label = (override || screenNameMap[tableName] || (tableName || "Section")).toString().trim();
-                        const items = (table?.items || []) as any[];
-                        // Fix 5: Only include alternates that have actual content (non-empty description AND non-zero price)
-                        const alternates = ((table?.alternates || []) as any[]).filter((alt: any) => {
-                            const desc = (alt?.description || "").toString().trim();
-                            const price = Number(alt?.priceDifference ?? alt?.price ?? 0);
-                            return desc.length > 0 && Math.abs(price) >= 0.01;
-                        });
-                        const originalSubtotal = Number(table?.subtotal ?? 0);
-                        const taxInfo = table?.tax;
-                        const originalTaxAmount = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
-                        const taxLabel = typeof taxInfo === 'object' ? (taxInfo?.label || "TAX") : "TAX";
-                        const bond = Number(table?.bond ?? 0);
-                        // Recompute totals when price overrides exist
-                        const subtotal = items.reduce((sum: number, item: any, idx: number) => {
-                            if (item?.isIncluded) return sum;
-                            const key = `${tableId}:${idx}`;
-                            const price = priceOverrides[key] !== undefined ? priceOverrides[key] : Number(item?.sellingPrice ?? 0);
-                            return sum + price;
-                        }, 0);
-                        const taxRate = originalSubtotal > 0 ? originalTaxAmount / originalSubtotal : 0;
-                        const taxAmount = subtotal * taxRate;
-                        const grandTotal = subtotal + taxAmount + bond;
+                const tableName = (table?.name ?? "").toString().trim();
+                const tableId = table?.id;
+                const override = tableId ? tableHeaderOverrides[tableId] : undefined;
+                const label = (override || screenNameMap[tableName] || (tableName || "Section")).toString().trim();
+                const items = (table?.items || []) as any[];
+                // Fix 5: Only include alternates that have actual content (non-empty description AND non-zero price)
+                const alternates = ((table?.alternates || []) as any[]).filter((alt: any) => {
+                    const desc = (alt?.description || "").toString().trim();
+                    const price = Number(alt?.priceDifference ?? alt?.price ?? 0);
+                    return desc.length > 0 && Math.abs(price) >= 0.01;
+                });
+                const originalSubtotal = Number(table?.subtotal ?? 0);
+                const taxInfo = table?.tax;
+                const originalTaxAmount = typeof taxInfo === 'object' ? Number(taxInfo?.amount ?? 0) : Number(taxInfo ?? 0);
+                const taxLabel = typeof taxInfo === 'object' ? (taxInfo?.label || "TAX") : "TAX";
+                const bond = Number(table?.bond ?? 0);
+                // Recompute totals from rounded row prices (matches what formatCurrency displays)
+                const subtotal = items.reduce((sum: number, item: any, idx: number) => {
+                    if (item?.isIncluded) return sum;
+                    const key = `${tableId}:${idx}`;
+                    const price = priceOverrides[key] !== undefined ? priceOverrides[key] : Number(item?.sellingPrice ?? 0);
+                    return sum + Math.round(price);
+                }, 0);
+                const taxRate = originalSubtotal > 0 ? originalTaxAmount / originalSubtotal : 0;
+                const taxAmount = Math.round(subtotal * taxRate);
+                const grandTotal = subtotal + taxAmount + bond;
 
-                        return (
-                            <div key={tableId || `table-${origIdx}`} className="mt-2">
-                                <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
-                                    {/* Table header — text + thin blue underline */}
+                return (
+                    <div key={tableId || `table-${origIdx}`} className="mt-2">
+                        <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
+                            {/* Table header — text + thin blue underline */}
+                            <div
+                                className="grid grid-cols-12 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                                style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent', breakAfter: 'avoid', pageBreakAfter: 'avoid' }}
+                            >
+                                <div className="col-span-8">{label.toUpperCase()}</div>
+                                <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
+                            </div>
+
+                            {/* Line items (CURRENCY_FORMAT.hideZeroLineItems filters $0 rows) */}
+                            {items.map((item: any, idx: number) => {
+                                const itemPrice = priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : Number(item?.sellingPrice ?? 0);
+                                if (CURRENCY_FORMAT.hideZeroLineItems && !item?.isIncluded && Math.abs(itemPrice) < 0.01) return null;
+                                return (
                                     <div
-                                        className="grid grid-cols-12 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
-                                        style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
+                                        key={`${tableId}-item-${idx}`}
+                                        className="grid grid-cols-12 px-3 py-1.5 border-t break-inside-avoid items-center"
+                                        style={{
+                                            borderColor: colors.borderLight,
+                                            background: idx % 2 === 1 ? colors.surface : colors.white,
+                                            minHeight: '24px',
+                                        }}
                                     >
-                                        <div className="col-span-8">{label.toUpperCase()}</div>
-                                        <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
-                                    </div>
-
-                                    {/* Line items (CURRENCY_FORMAT.hideZeroLineItems filters $0 rows) */}
-                                    {items.map((item: any, idx: number) => {
-                                        const itemPrice = priceOverrides[`${tableId}:${idx}`] !== undefined ? priceOverrides[`${tableId}:${idx}`] : Number(item?.sellingPrice ?? 0);
-                                        if (CURRENCY_FORMAT.hideZeroLineItems && !item?.isIncluded && Math.abs(itemPrice) < 0.01) return null;
-                                        return (
-                                        <div
-                                            key={`${tableId}-item-${idx}`}
-                                            className="grid grid-cols-12 px-3 py-1.5 border-t break-inside-avoid items-center"
-                                            style={{
-                                                borderColor: colors.borderLight,
-                                                background: idx % 2 === 1 ? colors.surface : colors.white,
-                                                minHeight: '24px',
-                                            }}
-                                        >
-                                            <div className="col-span-8 pr-2 text-[10px]" style={{ color: colors.text }}>
-                                                {(descriptionOverrides[`${tableId}:${idx}`] || item?.description || "Item").toString()}
-                                            </div>
-                                            <div className="col-span-4 text-right font-semibold text-[10px] whitespace-nowrap" style={{ color: colors.primaryDark }}>
-                                                {item?.isIncluded
-                                                    ? <span style={{ color: colors.text }}>INCLUDED</span>
-                                                    : formatCurrency(itemPrice, currency)}
-                                            </div>
+                                        <div className="col-span-8 pr-2 text-[10px]" style={{ color: colors.text }}>
+                                            {(descriptionOverrides[`${tableId}:${idx}`] || item?.description || "Item").toString()}
                                         </div>
-                                        );
-                                    })}
-
-                                    {/* Footer: Subtotal / Tax / Bond / Grand Total */}
-                                    <div className="border-t-2" style={{ borderColor: colors.border }}>
-                                        {Math.abs(subtotal) >= 0.01 && subtotal !== grandTotal && (
-                                            <div className="grid grid-cols-12 px-3 py-1 text-[10px] font-bold" style={{ color: colors.text }}>
-                                                <div className="col-span-8">SUBTOTAL</div>
-                                                <div className="col-span-4 text-right">{formatCurrency(subtotal, currency)}</div>
-                                            </div>
-                                        )}
-                                        {Math.abs(taxAmount) >= 0.01 && (
-                                            <div className="grid grid-cols-12 px-3 py-1 text-[10px]" style={{ color: colors.textMuted }}>
-                                                <div className="col-span-8">{taxLabel}</div>
-                                                <div className="col-span-4 text-right">{formatCurrency(taxAmount, currency)}</div>
-                                            </div>
-                                        )}
-                                        {Math.abs(bond) >= 0.01 && (
-                                            <div className="grid grid-cols-12 px-3 py-1 text-[10px]" style={{ color: colors.textMuted }}>
-                                                <div className="col-span-8">BOND</div>
-                                                <div className="col-span-4 text-right">{formatCurrency(bond, currency)}</div>
-                                            </div>
-                                        )}
-                                        <div
-                                            className="grid grid-cols-12 px-3 py-1.5 border-t break-inside-avoid"
-                                            style={{ borderColor: colors.primary, background: colors.primaryLight }}
-                                        >
-                                            <div className="col-span-8 font-bold text-[10px] uppercase tracking-wide" style={{ color: colors.primaryDark }}>GRAND TOTAL</div>
-                                            <div className="col-span-4 text-right font-bold text-xs" style={{ color: colors.primaryDark }}>{formatCurrency(grandTotal, currency)}</div>
+                                        <div className="col-span-4 text-right font-semibold text-[10px] whitespace-nowrap" style={{ color: colors.primaryDark }}>
+                                            {item?.isIncluded
+                                                ? <span style={{ color: colors.text }}>INCLUDED</span>
+                                                : formatCurrency(itemPrice, currency)}
                                         </div>
                                     </div>
-                                </div>
+                                );
+                            })}
 
-                                {/* Alternates — separate table AFTER grand total (mirrors Excel structure) */}
-                                {alternates.length > 0 && (
-                                    <div className="mt-2 rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
-                                        <div
-                                            className="grid grid-cols-12 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
-                                            style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
-                                        >
-                                            <div className="col-span-8">ALTERNATES — ADD TO COST ABOVE</div>
-                                            <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
-                                        </div>
-                                        {alternates.map((alt: any, aidx: number) => (
-                                            <div
-                                                key={`alt-${aidx}`}
-                                                className="grid grid-cols-12 px-3 py-1.5 border-t break-inside-avoid items-center"
-                                                style={{
-                                                    borderColor: colors.borderLight,
-                                                    background: aidx % 2 === 1 ? colors.surface : colors.white,
-                                                    minHeight: '24px',
-                                                }}
-                                            >
-                                                <div className="col-span-8 pr-2 text-[10px]" style={{ color: colors.text }}>
-                                                    {(alt?.description || "Alternate").toString()}
-                                                </div>
-                                                <div className="col-span-4 text-right font-semibold text-[10px] whitespace-nowrap" style={{ color: colors.primaryDark }}>
-                                                    {formatCurrency(Number(alt?.priceDifference ?? 0), currency)}
-                                                </div>
-                                            </div>
-                                        ))}
+                            {/* Footer: Subtotal / Tax / Bond / Grand Total */}
+                            <div className="border-t-2" style={{ borderColor: colors.border }}>
+                                {Math.abs(subtotal) >= 0.01 && subtotal !== grandTotal && (
+                                    <div className="grid grid-cols-12 px-3 py-1 text-[10px] font-bold" style={{ color: colors.text }}>
+                                        <div className="col-span-8">SUBTOTAL</div>
+                                        <div className="col-span-4 text-right">{formatCurrency(subtotal, currency)}</div>
                                     </div>
                                 )}
+                                {Math.abs(taxAmount) >= 0.01 && (
+                                    <div className="grid grid-cols-12 px-3 py-1 text-[10px]" style={{ color: colors.textMuted }}>
+                                        <div className="col-span-8">{taxLabel}</div>
+                                        <div className="col-span-4 text-right">{formatCurrency(taxAmount, currency)}</div>
+                                    </div>
+                                )}
+                                {Math.abs(bond) >= 0.01 && (
+                                    <div className="grid grid-cols-12 px-3 py-1 text-[10px]" style={{ color: colors.textMuted }}>
+                                        <div className="col-span-8">BOND</div>
+                                        <div className="col-span-4 text-right">{formatCurrency(bond, currency)}</div>
+                                    </div>
+                                )}
+                                <div
+                                    className="grid grid-cols-12 px-3 py-1.5 border-t break-inside-avoid"
+                                    style={{ borderColor: colors.primary, background: colors.primaryLight }}
+                                >
+                                    <div className="col-span-8 font-bold text-[10px] uppercase tracking-wide" style={{ color: colors.primaryDark }}>GRAND TOTAL</div>
+                                    <div className="col-span-4 text-right font-bold text-xs" style={{ color: colors.primaryDark }}>{formatCurrency(grandTotal, currency)}</div>
+                                </div>
                             </div>
-                        );
+                        </div>
+
+                        {/* Alternates — separate table AFTER grand total (mirrors Excel structure) */}
+                        {alternates.length > 0 && (
+                            <div className="mt-2 rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
+                                <div
+                                    className="grid grid-cols-12 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
+                                    style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
+                                >
+                                    <div className="col-span-8">ALTERNATES — ADD TO COST ABOVE</div>
+                                    <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
+                                </div>
+                                {alternates.map((alt: any, aidx: number) => (
+                                    <div
+                                        key={`alt-${aidx}`}
+                                        className="grid grid-cols-12 px-3 py-1.5 border-t break-inside-avoid items-center"
+                                        style={{
+                                            borderColor: colors.borderLight,
+                                            background: aidx % 2 === 1 ? colors.surface : colors.white,
+                                            minHeight: '24px',
+                                        }}
+                                    >
+                                        <div className="col-span-8 pr-2 text-[10px]" style={{ color: colors.text }}>
+                                            {(alt?.description || "Alternate").toString()}
+                                        </div>
+                                        <div className="col-span-4 text-right font-semibold text-[10px] whitespace-nowrap" style={{ color: colors.primaryDark }}>
+                                            {formatCurrency(Number(alt?.priceDifference ?? 0), currency)}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                );
             };
 
             return (
@@ -618,75 +617,75 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const quoteItems = (((details as any)?.quoteItems || []) as any[]).filter(Boolean);
 
         const lineItems: LineItem[] = quoteItems.length > 0
-                ? quoteItems.map((it: any, idx: number) => {
-                    const rawLocation = (it.locationName || "ITEM").toString();
-                    const matchingScreen = screens.find((s: any) => {
-                        if (s.id && it.id && s.id === it.id) return true;
-                        const sName = (s.externalName || s.name || "").toString().trim().toUpperCase();
-                        const itName = (it.locationName || "").toString().trim().toUpperCase();
-                        if (sName === itName && sName.length > 0) return true;
-                        if (sName.length > 3 && itName.includes(sName)) return true;
-                        return false;
-                    });
-                    const customOverride = matchingScreen?.customDisplayName;
-                    const effectiveLocation = customOverride || rawLocation;
-                    const split = splitDisplayNameAndSpecs(effectiveLocation);
-                    const header = (split.header || effectiveLocation).toString();
+            ? quoteItems.map((it: any, idx: number) => {
+                const rawLocation = (it.locationName || "ITEM").toString();
+                const matchingScreen = screens.find((s: any) => {
+                    if (s.id && it.id && s.id === it.id) return true;
+                    const sName = (s.externalName || s.name || "").toString().trim().toUpperCase();
+                    const itName = (it.locationName || "").toString().trim().toUpperCase();
+                    if (sName === itName && sName.length > 0) return true;
+                    if (sName.length > 3 && itName.includes(sName)) return true;
+                    return false;
+                });
+                const customOverride = matchingScreen?.customDisplayName;
+                const effectiveLocation = customOverride || rawLocation;
+                const split = splitDisplayNameAndSpecs(effectiveLocation);
+                const header = (split.header || effectiveLocation).toString();
 
-                    // Strip location name from description
-                    let desc = (it.description || "").toString();
-                    const stripLeadingLocation = (locationName: string, raw: string) => {
-                        const loc = (locationName || "").toString().trim();
-                        const text = (raw || "").toString().trim();
-                        if (!loc || !text) return text;
-                        const locUpper = loc.toUpperCase();
-                        const textUpper = text.toUpperCase();
-                        if (textUpper === locUpper) return "";
-                        const dashPrefix = `${locUpper} - `;
-                        if (textUpper.startsWith(dashPrefix)) return text.slice(dashPrefix.length).trim();
-                        if (textUpper.startsWith(locUpper)) return text.slice(loc.length).replace(/^(\s*[-–—:]\s*)/, "").trim();
-                        return text;
-                    };
-                    desc = stripLeadingLocation(rawLocation, desc);
-                    desc = stripLeadingLocation(effectiveLocation, desc);
-                    let combined = [split.specs, desc].filter(Boolean).join(" ").trim();
-                    combined = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(combined)));
+                // Strip location name from description
+                let desc = (it.description || "").toString();
+                const stripLeadingLocation = (locationName: string, raw: string) => {
+                    const loc = (locationName || "").toString().trim();
+                    const text = (raw || "").toString().trim();
+                    if (!loc || !text) return text;
+                    const locUpper = loc.toUpperCase();
+                    const textUpper = text.toUpperCase();
+                    if (textUpper === locUpper) return "";
+                    const dashPrefix = `${locUpper} - `;
+                    if (textUpper.startsWith(dashPrefix)) return text.slice(dashPrefix.length).trim();
+                    if (textUpper.startsWith(locUpper)) return text.slice(loc.length).replace(/^(\s*[-–—:]\s*)/, "").trim();
+                    return text;
+                };
+                desc = stripLeadingLocation(rawLocation, desc);
+                desc = stripLeadingLocation(effectiveLocation, desc);
+                let combined = [split.specs, desc].filter(Boolean).join(" ").trim();
+                combined = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(combined)));
 
-                    const normalizedHeader = header.replace(/\s*-\s*/g, " - ").trim();
+                const normalizedHeader = header.replace(/\s*-\s*/g, " - ").trim();
+                return {
+                    key: it.id || `quote-${idx}`,
+                    name: stripQtyFromDescription(sanitizeNitsForDisplay(normalizedHeader)).toUpperCase(),
+                    description: combined,
+                    price: Number(it.price || 0) || 0,
+                    isAlternate: it.isAlternate || false,
+                };
+            }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01)
+            : [
+                ...(screens || []).map((screen: any, idx: number) => {
+                    const auditRow = isSharedView
+                        ? null
+                        : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
+                    const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
+                    const label = (screen?.externalName || screen?.customDisplayName || screen?.name || "Display").toString().trim();
+                    const split = splitDisplayNameAndSpecs(label);
+                    const rawDesc = split.specs || buildDescription(screen);
+                    const cleanDesc = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(rawDesc)));
                     return {
-                        key: it.id || `quote-${idx}`,
-                        name: stripQtyFromDescription(sanitizeNitsForDisplay(normalizedHeader)).toUpperCase(),
-                        description: combined,
-                        price: Number(it.price || 0) || 0,
-                        isAlternate: it.isAlternate || false,
+                        key: `screen-${screen?.id || screen?.name || idx}`,
+                        name: stripQtyFromDescription((split.header ? sanitizeNitsForDisplay(split.header) : getScreenHeader(screen))).toUpperCase(),
+                        description: cleanDesc,
+                        price: Number(price) || 0,
+                        isAlternate: screen?.isAlternate || false,
                     };
-                }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01)
-                : [
-                    ...(screens || []).map((screen: any, idx: number) => {
-                        const auditRow = isSharedView
-                            ? null
-                            : internalAudit?.perScreen?.find((s: any) => s.id === screen.id || s.name === screen.name);
-                        const price = auditRow?.breakdown?.sellPrice || auditRow?.breakdown?.finalClientTotal || 0;
-                        const label = (screen?.externalName || screen?.customDisplayName || screen?.name || "Display").toString().trim();
-                        const split = splitDisplayNameAndSpecs(label);
-                        const rawDesc = split.specs || buildDescription(screen);
-                        const cleanDesc = stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay(rawDesc)));
-                        return {
-                            key: `screen-${screen?.id || screen?.name || idx}`,
-                            name: stripQtyFromDescription((split.header ? sanitizeNitsForDisplay(split.header) : getScreenHeader(screen))).toUpperCase(),
-                            description: cleanDesc,
-                            price: Number(price) || 0,
-                            isAlternate: screen?.isAlternate || false,
-                        };
-                    }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
-                    ...softCostItems.map((item: any, idx: number) => ({
-                        key: `soft-${idx}`,
-                        name: stripQtyFromDescription(sanitizeNitsForDisplay((item?.name || "Item").toString())).toUpperCase(),
-                        description: stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay((item?.description || "").toString()))),
-                        price: Number(item?.sell || 0),
-                        isAlternate: item?.isAlternate || false,
-                    })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
-                ];
+                }).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
+                ...softCostItems.map((item: any, idx: number) => ({
+                    key: `soft-${idx}`,
+                    name: stripQtyFromDescription(sanitizeNitsForDisplay((item?.name || "Item").toString())).toUpperCase(),
+                    description: stripQtyFromDescription(stripDensityAndHDRFromSpecText(sanitizeNitsForDisplay((item?.description || "").toString()))),
+                    price: Number(item?.sell || 0),
+                    isAlternate: item?.isAlternate || false,
+                })).filter((it: any) => it.isAlternate || Math.abs(it.price) >= 0.01),
+            ];
 
         const primaryItems = lineItems.filter((it) => !it.isAlternate);
         const alternateItems = lineItems.filter((it) => it.isAlternate);
@@ -931,8 +930,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         const sectionType = respMatrix.format === "short"
                             ? "paragraph"
                             : respMatrix.format === "long"
-                            ? "table"
-                            : categorizeSection(cat);
+                                ? "table"
+                                : categorizeSection(cat);
 
                         return (
                             <div key={catIdx}>
