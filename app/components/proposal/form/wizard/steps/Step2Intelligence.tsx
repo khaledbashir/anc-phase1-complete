@@ -11,7 +11,7 @@ import SchedulePreview from "@/app/components/proposal/form/sections/SchedulePre
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useProposalContext } from "@/contexts/ProposalContext";
-import { resolveDocumentMode, applyDocumentModeDefaults, type DocumentMode } from "@/lib/documentMode";
+import { resolveDocumentMode, forceDocumentModeDefaults, type DocumentMode } from "@/lib/documentMode";
 import { SOWGeneratorPanel } from "@/app/components/proposal/SOWGeneratorPanel";
 import {
     Select,
@@ -165,7 +165,7 @@ const Step2Intelligence = () => {
     const screenCount = screens.length;
     const hasData = aiWorkspaceSlug || screenCount > 0;
     const [originalScreenDetails, setOriginalScreenDetails] = useState<Record<string, { displayName: string; brightness: number | string | "" }>>({});
-    
+
     // Intelligence section collapsed by default
     const [showIntelligence, setShowIntelligence] = useState(false);
 
@@ -195,6 +195,25 @@ const Step2Intelligence = () => {
     }, [screens]);
 
     // Shared Document Mode Selector (used by both modes)
+    const handleModeChange = (newMode: DocumentMode) => {
+        setValue("details.documentMode", newMode, { shouldDirty: true });
+        const currentDetails = getValues("details") as any;
+        const updated = forceDocumentModeDefaults(newMode, currentDetails);
+        const desiredDocumentType = newMode === "LOI" ? "LOI" : "First Round";
+        const desiredPricingType = newMode === "PROPOSAL" ? "Hard Quoted" : "Budget";
+        if (currentDetails?.documentType !== desiredDocumentType) {
+            setValue("details.documentType", desiredDocumentType as any, { shouldDirty: true });
+        }
+        if (currentDetails?.pricingType !== desiredPricingType) {
+            setValue("details.pricingType", desiredPricingType as any, { shouldDirty: true });
+        }
+        for (const [key, value] of Object.entries(updated)) {
+            if (key.startsWith("show") && currentDetails?.[key] !== value) {
+                setValue(`details.${key}` as any, value, { shouldDirty: true });
+            }
+        }
+    };
+
     const DocumentModeSelector = (
         <div className="flex flex-col gap-3 px-4 py-3 rounded-lg border border-border bg-card/50">
             <div className="flex flex-col gap-2">
@@ -208,31 +227,12 @@ const Step2Intelligence = () => {
                 </div>
                 <Select
                     value={mode}
-                    onValueChange={(val) => {
-                        const newMode = val as DocumentMode;
-                        setValue("details.documentMode", newMode, { shouldDirty: true });
-                        const currentDetails = getValues("details") as any;
-                        const updated = applyDocumentModeDefaults(newMode, currentDetails);
-                        const desiredDocumentType = newMode === "LOI" ? "LOI" : "First Round";
-                        const desiredPricingType = newMode === "PROPOSAL" ? "Hard Quoted" : "Budget";
-                        if (currentDetails?.documentType !== desiredDocumentType) {
-                            setValue("details.documentType", desiredDocumentType as any, { shouldDirty: true });
-                        }
-                        if (currentDetails?.pricingType !== desiredPricingType) {
-                            setValue("details.pricingType", desiredPricingType as any, { shouldDirty: true });
-                        }
-                        for (const [key, value] of Object.entries(updated)) {
-                            if (key.startsWith("show") && currentDetails?.[key] !== value) {
-                                setValue(`details.${key}` as any, value, { shouldDirty: true });
-                            }
-                        }
-                    }}
+                    onValueChange={(val) => handleModeChange(val as DocumentMode)}
                 >
-                    <SelectTrigger className={`w-full text-sm font-semibold border-border ${
-                        mode === "BUDGET" ? "bg-amber-500/10 text-amber-400 border-amber-500/30" :
-                        mode === "PROPOSAL" ? "bg-[#0A52EF]/10 text-[#0A52EF] border-[#0A52EF]/30" :
-                        "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                    }`}>
+                    <SelectTrigger className={`w-full text-sm font-semibold border-border ${mode === "BUDGET" ? "bg-amber-500/10 text-amber-400 border-amber-500/30" :
+                            mode === "PROPOSAL" ? "bg-[#0A52EF]/10 text-[#0A52EF] border-[#0A52EF]/30" :
+                                "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                        }`}>
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border text-foreground">
@@ -244,18 +244,18 @@ const Step2Intelligence = () => {
                 {mode === "BUDGET" && (
                     <div className="flex gap-2">
                         <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-                            onClick={() => setValue("details.documentMode", "PROPOSAL" as DocumentMode, { shouldDirty: true })}>
+                            onClick={() => handleModeChange("PROPOSAL")}>
                             Promote to Proposal
                         </button>
                         <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 transition-colors"
-                            onClick={() => setValue("details.documentMode", "LOI" as DocumentMode, { shouldDirty: true })}>
+                            onClick={() => handleModeChange("LOI")}>
                             Promote to LOI
                         </button>
                     </div>
                 )}
                 {mode === "PROPOSAL" && (
                     <button type="button" className="text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10 transition-colors w-fit"
-                        onClick={() => setValue("details.documentMode", "LOI" as DocumentMode, { shouldDirty: true })}>
+                        onClick={() => handleModeChange("LOI")}>
                         Promote to LOI
                     </button>
                 )}
@@ -280,15 +280,15 @@ const Step2Intelligence = () => {
                     <SelectTrigger className="w-full bg-card border-border text-sm text-foreground">
                         <SelectValue placeholder="Select page layout" />
                     </SelectTrigger>
-	                    <SelectContent className="bg-card border-border text-foreground">
-	                        <SelectItem value="portrait-letter" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — Letter</SelectItem>
-	                        <SelectItem value="portrait-legal" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — Legal</SelectItem>
-	                        <SelectItem value="portrait-a4" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — A4</SelectItem>
-	                        <SelectItem value="landscape-letter" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — Letter</SelectItem>
-	                        <SelectItem value="landscape-legal" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — Legal</SelectItem>
-	                        <SelectItem value="landscape-a4" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — A4</SelectItem>
-	                    </SelectContent>
-	                </Select>
+                    <SelectContent className="bg-card border-border text-foreground">
+                        <SelectItem value="portrait-letter" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — Letter</SelectItem>
+                        <SelectItem value="portrait-legal" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — Legal</SelectItem>
+                        <SelectItem value="portrait-a4" className="text-foreground focus:bg-muted focus:text-foreground">Portrait — A4</SelectItem>
+                        <SelectItem value="landscape-letter" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — Letter</SelectItem>
+                        <SelectItem value="landscape-legal" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — Legal</SelectItem>
+                        <SelectItem value="landscape-a4" className="text-foreground focus:bg-muted focus:text-foreground">Landscape — A4</SelectItem>
+                    </SelectContent>
+                </Select>
                 <span className="text-[10px] text-muted-foreground">
                     {((details as any)?.pageLayout || "portrait-letter").startsWith("landscape")
                         ? "Landscape: pricing sections render two per row"
@@ -539,7 +539,7 @@ const Step2Intelligence = () => {
                             <ChevronDown className="w-4 h-4 text-muted-foreground" />
                         )}
                     </button>
-                    
+
                     {showIntelligence && (
                         <div className="p-4 bg-card border-t border-border animate-in fade-in slide-in-from-top-2 duration-200">
                             <p className="text-sm text-foreground leading-relaxed">

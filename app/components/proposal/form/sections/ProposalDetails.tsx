@@ -25,7 +25,7 @@ import {
 import { useTranslationContext } from "@/contexts/TranslationContext";
 import { useFormContext, useWatch } from "react-hook-form";
 import type { ProposalType } from "@/types";
-import { applyDocumentModeDefaults, resolveDocumentMode, type DocumentMode } from "@/lib/documentMode";
+import { applyDocumentModeDefaults, forceDocumentModeDefaults, resolveDocumentMode, type DocumentMode } from "@/lib/documentMode";
 
 /**
  * Master Table Selector — Prompt 51
@@ -102,6 +102,26 @@ const ProposalDetails = () => {
     const rawMode = useWatch({ name: "details.documentMode", control }) as DocumentMode | undefined;
     const details = useWatch({ name: "details", control });
     const mode = rawMode || resolveDocumentMode(details);
+
+    const handleModeChange = (newMode: DocumentMode) => {
+        setValue("details.documentMode", newMode, { shouldDirty: true });
+        const currentDetails = getValues("details") as any;
+        const updated = forceDocumentModeDefaults(newMode, currentDetails);
+        const desiredDocumentType = newMode === "LOI" ? "LOI" : "First Round";
+        const desiredPricingType = newMode === "PROPOSAL" ? "Hard Quoted" : "Budget";
+
+        if (currentDetails?.documentType !== desiredDocumentType) {
+            setValue("details.documentType", desiredDocumentType as any, { shouldDirty: true });
+        }
+        if (currentDetails?.pricingType !== desiredPricingType) {
+            setValue("details.pricingType", desiredPricingType as any, { shouldDirty: true });
+        }
+        for (const [key, value] of Object.entries(updated)) {
+            if (key.startsWith("show") && currentDetails?.[key] !== value) {
+                setValue(`details.${key}` as any, value, { shouldDirty: true });
+            }
+        }
+    };
 
     useEffect(() => {
         const nextMode = (rawMode || resolveDocumentMode(getValues("details"))) as DocumentMode;
@@ -184,21 +204,28 @@ const ProposalDetails = () => {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <FormSelect
-                        name="details.documentMode"
-                        label="Document Lifecycle"
-                        options={[
-                            { label: "Budget", value: "BUDGET" },
-                            { label: "Proposal", value: "PROPOSAL" },
-                            { label: "LOI", value: "LOI" },
-                        ]}
-                    />
+                    <div className="flex flex-col gap-1.5 w-full">
+                        <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Document Lifecycle</label>
+                        <Select
+                            value={mode}
+                            onValueChange={(val) => handleModeChange(val as DocumentMode)}
+                        >
+                            <SelectTrigger className="w-full bg-background border-input text-sm">
+                                <SelectValue placeholder="Select mode" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border-border text-popover-foreground">
+                                <SelectItem value="BUDGET" className="focus:bg-accent focus:text-accent-foreground">Budget</SelectItem>
+                                <SelectItem value="PROPOSAL" className="focus:bg-accent focus:text-accent-foreground">Proposal</SelectItem>
+                                <SelectItem value="LOI" className="focus:bg-accent focus:text-accent-foreground">LOI</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                         {mode === "BUDGET" && (
                             <BaseButton
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setValue("details.documentMode", "PROPOSAL" as DocumentMode, { shouldDirty: true })}
+                                onClick={() => handleModeChange("PROPOSAL")}
                             >
                                 Promote to Proposal
                             </BaseButton>
@@ -207,7 +234,7 @@ const ProposalDetails = () => {
                             <BaseButton
                                 variant="default"
                                 size="sm"
-                                onClick={() => setValue("details.documentMode", "LOI" as DocumentMode, { shouldDirty: true })}
+                                onClick={() => handleModeChange("LOI")}
                             >
                                 Promote to LOI
                             </BaseButton>

@@ -61,3 +61,21 @@ export function applyDocumentModeDefaults(mode: DocumentMode, current: any) {
   if (base.showExhibitA === undefined) base.showExhibitA = false;
   return base;
 }
+
+/**
+ * Force apply document mode defaults (strict overwrite)
+ * used when user explicitly changes mode via UI
+ */
+export function forceDocumentModeDefaults(mode: DocumentMode, current: any) {
+  // First get the standard defaults (fills gaps)
+  const base = applyDocumentModeDefaults(mode, current);
+
+  const catalogMode = mode.toLowerCase() as CatalogDocumentMode;
+  const config = DOCUMENT_MODES[catalogMode] || DOCUMENT_MODES.proposal;
+
+  // Strict: Overwrite these toggles to match the new mode's config
+  base.showPaymentTerms = config.includePaymentTerms;
+  base.showSignatureBlock = config.includeSignatures;
+
+  return base;
+}
