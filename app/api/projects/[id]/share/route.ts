@@ -96,7 +96,7 @@ export async function POST(
         const documentMode = modeFromDb || modeFromSummary;
         const snapshot: Partial<ProposalType> = {
             receiver: {
-                name: project.clientName,
+                name: (project as any).purchaserLegalName || project.clientName,
                 address: (project as any).clientAddress || "",
                 zipCode: (project as any).clientZip || "",
                 city: (project as any).clientCity || "",
@@ -155,8 +155,6 @@ export async function POST(
                     aiSource: undefined,
                     citations: undefined
                 })) as any,
-                // REQ-User-Feedback: Include marginAnalysis for PDF mirroring
-                // Note: marginAnalysis is handled via clientSummary parsing
                 totalAmount: clientSummary?.finalClientTotal || 0,
                 totalAmountInWords: "",
                 documentType: clientSummary?.documentType || "First Round",
@@ -198,7 +196,9 @@ export async function POST(
                 descriptionOverrides: (project as any).descriptionOverrides || {},
                 priceOverrides: (project as any).priceOverrides || {},
                 customProposalNotes: (project as any).customProposalNotes || ""
-            }
+            },
+            pricingDocument: (project as any).pricingDocument || undefined,
+            marginAnalysis: (project as any).marginAnalysis || undefined,
         };
 
         // 4. Save Snapshot to DB

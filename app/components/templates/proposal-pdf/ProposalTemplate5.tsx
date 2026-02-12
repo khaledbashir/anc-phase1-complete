@@ -61,7 +61,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     })();
 
     // Prompt 43: Currency detection from pricingDocument
-    const pricingDocument = (details as any)?.pricingDocument;
+    const pricingDocument = (details as any)?.pricingDocument || (data as any)?.pricingDocument;
     const mirrorMode =
         (details as any)?.mirrorMode === true || ((pricingDocument?.tables || []).length ?? 0) > 0;
     const currency: "CAD" | "USD" = pricingDocument?.currency || "USD";
