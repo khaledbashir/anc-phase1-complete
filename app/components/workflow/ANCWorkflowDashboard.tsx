@@ -1,13 +1,11 @@
 "use client";
 import React, { useState } from "react";
+import OperationsManager from "./OperationsManager";
 import {
   ClipboardCheck,
   Zap,
   Rocket,
   Microscope,
-  Timer,
-  BarChart3,
-  ChevronRight,
   AlertCircle,
   TrendingUp,
   FileText,
@@ -15,9 +13,6 @@ import {
   Clock,
   ArrowRight,
   Shield,
-  Layers,
-  Fingerprint,
-  ExternalLink,
   Target
 } from "lucide-react";
 
@@ -40,32 +35,7 @@ const TABS = [
   { id: "impact", label: "Analysis", icon: BarChart3 },
 ];
 
-const TODAY_STEPS = [
-  {
-    phase: "OPPORTUNITY", icon: <Fingerprint size={18} />, title: "Project Ingestion", who: "Sales / Natalia", time: "Initial Contact", painLevel: 1, desc: "A project brief arrives. It carries the weight of potential, but it's often buried in thousands of pages of noise.", paths: [
-      { label: "RFP Response", desc: "1,000–2,500 page PDF arrives via Building Connected. The critical Section 11-63-10 is hidden within." },
-      { label: "Direct Request", desc: "Bespoke client inquiry. Natalia captures the vision, timeline, and preliminary constraints." }
-    ]
-  },
-  {
-    phase: "EXTRACTION", icon: <Search size={18} />, title: "Technical Distillation", who: "Jeremy Riley", time: "Analysis Phase", painLevel: 5, desc: "The heavy lifting. Manually sifting through architectural drawings to find the core technical truths.", paths: [
-      { label: "Drawing Audit", desc: "Scrolling through 'A' and 'AV' drawings to locate the specific display schedule." },
-      { label: "Variable Logging", desc: "Manually typing dimensions, pixel pitch, and quantity into a blank canvas." }
-    ]
-  },
-  {
-    phase: "ESTIMATION", icon: <Layers size={18} />, title: "Value Modeling", who: "Matt Hobbs", time: "Fiscal Strategy", painLevel: 3, desc: "Transforming specs into a financial narrative using ANC's proprietary margin logic.", paths: [
-      { label: "Catalog Alignment", desc: "Matching requested canvas sizes to the nearest high-performance LG/Yaham module." },
-      { label: "Margin Precision", desc: "Applying 15/38% hardware and 20% service margins to ensure project health." }
-    ]
-  },
-  {
-    phase: "PROPOSAL", icon: <FileText size={18} />, title: "The Signature Delivery", who: "Natalia Kovaleva", time: "Final Presentation", painLevel: 2, desc: "The moment of truth. Converting raw data into a branded, professional narrative for the client.", paths: [
-      { label: "Mirror Ingestion", desc: "The Engine parses the sacred Excel numbers with zero modification. Accuracy is absolute." },
-      { label: "The PDF Suite", desc: "Instant generation of Budget, Proposal, and LOI variants in a single, elegant export." }
-    ]
-  },
-];
+
 
 const IMPACT_METRICS = [
   { label: "Proposal Cycle", before: "8 hours", after: "15 mins", savings: "97%", icon: FileText, category: "EFFICIENCY" },
@@ -166,78 +136,7 @@ const App = () => {
       <main className="pt-40 pb-32 max-w-7xl mx-auto px-10 relative z-10">
 
         {activeTab === "today" && (
-          <div className="animate-in fade-in duration-1000">
-            <header className="mb-24">
-              <h2 className="brand-mask-text text-8xl leading-none tracking-tighter">
-                The Journey to <br />Signature
-              </h2>
-              <div className="flex items-center gap-6 mt-10">
-                <p className="text-xl text-[#475563] leading-relaxed font-medium max-w-2xl border-l-4 border-[#0A52EF] pl-8">
-                  From initial brief to final contract, every handoff is an engineering of value. This is how ANC manages the complexity of elite venue integration.
-                </p>
-              </div>
-            </header>
-
-            <div className="grid grid-cols-12 gap-20 items-start">
-              <div className="col-span-12 lg:col-span-5 space-y-4">
-                {TODAY_STEPS.map((step, idx) => (
-                  <div
-                    key={idx}
-                    onMouseEnter={() => setSelectedStep(idx)}
-                    className={`relative p-8 rounded-3xl border transition-all duration-500 cursor-pointer overflow-hidden
-                      ${selectedStep === idx
-                        ? "bg-[#002C73] border-[#002C73] shadow-2xl shadow-[#002C73]/20 text-white translate-x-4"
-                        : "bg-white border-[#E2E8F0] text-[#002C73] hover:border-[#0A52EF]/30"}`}
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center
-                        ${selectedStep === idx ? "bg-white/10" : "bg-slate-50 text-[#0A52EF]"}`}>
-                        {step.icon}
-                      </div>
-                      <span className={`text-[9px] font-black uppercase tracking-[0.3em] ${selectedStep === idx ? "text-white/40" : "text-slate-400"}`}>
-                        {step.time}
-                      </span>
-                    </div>
-                    <h3 className="text-2xl font-black tracking-tighter uppercase">{step.title}</h3>
-                    <p className={`text-[10px] font-bold mt-2 uppercase tracking-[0.2em] ${selectedStep === idx ? "text-white/60" : "text-[#0A52EF]"}`}>
-                      Managed by {step.who}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="col-span-12 lg:col-span-7 sticky top-48">
-                <div className="bg-white border-2 border-[#002C73] rounded-[60px] p-16 shadow-[0_40px_100px_rgba(0,44,115,0.08)] min-h-[580px] flex flex-col animate-in slide-in-from-right-10 duration-700 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-[#002C73] via-[#0A52EF] to-[#03B8FF]" />
-                  <div className="mb-14">
-                    <h4 className="text-4xl font-black uppercase italic serif mb-6 tracking-tighter text-[#002C73]">{TODAY_STEPS[selectedStep].title}</h4>
-                    <p className="text-[#475563] leading-relaxed text-xl font-medium">
-                      {TODAY_STEPS[selectedStep].desc}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-6 flex-1">
-                    {TODAY_STEPS[selectedStep].paths.map((p, i) => (
-                      <div key={i} className="group flex items-start gap-6 pb-6 border-b border-slate-100 last:border-0">
-                        <div className="mt-1.5"><ArrowRight size={18} className="text-[#0A52EF] group-hover:translate-x-2 transition-transform" /></div>
-                        <div>
-                          <span className="font-black text-xs uppercase tracking-[0.15em] text-[#002C73] block mb-1">{p.label}</span>
-                          <p className="text-sm text-[#475563] leading-relaxed font-medium">{p.desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {TODAY_STEPS[selectedStep].painLevel > 3 && (
-                    <div className="mt-14 flex items-center gap-4 bg-[#0A52EF]/5 p-6 rounded-3xl border border-[#0A52EF]/10">
-                      <AlertCircle size={24} className="text-[#0A52EF] animate-pulse" />
-                      <span className="text-xs font-black uppercase tracking-[0.2em] text-[#0A52EF]">System Opportunity: Automation required to resolve manual extraction latency</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          <OperationsManager />
         )}
 
         {activeTab === "engine" && (
