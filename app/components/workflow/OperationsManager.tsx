@@ -84,32 +84,32 @@ function SortableItem({ step, isOverlay = false }: { step: any, isOverlay?: bool
         <div
             ref={setNodeRef}
             style={style}
-            className={`group relative mb-6 rounded-3xl border transition-all duration-300
+            className={`group relative mb-4 rounded-2xl border transition-all duration-300
         ${isDragging
-                    ? "bg-[#002C73] text-white shadow-2xl scale-105 border-[#002C73] opacity-90 rotate-1"
-                    : "bg-white border-[#E2E8F0] hover:border-[#0A52EF]/50 hover:shadow-lg"}`}
+                    ? "bg-[#002C73] text-white shadow-xl scale-[1.02] border-[#002C73] opacity-90 rotate-1"
+                    : "bg-white border-[#E2E8F0] hover:border-[#0A52EF]/50 hover:shadow-md"}`}
         >
             {/* Drag Handle */}
             <div
                 {...attributes}
                 {...listeners}
-                className={`absolute left-4 top-1/2 -translate-y-1/2 p-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity
+                className={`absolute left-3 top-1/2 -translate-y-1/2 p-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity
           ${isDragging ? "text-white/50" : "text-slate-300 hover:text-[#0A52EF]"}`}
             >
-                <GripVertical size={20} />
+                <GripVertical size={16} />
             </div>
 
-            <div className="p-8 pl-16">
+            <div className="p-6 pl-12">
                 {/* Header Row */}
-                <div className="flex justify-between items-start mb-4">
+                <div className="flex justify-between items-start mb-3">
                     {/* Icon & Phase Label */}
                     <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0
                  ${isDragging ? "bg-white/10 text-white" : "bg-[#0A52EF]/5 text-[#0A52EF]"}`}>
-                            <Icon size={20} />
+                            <Icon size={18} />
                         </div>
                         <div>
-                            <span className={`text-[9px] font-black uppercase tracking-[0.2em] block mb-1
+                            <span className={`text-[9px] font-black uppercase tracking-[0.2em] block mb-0.5
                   ${isDragging ? "text-white/60" : "text-slate-400"}`}>
                                 {step.phase} — {step.time}
                             </span>
@@ -117,11 +117,11 @@ function SortableItem({ step, isOverlay = false }: { step: any, isOverlay?: bool
                                 <input
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    className="text-xl font-black uppercase tracking-tighter bg-transparent border-b border-current focus:outline-none w-full"
+                                    className="text-lg font-black uppercase tracking-tighter bg-transparent border-b border-current focus:outline-none w-full"
                                     autoFocus
                                 />
                             ) : (
-                                <h3 className={`text-xl font-black uppercase tracking-tighter
+                                <h3 className={`text-lg font-black uppercase tracking-tighter
                     ${isDragging ? "text-white" : "text-[#002C73]"}`}>
                                     {title}
                                 </h3>
@@ -132,22 +132,22 @@ function SortableItem({ step, isOverlay = false }: { step: any, isOverlay?: bool
                     {/* Action Buttons */}
                     <div className={`flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity ${isDragging ? "hidden" : ""}`}>
                         {isEditing ? (
-                            <button onClick={handleSave} className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors">
-                                <Check size={16} />
+                            <button onClick={handleSave} className="p-1.5 hover:bg-green-50 text-green-600 rounded-md transition-colors">
+                                <Check size={14} />
                             </button>
                         ) : (
-                            <button onClick={() => setIsEditing(true)} className="p-2 hover:bg-slate-50 text-slate-400 hover:text-[#0A52EF] rounded-lg transition-colors">
-                                <Edit2 size={16} />
+                            <button onClick={() => setIsEditing(true)} className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-[#0A52EF] rounded-md transition-colors">
+                                <Edit2 size={14} />
                             </button>
                         )}
                         <button
                             onClick={() => setShowComments(!showComments)}
-                            className={`p-2 rounded-lg transition-colors relative
+                            className={`p-1.5 rounded-md transition-colors relative
                  ${showComments ? "bg-[#0A52EF]/10 text-[#0A52EF]" : "hover:bg-slate-50 text-slate-400 hover:text-[#0A52EF]"}`}
                         >
-                            <MessageSquare size={16} />
+                            <MessageSquare size={14} />
                             {comments.length > 0 && (
-                                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#0A52EF] text-white text-[9px] flex items-center justify-center rounded-full font-bold">
+                                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#0A52EF] text-white text-[8px] flex items-center justify-center rounded-full font-bold">
                                     {comments.length}
                                 </span>
                             )}
@@ -156,29 +156,29 @@ function SortableItem({ step, isOverlay = false }: { step: any, isOverlay?: bool
                 </div>
 
                 {/* Content Body */}
-                <div className="pl-[4.5rem]">
+                <div className="pl-[3.5rem]">
                     {isEditing ? (
                         <textarea
                             value={desc}
                             onChange={(e) => setDesc(e.target.value)}
-                            className="w-full text-base text-[#475563] leading-relaxed font-medium bg-slate-50 p-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0A52EF]/20 resize-none h-24"
+                            className="w-full text-sm text-[#475563] leading-relaxed font-medium bg-slate-50 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0A52EF]/20 resize-none h-20"
                         />
                     ) : (
-                        <p className={`text-base leading-relaxed font-medium
+                        <p className={`text-sm leading-relaxed font-medium
               ${isDragging ? "text-white/80" : "text-[#475563]"}`}>
                             {desc}
                         </p>
                     )}
 
                     {/* Metadata Footer */}
-                    <div className={`mt-6 pt-6 border-t flex items-center justify-between
+                    <div className={`mt-4 pt-4 border-t flex items-center justify-between
              ${isDragging ? "border-white/10" : "border-slate-100"}`}>
                         <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-bold uppercase tracking-[0.2em]
+                            <span className={`text-[9px] font-bold uppercase tracking-[0.2em]
                   ${isDragging ? "text-white/60" : "text-[#0A52EF]"}`}>
                                 Primary Owner:
                             </span>
-                            <span className={`text-[10px] font-black uppercase tracking-wider
+                            <span className={`text-[9px] font-black uppercase tracking-wider
                   ${isDragging ? "text-white" : "text-[#002C73]"}`}>
                                 {step.who}
                             </span>
@@ -256,15 +256,15 @@ export default function OperationsManager() {
 
     return (
         <div className="animate-in fade-in duration-1000">
-            <header className="mb-24 flex items-end justify-between">
+            <header className="mb-12 flex items-end justify-between">
                 <div>
-                    <h2 className="brand-mask-text text-8xl leading-none tracking-tighter">
+                    <h2 className="brand-mask-text text-5xl leading-none tracking-tighter">
                         Operations<br />Manager
                     </h2>
                 </div>
                 <div className="max-w-md text-right">
-                    <p className="text-lg text-[#002C73] font-bold mb-2">Client Verification Mode</p>
-                    <p className="text-sm text-slate-500 font-medium leading-relaxed">
+                    <p className="text-sm text-[#002C73] font-bold mb-1">Client Verification Mode</p>
+                    <p className="text-xs text-slate-500 font-medium leading-relaxed">
                         Review the operational workflow below. Drag to reorder steps, edit descriptions, or leave comments to align with your internal process.
                     </p>
                 </div>
