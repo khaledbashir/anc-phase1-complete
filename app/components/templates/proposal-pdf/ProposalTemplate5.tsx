@@ -276,7 +276,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const total = calculateProjectTotal();
 
         return (
-            <div className="px-6 mt-2 break-inside-avoid">
+            <div className="px-6 mt-2 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 <SectionHeader title="Project Summary" />
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     <div
@@ -316,7 +316,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const { subtotal, tax, bond, grandTotal } = masterTotals;
 
         return (
-            <div className="px-6 mt-4">
+            <div className="px-6 mt-4 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
                     <div style={{ width: '3px', height: '12px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
                     <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: colors.primaryDark }}>Project Pricing</span>
@@ -513,7 +513,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                         {/* Alternates — separate table AFTER grand total (mirrors Excel structure) */}
                         {alternates.length > 0 && (
-                            <div className="mt-2 rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
+                            <div className="mt-2 rounded-lg border overflow-hidden break-inside-avoid" style={{ borderColor: colors.border, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                                 <div
                                     className="grid grid-cols-12 px-3 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
                                     style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
@@ -562,7 +562,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
                     {/* Document total (when multiple detail tables and no master table) */}
                     {detailTables.length > 1 && masterTableIndex === null && (
-                        <div className="mt-5">
+                        <div className="mt-5 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                             <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.primary }}>
                                 <div className="grid grid-cols-12 px-3 py-1" style={{ background: colors.primaryLight }}>
                                     <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
@@ -660,7 +660,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const subtotal = primaryItems.reduce((sum, it) => sum + (Number(it.price) || 0), 0);
 
         return (
-            <div className="mt-2">
+            <div className="mt-2 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 {/* Modern table container */}
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     {/* Header — text + thin blue underline */}
@@ -893,7 +893,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         return (
             <div className="px-6" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
                 <SectionHeader title="Exhibit B — Statement of Work" />
-                <div className="border rounded overflow-hidden" style={{ borderColor: colors.border }}>
+                <div className="border rounded overflow-hidden break-inside-avoid" style={{ borderColor: colors.border, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                     {nonEmptyCategories.map((cat, catIdx) => {
                         const sectionType = respMatrix.format === "short"
                             ? "paragraph"
@@ -966,7 +966,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         let taskNumber = 0;
 
         return (
-            <div className="mt-2">
+            <div className="mt-2 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 <SectionHeader title="Project Schedule" subtitle="Generated from NTP date and screen configuration" />
                 <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                     <div className="grid grid-cols-12 px-4 py-2 text-[10px] font-bold uppercase tracking-wider" style={{ background: colors.primaryLight, color: colors.primaryDark }}>
