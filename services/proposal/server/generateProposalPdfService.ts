@@ -65,7 +65,7 @@ export async function generateProposalPdfService(req: NextRequest) {
 		const ProposalTemplate = await getProposalTemplate(templateId);
 
 		if (!ProposalTemplate) {
-			throw new Error("Failed to load ProposalTemplate2");
+			throw new Error("Failed to load ProposalTemplate5");
 		}
 
 		const htmlTemplate = ReactDOMServer.renderToStaticMarkup(
@@ -102,7 +102,7 @@ export async function generateProposalPdfService(req: NextRequest) {
 				browser = null;
 			}
 		}
-		
+
 		if (!browser && ENV === "production") {
 			// Fallback: Try system Chromium (Docker) or @sparticuz/chromium (serverless)
 			const execPath = process.env.PUPPETEER_EXECUTABLE_PATH || await chromium.executablePath();

@@ -101,7 +101,7 @@ import NewProjectModal from "./modals/NewProjectModal";
 // Proposal templates
 import DynamicProposalTemplate from "./templates/proposal-pdf/DynamicProposalTemplate";
 import ProposalLayout from "./templates/proposal-pdf/ProposalLayout";
-import ProposalTemplate2 from "./templates/proposal-pdf/ProposalTemplate2";
+
 
 // Email templates
 import SendPdfEmail from "./templates/email/SendPdfEmail";
@@ -155,7 +155,7 @@ export {
    NewProposalAlert,
    DynamicProposalTemplate,
    ProposalLayout,
-   ProposalTemplate2,
+
    SendPdfEmail,
    FormSelect,
    LogoSelector,
