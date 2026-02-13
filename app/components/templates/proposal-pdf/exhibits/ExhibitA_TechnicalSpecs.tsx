@@ -143,10 +143,10 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                             </>
                         ) : (
                             <>
-                                <col style={{ width: "26%" }} />
+                                <col style={{ width: "24%" }} />
+                                <col style={{ width: "22%" }} />
+                                <col style={{ width: "10%" }} />
                                 <col style={{ width: "20%" }} />
-                                <col style={{ width: "12%" }} />
-                                <col style={{ width: "18%" }} />
                                 {hasAnyBrightness && <col style={{ width: "14%" }} />}
                                 <col style={{ width: hasAnyBrightness ? "10%" : "12%" }} />
                             </>
@@ -193,8 +193,8 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                                         <td className="font-semibold text-[7px] break-words align-top" style={{ wordBreak: "break-word", padding: "1px 4px" }}>
                                             {name}
                                         </td>
-                                        <td className="text-gray-800 text-[7px] align-top whitespace-nowrap" style={{ overflow: 'hidden', textOverflow: 'ellipsis', padding: "1px 4px" }}>
-                                            {formatFeet(h)} × {formatFeet(w)}
+                                        <td className="text-gray-800 text-[7px] align-top whitespace-nowrap" style={{ overflow: 'hidden', textOverflow: 'ellipsis', padding: "1px 4px", fontFamily: "Arial, Helvetica, sans-serif" }}>
+                                            {formatFeet(h)} x {formatFeet(w)}
                                         </td>
                                         {!isCondensed && (
                                             <td className="text-right tabular-nums text-[7px] align-top" style={{ overflow: 'hidden', padding: "1px 4px" }}>
@@ -202,7 +202,7 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                                             </td>
                                         )}
                                         {!isCondensed && (
-                                            <td className="text-right tabular-nums text-[7px] align-top whitespace-nowrap" style={{ overflow: 'hidden', textOverflow: 'ellipsis', padding: "1px 4px" }}>
+                                            <td className="text-right tabular-nums text-[7px] align-top whitespace-nowrap" style={{ overflow: 'hidden', textOverflow: 'ellipsis', padding: "1px 4px", fontFamily: "Arial, Helvetica, sans-serif" }}>
                                                 {resolution}
                                             </td>
                                         )}

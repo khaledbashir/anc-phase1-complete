@@ -77,8 +77,8 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                         
                         /* Targeted break-avoidance — only for elements that explicitly opt in */
                         .break-inside-avoid {
-                            page-break-inside: avoid;
-                            break-inside: avoid;
+                            page-break-inside: avoid !important;
+                            break-inside: avoid !important;
                         }
                         
                         /* Force page breaks before major sections */
