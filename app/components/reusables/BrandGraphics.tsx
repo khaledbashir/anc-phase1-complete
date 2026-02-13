@@ -43,8 +43,8 @@ export function BrandSlashes({
           y = -tan(55) * x + b
         */}
                 {[...Array(count)].map((_, i) => {
-                    const spacing = 18;
-                    const xStart = 30 + i * spacing;
+                    const spacing = 25;
+                    const xStart = -50 + i * spacing;
                     const yStart = 150;
                     // For 55 degrees from horizontal: deltaX = deltaY / tan(55)
                     // deltaY = 200 (from 150 to -50)
