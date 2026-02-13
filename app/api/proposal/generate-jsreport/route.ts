@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
-import { JSREPORT_URL, JSREPORT_USER, JSREPORT_PASSWORD } from "@/lib/variables";
+import { JSREPORT_URL, JSREPORT_USER, JSREPORT_PASSWORD, TAILWIND_CDN } from "@/lib/variables";
 import { getProposalTemplate } from "@/lib/helpers";
 import { sanitizeForClient } from "@/lib/security/sanitizeForClient";
 import type { ProposalType } from "@/types";
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
 
         const origin = getRequestOrigin(req).replace(/\/+$/, "");
         const baseHref = `${origin}/`;
-        const fullHtml = `<!doctype html><html><head><meta charset="utf-8"/><base href="${baseHref}"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/><link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&family=Inter:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet"/><style>body,.font-sans{font-family:'Work Sans',system-ui,sans-serif!important;line-height:1.3!important;font-size:10px!important}h1,h2,h3,h4,h5,h6{font-family:'Work Sans',system-ui,sans-serif!important;line-height:1.3!important}p,div,span,td,th{line-height:1.3!important}.leading-relaxed{line-height:1.35!important}.leading-snug{line-height:1.25!important}@media print{@page{size:${layout.width} ${layout.height};margin:0}}</style></head><body>${htmlTemplate}</body></html>`;
+        const fullHtml = `<!doctype html><html><head><meta charset="utf-8"/><base href="${baseHref}"/><link rel="preconnect" href="https://fonts.googleapis.com"/><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous"/><link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&family=Inter:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet"/><link href="${TAILWIND_CDN}" rel="stylesheet"/><style>body,.font-sans{font-family:'Work Sans',system-ui,sans-serif!important;line-height:1.3!important;font-size:10px!important}h1,h2,h3,h4,h5,h6{font-family:'Work Sans',system-ui,sans-serif!important;line-height:1.3!important}p,div,span,td,th{line-height:1.3!important}.leading-relaxed{line-height:1.35!important}.leading-snug{line-height:1.25!important}@media print{@page{size:${layout.width} ${layout.height};margin:0}}</style></head><body>${htmlTemplate}</body></html>`;
 
         const jsreportPayload = {
             template: {
