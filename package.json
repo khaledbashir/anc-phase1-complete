@@ -15,6 +15,7 @@
         "test:pricing-parser:real": "npx tsx scripts/test-pricing-parser-real.ts",
         "test:pricing-parser:golden": "npx tsx scripts/test-pricing-parser-golden.ts",
         "test:pricing-pdf:golden": "npx tsx scripts/test-pricing-pdf-golden.ts",
+        "test:pdf:engine-parity": "npx tsx scripts/test-pdf-engine-parity.ts",
         "test:pricing-parser:all": "pnpm run test:pricing-parser && pnpm run test:pricing-parser:real",
         "test:pricing:gate": "pnpm run test:pricing-parser && pnpm run test:pricing-parser:real && pnpm run test:pricing-parser:golden && pnpm run test:pricing-pdf:golden",
         "postinstall": "node -e \"const fs=require('fs');const cp=require('child_process');if(fs.existsSync('prisma/schema.prisma')||fs.existsSync('schema.prisma')){cp.execSync('npx prisma generate',{stdio:'inherit'});}else{console.log('postinstall: prisma schema not found, skipping prisma generate');}\"",
