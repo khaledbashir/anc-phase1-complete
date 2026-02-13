@@ -27,16 +27,19 @@ import {
     MessageSquare,
     Edit2,
     Check,
-    X,
-    Plus
+    Plus,
+    Activity,
+    Cpu,
+    ShieldCheck,
+    Terminal
 } from "lucide-react";
 
-// ── INITIAL DATA (The "Template") ──
+// ── INITIAL DATA (The "Protocol") ──
 const INITIAL_STEPS = [
-    { id: "step-1", phase: "OPPORTUNITY", icon: Fingerprint, title: "Project Ingestion", who: "Sales / Natalia", time: "Initial Contact", painLevel: 1, desc: "A project brief arrives. It carries the weight of potential, but it's often buried in thousands of pages of noise.", comments: [] },
-    { id: "step-2", phase: "EXTRACTION", icon: Search, title: "Technical Distillation", who: "Jeremy Riley", time: "Analysis Phase", painLevel: 5, desc: "The heavy lifting. Manually sifting through architectural drawings to find the core technical truths.", comments: [] },
-    { id: "step-3", phase: "ESTIMATION", icon: Layers, title: "Value Modeling", who: "Matt Hobbs", time: "Fiscal Strategy", painLevel: 3, desc: "Transforming specs into a financial narrative using ANC's proprietary margin logic.", comments: [] },
-    { id: "step-4", phase: "PROPOSAL", icon: FileText, title: "The Signature Delivery", who: "Natalia Kovaleva", time: "Final Presentation", painLevel: 2, desc: "The moment of truth. Converting raw data into a branded, professional narrative for the client.", comments: [] },
+    { id: "OP-01", phase: "INGEST", icon: Fingerprint, title: "Project Ingestion", who: "Sales / Natalia", time: "T-MINUS 0", status: "ACTIVE", painLevel: 1, desc: "Brief ingestion and initial parameter extraction.", comments: [] },
+    { id: "OP-02", phase: "ANALYSIS", icon: Search, title: "Technical Distillation", who: "Jeremy Riley", time: "T+24H", status: "PENDING", painLevel: 5, desc: "Architectural drawing analysis and core specification identification.", comments: [] },
+    { id: "OP-03", phase: "MODELING", icon: Layers, title: "Value Modeling", who: "Matt Hobbs", time: "T+48H", status: "STANDBY", painLevel: 3, desc: "Financial narrative construction and margin logic application.", comments: [] },
+    { id: "OP-04", phase: "OUTPUT", icon: FileText, title: "Final Delivery", who: "Natalia Kovaleva", time: "T+72H", status: "LOCKED", painLevel: 2, desc: "Proposal generation, brand alignment, and client presentation.", comments: [] },
 ];
 
 // ── SORTABLE ITEM COMPONENT ──
@@ -57,21 +60,15 @@ function SortableItem({ step, isOverlay = false }: { step: any, isOverlay?: bool
         position: "relative" as const,
     };
 
-    // Local state for editing (mocking "Client Feedback" mode)
+    // Local state for editing
     const [isEditing, setIsEditing] = useState(false);
     const [title, setTitle] = useState(step.title);
     const [desc, setDesc] = useState(step.desc);
-
-    // Local state for comments
     const [showComments, setShowComments] = useState(false);
     const [newComment, setNewComment] = useState("");
     const [comments, setComments] = useState<string[]>(step.comments || []);
 
-    const handleSave = () => {
-        setIsEditing(false);
-        // In a real app, you'd bubble this up to the parent
-    };
-
+    const handleSave = () => setIsEditing(false);
     const addComment = () => {
         if (!newComment.trim()) return;
         setComments([...comments, newComment]);
@@ -84,144 +81,116 @@ function SortableItem({ step, isOverlay = false }: { step: any, isOverlay?: bool
         <div
             ref={setNodeRef}
             style={style}
-            className={`group relative mb-4 rounded-2xl border transition-all duration-300
+            className={`group relative border-l-2 bg-background transition-all duration-200
         ${isDragging
-                    ? "bg-[#002C73] text-white shadow-xl scale-[1.02] border-[#002C73] opacity-90 rotate-1"
-                    : "bg-white border-[#E2E8F0] hover:border-[#0A52EF]/50 hover:shadow-md"}`}
+                    ? "border-l-primary shadow-2xl scale-[1.01] z-50 ring-1 ring-primary/20"
+                    : "border-l-muted hover:border-l-primary/50 hover:bg-muted/30 border-y border-r border-border/40"}`}
         >
-            {/* Drag Handle */}
-            <div
-                {...attributes}
-                {...listeners}
-                className={`absolute left-3 top-1/2 -translate-y-1/2 p-2 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity
-          ${isDragging ? "text-white/50" : "text-slate-300 hover:text-[#0A52EF]"}`}
-            >
-                <GripVertical size={16} />
-            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4">
 
-            <div className="p-6 pl-12">
-                {/* Header Row */}
-                <div className="flex justify-between items-start mb-3">
-                    {/* Icon & Phase Label */}
-                    <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0
-                 ${isDragging ? "bg-white/10 text-white" : "bg-[#0A52EF]/5 text-[#0A52EF]"}`}>
-                            <Icon size={18} />
-                        </div>
-                        <div>
-                            <span className={`text-[9px] font-black uppercase tracking-[0.2em] block mb-0.5
-                  ${isDragging ? "text-white/60" : "text-slate-400"}`}>
-                                {step.phase} — {step.time}
-                            </span>
-                            {isEditing ? (
-                                <input
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    className="text-lg font-black uppercase tracking-tighter bg-transparent border-b border-current focus:outline-none w-full"
-                                    autoFocus
-                                />
-                            ) : (
-                                <h3 className={`text-lg font-black uppercase tracking-tighter
-                    ${isDragging ? "text-white" : "text-[#002C73]"}`}>
-                                    {title}
-                                </h3>
-                            )}
-                        </div>
+                {/* Drag Handle & ID */}
+                <div className="flex items-center gap-3 shrink-0 min-w-[100px]">
+                    <div
+                        {...attributes}
+                        {...listeners}
+                        className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-foreground transition-colors"
+                    >
+                        <GripVertical size={14} />
+                    </div>
+                    <div className="font-mono text-[10px] text-muted-foreground tracking-wider">{step.id}</div>
+                </div>
+
+                {/* Phase Status */}
+                <div className="shrink-0 min-w-[120px]">
+                    <span className={`inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono font-medium tracking-wider uppercase rounded-sm
+                        ${step.status === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-500' :
+                            step.status === 'PENDING' ? 'bg-amber-500/10 text-amber-500' :
+                                step.status === 'LOCKED' ? 'bg-slate-500/10 text-slate-500' : 'bg-blue-500/10 text-blue-500'}`}>
+                        {step.status}
+                    </span>
+                </div>
+
+                {/* Main Content */}
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                        <Icon size={14} className="text-muted-foreground" />
+                        {isEditing ? (
+                            <input
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                className="bg-transparent border-b border-primary/50 focus:outline-none font-semibold text-sm w-full"
+                                autoFocus
+                            />
+                        ) : (
+                            <h3 className="font-semibold text-sm text-foreground tracking-tight">{title}</h3>
+                        )}
+                    </div>
+                    {isEditing ? (
+                        <input
+                            value={desc}
+                            onChange={(e) => setDesc(e.target.value)}
+                            className="bg-transparent border-b border-border focus:outline-none text-xs text-muted-foreground w-full"
+                        />
+                    ) : (
+                        <p className="text-xs text-muted-foreground truncate font-mono">{desc}</p>
+                    )}
+                </div>
+
+                {/* Owner & Actions */}
+                <div className="flex items-center gap-6 shrink-0">
+                    <div className="hidden md:block text-right">
+                        <div className="text-[10px] uppercase text-muted-foreground font-mono tracking-wider">Owner</div>
+                        <div className="text-xs font-medium text-foreground">{step.who}</div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className={`flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity ${isDragging ? "hidden" : ""}`}>
-                        {isEditing ? (
-                            <button onClick={handleSave} className="p-1.5 hover:bg-green-50 text-green-600 rounded-md transition-colors">
-                                <Check size={14} />
-                            </button>
-                        ) : (
-                            <button onClick={() => setIsEditing(true)} className="p-1.5 hover:bg-slate-50 text-slate-400 hover:text-[#0A52EF] rounded-md transition-colors">
-                                <Edit2 size={14} />
-                            </button>
-                        )}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={() => setIsEditing(!isEditing)}
+                            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded"
+                        >
+                            {isEditing ? <Check size={14} /> : <Edit2 size={14} />}
+                        </button>
                         <button
                             onClick={() => setShowComments(!showComments)}
-                            className={`p-1.5 rounded-md transition-colors relative
-                 ${showComments ? "bg-[#0A52EF]/10 text-[#0A52EF]" : "hover:bg-slate-50 text-slate-400 hover:text-[#0A52EF]"}`}
+                            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded relative"
                         >
                             <MessageSquare size={14} />
                             {comments.length > 0 && (
-                                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#0A52EF] text-white text-[8px] flex items-center justify-center rounded-full font-bold">
-                                    {comments.length}
-                                </span>
+                                <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full" />
                             )}
                         </button>
                     </div>
                 </div>
+            </div>
 
-                {/* Content Body */}
-                <div className="pl-[3.5rem]">
-                    {isEditing ? (
-                        <textarea
-                            value={desc}
-                            onChange={(e) => setDesc(e.target.value)}
-                            className="w-full text-sm text-[#475563] leading-relaxed font-medium bg-slate-50 p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0A52EF]/20 resize-none h-20"
-                        />
-                    ) : (
-                        <p className={`text-sm leading-relaxed font-medium
-              ${isDragging ? "text-white/80" : "text-[#475563]"}`}>
-                            {desc}
-                        </p>
-                    )}
-
-                    {/* Metadata Footer */}
-                    <div className={`mt-4 pt-4 border-t flex items-center justify-between
-             ${isDragging ? "border-white/10" : "border-slate-100"}`}>
-                        <div className="flex items-center gap-2">
-                            <span className={`text-[9px] font-bold uppercase tracking-[0.2em]
-                  ${isDragging ? "text-white/60" : "text-[#0A52EF]"}`}>
-                                Primary Owner:
-                            </span>
-                            <span className={`text-[9px] font-black uppercase tracking-wider
-                  ${isDragging ? "text-white" : "text-[#002C73]"}`}>
-                                {step.who}
-                            </span>
+            {/* Comments Drawer */}
+            {showComments && (
+                <div className="px-4 pb-4 pt-0">
+                    <div className="bg-muted/30 border border-border/50 rounded-sm p-3 space-y-3">
+                        <div className="space-y-2">
+                            {comments.map((c, i) => (
+                                <div key={i} className="text-xs font-mono text-muted-foreground pl-2 border-l-2 border-primary/20">
+                                    {c}
+                                </div>
+                            ))}
+                            {comments.length === 0 && (
+                                <div className="text-[10px] text-muted-foreground/50 font-mono italic">NO LOGS AVAILABLE.</div>
+                            )}
+                        </div>
+                        <div className="flex gap-2">
+                            <span className="text-primary font-mono text-xs pt-1.5">{">"}</span>
+                            <input
+                                type="text"
+                                value={newComment}
+                                onChange={(e) => setNewComment(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && addComment()}
+                                placeholder="ENTER LOG ENTRY..."
+                                className="flex-1 bg-transparent border-none focus:outline-none text-xs font-mono text-foreground placeholder:text-muted-foreground/50 h-8"
+                            />
                         </div>
                     </div>
-
-                    {/* Comments Section */}
-                    {showComments && !isDragging && (
-                        <div className="mt-6 bg-slate-50 rounded-2xl p-6 animate-in slide-in-from-top-2">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Client Feedback</h4>
-
-                            <div className="space-y-3 mb-4">
-                                {comments.map((c, i) => (
-                                    <div key={i} className="bg-white p-3 rounded-xl border border-slate-200 text-sm font-medium text-[#475563] shadow-sm">
-                                        {c}
-                                    </div>
-                                ))}
-                                {comments.length === 0 && (
-                                    <p className="text-xs text-slate-400 italic">No comments yet. Start the conversation.</p>
-                                )}
-                            </div>
-
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newComment}
-                                    onChange={(e) => setNewComment(e.target.value)}
-                                    onKeyDown={(e) => e.key === 'Enter' && addComment()}
-                                    placeholder="Add a thought..."
-                                    className="flex-1 text-sm bg-white border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#0A52EF]"
-                                />
-                                <button
-                                    onClick={addComment}
-                                    disabled={!newComment.trim()}
-                                    className="bg-[#0A52EF] text-white p-2 rounded-lg hover:bg-[#002C73] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <Plus size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    )}
                 </div>
-            </div>
+            )}
         </div>
     );
 }
@@ -232,17 +201,13 @@ export default function OperationsManager() {
     const [activeId, setActiveId] = useState<string | null>(null);
 
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), // Prevent accidental drags
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const handleDragStart = (event: any) => {
-        setActiveId(event.active.id);
-    };
-
+    const handleDragStart = (event: any) => setActiveId(event.active.id);
     const handleDragEnd = (event: any) => {
         const { active, over } = event;
-
         if (active.id !== over.id) {
             setItems((items) => {
                 const oldIndex = items.findIndex((item) => item.id === active.id);
@@ -250,60 +215,71 @@ export default function OperationsManager() {
                 return arrayMove(items, oldIndex, newIndex);
             });
         }
-
         setActiveId(null);
     };
 
     return (
-        <div className="animate-in fade-in duration-1000">
-            <header className="mb-12 flex items-end justify-between">
-                <div>
-                    <h2 className="brand-mask-text text-5xl leading-none tracking-tighter">
-                        Operations<br />Manager
-                    </h2>
-                </div>
-                <div className="max-w-md text-right">
-                    <p className="text-sm text-[#002C73] font-bold mb-1">Client Verification Mode</p>
-                    <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                        Review the operational workflow below. Drag to reorder steps, edit descriptions, or leave comments to align with your internal process.
-                    </p>
-                </div>
-            </header>
-
-            <div className="max-w-4xl mx-auto">
-                <DndContext
-                    sensors={sensors}
-                    collisionDetection={closestCenter}
-                    onDragStart={handleDragStart}
-                    onDragEnd={handleDragEnd}
-                >
-                    <SortableContext
-                        items={items.map(item => item.id)}
-                        strategy={verticalListSortingStrategy}
-                    >
-                        <div className="space-y-6">
-                            {items.map((step) => (
-                                <SortableItem key={step.id} step={step} />
-                            ))}
+        <div className="w-full max-w-5xl mx-auto py-8">
+            {/* Mission Control Header */}
+            <div className="flex items-end justify-between mb-8 border-b border-border pb-4">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 flex items-center justify-center rounded-sm text-primary">
+                        <Cpu size={20} />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-bold tracking-tight text-foreground uppercase">Operations Protocol</h1>
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-muted-foreground">
+                            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> SYSTEM ONLINE</span>
+                            <span>•</span>
+                            <span>V.2.0.4</span>
                         </div>
-                    </SortableContext>
+                    </div>
+                </div>
 
-                    <DragOverlay>
-                        {activeId ? (
-                            <SortableItem
-                                step={items.find(i => i.id === activeId)}
-                                isOverlay
-                            />
-                        ) : null}
-                    </DragOverlay>
-                </DndContext>
-
-                {/* Add Step Placeholder */}
-                <button className="w-full py-8 border-2 border-dashed border-slate-200 rounded-3xl flex items-center justify-center gap-3 text-slate-400 hover:border-[#0A52EF] hover:text-[#0A52EF] hover:bg-[#0A52EF]/5 transition-all group mt-8">
-                    <Plus size={24} className="group-hover:scale-110 transition-transform" />
-                    <span className="font-black uppercase tracking-widest text-xs">Add Custom Operational Step</span>
-                </button>
+                <div className="hidden sm:flex items-center gap-6">
+                    <div className="text-right">
+                        <div className="text-[10px] font-mono text-muted-foreground uppercase">Active Processes</div>
+                        <div className="text-lg font-bold text-foreground leading-none">4</div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-[10px] font-mono text-muted-foreground uppercase">Efficiency</div>
+                        <div className="text-lg font-bold text-emerald-500 leading-none">98%</div>
+                    </div>
+                </div>
             </div>
+
+            {/* List Header */}
+            <div className="flex px-4 py-2 border-b border-border text-[10px] font-mono text-muted-foreground uppercase tracking-wider mb-2">
+                <div className="w-[100px]">ID</div>
+                <div className="w-[120px]">Status</div>
+                <div className="flex-1">Task Protocol</div>
+                <div className="hidden md:block w-32 text-right pr-12">Owner</div>
+            </div>
+
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+            >
+                <SortableContext items={items.map(item => item.id)} strategy={verticalListSortingStrategy}>
+                    <div className="space-y-1">
+                        {items.map((step) => (
+                            <SortableItem key={step.id} step={step} />
+                        ))}
+                    </div>
+                </SortableContext>
+
+                <DragOverlay>
+                    {activeId ? <SortableItem step={items.find(i => i.id === activeId)} isOverlay /> : null}
+                </DragOverlay>
+            </DndContext>
+
+            {/* Footer Action */}
+            <button className="w-full mt-4 py-3 border border-dashed border-border flex items-center justify-center gap-2 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all text-xs font-mono uppercase tracking-wider rounded-sm group">
+                <Terminal size={12} />
+                <span>Initialize New Protocol Sequence</span>
+            </button>
         </div>
     );
 }

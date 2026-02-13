@@ -103,29 +103,29 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
         try {
             setIsExporting(true);
             const res = await fetch(`/api/projects/${project.id}/pdf`, { method: "POST" });
-            
+
             if (!res.ok) {
                 const errorText = await res.text();
                 console.error("PDF export failed:", errorText);
                 alert("PDF export failed. Please try opening the project and exporting from there.");
                 return;
             }
-            
+
             const contentType = res.headers.get("content-type");
             if (!contentType?.includes("application/pdf")) {
                 console.error("Response is not a PDF:", contentType);
                 alert("PDF export failed — unexpected response format.");
                 return;
             }
-            
+
             const blob = await res.blob();
-            
+
             if (blob.size === 0) {
                 console.error("PDF blob is empty");
                 alert("PDF export failed — generated PDF is empty.");
                 return;
             }
-            
+
             const url = URL.createObjectURL(blob);
             const anchor = document.createElement("a");
             anchor.href = url;
@@ -159,12 +159,12 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
         return (
             <div
                 onClick={() => router.push(`/projects/${project.id}`)}
-                className="group flex items-center gap-4 px-4 py-3 border-b border-white/5 cursor-pointer"
+                className="group flex items-center gap-3 px-3 py-2 border-b border-white/5 cursor-pointer hover:bg-muted/50 transition-colors"
             >
                 {/* Name */}
                 <div className="flex-1 min-w-0">
-                    <div className="text-[13px] font-medium text-foreground truncate">{project.clientName}</div>
-                    {venue && <div className="text-[11px] text-muted-foreground truncate">{venue}</div>}
+                    <div className="text-xs font-semibold text-foreground truncate">{project.clientName}</div>
+                    {venue && <div className="text-[10px] text-muted-foreground truncate">{venue}</div>}
                 </div>
 
                 {/* Type */}
@@ -242,14 +242,14 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
             onClick={() => router.push(`/projects/${project.id}`)}
             className="group relative bg-card border border-border overflow-hidden cursor-pointer rounded flex flex-col"
         >
-            <div className="p-4 flex flex-col gap-3 flex-1">
+            <div className="p-3 flex flex-col gap-2 flex-1">
                 {/* Row 1: Name + value */}
                 <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                        <div className="text-[13px] font-medium text-foreground truncate leading-tight">{project.clientName}</div>
-                        {venue && <div className="text-[11px] text-muted-foreground truncate mt-0.5">{venue}</div>}
+                        <div className="text-xs font-semibold text-foreground truncate leading-tight">{project.clientName}</div>
+                        {venue && <div className="text-[10px] text-muted-foreground truncate mt-0.5">{venue}</div>}
                     </div>
-                    <div className="text-[13px] font-medium text-foreground tabular-nums shrink-0 whitespace-nowrap">{totalDisplay}</div>
+                    <div className="text-xs font-medium text-foreground tabular-nums shrink-0 whitespace-nowrap">{totalDisplay}</div>
                 </div>
 
                 {/* Row 2: Meta chips */}
@@ -261,8 +261,8 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between px-4 py-2 border-t border-border">
-                <div className="text-[11px] text-muted-foreground">
+            <div className="flex items-center justify-between px-3 py-1.5 border-t border-border">
+                <div className="text-[10px] text-muted-foreground">
                     {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
                 </div>
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">

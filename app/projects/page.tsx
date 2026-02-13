@@ -327,15 +327,15 @@ export default function ProjectsPage() {
                     </div>
                 </header>
 
-                <main className="flex-1 mt-14 pt-8 pb-48 px-6 sm:px-10 lg:px-12 overflow-y-auto">
-                    <div className="max-w-7xl mx-auto space-y-6">
+                <main className="flex-1 mt-14 pt-6 pb-48 px-6 sm:px-10 lg:px-12 overflow-y-auto">
+                    <div className="max-w-7xl mx-auto space-y-5">
                         {/* Hero */}
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">
                             <div>
-                                <h1 className="text-2xl font-semibold text-foreground tracking-tight leading-tight">
+                                <h1 className="text-xl font-semibold text-foreground tracking-tight leading-tight">
                                     {heroGreeting.title}
                                 </h1>
-                                <p className="text-[13px] text-muted-foreground mt-1">{heroGreeting.line}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{heroGreeting.line}</p>
                             </div>
 
                             <div className="flex items-center gap-2">
@@ -367,24 +367,24 @@ export default function ProjectsPage() {
                                 ))}
                             </div>
                         ) : (
-                            <div className="space-y-5">
+                            <div className="space-y-4">
                                 {/* KPI Strip */}
-                                <div className="flex items-baseline gap-6 sm:gap-8 pb-4">
+                                <div className="flex items-baseline gap-6 sm:gap-8 pb-3">
                                     <div>
-                                        <span className="text-2xl font-medium text-foreground tabular-nums">{summary.projectCount}</span>
-                                        <span className="text-[11px] text-muted-foreground ml-1.5">{summary.filterLabel}</span>
+                                        <span className="text-lg font-medium text-foreground tabular-nums">{summary.projectCount}</span>
+                                        <span className="text-[10px] text-muted-foreground ml-1.5">{summary.filterLabel}</span>
                                     </div>
                                     <div>
-                                        <span className="text-2xl font-medium text-foreground tabular-nums">{summary.mirrorCount}</span>
-                                        <span className="text-[11px] text-muted-foreground ml-1.5">Mirror</span>
+                                        <span className="text-lg font-medium text-foreground tabular-nums">{summary.mirrorCount}</span>
+                                        <span className="text-[10px] text-muted-foreground ml-1.5">Mirror</span>
                                     </div>
                                     <div>
-                                        <span className="text-2xl font-medium text-foreground tabular-nums">{summary.intelligenceCount}</span>
-                                        <span className="text-[11px] text-muted-foreground ml-1.5">Intelligence</span>
+                                        <span className="text-lg font-medium text-foreground tabular-nums">{summary.intelligenceCount}</span>
+                                        <span className="text-[10px] text-muted-foreground ml-1.5">Intelligence</span>
                                     </div>
                                     <div>
-                                        <span className="text-2xl font-medium text-foreground tabular-nums">{summary.formattedPipeline}</span>
-                                        <span className="text-[11px] text-muted-foreground ml-1.5">Pipeline</span>
+                                        <span className="text-lg font-medium text-foreground tabular-nums">{summary.formattedPipeline}</span>
+                                        <span className="text-[10px] text-muted-foreground ml-1.5">Pipeline</span>
                                     </div>
                                 </div>
 
@@ -402,7 +402,7 @@ export default function ProjectsPage() {
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
                                         {projects.map((project) => (
                                             <ProjectCard
                                                 key={project.id}
