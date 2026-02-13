@@ -61,6 +61,9 @@ const computePixels = (feetValue: any, pitchMm: any) => {
 
 export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, headingMode = "exhibit" }: ExhibitATechnicalSpecsProps) {
     const { details } = data;
+    const templateConfig = ((details as any)?.templateConfig || {}) as Record<string, any>;
+    const exhibitAHeaderGapRaw = Number(templateConfig?.exhibitAHeaderGap ?? 24);
+    const exhibitAHeaderGap = Number.isFinite(exhibitAHeaderGapRaw) ? Math.min(72, Math.max(8, exhibitAHeaderGapRaw)) : 24;
     const screens = (details?.screens || []).filter((s: any) => !s?.hiddenFromSpecs);
     const sowText = (details as any)?.scopeOfWorkText;
     const hasSOWContent = showSOW && sowText && sowText.trim().length > 0;
@@ -122,7 +125,7 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
 
     return (
         <div className="pt-2 break-inside-avoid">
-            <div className="mb-6 mt-1 break-inside-avoid">
+            <div className="mt-1 break-inside-avoid" style={{ marginBottom: `${exhibitAHeaderGap}px` }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <div style={{ width: '3px', height: '12px', borderRadius: '1px', background: '#0A52EF', flexShrink: 0 }} />
                     <h2 className="text-[10px] font-semibold text-[#002C73] uppercase tracking-[0.15em]" style={{ margin: 0 }}>

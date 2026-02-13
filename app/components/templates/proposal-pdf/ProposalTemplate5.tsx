@@ -127,6 +127,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const introToBodyGap = clamp(Number(templateConfig?.introToBodyGap ?? 16) || 16, 4, 72);
     const sectionSpacing = clamp(Number(templateConfig?.sectionSpacing ?? 16) || 16, 6, 36);
     const pricingTableGap = clamp(Number(templateConfig?.pricingTableGap ?? 16) || 16, 6, 36);
+    const tableRowHeight = clamp(Number(templateConfig?.tableRowHeight ?? 24) || 24, 20, 40);
+    const rowPaddingY = clamp(Math.round((tableRowHeight - 16) / 2), 2, 12);
     const accentColor = (templateConfig?.accentColor || "").toString().trim();
     const primaryColor = /^#[0-9A-Fa-f]{6}$/.test(accentColor) ? accentColor : "#0A52EF";
 
@@ -475,7 +477,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                         style={{
                                             borderColor: colors.borderLight,
                                             background: idx % 2 === 1 ? colors.surface : colors.white,
-                                            minHeight: '24px',
+                                            minHeight: `${tableRowHeight}px`,
+                                            paddingTop: `${rowPaddingY}px`,
+                                            paddingBottom: `${rowPaddingY}px`,
                                         }}
                                     >
                                         <div className="col-span-8 pr-2 text-[10px]" style={{ color: colors.text }}>
@@ -531,15 +535,17 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     <div className="col-span-4 text-right">PRICING{currency === "CAD" ? " (CAD)" : ""}</div>
                                 </div>
                                 {alternates.map((alt: any, aidx: number) => (
-                                    <div
-                                        key={`alt-${aidx}`}
-                                        className="grid grid-cols-12 px-3 py-1.5 border-t break-inside-avoid items-center"
-                                        style={{
-                                            borderColor: colors.borderLight,
-                                            background: aidx % 2 === 1 ? colors.surface : colors.white,
-                                            minHeight: '24px',
-                                        }}
-                                    >
+                                <div
+                                    key={`alt-${aidx}`}
+                                    className="grid grid-cols-12 px-3 py-1.5 border-t break-inside-avoid items-center"
+                                    style={{
+                                        borderColor: colors.borderLight,
+                                        background: aidx % 2 === 1 ? colors.surface : colors.white,
+                                        minHeight: `${tableRowHeight}px`,
+                                        paddingTop: `${rowPaddingY}px`,
+                                        paddingBottom: `${rowPaddingY}px`,
+                                    }}
+                                >
                                         <div className="col-span-8 pr-2 text-[10px]" style={{ color: colors.text }}>
                                             {(alt?.description || "Alternate").toString()}
                                         </div>
@@ -689,7 +695,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                             style={{
                                 borderColor: colors.borderLight,
                                 background: idx % 2 === 1 ? colors.surface : colors.white,
-                                minHeight: '24px',
+                                minHeight: `${tableRowHeight}px`,
+                                paddingTop: `${rowPaddingY}px`,
+                                paddingBottom: `${rowPaddingY}px`,
                             }}
                         >
                             <div className="col-span-8 pr-2">
@@ -741,7 +749,9 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                     style={{
                                         borderColor: colors.borderLight,
                                         background: colors.surface,
-                                        minHeight: '24px',
+                                        minHeight: `${tableRowHeight}px`,
+                                        paddingTop: `${rowPaddingY}px`,
+                                        paddingBottom: `${rowPaddingY}px`,
                                         opacity: 0.75,
                                     }}
                                 >

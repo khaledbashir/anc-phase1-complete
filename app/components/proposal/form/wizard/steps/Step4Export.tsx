@@ -97,6 +97,8 @@ const Step4Export = () => {
         introToBodyGap: 16,
         sectionSpacing: 16,
         pricingTableGap: 16,
+        tableRowHeight: 24,
+        exhibitAHeaderGap: 24,
         accentColor: "#0A52EF",
         slash: {
             width: 68,
@@ -110,6 +112,22 @@ const Step4Export = () => {
 
     const setTemplateConfigValue = (path: string, value: any) => {
         setValue(path as any, value, { shouldDirty: true });
+    };
+
+    const applyDensityPreset = (preset: "compact" | "balanced" | "airy") => {
+        const map = {
+            compact: { headerToIntroGap: 10, introToBodyGap: 10, sectionSpacing: 10, pricingTableGap: 10, tableRowHeight: 20, exhibitAHeaderGap: 14 },
+            balanced: { headerToIntroGap: 16, introToBodyGap: 16, sectionSpacing: 16, pricingTableGap: 16, tableRowHeight: 24, exhibitAHeaderGap: 24 },
+            airy: { headerToIntroGap: 26, introToBodyGap: 28, sectionSpacing: 24, pricingTableGap: 24, tableRowHeight: 30, exhibitAHeaderGap: 34 },
+        } as const;
+        const next = map[preset];
+        setTemplateConfigValue("details.templateConfig.densityPreset", preset);
+        setTemplateConfigValue("details.templateConfig.headerToIntroGap", next.headerToIntroGap);
+        setTemplateConfigValue("details.templateConfig.introToBodyGap", next.introToBodyGap);
+        setTemplateConfigValue("details.templateConfig.sectionSpacing", next.sectionSpacing);
+        setTemplateConfigValue("details.templateConfig.pricingTableGap", next.pricingTableGap);
+        setTemplateConfigValue("details.templateConfig.tableRowHeight", next.tableRowHeight);
+        setTemplateConfigValue("details.templateConfig.exhibitAHeaderGap", next.exhibitAHeaderGap);
     };
 
     useEffect(() => {
@@ -956,6 +974,30 @@ const Step4Export = () => {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="p-4 space-y-4">
+                                <div className="rounded-lg border border-border/50 p-3">
+                                    <div className="text-xs font-semibold text-foreground mb-2">Density Preset</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {[
+                                            { key: "compact", label: "Compact" },
+                                            { key: "balanced", label: "Balanced" },
+                                            { key: "airy", label: "Airy" },
+                                        ].map((preset) => (
+                                            <button
+                                                key={preset.key}
+                                                type="button"
+                                                onClick={() => applyDensityPreset(preset.key as "compact" | "balanced" | "airy")}
+                                                className={cn(
+                                                    "px-2.5 py-1.5 rounded text-xs font-semibold border transition-colors",
+                                                    (templateConfig?.densityPreset || "balanced") === preset.key
+                                                        ? "bg-brand-blue text-white border-brand-blue"
+                                                        : "bg-background text-foreground border-border hover:bg-muted/60"
+                                                )}
+                                            >
+                                                {preset.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <label className="text-xs font-medium text-foreground">
                                         <span className="flex items-center justify-between">
@@ -1024,6 +1066,34 @@ const Step4Export = () => {
                                             max={36}
                                             value={Number(templateConfig?.pricingTableGap ?? visualDefaults.pricingTableGap)}
                                             onChange={(e) => setTemplateConfigValue("details.templateConfig.pricingTableGap", Number(e.target.value))}
+                                            className="w-full mt-1"
+                                        />
+                                    </label>
+                                    <label className="text-xs font-medium text-foreground">
+                                        <span className="flex items-center justify-between">
+                                            <span>Table Row Height: {Number(templateConfig?.tableRowHeight ?? visualDefaults.tableRowHeight)}px</span>
+                                            <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.tableRowHeight", visualDefaults.tableRowHeight)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                        </span>
+                                        <input
+                                            type="range"
+                                            min={20}
+                                            max={40}
+                                            value={Number(templateConfig?.tableRowHeight ?? visualDefaults.tableRowHeight)}
+                                            onChange={(e) => setTemplateConfigValue("details.templateConfig.tableRowHeight", Number(e.target.value))}
+                                            className="w-full mt-1"
+                                        />
+                                    </label>
+                                    <label className="text-xs font-medium text-foreground">
+                                        <span className="flex items-center justify-between">
+                                            <span>Exhibit A Title Gap: {Number(templateConfig?.exhibitAHeaderGap ?? visualDefaults.exhibitAHeaderGap)}px</span>
+                                            <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.exhibitAHeaderGap", visualDefaults.exhibitAHeaderGap)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                        </span>
+                                        <input
+                                            type="range"
+                                            min={8}
+                                            max={72}
+                                            value={Number(templateConfig?.exhibitAHeaderGap ?? visualDefaults.exhibitAHeaderGap)}
+                                            onChange={(e) => setTemplateConfigValue("details.templateConfig.exhibitAHeaderGap", Number(e.target.value))}
                                             className="w-full mt-1"
                                         />
                                     </label>
