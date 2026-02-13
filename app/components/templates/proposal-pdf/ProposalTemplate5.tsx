@@ -444,7 +444,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 const { subtotal, taxLabel, tax: taxAmount, bond, grandTotal } = detailTotals;
 
                 return (
-                    <div key={tableId || `table-${origIdx}`} className="mt-8">
+                    <div key={tableId || `table-${origIdx}`} className="mt-8 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                             {/* Table header — text + thin blue underline */}
                             <div
