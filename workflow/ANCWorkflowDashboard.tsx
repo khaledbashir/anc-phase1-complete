@@ -81,10 +81,8 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-[#002C73] font-sans antialiased selection:bg-[#0A52EF] selection:text-white relative overflow-hidden">
-      {/* Brand Heritage Fonts */}
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Work+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
-      
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Work+Sans:wght@300;400;500;600;700;800;900&display=swap');
         body { font-family: 'Work Sans', sans-serif; }
         .serif { font-family: 'Playfair Display', serif; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
