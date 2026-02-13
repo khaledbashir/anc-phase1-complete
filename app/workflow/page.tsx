@@ -1,5 +1,5 @@
 "use client";
-import App from "@/workflow/ANCWorkflowDashboard";
+import App from "@/app/components/workflow/ANCWorkflowDashboard";
 
 export default function WorkflowPage() {
   return <App />;

@@ -1,12 +1,13 @@
+"use client";
 import React, { useState } from "react";
-import { 
-  ClipboardCheck, 
-  Zap, 
-  Rocket, 
-  Microscope, 
-  Timer, 
-  BarChart3, 
-  ChevronRight, 
+import {
+  ClipboardCheck,
+  Zap,
+  Rocket,
+  Microscope,
+  Timer,
+  BarChart3,
+  ChevronRight,
   AlertCircle,
   TrendingUp,
   FileText,
@@ -27,8 +28,8 @@ const BRAND = {
   splash: "#03B8FF",    // Vibrant Cyan
   malibu: "#0385DD",    // Mid-tone
   canvas: "#F8F9FA",    // Clean Gallery White
-  border: "#E2E8F0",    
-  textSlate: "#475569"  
+  border: "#E2E8F0",
+  textSlate: "#475569"
 };
 
 const TABS = [
@@ -40,22 +41,30 @@ const TABS = [
 ];
 
 const TODAY_STEPS = [
-  { phase: "OPPORTUNITY", icon: <Fingerprint size={18}/>, title: "Project Ingestion", who: "Sales / Natalia", time: "Initial Contact", painLevel: 1, desc: "A project brief arrives. It carries the weight of potential, but it's often buried in thousands of pages of noise.", paths: [
-    { label: "RFP Response", desc: "1,000–2,500 page PDF arrives via Building Connected. The critical Section 11-63-10 is hidden within." },
-    { label: "Direct Request", desc: "Bespoke client inquiry. Natalia captures the vision, timeline, and preliminary constraints." }
-  ]},
-  { phase: "EXTRACTION", icon: <Search size={18}/>, title: "Technical Distillation", who: "Jeremy Riley", time: "Analysis Phase", painLevel: 5, desc: "The heavy lifting. Manually sifting through architectural drawings to find the core technical truths.", paths: [
-    { label: "Drawing Audit", desc: "Scrolling through 'A' and 'AV' drawings to locate the specific display schedule." },
-    { label: "Variable Logging", desc: "Manually typing dimensions, pixel pitch, and quantity into a blank canvas." }
-  ]},
-  { phase: "ESTIMATION", icon: <Layers size={18}/>, title: "Value Modeling", who: "Matt Hobbs", time: "Fiscal Strategy", painLevel: 3, desc: "Transforming specs into a financial narrative using ANC's proprietary margin logic.", paths: [
-    { label: "Catalog Alignment", desc: "Matching requested canvas sizes to the nearest high-performance LG/Yaham module." },
-    { label: "Margin Precision", desc: "Applying 15/38% hardware and 20% service margins to ensure project health." }
-  ]},
-  { phase: "PROPOSAL", icon: <FileText size={18}/>, title: "The Signature Delivery", who: "Natalia Kovaleva", time: "Final Presentation", painLevel: 2, desc: "The moment of truth. Converting raw data into a branded, professional narrative for the client.", paths: [
-    { label: "Mirror Ingestion", desc: "The Engine parses the sacred Excel numbers with zero modification. Accuracy is absolute." },
-    { label: "The PDF Suite", desc: "Instant generation of Budget, Proposal, and LOI variants in a single, elegant export." }
-  ]},
+  {
+    phase: "OPPORTUNITY", icon: <Fingerprint size={18} />, title: "Project Ingestion", who: "Sales / Natalia", time: "Initial Contact", painLevel: 1, desc: "A project brief arrives. It carries the weight of potential, but it's often buried in thousands of pages of noise.", paths: [
+      { label: "RFP Response", desc: "1,000–2,500 page PDF arrives via Building Connected. The critical Section 11-63-10 is hidden within." },
+      { label: "Direct Request", desc: "Bespoke client inquiry. Natalia captures the vision, timeline, and preliminary constraints." }
+    ]
+  },
+  {
+    phase: "EXTRACTION", icon: <Search size={18} />, title: "Technical Distillation", who: "Jeremy Riley", time: "Analysis Phase", painLevel: 5, desc: "The heavy lifting. Manually sifting through architectural drawings to find the core technical truths.", paths: [
+      { label: "Drawing Audit", desc: "Scrolling through 'A' and 'AV' drawings to locate the specific display schedule." },
+      { label: "Variable Logging", desc: "Manually typing dimensions, pixel pitch, and quantity into a blank canvas." }
+    ]
+  },
+  {
+    phase: "ESTIMATION", icon: <Layers size={18} />, title: "Value Modeling", who: "Matt Hobbs", time: "Fiscal Strategy", painLevel: 3, desc: "Transforming specs into a financial narrative using ANC's proprietary margin logic.", paths: [
+      { label: "Catalog Alignment", desc: "Matching requested canvas sizes to the nearest high-performance LG/Yaham module." },
+      { label: "Margin Precision", desc: "Applying 15/38% hardware and 20% service margins to ensure project health." }
+    ]
+  },
+  {
+    phase: "PROPOSAL", icon: <FileText size={18} />, title: "The Signature Delivery", who: "Natalia Kovaleva", time: "Final Presentation", painLevel: 2, desc: "The moment of truth. Converting raw data into a branded, professional narrative for the client.", paths: [
+      { label: "Mirror Ingestion", desc: "The Engine parses the sacred Excel numbers with zero modification. Accuracy is absolute." },
+      { label: "The PDF Suite", desc: "Instant generation of Budget, Proposal, and LOI variants in a single, elegant export." }
+    ]
+  },
 ];
 
 const IMPACT_METRICS = [
@@ -112,8 +121,8 @@ const App = () => {
         <div className="max-w-7xl mx-auto px-10 h-20 flex items-center justify-between">
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
-               <div className="w-8 h-8 bg-[#002C73] rounded flex items-center justify-center text-white font-black text-xs">a</div>
-               <span className="text-xl font-black italic serif tracking-tighter">anc</span>
+              <div className="w-8 h-8 bg-[#002C73] rounded flex items-center justify-center text-white font-black text-xs">a</div>
+              <span className="text-xl font-black italic serif tracking-tighter">anc</span>
             </div>
             <div className="h-6 w-px bg-slate-200" />
             <div className="flex items-center gap-8 pl-4">
@@ -155,29 +164,29 @@ const App = () => {
       </div>
 
       <main className="pt-40 pb-32 max-w-7xl mx-auto px-10 relative z-10">
-        
+
         {activeTab === "today" && (
           <div className="animate-in fade-in duration-1000">
             <header className="mb-24">
               <h2 className="brand-mask-text text-8xl leading-none tracking-tighter">
-                The Journey to <br/>Signature
+                The Journey to <br />Signature
               </h2>
               <div className="flex items-center gap-6 mt-10">
-                 <p className="text-xl text-[#475563] leading-relaxed font-medium max-w-2xl border-l-4 border-[#0A52EF] pl-8">
+                <p className="text-xl text-[#475563] leading-relaxed font-medium max-w-2xl border-l-4 border-[#0A52EF] pl-8">
                   From initial brief to final contract, every handoff is an engineering of value. This is how ANC manages the complexity of elite venue integration.
-                 </p>
+                </p>
               </div>
             </header>
 
             <div className="grid grid-cols-12 gap-20 items-start">
               <div className="col-span-12 lg:col-span-5 space-y-4">
                 {TODAY_STEPS.map((step, idx) => (
-                  <div 
+                  <div
                     key={idx}
                     onMouseEnter={() => setSelectedStep(idx)}
                     className={`relative p-8 rounded-3xl border transition-all duration-500 cursor-pointer overflow-hidden
-                      ${selectedStep === idx 
-                        ? "bg-[#002C73] border-[#002C73] shadow-2xl shadow-[#002C73]/20 text-white translate-x-4" 
+                      ${selectedStep === idx
+                        ? "bg-[#002C73] border-[#002C73] shadow-2xl shadow-[#002C73]/20 text-white translate-x-4"
                         : "bg-white border-[#E2E8F0] text-[#002C73] hover:border-[#0A52EF]/30"}`}
                   >
                     <div className="flex justify-between items-start mb-4">
@@ -206,7 +215,7 @@ const App = () => {
                       {TODAY_STEPS[selectedStep].desc}
                     </p>
                   </div>
-                  
+
                   <div className="grid grid-cols-1 gap-6 flex-1">
                     {TODAY_STEPS[selectedStep].paths.map((p, i) => (
                       <div key={i} className="group flex items-start gap-6 pb-6 border-b border-slate-100 last:border-0">
@@ -235,7 +244,7 @@ const App = () => {
           <div className="animate-in fade-in duration-1000">
             <header className="mb-24 flex items-end justify-between">
               <div>
-                <h2 className="brand-mask-text text-8xl leading-none tracking-tighter uppercase">The Core<br/>Engine</h2>
+                <h2 className="brand-mask-text text-8xl leading-none tracking-tighter uppercase">The Core<br />Engine</h2>
               </div>
               <p className="text-lg text-slate-500 font-medium max-w-md text-right border-r-4 border-[#03B8FF] pr-8 italic serif">
                 Architecture built for the estimator, calibrated for the client.
@@ -245,7 +254,7 @@ const App = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
               <div className="bg-white p-16 rounded-[64px] border border-[#E2E8F0] shadow-sm relative overflow-hidden group hover:shadow-2xl hover:-translate-y-2 transition-all duration-700">
                 <div className="absolute top-0 right-0 p-12">
-                   <Shield size={40} className="text-[#0A52EF]/10 group-hover:text-[#0A52EF] transition-colors" />
+                  <Shield size={40} className="text-[#0A52EF]/10 group-hover:text-[#0A52EF] transition-colors" />
                 </div>
                 <h3 className="text-5xl font-black italic serif mb-4 text-[#002C73] tracking-tighter">Mirror Mode</h3>
                 <p className="text-[10px] font-black text-[#0A52EF] bg-[#0A52EF]/10 w-fit px-3 py-1 rounded-full uppercase tracking-[0.3em] mb-12">LIVE PRODUCTION</p>
@@ -264,7 +273,7 @@ const App = () => {
 
               <div className="bg-[#002C73] p-16 rounded-[64px] text-white relative overflow-hidden shadow-2xl group hover:shadow-[#002C73]/40 transition-all duration-700">
                 <div className="absolute top-0 right-0 p-12">
-                   <Zap size={40} className="text-white/10 group-hover:text-[#03B8FF] transition-colors" />
+                  <Zap size={40} className="text-white/10 group-hover:text-[#03B8FF] transition-colors" />
                 </div>
                 <h3 className="text-5xl font-black italic serif mb-4 tracking-tighter">Intelligence Mode</h3>
                 <p className="text-[10px] font-black text-[#03B8FF] border border-[#03B8FF] w-fit px-3 py-1 rounded-full uppercase tracking-[0.3em] mb-12">DEVELOPMENT PHASE</p>
@@ -287,7 +296,7 @@ const App = () => {
         {activeTab === "phase2" && (
           <div className="animate-in fade-in duration-1000">
             <header className="mb-24">
-              <h2 className="brand-mask-text text-8xl leading-none tracking-tighter uppercase">Future<br/>Scope</h2>
+              <h2 className="brand-mask-text text-8xl leading-none tracking-tighter uppercase">Future<br />Scope</h2>
               <div className="h-2 w-32 bg-[#0A52EF] mt-6" />
             </header>
 
@@ -312,27 +321,27 @@ const App = () => {
 
         {activeTab === "market" && (
           <div className="animate-in fade-in duration-1000">
-             <header className="mb-24">
-                <h2 className="brand-mask-text text-8xl leading-none tracking-tighter uppercase">Market<br/>Intelligence</h2>
-                <div className="h-2 w-32 bg-[#0A52EF] mt-6" />
-             </header>
+            <header className="mb-24">
+              <h2 className="brand-mask-text text-8xl leading-none tracking-tighter uppercase">Market<br />Intelligence</h2>
+              <div className="h-2 w-32 bg-[#0A52EF] mt-6" />
+            </header>
 
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {PRICING_MATRIX.map((item, idx) => (
-                  <div key={idx} className="bg-white p-12 rounded-[56px] border border-[#E2E8F0] group hover:bg-[#002C73] transition-all duration-700 hover:-translate-y-4">
-                    <div className="flex justify-between items-start mb-14">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] group-hover:text-white/40">{item.tier}</span>
-                      <Target size={20} className="text-[#0A52EF] group-hover:text-white" />
-                    </div>
-                    <h3 className="text-2xl font-black mb-4 tracking-tighter text-[#002C73] uppercase group-hover:text-white">{item.category}</h3>
-                    <p className="text-sm text-[#475563] mb-12 italic font-medium group-hover:text-white/60">{item.context}</p>
-                    <div className="flex items-baseline gap-4 pt-10 border-t border-slate-100 group-hover:border-white/10">
-                      <span className="text-5xl font-black tracking-tighter text-[#0A52EF] group-hover:text-[#03B8FF]">{item.perSqFt}</span>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-white/40">/ SQ FT</span>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+              {PRICING_MATRIX.map((item, idx) => (
+                <div key={idx} className="bg-white p-12 rounded-[56px] border border-[#E2E8F0] group hover:bg-[#002C73] transition-all duration-700 hover:-translate-y-4">
+                  <div className="flex justify-between items-start mb-14">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] group-hover:text-white/40">{item.tier}</span>
+                    <Target size={20} className="text-[#0A52EF] group-hover:text-white" />
                   </div>
-                ))}
-             </div>
+                  <h3 className="text-2xl font-black mb-4 tracking-tighter text-[#002C73] uppercase group-hover:text-white">{item.category}</h3>
+                  <p className="text-sm text-[#475563] mb-12 italic font-medium group-hover:text-white/60">{item.context}</p>
+                  <div className="flex items-baseline gap-4 pt-10 border-t border-slate-100 group-hover:border-white/10">
+                    <span className="text-5xl font-black tracking-tighter text-[#0A52EF] group-hover:text-[#03B8FF]">{item.perSqFt}</span>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-white/40">/ SQ FT</span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -353,8 +362,8 @@ const App = () => {
                   <div className="mb-20">
                     <span className="text-[10px] font-black text-[#0A52EF] uppercase tracking-[0.5em] mb-8 block">{metric.category} — {metric.label}</span>
                     <div className="flex items-center gap-14">
-                       <div className="text-slate-200 font-light line-through text-4xl serif italic">{metric.before}</div>
-                       <div className="text-8xl font-black tracking-tighter text-[#002C73]">{metric.after}</div>
+                      <div className="text-slate-200 font-light line-through text-4xl serif italic">{metric.before}</div>
+                      <div className="text-8xl font-black tracking-tighter text-[#002C73]">{metric.after}</div>
                     </div>
                   </div>
                   <div className="flex justify-between items-center pt-12 border-t border-slate-100">
@@ -366,13 +375,13 @@ const App = () => {
             </div>
 
             <div className="mt-24 p-28 bg-[#002C73] rounded-[100px] text-center shadow-2xl relative overflow-hidden">
-               <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2093&auto=format&fit=crop')] opacity-10 blur-sm scale-110" />
-               <h3 className="text-5xl font-normal italic serif mb-10 max-w-4xl mx-auto leading-tight text-white relative z-10">
-                 "Phase I automated the <span className="not-italic font-black tracking-tighter text-[#03B8FF] underline decoration-white/20 underline-offset-[16px]">last mile.</span> Phase II targets the source."
-               </h3>
-               <p className="text-white/60 text-xl font-medium max-w-2xl mx-auto leading-relaxed relative z-10">
-                 De-risking institutional knowledge by distilling every formula, margin, and product variable into a permanent ANC software asset.
-               </p>
+              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2093&auto=format&fit=crop')] opacity-10 blur-sm scale-110" />
+              <h3 className="text-5xl font-normal italic serif mb-10 max-w-4xl mx-auto leading-tight text-white relative z-10">
+                "Phase I automated the <span className="not-italic font-black tracking-tighter text-[#03B8FF] underline decoration-white/20 underline-offset-[16px]">last mile.</span> Phase II targets the source."
+              </h3>
+              <p className="text-white/60 text-xl font-medium max-w-2xl mx-auto leading-relaxed relative z-10">
+                De-risking institutional knowledge by distilling every formula, margin, and product variable into a permanent ANC software asset.
+              </p>
             </div>
           </div>
         )}
@@ -384,23 +393,23 @@ const App = () => {
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div className="space-y-10">
             <div className="flex items-center gap-6">
-               <div className="w-16 h-16 bg-[#002C73] text-white rounded-2xl flex items-center justify-center font-serif italic text-3xl shadow-2xl shadow-[#002C73]/30">a</div>
-               <div>
-                 <p className="text-lg font-black text-[#002C73] tracking-tighter italic">anc</p>
-                 <p className="text-[10px] font-black text-[#0A52EF] uppercase tracking-[0.4em] mt-1">Digital Transformation Series</p>
-               </div>
+              <div className="w-16 h-16 bg-[#002C73] text-white rounded-2xl flex items-center justify-center font-serif italic text-3xl shadow-2xl shadow-[#002C73]/30">a</div>
+              <div>
+                <p className="text-lg font-black text-[#002C73] tracking-tighter italic">anc</p>
+                <p className="text-[10px] font-black text-[#0A52EF] uppercase tracking-[0.4em] mt-1">Digital Transformation Series</p>
+              </div>
             </div>
             <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.4em] leading-loose">
-              Purchase HQ — NYC <br/> Proprietary Workflow Engine v1.8.0
+              Purchase HQ — NYC <br /> Proprietary Workflow Engine v1.8.0
             </p>
           </div>
           <div className="text-right space-y-6">
-             <div className="flex gap-12 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-12">
-                <a className="hover:text-[#0A52EF] transition-colors cursor-pointer">Security</a>
-                <a className="hover:text-[#0A52EF] transition-colors cursor-pointer">Compliance</a>
-                <a className="hover:text-[#0A52EF] transition-colors cursor-pointer">Service Network</a>
-             </div>
-             <a href="https://anc.com" className="text-xl font-black border-b-4 border-[#0A52EF] pb-4 hover:text-[#0A52EF] transition-all text-[#002C73] italic serif">anc.com</a>
+            <div className="flex gap-12 text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mb-12">
+              <a className="hover:text-[#0A52EF] transition-colors cursor-pointer">Security</a>
+              <a className="hover:text-[#0A52EF] transition-colors cursor-pointer">Compliance</a>
+              <a className="hover:text-[#0A52EF] transition-colors cursor-pointer">Service Network</a>
+            </div>
+            <a href="https://anc.com" className="text-xl font-black border-b-4 border-[#0A52EF] pb-4 hover:text-[#0A52EF] transition-all text-[#002C73] italic serif">anc.com</a>
           </div>
         </div>
       </footer>
