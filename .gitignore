@@ -60,3 +60,40 @@ rfp-sources/
 ppp/
 *.tar.gz
 *.pdf
+
+# IDE configurations
+.vscode/
+.cursor/
+.windsurf/
+.ai-rules/
+.claude/
+
+# Build artifacts and temporary files
+null
+next/
+tsconfig.tsbuildinfo
+
+# Test outputs in root directory
+*.jpg
+
+# Local storage folders
+anythingllm-storage/
+exports/
+
+# Standalone utility scripts
+diagnose-anythingllm.sh
+verify_math_standalone.js
+verify_math.js
+vps-health-docker-cleanup.sh
+
+# Version number files
+7.3.0
+11.9.0
+anc-proposal-engine@1.0.0
+
+# API documentation
+anuthingapidoc
+anuthingapidoc.md
+
+# Miscellaneous temporary files
+api
