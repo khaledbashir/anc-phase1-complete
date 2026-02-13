@@ -1,379 +1,486 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
-    <meta charset="utf-8" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Work+Sans:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Dancing+Script:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family={{signatureFontFamily}}&display=swap" rel="stylesheet">
+
     <style>
-        /* ===== GLOBAL RESET & FONTS ===== */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        @import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&display=swap');
-        
-        body {
-            font-family: 'Work Sans', Arial, Helvetica, sans-serif;
-            font-size: 10px;
-            color: #1e293b;
-            line-height: 1.4;
-        }
-
-        /* ===== PAGE SETUP ===== */
         @page {
-            size: 8.5in 11in;
-            margin: 60px 40px 70px 40px;
-            @bottom-left {
-                content: "www.anc.com";
-                font-size: 7.5px;
-                font-weight: 600;
-                color: #0A52EF;
-            }
-            @bottom-right {
-                content: "Page " counter(page) " of " counter(pages);
-                font-size: 7px;
-                color: #94a3b8;
-            }
-        }
-
-        /* ===== COLOR PALETTE ===== */
-        :root {
-            --primary: #0A52EF;
-            --primary-dark: #002C73;
-            --primary-light: #EBF0FF;
-            --border: #e2e8f0;
-            --border-light: #f1f5f9;
-            --surface: #f8fafc;
-            --text: #334155;
-            --text-muted: #64748b;
-        }
-
-        /* ===== HEADER ===== */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-        }
-        .header-left h1 {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--primary-dark);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-        .header-left .doc-type {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--primary);
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            margin-top: 2px;
-        }
-        .header-right {
-            text-align: right;
-            font-size: 9px;
-            color: var(--text-muted);
-        }
-        .header-right .date {
-            font-weight: 600;
-            color: var(--text);
-        }
-
-        /* ===== BLUE ACCENT BAR ===== */
-        .accent-bar {
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-dark) 100%);
-            border-radius: 2px;
-            margin-bottom: 16px;
-        }
-
-        /* ===== SECTION HEADERS ===== */
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 8px;
-            margin-top: 16px;
-        }
-        .section-header .bar {
-            width: 3px;
-            height: 14px;
-            border-radius: 1px;
-            background: var(--primary);
-            flex-shrink: 0;
-        }
-        .section-header h2 {
-            font-size: 10px;
-            font-weight: 600;
-            color: var(--primary-dark);
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
+            size: letter portrait;
             margin: 0;
         }
 
-        /* ===== INTRO TEXT ===== */
-        .intro { font-size: 10px; color: var(--text); margin-bottom: 16px; line-height: 1.5; }
+        body {
+            font-family: 'Work Sans', 'Inter', system-ui, sans-serif;
+            font-size: 10pt;
+            /* Enhance print rendering */
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
 
-        /* ===== PRICING TABLES ===== */
-        .pricing-table {
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            overflow: hidden;
-            margin-bottom: 16px;
-            /* THIS IS THE KEY — deterministic page break control */
+        h1,
+        h2,
+        h3,
+        h4,
+        h5 {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        .break-inside-avoid {
+            break-inside: avoid;
             page-break-inside: avoid;
         }
-        .pricing-header {
-            display: grid;
-            grid-template-columns: 8fr 4fr;
-            padding: 4px 12px;
-            font-size: 9px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--primary-dark);
-            border-bottom: 2px solid var(--primary);
-        }
-        .pricing-header .right { text-align: right; }
-        .pricing-row {
-            display: grid;
-            grid-template-columns: 8fr 4fr;
-            padding: 6px 12px;
-            font-size: 10px;
-            border-top: 1px solid var(--border-light);
-            align-items: center;
-            min-height: 28px;
-        }
-        .pricing-row:nth-child(even) { background: var(--surface); }
-        .pricing-row .desc { color: var(--text); }
-        .pricing-row .price {
-            text-align: right;
-            font-weight: 600;
-            color: var(--primary-dark);
-            white-space: nowrap;
-        }
-        .pricing-footer {
-            border-top: 2px solid var(--border);
-        }
-        .pricing-subtotal {
-            display: grid;
-            grid-template-columns: 8fr 4fr;
-            padding: 4px 12px;
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--text);
-        }
-        .pricing-tax {
-            display: grid;
-            grid-template-columns: 8fr 4fr;
-            padding: 4px 12px;
-            font-size: 10px;
-            color: var(--text-muted);
-        }
-        .pricing-grand-total {
-            display: grid;
-            grid-template-columns: 8fr 4fr;
-            padding: 6px 12px;
-            border-top: 1px solid var(--primary);
-            background: var(--primary-light);
-        }
-        .pricing-grand-total .label {
-            font-weight: 700;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--primary-dark);
-        }
-        .pricing-grand-total .amount {
-            text-align: right;
-            font-weight: 700;
-            font-size: 12px;
-            color: var(--primary-dark);
+
+        /* Fixed Footer Workaround for chrome-pdf */
+        #footer {
+            position: fixed;
+            bottom: 0px;
+            left: 0px;
+            right: 0px;
+            height: 40px;
+            background: white;
+            z-index: 100;
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
         }
 
-        /* ===== SPECS TABLE — ALL ARIAL, NO FONT FALLBACK ===== */
-        .specs-table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-            font-family: Arial, Helvetica, sans-serif; /* FORCED — no math font fallback */
-            font-size: 7px;
-            page-break-inside: avoid;
+        .content-wrapper {
+            padding: 1.5rem;
+            /* px-6 */
+            padding-bottom: 50px;
+            /* Space for footer */
         }
-        .specs-table th {
-            font-size: 8px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--primary-dark);
-            border-bottom: 2px solid var(--primary);
-            padding: 4px 8px;
-            white-space: nowrap;
-        }
-        .specs-table td {
-            padding: 4px 8px; /* 8px horizontal padding — prevents overlap */
-            border-bottom: 1px solid #e5e7eb;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            font-family: Arial, Helvetica, sans-serif; /* Double-enforced */
-        }
-        .specs-table .name-col { width: 24%; font-weight: 600; word-break: break-word; }
-        .specs-table .dim-col { width: 22%; white-space: nowrap; }
-        .specs-table .pitch-col { width: 10%; text-align: right; white-space: nowrap; }
-        .specs-table .res-col { width: 20%; text-align: right; white-space: nowrap; }
-        .specs-table .bright-col { width: 14%; text-align: right; white-space: nowrap; }
-        .specs-table .qty-col { width: 10%; text-align: right; }
-
-        /* ===== NOTES / ASSUMPTIONS ===== */
-        .notes {
-            font-size: 9px;
-            color: var(--text-muted);
-            line-height: 1.5;
-            margin-top: 16px;
-        }
-        .notes li { margin-bottom: 4px; }
-
-        /* ===== SIGNATURE ===== */
-        .signature-block {
-            margin-top: 24px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 32px;
-        }
-        .sig-line {
-            border-top: 1px solid var(--border);
-            padding-top: 4px;
-            font-size: 9px;
-            color: var(--text-muted);
-            margin-top: 40px;
-        }
-
-        /* ===== FORCE PAGE BREAK ===== */
-        .page-break { page-break-before: always; }
-
-        /* ===== UTILITY ===== */
-        .text-right { text-align: right; }
-        .font-bold { font-weight: 700; }
     </style>
 </head>
-<body>
 
-    <!-- =============== PAGE 1: COVER + PRICING =============== -->
-    <div class="accent-bar"></div>
+<body class="bg-white text-black relative">
 
-    <div class="header">
-        <div class="header-left">
-            <h1>{{companyName}}</h1>
-            <div class="doc-type">{{documentType}}</div>
-        </div>
-        <div class="header-right">
-            <div class="date">{{date}}</div>
-            <div>Proposal #{{proposalNumber}}</div>
-        </div>
+    <!-- Brand Graphics: Slashes (Top Right) -->
+    <!-- Replicating BrandSlashes.tsx logic with hardcoded lines for reliability -->
+    <div class="fixed top-0 right-0 w-[140px] h-[130px] opacity-[0.12] pointer-events-none z-0 overflow-hidden">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="w-full h-full">
+            <!-- 8 lines, 55 deg tilt logic approx -->
+            <line x1="-50" y1="150" x2="90" y2="-50" stroke="#03B8FF" stroke-width="6" />
+            <line x1="-25" y1="150" x2="115" y2="-50" stroke="#0385DD" stroke-width="6" />
+            <line x1="0" y1="150" x2="140" y2="-50" stroke="#002C73" stroke-width="6" />
+            <line x1="25" y1="150" x2="165" y2="-50" stroke="#03B8FF" stroke-width="6" />
+            <line x1="50" y1="150" x2="190" y2="-50" stroke="#0385DD" stroke-width="6" />
+            <line x1="75" y1="150" x2="215" y2="-50" stroke="#002C73" stroke-width="6" />
+            <line x1="100" y1="150" x2="240" y2="-50" stroke="#03B8FF" stroke-width="6" />
+            <line x1="125" y1="150" x2="265" y2="-50" stroke="#0385DD" stroke-width="6" />
+        </svg>
     </div>
 
-    <div class="intro">
-        <strong>RE: {{projectName}}</strong><br/>
-        {{introText}}
-    </div>
+    <!-- Main Content -->
+    <div class="content-wrapper relative z-10">
 
-    <!-- PRICING TABLES — each one won't split -->
-    {{#each pricingTables}}
-    <div class="pricing-table">
-        <div class="pricing-header">
-            <div>{{this.label}}</div>
-            <div class="right">PRICING</div>
+        <!-- Header -->
+        <div class="flex justify-between items-center border-b border-gray-200 pb-2 mb-6">
+            <!-- ANC Logo -->
+            <img src="https://res.cloudinary.com/anc-sports/image/upload/v1646244669/ANC_Logo_Blue_tnx8i8.png"
+                class="h-8 w-auto object-contain" alt="ANC">
+
+            <div class="text-right">
+                <div class="text-[8px] uppercase tracking-widest font-semibold text-[#002C73]">{{documentTypeLabel}}
+                </div>
+                <h1 class="text-xs font-bold mt-0.5 text-black">{{clientName}}</h1>
+            </div>
         </div>
-        {{#each this.items}}
-        <div class="pricing-row">
-            <div class="desc">{{this.description}}</div>
-            <div class="price">{{this.price}}</div>
+
+        <!-- Intro Text -->
+        <div class="mb-6 text-[10pt] leading-snug text-gray-600 text-justify whitespace-pre-wrap">
+            {{{introText}}}
+        </div>
+
+        <!-- Custom Notes (Top) -->
+        {{#if customProposalNotes}}
+        <div class="mb-4 text-[10pt] leading-snug whitespace-pre-wrap text-gray-500">
+            {{customProposalNotes}}
+        </div>
+        {{/if}}
+
+        <!-- 
+           LOGIC BRANCHING:
+           Replicating `ProposalTemplate5` Structure
+        -->
+
+        {{#if isLOI}}
+        {{#if masterTable}}
+        <!-- STRUCTURE A: Master Table Logic -->
+
+        <!-- Page 1: Master Summary + Detail Tables -->
+        {{> pricingTable table=masterTable}}
+
+        <div class="mt-6"></div>
+
+        {{#each detailTables}}
+        <div class="break-inside-avoid mb-6">
+            {{> pricingTable table=this}}
         </div>
         {{/each}}
-        <div class="pricing-footer">
-            {{#if this.subtotal}}
-            <div class="pricing-subtotal">
-                <div>SUBTOTAL</div>
-                <div class="text-right">{{this.subtotal}}</div>
+
+        <div class="page-break"></div>
+        {{> headerContinuation}}
+
+        <!-- Page 2: Payment + Signature -->
+        <div class="mt-4">
+            {{#if showPaymentTerms}}{{> paymentTerms}}{{/if}}
+            {{#if showNotes}}{{> notesSection}}{{/if}}
+            {{#if showSignatureBlock}}
+            <div class="break-inside-avoid mt-8">
+                {{> signatureBlock}}
             </div>
             {{/if}}
-            {{#if this.tax}}
-            <div class="pricing-tax">
-                <div>{{this.taxLabel}}</div>
-                <div class="text-right">{{this.tax}}</div>
+        </div>
+
+        <!-- Page 3: Specs -->
+        {{#if showExhibitA}}
+        <div class="page-break"></div>
+        {{> headerContinuation}}
+        <div class="mt-4">
+            {{> specsTable}}
+        </div>
+        {{/if}}
+
+        {{else}}
+        <!-- STRUCTURE B: No Master Table -->
+
+        <!-- Pricing Tables -->
+        {{#each pricingTables}}
+        <div class="break-inside-avoid mb-6">
+            {{> pricingTable table=this}}
+        </div>
+        {{/each}}
+
+        <!-- Payment + Signatures -->
+        <div class="mt-6">
+            {{#if showPaymentTerms}}{{> paymentTerms}}{{/if}}
+            {{#if showNotes}}{{> notesSection}}{{/if}}
+            {{#if showSignatureBlock}}
+            <div class="break-inside-avoid mt-8">
+                {{> signatureBlock}}
             </div>
             {{/if}}
-            <div class="pricing-grand-total">
-                <div class="label">GRAND TOTAL</div>
-                <div class="amount">{{this.grandTotal}}</div>
+        </div>
+
+        <!-- Specs flow after -->
+        {{#if showExhibitA}}
+        <div class="page-break"></div>
+        {{> headerContinuation}}
+        <div class="mt-4">
+            {{> specsTable}}
+        </div>
+        {{/if}}
+        {{/if}}
+
+        <!-- SOW -->
+        {{#if showScopeOfWork}}
+        <div class="page-break"></div>
+        {{> headerContinuation}}
+        <div class="mt-4">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-1 h-6 bg-[#002C73] rounded-full"></div>
+                <h2 class="text-sm font-bold text-[#002C73] uppercase tracking-wide">Exhibit B — Statement of Work</h2>
+            </div>
+            <div class="text-[9pt] text-gray-600 whitespace-pre-wrap leading-relaxed">
+                {{scopeOfWorkText}}
             </div>
         </div>
+        {{/if}}
+
+        {{else}}
+        <!-- PROPOSAL / BUDGET MODE -->
+
+        <!-- Master Table (if exists) -->
+        {{#if masterTable}}
+        {{> pricingTable table=masterTable}}
+        <div class="page-break"></div>
+        {{> headerContinuation}}
+        {{/if}}
+
+        <!-- Detail Tables -->
+        {{#each detailTables}}
+        <div class="break-inside-avoid mb-6">
+            {{> pricingTable table=this}}
+        </div>
+        {{/each}}
+
+        <div class="mt-6">
+            {{#if showNotes}}{{> notesSection}}{{/if}}
+        </div>
+
+        <!-- Specs (Exhibit A) -->
+        {{#if showExhibitA}}
+        <div class="page-break"></div>
+        {{> headerContinuation}}
+        <div class="mt-4">
+            {{> specsTable}}
+        </div>
+        {{/if}}
+
+        <!-- SOW -->
+        {{#if showScopeOfWork}}
+        <div class="page-break"></div>
+        {{> headerContinuation}}
+        <div class="mt-4">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-1 h-6 bg-[#002C73] rounded-full"></div>
+                <h2 class="text-sm font-bold text-[#002C73] uppercase tracking-wide">Exhibit B — Statement of Work</h2>
+            </div>
+            <div class="text-[9pt] text-gray-600 whitespace-pre-wrap leading-relaxed">
+                {{scopeOfWorkText}}
+            </div>
+        </div>
+        {{/if}}
+
+        <!-- Payment -->
+        {{#if showPaymentTerms}}
+        <div class="mt-6">
+            {{> paymentTerms}}
+        </div>
+        {{/if}}
+
+        <!-- Signature -->
+        {{#if showSignatureBlock}}
+        <div class="page-break"></div>
+        {{> headerContinuation}}
+        <div class="break-inside-avoid mt-8">
+            {{> signatureBlock}}
+        </div>
+        {{/if}}
+
+        {{/if}}
+
     </div>
-    {{/each}}
 
-    <!-- =============== PAGE 2: TECHNICAL SPECS =============== -->
-    <div class="page-break"></div>
-
-    <div class="section-header">
-        <div class="bar"></div>
-        <h2>EXHIBIT A: TECHNICAL SPECIFICATIONS</h2>
+    <!-- Fixed Footer -->
+    <div id="footer" class="flex items-center justify-between border-t border-gray-200">
+        <p class="text-[8px] font-semibold text-[#0A52EF] tracking-wide">www.anc.com</p>
+        <div class="flex items-center gap-1">
+            <div class="w-3 h-0.5 bg-[#002C73] opacity-30 transform -skew-x-[20deg]"></div>
+            <div class="w-3 h-0.5 bg-[#002C73] opacity-30 transform -skew-x-[20deg]"></div>
+            <div class="w-3 h-0.5 bg-[#002C73] opacity-30 transform -skew-x-[20deg]"></div>
+            <div class="w-3 h-0.5 bg-[#002C73] opacity-30 transform -skew-x-[20deg]"></div>
+            <div class="w-3 h-0.5 bg-[#002C73] opacity-30 transform -skew-x-[20deg]"></div>
+        </div>
     </div>
 
-    <div style="border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden;">
-        <table class="specs-table">
-            <colgroup>
-                <col class="name-col" />
-                <col class="dim-col" />
-                <col class="pitch-col" />
-                <col class="res-col" />
-                <col class="bright-col" />
-                <col class="qty-col" />
-            </colgroup>
-            <thead>
+
+    <!-- 
+      PARTIAL DEFINITIONS 
+      Using inline partials for cleaner main template logic
+    -->
+
+    {{#*inline "headerContinuation"}}
+    <div class="flex justify-between items-end border-b pb-1 mb-6 border-[#002C73]">
+        <div class="text-[8px] font-bold text-[#002C73] uppercase tracking-widest">Continuation Page</div>
+        <div class="text-[9pt] font-semibold text-gray-500">{{companyName}} &bull; {{projectName}}</div>
+    </div>
+    {{/inline}}
+
+    {{#*inline "pricingTable"}}
+    <div class="border rounded-lg overflow-hidden border-gray-200 shadow-sm bg-white">
+        <!-- Header -->
+        <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="font-bold text-sm text-[#002C73] uppercase tracking-wide">{{table.label}}</h3>
+            <span class="text-xs font-semibold bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-600">
+                {{table.grandTotal}}
+            </span>
+        </div>
+        <!-- Items -->
+        <table class="w-full text-[9pt]">
+            <thead class="bg-gray-50/50 text-gray-400 text-[7pt] uppercase tracking-wider border-b border-gray-100">
                 <tr>
-                    <th style="text-align:left">DISPLAY NAME</th>
-                    <th style="text-align:left">DIMENSIONS</th>
-                    <th style="text-align:right">PITCH</th>
-                    <th style="text-align:right">RESOLUTION</th>
-                    <th style="text-align:right">BRIGHTNESS</th>
-                    <th style="text-align:right">QTY</th>
+                    <th class="px-4 py-1.5 text-left font-semibold w-[75%]">Description</th>
+                    <th class="px-4 py-1.5 text-right font-semibold w-[25%]">Price</th>
                 </tr>
             </thead>
-            <tbody>
-                {{#each screens}}
-                <tr>
-                    <td class="name-col">{{this.name}}</td>
-                    <!-- PLAIN ASCII: ' for feet, x for multiplier — NO Unicode -->
-                    <td class="dim-col">{{this.height}}' x {{this.width}}'</td>
-                    <td class="pitch-col">{{this.pitch}}mm</td>
-                    <td class="res-col">{{this.resH}} x {{this.resW}}</td>
-                    <td class="bright-col">{{this.brightness}}</td>
-                    <td class="qty-col">{{this.qty}}</td>
+            <tbody class="divide-y divide-gray-100">
+                {{#each table.items}}
+                <tr class="{{#if @odd}}bg-gray-50/30{{/if}}">
+                    <td class="px-4 py-2 text-gray-700 font-medium">{{description}}</td>
+                    <td class="px-4 py-2 text-right text-gray-900 font-bold tabular-nums">{{price}}</td>
                 </tr>
                 {{/each}}
             </tbody>
+            <!-- Footer (Totals) -->
+            <tfoot class="bg-gray-50 border-t border-gray-200">
+                {{#if table.subtotal}}
+                <tr>
+                    <td class="px-4 py-1.5 text-right text-xs font-semibold text-gray-500">Subtotal</td>
+                    <td class="px-4 py-1.5 text-right text-xs font-bold text-gray-800">{{table.subtotal}}</td>
+                </tr>
+                {{/if}}
+                {{#if table.tax}}
+                <tr>
+                    <td class="px-4 py-1.5 text-right text-xs font-semibold text-gray-500">{{table.taxLabel}}</td>
+                    <td class="px-4 py-1.5 text-right text-xs font-bold text-gray-800">{{table.tax}}</td>
+                </tr>
+                {{/if}}
+                {{#if table.bond}}
+                <tr>
+                    <td class="px-4 py-1.5 text-right text-xs font-semibold text-gray-500">P&P Bond</td>
+                    <td class="px-4 py-1.5 text-right text-xs font-bold text-gray-800">{{table.bond}}</td>
+                </tr>
+                {{/if}}
+                <tr class="bg-[#f8fafc] border-t border-gray-200">
+                    <td class="px-4 py-2 text-right text-sm font-bold text-[#002C73] uppercase tracking-wide">Total</td>
+                    <td class="px-4 py-2 text-right text-sm font-bold text-[#002C73]">{{table.grandTotal}}</td>
+                </tr>
+            </tfoot>
         </table>
     </div>
+    {{/inline}}
 
-    <!-- =============== NOTES =============== -->
-    <div class="section-header" style="margin-top: 24px;">
-        <div class="bar"></div>
-        <h2>NOTES &amp; ASSUMPTIONS</h2>
+    {{#*inline "specsTable"}}
+    <!-- Technical Specifications Table (Fixed version with Arial font) -->
+    <div class="mb-4">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-1 h-6 bg-[#002C73] rounded-full"></div>
+            <h2 class="text-sm font-bold text-[#002C73] uppercase tracking-wide">Exhibit A — Technical Specifications
+            </h2>
+        </div>
+
+        <div class="border rounded-lg overflow-hidden border-gray-200">
+            <table class="w-full text-[9pt]" style="font-family: Arial, Helvetica, sans-serif;">
+                <thead class="bg-gray-100 text-[#002C73] border-b border-gray-200">
+                    <tr>
+                        <th class="text-left font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[26%]">Display
+                            Name</th>
+                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[12%]">Qty</th>
+                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[24%]">
+                            Dimensions</th>
+                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[18%]">
+                            Resolution</th>
+                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[12%]">
+                            Brightness</th>
+                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[8%]">Pitch
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                    {{#each screens}}
+                    <tr class="{{#if @odd}}bg-gray-50{{/if}}">
+                        <td class="py-2 px-3 font-semibold text-gray-900 border-r border-gray-100">{{name}}</td>
+                        <td class="py-2 px-3 text-center text-gray-600 border-r border-gray-100">{{qty}}</td>
+                        <td
+                            class="py-2 px-3 text-center text-gray-600 border-r border-gray-100 font-medium whitespace-nowrap">
+                            {{height}} x {{width}}</td>
+                        <td
+                            class="py-2 px-3 text-center text-gray-600 border-r border-gray-100 font-medium whitespace-nowrap">
+                            {{resH}} x {{resW}}</td>
+                        <td class="py-2 px-3 text-center text-gray-600 border-r border-gray-100">{{brightness}}</td>
+                        <td class="py-2 px-3 text-center text-gray-600">{{pitch}}mm</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+            </table>
+        </div>
+        <p class="mt-2 text-[8px] text-gray-400 italic">Technical specifications are subject to change based on final
+            engineering.</p>
     </div>
-    <div class="notes">
-        <ul>
+    {{/inline}}
+
+    {{#*inline "notesSection"}}
+    <div class="bg-gray-50 rounded-lg p-5 border border-gray-200 mb-6 break-inside-avoid">
+        <h4 class="text-xs font-bold text-gray-700 uppercase tracking-widest mb-3 border-b border-gray-200 pb-2">Notes
+            &amp; Clarifications</h4>
+        <ul class="list-disc pl-4 space-y-1.5">
             {{#each notes}}
-            <li>{{this}}</li>
+            <li class="text-[9pt] text-gray-600 pl-1">{{this}}</li>
             {{/each}}
         </ul>
     </div>
+    {{/inline}}
 
-    <!-- =============== SIGNATURE =============== -->
-    <div class="signature-block">
-        <div>
-            <div class="sig-line">Authorized Signature — {{companyName}}</div>
+    {{#*inline "paymentTerms"}}
+    <div class="mb-6 break-inside-avoid">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-1 h-5 bg-gray-400 rounded-full"></div>
+            <h2 class="text-xs font-bold text-gray-600 uppercase tracking-wide">Payment Terms</h2>
         </div>
-        <div>
-            <div class="sig-line">Authorized Signature — {{clientName}}</div>
+        <p class="text-[9pt] text-gray-600 ml-4">
+            Purchaser shall pay ANC the Total Price in accordance with the following schedule:
+            <br><br>
+            <strong>50%</strong> of Total Price upon execution of this Agreement;<br>
+            <strong>40%</strong> of Total Price upon delivery of major equipment;<br>
+            <strong>10%</strong> of Total Price upon Substantial Completion.
+        </p>
+    </div>
+    {{/inline}}
+
+    {{#*inline "signatureBlock"}}
+    <div class="mt-8 pt-8 border-t border-gray-300">
+        <div class="grid grid-cols-2 gap-12">
+            <!-- ANC Side -->
+            <div>
+                <h4 class="font-bold text-sm mb-4">ANC Sports Enterprises, LLC</h4>
+                <div class="space-y-6">
+                    <div>
+                        <div class="border-b border-black w-full h-8 relative">
+                            <!-- Optional: Image signature could go here -->
+                        </div>
+                        <div class="text-[8px] uppercase tracking-widest mt-1 text-gray-500">By (Authorized Signature)
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="border-b border-gray-300 w-full h-6 flex items-end font-semibold text-xs">
+                                Jerry Cifarelli Jr.
+                            </div>
+                            <div class="text-[7px] uppercase tracking-widest mt-1 text-gray-400">Name</div>
+                        </div>
+                        <div>
+                            <div class="border-b border-gray-300 w-full h-6 flex items-end text-xs">
+                                CEO
+                            </div>
+                            <div class="text-[7px] uppercase tracking-widest mt-1 text-gray-400">Title</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Side -->
+            <div>
+                <h4 class="font-bold text-sm mb-4">{{purchaserLegalName}}</h4>
+                <div class="space-y-6">
+                    <div>
+                        <div class="border-b border-black w-full h-8 relative">
+                            <!-- User Signature Font simulation -->
+                        </div>
+                        <div class="text-[8px] uppercase tracking-widest mt-1 text-gray-500">By (Authorized Signature)
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="border-b border-gray-300 w-full h-6"></div>
+                            <div class="text-[7px] uppercase tracking-widest mt-1 text-gray-400">Name</div>
+                        </div>
+                        <div>
+                            <div class="border-b border-gray-300 w-full h-6"></div>
+                            <div class="text-[7px] uppercase tracking-widest mt-1 text-gray-400">Title</div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="border-b border-gray-300 w-1/2 h-6"></div>
+                        <div class="text-[7px] uppercase tracking-widest mt-1 text-gray-400">Date</div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
+    {{/inline}}
 
 </body>
+
 </html>
