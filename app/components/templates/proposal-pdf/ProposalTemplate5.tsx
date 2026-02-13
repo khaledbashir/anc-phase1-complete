@@ -120,10 +120,19 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
             screenNameMap[group] = screen.name;
         }
     });
+    const templateConfig = ((details as any)?.templateConfig || {}) as Record<string, any>;
+    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+    const contentPaddingX = clamp(Number(templateConfig?.contentPaddingX ?? 24) || 24, 12, 48);
+    const headerToIntroGap = clamp(Number(templateConfig?.headerToIntroGap ?? 16) || 16, 4, 64);
+    const introToBodyGap = clamp(Number(templateConfig?.introToBodyGap ?? 16) || 16, 4, 72);
+    const sectionSpacing = clamp(Number(templateConfig?.sectionSpacing ?? 16) || 16, 6, 36);
+    const pricingTableGap = clamp(Number(templateConfig?.pricingTableGap ?? 16) || 16, 6, 36);
+    const accentColor = (templateConfig?.accentColor || "").toString().trim();
+    const primaryColor = /^#[0-9A-Fa-f]{6}$/.test(accentColor) ? accentColor : "#0A52EF";
 
     // Hybrid color palette - Modern base with Bold accents
     const colors = {
-        primary: "#0A52EF",
+        primary: primaryColor,
         primaryDark: "#002C73",
         primaryLight: "#E8F0FE",
         accent: "#6366F1",
@@ -226,7 +235,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Unified Section Header — blue vertical bar accent + text (Natalia-approved)
     const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
-        <div className="mb-3 mt-4 break-inside-avoid" style={{ breakAfter: 'avoid' }}>
+        <div className="break-inside-avoid" style={{ breakAfter: 'avoid', marginTop: `${Math.max(6, sectionSpacing - 4)}px`, marginBottom: `${Math.max(8, sectionSpacing - 2)}px` }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{ width: '3px', height: '12px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
                 <h2 className="text-[10px] font-semibold tracking-wider uppercase"
@@ -444,7 +453,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 const { subtotal, taxLabel, tax: taxAmount, bond, grandTotal } = detailTotals;
 
                 return (
-                    <div key={tableId || `table-${origIdx}`} className="mt-4 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                    <div key={tableId || `table-${origIdx}`} className="break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid', marginTop: `${pricingTableGap}px` }}>
                         <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                             {/* Table header — text + thin blue underline */}
                             <div
@@ -1037,7 +1046,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     return (
         <ProposalLayout data={data} disableFixedFooter>
             {/* Compact Header — logo + document label, half the original height */}
-            <div className="flex justify-between items-center px-6 pt-2 pb-1 mb-4 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent' }}>
+            <div className="flex justify-between items-center pt-2 pb-1 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent', marginBottom: `${headerToIntroGap}px`, paddingLeft: `${contentPaddingX}px`, paddingRight: `${contentPaddingX}px` }}>
                 <LogoSelectorServer theme="light" width={70} height={35} className="p-0" />
                 <div className="text-right break-inside-avoid" style={{ background: 'transparent' }}>
                     <div className="text-[8px] uppercase tracking-widest font-semibold" style={{ color: colors.primary, background: 'transparent' }}>{docLabel}</div>
@@ -1047,7 +1056,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
             {/* Intro - 10pt font */}
             {showIntroText && (
-                <div className={`px-6 ${isLOI ? "mb-4" : "mb-4"} break-inside-avoid`}>
+                <div className="break-inside-avoid" style={{ marginBottom: `${introToBodyGap}px`, paddingLeft: `${contentPaddingX}px`, paddingRight: `${contentPaddingX}px` }}>
                     <div className="text-[10px] leading-snug" style={{ color: colors.textMuted }}>
                         {(shouldRenderLegalIntro && (details as any)?.loiHeaderText?.trim()) ? (
                             <p className="text-justify whitespace-pre-wrap">{(details as any).loiHeaderText.trim()}</p>
@@ -1072,7 +1081,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
             {/* Prompt 58: Custom Proposal Notes (Fix 3) */}
             {((details as any)?.customProposalNotes) && (
-                <div className="px-6 mb-4 break-inside-avoid">
+                <div className="break-inside-avoid" style={{ marginBottom: `${introToBodyGap}px`, paddingLeft: `${contentPaddingX}px`, paddingRight: `${contentPaddingX}px` }}>
                     <div className="text-[10px] leading-snug whitespace-pre-wrap" style={{ color: colors.textMuted }}>
                         {(details as any).customProposalNotes}
                     </div>

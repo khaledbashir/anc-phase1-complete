@@ -90,6 +90,27 @@ const Step4Export = () => {
     const pricingDocument = watch("details.pricingDocument" as any);
     const mirrorMode =
         mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
+    const templateConfig = (watch("details.templateConfig" as any) || {}) as Record<string, any>;
+    const visualDefaults = {
+        contentPaddingX: 24,
+        headerToIntroGap: 16,
+        introToBodyGap: 16,
+        sectionSpacing: 16,
+        pricingTableGap: 16,
+        accentColor: "#0A52EF",
+        slash: {
+            width: 68,
+            height: 86,
+            count: 5,
+            opacity: 0.1,
+            top: 2,
+            right: 2,
+        },
+    };
+
+    const setTemplateConfigValue = (path: string, value: any) => {
+        setValue(path as any, value, { shouldDirty: true });
+    };
 
     useEffect(() => {
         if (!proposalId) return;
@@ -925,6 +946,131 @@ const Step4Export = () => {
                                     <TextEditorPanel />
                                 </CardContent>
                             )}
+                        </Card>
+
+                        <Card className="bg-card/40 border border-border/60 overflow-hidden">
+                            <CardHeader className="border-b border-border/60 pb-3">
+                                <CardTitle className="text-sm font-bold text-foreground">Template Visual Builder (V1)</CardTitle>
+                                <CardDescription className="text-xs text-muted-foreground">
+                                    Live PDF layout controls for spacing, accent color, and slash styling (applies to both Puppeteer + jsreport exports)
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="p-4 space-y-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <label className="text-xs font-medium text-foreground">
+                                        Content Padding: {Number(templateConfig?.contentPaddingX ?? visualDefaults.contentPaddingX)}px
+                                        <input
+                                            type="range"
+                                            min={12}
+                                            max={48}
+                                            value={Number(templateConfig?.contentPaddingX ?? visualDefaults.contentPaddingX)}
+                                            onChange={(e) => setTemplateConfigValue("details.templateConfig.contentPaddingX", Number(e.target.value))}
+                                            className="w-full mt-1"
+                                        />
+                                    </label>
+                                    <label className="text-xs font-medium text-foreground">
+                                        Header to Intro Gap: {Number(templateConfig?.headerToIntroGap ?? visualDefaults.headerToIntroGap)}px
+                                        <input
+                                            type="range"
+                                            min={4}
+                                            max={64}
+                                            value={Number(templateConfig?.headerToIntroGap ?? visualDefaults.headerToIntroGap)}
+                                            onChange={(e) => setTemplateConfigValue("details.templateConfig.headerToIntroGap", Number(e.target.value))}
+                                            className="w-full mt-1"
+                                        />
+                                    </label>
+                                    <label className="text-xs font-medium text-foreground">
+                                        Intro to Body Gap: {Number(templateConfig?.introToBodyGap ?? visualDefaults.introToBodyGap)}px
+                                        <input
+                                            type="range"
+                                            min={4}
+                                            max={72}
+                                            value={Number(templateConfig?.introToBodyGap ?? visualDefaults.introToBodyGap)}
+                                            onChange={(e) => setTemplateConfigValue("details.templateConfig.introToBodyGap", Number(e.target.value))}
+                                            className="w-full mt-1"
+                                        />
+                                    </label>
+                                    <label className="text-xs font-medium text-foreground">
+                                        Section Spacing: {Number(templateConfig?.sectionSpacing ?? visualDefaults.sectionSpacing)}px
+                                        <input
+                                            type="range"
+                                            min={6}
+                                            max={36}
+                                            value={Number(templateConfig?.sectionSpacing ?? visualDefaults.sectionSpacing)}
+                                            onChange={(e) => setTemplateConfigValue("details.templateConfig.sectionSpacing", Number(e.target.value))}
+                                            className="w-full mt-1"
+                                        />
+                                    </label>
+                                    <label className="text-xs font-medium text-foreground">
+                                        Pricing Box Gap: {Number(templateConfig?.pricingTableGap ?? visualDefaults.pricingTableGap)}px
+                                        <input
+                                            type="range"
+                                            min={6}
+                                            max={36}
+                                            value={Number(templateConfig?.pricingTableGap ?? visualDefaults.pricingTableGap)}
+                                            onChange={(e) => setTemplateConfigValue("details.templateConfig.pricingTableGap", Number(e.target.value))}
+                                            className="w-full mt-1"
+                                        />
+                                    </label>
+                                    <label className="text-xs font-medium text-foreground">
+                                        Accent Color
+                                        <div className="mt-1 flex items-center gap-2">
+                                            <input
+                                                type="color"
+                                                value={(templateConfig?.accentColor || visualDefaults.accentColor).toString()}
+                                                onChange={(e) => setTemplateConfigValue("details.templateConfig.accentColor", e.target.value)}
+                                                className="h-8 w-12 rounded border border-border bg-transparent"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={(templateConfig?.accentColor || visualDefaults.accentColor).toString()}
+                                                onChange={(e) => setTemplateConfigValue("details.templateConfig.accentColor", e.target.value)}
+                                                className="h-8 flex-1 rounded border border-border bg-background px-2 text-xs"
+                                            />
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <div className="pt-3 border-t border-border/40">
+                                    <div className="text-xs font-semibold text-foreground mb-2">Header Slashes</div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <label className="text-xs font-medium text-foreground">
+                                            Width: {Number(templateConfig?.slash?.width ?? visualDefaults.slash.width)}px
+                                            <input type="range" min={32} max={140} value={Number(templateConfig?.slash?.width ?? visualDefaults.slash.width)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.width", Number(e.target.value))} className="w-full mt-1" />
+                                        </label>
+                                        <label className="text-xs font-medium text-foreground">
+                                            Height: {Number(templateConfig?.slash?.height ?? visualDefaults.slash.height)}px
+                                            <input type="range" min={40} max={160} value={Number(templateConfig?.slash?.height ?? visualDefaults.slash.height)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.height", Number(e.target.value))} className="w-full mt-1" />
+                                        </label>
+                                        <label className="text-xs font-medium text-foreground">
+                                            Count: {Number(templateConfig?.slash?.count ?? visualDefaults.slash.count)}
+                                            <input type="range" min={2} max={10} value={Number(templateConfig?.slash?.count ?? visualDefaults.slash.count)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.count", Number(e.target.value))} className="w-full mt-1" />
+                                        </label>
+                                        <label className="text-xs font-medium text-foreground">
+                                            Opacity: {Number(templateConfig?.slash?.opacity ?? visualDefaults.slash.opacity).toFixed(2)}
+                                            <input type="range" min={0.03} max={0.25} step={0.01} value={Number(templateConfig?.slash?.opacity ?? visualDefaults.slash.opacity)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.opacity", Number(e.target.value))} className="w-full mt-1" />
+                                        </label>
+                                        <label className="text-xs font-medium text-foreground">
+                                            Top Offset: {Number(templateConfig?.slash?.top ?? visualDefaults.slash.top)}px
+                                            <input type="range" min={0} max={20} value={Number(templateConfig?.slash?.top ?? visualDefaults.slash.top)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.top", Number(e.target.value))} className="w-full mt-1" />
+                                        </label>
+                                        <label className="text-xs font-medium text-foreground">
+                                            Right Offset: {Number(templateConfig?.slash?.right ?? visualDefaults.slash.right)}px
+                                            <input type="range" min={0} max={20} value={Number(templateConfig?.slash?.right ?? visualDefaults.slash.right)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.right", Number(e.target.value))} className="w-full mt-1" />
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="pt-2 flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => setTemplateConfigValue("details.templateConfig", visualDefaults)}
+                                        className="px-3 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/60 transition-colors"
+                                    >
+                                        Reset Natalia Defaults
+                                    </button>
+                                </div>
+                            </CardContent>
                         </Card>
 
                         {/* ─── Spacer between text editing and export ─── */}

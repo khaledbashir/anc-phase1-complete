@@ -12,6 +12,15 @@ type ProposalLayoutProps = {
 
 export default function ProposalLayout({ data, children, disableFixedFooter = false }: ProposalLayoutProps) {
     const { sender, receiver, details } = data;
+    const templateConfig = ((details as any)?.templateConfig || {}) as Record<string, any>;
+    const slashConfig = (templateConfig?.slash || {}) as Record<string, any>;
+    const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+    const slashWidth = clamp(Number(slashConfig?.width ?? 68) || 68, 32, 140);
+    const slashHeight = clamp(Number(slashConfig?.height ?? 86) || 86, 40, 160);
+    const slashCount = clamp(Number(slashConfig?.count ?? 5) || 5, 2, 10);
+    const slashOpacity = clamp(Number(slashConfig?.opacity ?? 0.1) || 0.1, 0.03, 0.25);
+    const slashTop = clamp(Number(slashConfig?.top ?? 2) || 2, 0, 20);
+    const slashRight = clamp(Number(slashConfig?.right ?? 2) || 2, 0, 20);
 
     // Instead of fetching all signature fonts, get the specific one user selected.
     const fontHref = details.signature?.fontFamily
@@ -140,13 +149,14 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
             {head}
             <section style={{ fontFamily: "'Work Sans', 'Inter', system-ui, sans-serif", position: 'relative' }}>
                 <div className="block p-3 sm:p-6 bg-white dark:bg-white !bg-white text-[#1a1a1a] dark:text-[#1a1a1a] !text-black relative overflow-hidden print:bg-white">
-                    <BrandSlashes
-                        className="absolute top-2 right-2"
-                        width={68}
-                        height={86}
-                        opacity={0.1}
-                        count={5}
-                    />
+                    <div className="absolute" style={{ top: `${slashTop}px`, right: `${slashRight}px` }}>
+                        <BrandSlashes
+                            width={slashWidth}
+                            height={slashHeight}
+                            opacity={slashOpacity}
+                            count={slashCount}
+                        />
+                    </div>
                     <div className="relative z-10 mb-4">
                         {children}
                     </div>
