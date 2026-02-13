@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
             },
         };
 
-        console.log(`[jsreport] Sending request to ${JSREPORT_URL}/api/report`);
+        console.log(`[jsreport] Sending request to ${JSREPORT_URL}/api/report (engine=none, recipe=chrome-pdf, inline-content=true)`);
 
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
@@ -168,6 +168,9 @@ export async function POST(req: NextRequest) {
                 "Content-Disposition": "attachment; filename=proposal-jsreport.pdf",
                 "Cache-Control": "no-cache",
                 Pragma: "no-cache",
+                "X-ANC-JSREPORT-Pipeline": "inline-react-html",
+                "X-ANC-JSREPORT-Engine": "none",
+                "X-ANC-JSREPORT-Recipe": "chrome-pdf",
             },
             status: 200,
         });
