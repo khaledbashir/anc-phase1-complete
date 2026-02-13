@@ -67,7 +67,7 @@
 
     <!-- Brand Graphics: Slashes (Top Right) -->
     <!-- Replicating BrandSlashes.tsx logic with hardcoded lines for reliability -->
-    <div class="fixed top-0 right-0 w-[140px] h-[130px] opacity-[0.12] pointer-events-none z-0 overflow-hidden">
+    <div class="fixed top-0 -right-10 w-[140px] h-[130px] opacity-[0.12] pointer-events-none z-0 overflow-hidden">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="w-full h-full">
             <!-- 8 lines, 55 deg tilt logic approx -->
             <line x1="-50" y1="150" x2="90" y2="-50" stroke="#03B8FF" stroke-width="6" />
@@ -289,7 +289,8 @@
     {{/inline}}
 
     {{#*inline "pricingTable"}}
-    <div class="border rounded-lg overflow-hidden border-gray-200 shadow-sm bg-white">
+    <div
+        class="border rounded-lg overflow-hidden border-gray-200 shadow-sm bg-white break-inside-avoid page-break-inside-avoid">
         <!-- Header -->
         <div class="bg-gray-50 px-4 py-2 border-b border-gray-200 flex justify-between items-center">
             <h3 class="font-bold text-sm text-[#002C73] uppercase tracking-wide">{{table.label}}</h3>
@@ -355,32 +356,32 @@
             <table class="w-full text-[9pt]" style="font-family: Arial, Helvetica, sans-serif;">
                 <thead class="bg-gray-100 text-[#002C73] border-b border-gray-200">
                     <tr>
-                        <th class="text-left font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[26%]">Display
+                        <th class="text-left font-bold uppercase text-[8px] tracking-wider py-2 px-5 w-[26%]">Display
                             Name</th>
-                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[12%]">Qty</th>
-                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[24%]">
+                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-5 w-[12%]">Qty</th>
+                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-5 w-[24%]">
                             Dimensions</th>
-                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[18%]">
+                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-5 w-[18%]">
                             Resolution</th>
-                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[12%]">
+                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-5 w-[12%]">
                             Brightness</th>
-                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-3 w-[8%]">Pitch
+                        <th class="text-center font-bold uppercase text-[8px] tracking-wider py-2 px-5 w-[8%]">Pitch
                         </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     {{#each screens}}
                     <tr class="{{#if @odd}}bg-gray-50{{/if}}">
-                        <td class="py-2 px-3 font-semibold text-gray-900 border-r border-gray-100">{{name}}</td>
-                        <td class="py-2 px-3 text-center text-gray-600 border-r border-gray-100">{{qty}}</td>
+                        <td class="py-2 px-5 font-semibold text-gray-900 border-r border-gray-100">{{name}}</td>
+                        <td class="py-2 px-5 text-center text-gray-600 border-r border-gray-100">{{qty}}</td>
                         <td
-                            class="py-2 px-3 text-center text-gray-600 border-r border-gray-100 font-medium whitespace-nowrap">
+                            class="py-2 px-5 text-center text-gray-600 border-r border-gray-100 font-medium whitespace-nowrap">
                             {{height}} x {{width}}</td>
                         <td
-                            class="py-2 px-3 text-center text-gray-600 border-r border-gray-100 font-medium whitespace-nowrap">
+                            class="py-2 px-5 text-center text-gray-600 border-r border-gray-100 font-medium whitespace-nowrap">
                             {{resH}} x {{resW}}</td>
-                        <td class="py-2 px-3 text-center text-gray-600 border-r border-gray-100">{{brightness}}</td>
-                        <td class="py-2 px-3 text-center text-gray-600">{{pitch}}mm</td>
+                        <td class="py-2 px-5 text-center text-gray-600 border-r border-gray-100">{{brightness}}</td>
+                        <td class="py-2 px-5 text-center text-gray-600">{{pitch}}mm</td>
                     </tr>
                     {{/each}}
                 </tbody>
