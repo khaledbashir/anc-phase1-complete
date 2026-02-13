@@ -133,7 +133,8 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
 
             <div className="border border-gray-300 break-inside-avoid overflow-hidden">
                 {/* Use HTML table for reliable PDF column separation (avoids merged headers in Puppeteer) */}
-                <table className="w-full text-[8px] border-collapse" style={{ tableLayout: "fixed", pageBreakInside: 'auto' }}>
+                {/* fontFamily forced on table to kill LaTeX-style math font fallback in Puppeteer */}
+                <table className="w-full text-[8px] border-collapse" style={{ tableLayout: "fixed", pageBreakInside: 'auto', fontFamily: "Arial, Helvetica, sans-serif" }}>
                     <colgroup>
                         {isCondensed ? (
                             <>
@@ -154,12 +155,12 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                     </colgroup>
                     <thead>
                         <tr className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: "#002C73", borderBottom: "2px solid #0A52EF", background: "transparent", pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                            <th className="text-left" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>DISPLAY NAME</th>
-                            <th className="text-left" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>DIMENSIONS</th>
-                            {!isCondensed && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>PITCH</th>}
-                            {!isCondensed && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>RESOLUTION</th>}
-                            {!isCondensed && hasAnyBrightness && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>BRIGHTNESS</th>}
-                            <th className="text-right" style={{ whiteSpace: "nowrap", padding: "2px 4px" }}>QTY</th>
+                            <th className="text-left" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>DISPLAY NAME</th>
+                            <th className="text-left" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>DIMENSIONS</th>
+                            {!isCondensed && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>PITCH</th>}
+                            {!isCondensed && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>RESOLUTION</th>}
+                            {!isCondensed && hasAnyBrightness && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>BRIGHTNESS</th>}
+                            <th className="text-right" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>QTY</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-900">
@@ -172,17 +173,17 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                                 const qty = Number(screen?.quantity || 1);
                                 const pixelsH = screen?.pixelsH || computePixels(h, pitch);
                                 const pixelsW = screen?.pixelsW || computePixels(w, pitch);
-                                const resolution = pixelsH && pixelsW ? `${pixelsH} x ${pixelsW}` : "—";
+                                const resolution = pixelsH && pixelsW ? `${pixelsH} x ${pixelsW}` : "\u2014";
                                 const rawBrightness = screen?.brightness ?? screen?.brightnessNits ?? screen?.nits;
                                 const brightnessNumber = Number(rawBrightness);
                                 const brightnessText =
                                     rawBrightness == null || rawBrightness === "" || rawBrightness === 0
-                                        ? "—"
+                                        ? "\u2014"
                                         : isFinite(brightnessNumber) && brightnessNumber > 0
                                             ? formatNumberWithCommas(brightnessNumber)
-                                            : "—";
+                                            : "\u2014";
 
-                                const colCount = isCondensed ? 3 : (hasAnyBrightness ? 6 : 5);
+                                const cellStyle = { overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, padding: "3px 8px" };
 
                                 return (
                                     <tr
@@ -190,29 +191,29 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                                         className="border-b border-gray-200 last:border-b-0 break-inside-avoid"
                                         style={{ minHeight: 16, pageBreakInside: 'avoid', breakInside: 'avoid' }}
                                     >
-                                        <td className="font-semibold text-[7px] break-words align-top" style={{ wordBreak: "break-word", padding: "1px 4px" }}>
+                                        <td className="font-semibold text-[7px] align-top" style={{ ...cellStyle, wordBreak: "break-word", whiteSpace: "normal" }}>
                                             {name}
                                         </td>
-                                        <td className="text-gray-800 text-[7px] align-top whitespace-nowrap" style={{ overflow: 'hidden', textOverflow: 'ellipsis', padding: "1px 4px", fontFamily: "Arial, Helvetica, sans-serif" }}>
+                                        <td className="text-gray-800 text-[7px] align-top" style={{ ...cellStyle, whiteSpace: "nowrap" }}>
                                             {formatFeet(h)} x {formatFeet(w)}
                                         </td>
                                         {!isCondensed && (
-                                            <td className="text-right tabular-nums text-[7px] align-top" style={{ overflow: 'hidden', padding: "1px 4px" }}>
-                                                {pitch ? `${formatPitchMm(pitch)}mm` : "—"}
+                                            <td className="text-right tabular-nums text-[7px] align-top" style={{ ...cellStyle, whiteSpace: "nowrap" }}>
+                                                {pitch ? `${formatPitchMm(pitch)}mm` : "\u2014"}
                                             </td>
                                         )}
                                         {!isCondensed && (
-                                            <td className="text-right tabular-nums text-[7px] align-top whitespace-nowrap" style={{ overflow: 'hidden', textOverflow: 'ellipsis', padding: "1px 4px", fontFamily: "Arial, Helvetica, sans-serif" }}>
+                                            <td className="text-right tabular-nums text-[7px] align-top" style={{ ...cellStyle, whiteSpace: "nowrap" }}>
                                                 {resolution}
                                             </td>
                                         )}
                                         {!isCondensed && hasAnyBrightness && (
-                                            <td className="text-right tabular-nums text-[7px] whitespace-nowrap align-top" style={{ padding: "1px 4px" }}>
+                                            <td className="text-right tabular-nums text-[7px] align-top" style={{ ...cellStyle, whiteSpace: "nowrap" }}>
                                                 {brightnessText}
                                             </td>
                                         )}
-                                        <td className="text-right tabular-nums text-[7px] align-top" style={{ padding: "1px 4px" }}>
-                                            {isFinite(qty) ? qty : "—"}
+                                        <td className="text-right tabular-nums text-[7px] align-top" style={cellStyle}>
+                                            {isFinite(qty) ? qty : "\u2014"}
                                         </td>
                                     </tr>
                                 );
