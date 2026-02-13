@@ -54,6 +54,9 @@ export async function POST(req: NextRequest) {
         const requestedLayout = (body.details as any)?.pageLayout;
         const pageLayout = pageLayoutMap[requestedLayout] ? requestedLayout : "portrait-letter";
         const layout = pageLayoutMap[pageLayout];
+        // waitForJS requires window.JSREPORT_READY_TO_START=true in page JS.
+        // Keep it opt-in to prevent indefinite waits/hard timeouts.
+        const waitForJS = (body.details as any)?.jsreportWaitForJS === true;
 
         const origin = getRequestOrigin(req).replace(/\/+$/, "");
         const baseHref = `${origin}/`;
@@ -67,6 +70,9 @@ export async function POST(req: NextRequest) {
                 chrome: {
                     printBackground: true,
                     displayHeaderFooter: true,
+                    mediaType: "screen",
+                    waitForNetworkIdle: true,
+                    waitForJS,
                     headerTemplate: '<div style="font-size:1px;"></div>',
                     footerTemplate: `
                     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; width: 100%; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; padding-top: 4px; box-sizing: border-box;">
