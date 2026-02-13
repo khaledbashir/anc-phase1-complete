@@ -21,6 +21,35 @@ import {
 import { cn } from "@/lib/utils";
 import { buildAutoFillValues } from "@/services/rfp/proposalAutoFill";
 import { calculateExhibitG, calculateHardwareCost, estimatePricing, getAllProducts, getProduct } from "@/services/rfp/productCatalog";
+import CompetitorRadarCard from "@/app/components/intelligence/CompetitorRadarCard";
+
+// ============================================================================
+// SUB-COMPONENTS
+// ============================================================================
+
+function CompetitorRadarWrapper({ rfpText }: { rfpText: string }) {
+    const [analysis, setAnalysis] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleAnalyze = async () => {
+        setIsLoading(true);
+        try {
+            const res = await fetch("/api/intelligence/competitor-radar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ rfpText }),
+            });
+            const data = await res.json();
+            setAnalysis(data);
+        } catch (error) {
+            console.error("Competitor Radar failed:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return <CompetitorRadarCard analysis={analysis} isLoading={isLoading} onAnalyze={handleAnalyze} />;
+}
 
 // ============================================================================
 // TYPES
@@ -770,6 +799,15 @@ export default function RfpIngestion({ onComplete }: RfpIngestionProps) {
                         onDragOver={handleDragOver}
                         onDrop={handleDrop}
                     >
+                        {/* Intelligence Modules */}
+                        {mergedSpecs.length > 0 && (
+                            <div className="mb-6">
+                                <CompetitorRadarWrapper
+                                    rfpText={allUploads.map(u => u.results.overviewData?.content || "").join("\n\n")}
+                                />
+                            </div>
+                        )}
+
                         {/* File summary + add more */}
                         <div className="flex items-center gap-3 flex-wrap">
                             <div className="flex items-center gap-2 text-xs">

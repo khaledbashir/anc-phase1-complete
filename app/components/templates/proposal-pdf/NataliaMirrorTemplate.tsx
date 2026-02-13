@@ -405,7 +405,7 @@ function Header({
         : "LETTER OF INTENT";
 
   return (
-    <div className="px-12 pt-6 pb-3 border-b-2 border-[#0A52EF]">
+    <div className="px-12 pt-6 pb-6 border-b-2 border-[#0A52EF]">
       <div className="flex justify-between items-start">
         <LogoSelectorServer theme="light" width={120} height={60} />
         <div className="text-right">
@@ -470,7 +470,7 @@ function IntroSection({
   }
 
   return (
-    <div className="px-12 py-1">
+    <div className="px-12 py-6">
       <p className="text-[11px] text-gray-600 leading-relaxed text-justify">
         {intro}
       </p>
@@ -501,7 +501,7 @@ function MasterTableSection({
   const totals = computeTableTotals(table, priceOverrides, descriptionOverrides);
 
   return (
-    <div className="px-12 py-2">
+    <div className="px-12 py-6">
       {/* Darker French Blue header to distinguish as summary */}
       <div className="flex justify-between items-center pb-1 mb-0" style={{ borderBottom: '3px solid #002C73' }}>
         <h2 className="text-sm font-bold uppercase tracking-wide" style={{ color: '#002C73' }}>
@@ -599,7 +599,7 @@ function PricingTableSection({
   const totals = computeTableTotals(table, priceOverrides, descriptionOverrides);
 
   return (
-    <div className="px-12 py-2">
+    <div className="px-12 py-6">
       {/* Table header */}
       <div className="flex justify-between items-center border-b-2 border-gray-800 pb-1 mb-0">
         <h2 className="text-sm font-bold text-gray-800 uppercase tracking-wide">
@@ -763,8 +763,8 @@ function PaymentTermsSection({ paymentTerms }: { paymentTerms?: string }) {
   const isBulletStyle = terms.includes("•") || terms.includes("-");
 
   return (
-    <div className="px-12 py-1">
-      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-1">
+    <div className="px-12 py-6">
+      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-4" style={{ breakAfter: 'avoid' }}>
         PAYMENT TERMS
       </h3>
       {isBulletStyle ? (
@@ -784,7 +784,7 @@ function PaymentTermsSection({ paymentTerms }: { paymentTerms?: string }) {
 
 function SignatureSection({ clientName }: { clientName: string }) {
   return (
-    <div className="px-12 py-1 break-inside-avoid">
+    <div className="px-12 py-6 break-inside-avoid">
       <p className="text-[10px] text-gray-500 mb-2">
         Please sign below to indicate Purchaser&apos;s agreement to purchase the
         Display System as described herein and to authorize ANC to commence
@@ -855,13 +855,13 @@ function TechnicalSpecsSection({ screens, clientName }: { screens: any[], client
   };
 
   return (
-    <div className="px-12 py-3 break-before-page" style={{ pageBreakBefore: 'always' }}>
+    <div className="px-12 py-6 break-before-page" style={{ pageBreakBefore: 'always' }}>
       <div className="text-center mb-8 mt-6">
         <h2 className="text-xl font-medium tracking-[0.2em] text-gray-500 uppercase font-sans">
           CLIENT — {clientName}
         </h2>
       </div>
-      <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mb-2">
+      <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mb-6" style={{ breakAfter: 'avoid' }}>
         SPECIFICATIONS
       </h2>
 
@@ -936,8 +936,8 @@ function StatementOfWorkSection({ details }: { details: any }) {
   if (!sow) return null;
 
   return (
-    <div className="px-12 py-1 break-before-page">
-      <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mb-1">
+    <div className="px-12 py-6 break-before-page">
+      <h2 className="text-sm font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mb-4" style={{ breakAfter: 'avoid' }}>
         STATEMENT OF WORK
       </h2>
       <div
@@ -1030,7 +1030,7 @@ function RespMatrixSOWSection({
   };
 
   return (
-    <div className="px-12 py-1 break-before-page" style={{ pageBreakBefore: 'always' }}>
+    <div className="px-12 py-6 break-before-page" style={{ pageBreakBefore: 'always' }}>
       {/* Title block */}
       <div className="text-center mb-1">
         <div className="text-center mb-8 mt-6">
@@ -1038,7 +1038,7 @@ function RespMatrixSOWSection({
             CLIENT — {clientName}
           </h2>
         </div>
-        <h2 className="text-lg font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mt-1">
+        <h2 className="text-lg font-bold text-[#0A52EF] uppercase tracking-wide border-b-2 border-[#0A52EF] pb-1 mt-1 mb-4" style={{ breakAfter: 'avoid' }}>
           STATEMENT OF WORK
         </h2>
       </div>
@@ -1084,8 +1084,8 @@ function CustomNotesSection({
   const title = isLOI ? "ADDITIONAL NOTES" : "NOTES";
 
   return (
-    <div className="px-12 py-1">
-      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-1">
+    <div className="px-12 py-6">
+      <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wide border-b border-gray-300 pb-1 mb-4" style={{ breakAfter: 'avoid' }}>
         {title}
       </h3>
       <div className="text-[11px] text-gray-600 leading-relaxed whitespace-pre-wrap">

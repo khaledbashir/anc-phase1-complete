@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
                 wordCount: s.wordCount,
                 skipReason: s.skipReason,
             })),
+            content: processed.highValueText,
         });
     } catch (error: any) {
         Sentry.captureException(error, { tags: { area: "rfp-process" } });

@@ -148,8 +148,7 @@ export default function SalesQuotation({ proposal }: Props) {
                 <div>
                   <span className="text-[#0A52EF] font-medium">NY</span>{" "}
                   <span className="text-neutral-500">914.696.2100</span>{" "}
-                  <span className="text-amber-600 font-medium">TX</span>{" "}
-                  <span className="text-neutral-500">940.464.2320</span>
+                  {/* Texas Number Removed */}
                 </div>
               </div>
               <LogoSelectorServer theme="light" width={80} height={40} />
@@ -239,8 +238,7 @@ export default function SalesQuotation({ proposal }: Props) {
                   <div>
                     <span className="text-[#0A52EF] font-medium">NY</span>{" "}
                     <span className="text-neutral-500">914.696.2100</span>{" "}
-                    <span className="text-amber-600 font-medium">TX</span>{" "}
-                    <span className="text-neutral-500">940.464.2320</span>
+                    {/* Texas Number Removed */}
                   </div>
                 </div>
                 <div className="text-[#0A52EF] text-2xl font-bold tracking-tight" style={{ fontFamily: "Work Sans, sans-serif" }}>
