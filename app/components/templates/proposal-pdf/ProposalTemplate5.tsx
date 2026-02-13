@@ -226,7 +226,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Unified Section Header — blue vertical bar accent + text (Natalia-approved)
     const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
-        <div className="mb-4 mt-6 break-inside-avoid" style={{ breakAfter: 'avoid' }}>
+        <div className="mb-3 mt-4 break-inside-avoid" style={{ breakAfter: 'avoid' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <div style={{ width: '3px', height: '12px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
                 <h2 className="text-[10px] font-semibold tracking-wider uppercase"
@@ -444,7 +444,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                 const { subtotal, taxLabel, tax: taxAmount, bond, grandTotal } = detailTotals;
 
                 return (
-                    <div key={tableId || `table-${origIdx}`} className="mt-8 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                    <div key={tableId || `table-${origIdx}`} className="mt-4 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                         <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.border }}>
                             {/* Table header — text + thin blue underline */}
                             <div
@@ -808,7 +808,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Signature Block - Universal (available for all document types)
     const SignatureBlock = () => (
-        <div className="mt-8 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+        <div className="mt-4 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
             <div className="text-[10px] leading-snug text-justify mb-3 break-inside-avoid" style={{ color: colors.textMuted }}>
                 {((details as any)?.signatureBlockText || "").trim() || DEFAULT_SIGNATURE_BLOCK_TEXT}
             </div>
@@ -1037,7 +1037,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     return (
         <ProposalLayout data={data} disableFixedFooter>
             {/* Compact Header — logo + document label, half the original height */}
-            <div className="flex justify-between items-center px-6 pt-2 pb-1 mb-8 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent' }}>
+            <div className="flex justify-between items-center px-6 pt-2 pb-1 mb-4 border-b break-inside-avoid" style={{ borderColor: colors.border, background: 'transparent' }}>
                 <LogoSelectorServer theme="light" width={70} height={35} className="p-0" />
                 <div className="text-right break-inside-avoid" style={{ background: 'transparent' }}>
                     <div className="text-[8px] uppercase tracking-widest font-semibold" style={{ color: colors.primary, background: 'transparent' }}>{docLabel}</div>
@@ -1047,7 +1047,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
             {/* Intro - 10pt font */}
             {showIntroText && (
-                <div className={`px-6 ${isLOI ? "mb-8" : "mb-8"} break-inside-avoid`}>
+                <div className={`px-6 ${isLOI ? "mb-4" : "mb-4"} break-inside-avoid`}>
                     <div className="text-[10px] leading-snug" style={{ color: colors.textMuted }}>
                         {(shouldRenderLegalIntro && (details as any)?.loiHeaderText?.trim()) ? (
                             <p className="text-justify whitespace-pre-wrap">{(details as any).loiHeaderText.trim()}</p>
@@ -1072,7 +1072,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
             {/* Prompt 58: Custom Proposal Notes (Fix 3) */}
             {((details as any)?.customProposalNotes) && (
-                <div className="px-6 mb-6 break-inside-avoid">
+                <div className="px-6 mb-4 break-inside-avoid">
                     <div className="text-[10px] leading-snug whitespace-pre-wrap" style={{ color: colors.textMuted }}>
                         {(details as any).customProposalNotes}
                     </div>
