@@ -23,7 +23,9 @@ export const EXPORT_PROPOSAL_API = "/api/proposals/export";
 /**
  * jsreport — Server-side only. Used by the API route, not the client.
  */
-export const JSREPORT_URL = process.env.JSREPORT_URL || "http://basheer_jsreport:5488";
+export const JSREPORT_URL = process.env.JSREPORT_URL || "https://basheer-jsreport.prd42b.easypanel.host";
+export const JSREPORT_USER = process.env.JSREPORT_USER || "admin";
+export const JSREPORT_PASSWORD = process.env.JSREPORT_PASSWORD || "admin";
 
 /**
  * External API endpoints
