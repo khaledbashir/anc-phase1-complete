@@ -958,7 +958,10 @@ const Step4Export = () => {
                             <CardContent className="p-4 space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <label className="text-xs font-medium text-foreground">
-                                        Content Padding: {Number(templateConfig?.contentPaddingX ?? visualDefaults.contentPaddingX)}px
+                                        <span className="flex items-center justify-between">
+                                            <span>Content Padding: {Number(templateConfig?.contentPaddingX ?? visualDefaults.contentPaddingX)}px</span>
+                                            <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.contentPaddingX", visualDefaults.contentPaddingX)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                        </span>
                                         <input
                                             type="range"
                                             min={12}
@@ -969,7 +972,10 @@ const Step4Export = () => {
                                         />
                                     </label>
                                     <label className="text-xs font-medium text-foreground">
-                                        Header to Intro Gap: {Number(templateConfig?.headerToIntroGap ?? visualDefaults.headerToIntroGap)}px
+                                        <span className="flex items-center justify-between">
+                                            <span>Header to Intro Gap: {Number(templateConfig?.headerToIntroGap ?? visualDefaults.headerToIntroGap)}px</span>
+                                            <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.headerToIntroGap", visualDefaults.headerToIntroGap)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                        </span>
                                         <input
                                             type="range"
                                             min={4}
@@ -980,7 +986,10 @@ const Step4Export = () => {
                                         />
                                     </label>
                                     <label className="text-xs font-medium text-foreground">
-                                        Intro to Body Gap: {Number(templateConfig?.introToBodyGap ?? visualDefaults.introToBodyGap)}px
+                                        <span className="flex items-center justify-between">
+                                            <span>Intro to Body Gap: {Number(templateConfig?.introToBodyGap ?? visualDefaults.introToBodyGap)}px</span>
+                                            <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.introToBodyGap", visualDefaults.introToBodyGap)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                        </span>
                                         <input
                                             type="range"
                                             min={4}
@@ -991,7 +1000,10 @@ const Step4Export = () => {
                                         />
                                     </label>
                                     <label className="text-xs font-medium text-foreground">
-                                        Section Spacing: {Number(templateConfig?.sectionSpacing ?? visualDefaults.sectionSpacing)}px
+                                        <span className="flex items-center justify-between">
+                                            <span>Section Spacing: {Number(templateConfig?.sectionSpacing ?? visualDefaults.sectionSpacing)}px</span>
+                                            <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.sectionSpacing", visualDefaults.sectionSpacing)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                        </span>
                                         <input
                                             type="range"
                                             min={6}
@@ -1002,7 +1014,10 @@ const Step4Export = () => {
                                         />
                                     </label>
                                     <label className="text-xs font-medium text-foreground">
-                                        Pricing Box Gap: {Number(templateConfig?.pricingTableGap ?? visualDefaults.pricingTableGap)}px
+                                        <span className="flex items-center justify-between">
+                                            <span>Pricing Box Gap: {Number(templateConfig?.pricingTableGap ?? visualDefaults.pricingTableGap)}px</span>
+                                            <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.pricingTableGap", visualDefaults.pricingTableGap)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                        </span>
                                         <input
                                             type="range"
                                             min={6}
@@ -1013,7 +1028,10 @@ const Step4Export = () => {
                                         />
                                     </label>
                                     <label className="text-xs font-medium text-foreground">
-                                        Accent Color
+                                        <span className="flex items-center justify-between">
+                                            <span>Accent Color</span>
+                                            <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.accentColor", visualDefaults.accentColor)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                        </span>
                                         <div className="mt-1 flex items-center gap-2">
                                             <input
                                                 type="color"
@@ -1035,27 +1053,45 @@ const Step4Export = () => {
                                     <div className="text-xs font-semibold text-foreground mb-2">Header Slashes</div>
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <label className="text-xs font-medium text-foreground">
-                                            Width: {Number(templateConfig?.slash?.width ?? visualDefaults.slash.width)}px
+                                            <span className="flex items-center justify-between">
+                                                <span>Width: {Number(templateConfig?.slash?.width ?? visualDefaults.slash.width)}px</span>
+                                                <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.width", visualDefaults.slash.width)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                            </span>
                                             <input type="range" min={32} max={140} value={Number(templateConfig?.slash?.width ?? visualDefaults.slash.width)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.width", Number(e.target.value))} className="w-full mt-1" />
                                         </label>
                                         <label className="text-xs font-medium text-foreground">
-                                            Height: {Number(templateConfig?.slash?.height ?? visualDefaults.slash.height)}px
+                                            <span className="flex items-center justify-between">
+                                                <span>Height: {Number(templateConfig?.slash?.height ?? visualDefaults.slash.height)}px</span>
+                                                <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.height", visualDefaults.slash.height)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                            </span>
                                             <input type="range" min={40} max={160} value={Number(templateConfig?.slash?.height ?? visualDefaults.slash.height)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.height", Number(e.target.value))} className="w-full mt-1" />
                                         </label>
                                         <label className="text-xs font-medium text-foreground">
-                                            Count: {Number(templateConfig?.slash?.count ?? visualDefaults.slash.count)}
+                                            <span className="flex items-center justify-between">
+                                                <span>Count: {Number(templateConfig?.slash?.count ?? visualDefaults.slash.count)}</span>
+                                                <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.count", visualDefaults.slash.count)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                            </span>
                                             <input type="range" min={2} max={10} value={Number(templateConfig?.slash?.count ?? visualDefaults.slash.count)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.count", Number(e.target.value))} className="w-full mt-1" />
                                         </label>
                                         <label className="text-xs font-medium text-foreground">
-                                            Opacity: {Number(templateConfig?.slash?.opacity ?? visualDefaults.slash.opacity).toFixed(2)}
+                                            <span className="flex items-center justify-between">
+                                                <span>Opacity: {Number(templateConfig?.slash?.opacity ?? visualDefaults.slash.opacity).toFixed(2)}</span>
+                                                <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.opacity", visualDefaults.slash.opacity)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                            </span>
                                             <input type="range" min={0.03} max={0.25} step={0.01} value={Number(templateConfig?.slash?.opacity ?? visualDefaults.slash.opacity)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.opacity", Number(e.target.value))} className="w-full mt-1" />
                                         </label>
                                         <label className="text-xs font-medium text-foreground">
-                                            Top Offset: {Number(templateConfig?.slash?.top ?? visualDefaults.slash.top)}px
+                                            <span className="flex items-center justify-between">
+                                                <span>Top Offset: {Number(templateConfig?.slash?.top ?? visualDefaults.slash.top)}px</span>
+                                                <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.top", visualDefaults.slash.top)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                            </span>
                                             <input type="range" min={0} max={20} value={Number(templateConfig?.slash?.top ?? visualDefaults.slash.top)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.top", Number(e.target.value))} className="w-full mt-1" />
                                         </label>
                                         <label className="text-xs font-medium text-foreground">
-                                            Right Offset: {Number(templateConfig?.slash?.right ?? visualDefaults.slash.right)}px
+                                            <span className="flex items-center justify-between">
+                                                <span>Right Offset: {Number(templateConfig?.slash?.right ?? visualDefaults.slash.right)}px</span>
+                                                <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.right", visualDefaults.slash.right)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                            </span>
                                             <input type="range" min={0} max={20} value={Number(templateConfig?.slash?.right ?? visualDefaults.slash.right)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.right", Number(e.target.value))} className="w-full mt-1" />
                                         </label>
                                     </div>
