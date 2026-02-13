@@ -1356,6 +1356,23 @@ export const ProposalContextProvider = ({
                 setProposalPdf(result);
 
                 if (result.size > 0) {
+                    // Auto-download the jsreport PDF
+                    const url = window.URL.createObjectURL(result);
+                    const details = data?.details as any;
+                    const clientName = (details?.clientName || details?.proposalName || "proposal").toString();
+                    const safeUnderscored = (s: string) => s.replace(/[/\\:*?"<>|]/g, "").replace(/\s+/g, "_").trim().slice(0, 50) || "Client";
+                    const docMode = details?.documentMode || "LOI";
+                    const documentTypeLabel = docMode === "LOI" ? "Letter_of_Intent" : docMode === "PROPOSAL" ? "Proposal" : "Budget_Estimate";
+                    const dateStr = new Date().toISOString().slice(0, 10);
+                    const fileName = `ANC_${safeUnderscored(clientName)}_${documentTypeLabel}_${dateStr}_jsreport.pdf`;
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+
                     setPdfGenerationProgress({ value: 100, label: "Done (jsreport)" });
                     setTimeout(() => setPdfGenerationProgress(null), 800);
                     pdfGenerationSuccess();
