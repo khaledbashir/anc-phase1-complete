@@ -144,23 +144,23 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                             </>
                         ) : (
                             <>
+                                <col style={{ width: "26%" }} />
                                 <col style={{ width: "24%" }} />
-                                <col style={{ width: "22%" }} />
                                 <col style={{ width: "10%" }} />
-                                <col style={{ width: "20%" }} />
-                                {hasAnyBrightness && <col style={{ width: "14%" }} />}
+                                <col style={{ width: "18%" }} />
+                                {hasAnyBrightness && <col style={{ width: "12%" }} />}
                                 <col style={{ width: hasAnyBrightness ? "10%" : "12%" }} />
                             </>
                         )}
                     </colgroup>
                     <thead>
-                        <tr className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: "#002C73", borderBottom: "2px solid #0A52EF", background: "transparent", pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                            <th className="text-left" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>DISPLAY NAME</th>
-                            <th className="text-left" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>DIMENSIONS</th>
-                            {!isCondensed && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>PITCH</th>}
-                            {!isCondensed && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>RESOLUTION</th>}
-                            {!isCondensed && hasAnyBrightness && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>BRIGHTNESS</th>}
-                            <th className="text-right" style={{ whiteSpace: "nowrap", padding: "3px 8px" }}>QTY</th>
+                        <tr className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: "#002C73", borderBottom: "2px solid #0A52EF", background: "transparent", pageBreakInside: 'avoid', breakInside: 'avoid', fontFamily: "Arial, Helvetica, sans-serif" }}>
+                            <th className="text-left" style={{ whiteSpace: "nowrap", padding: "4px 10px" }}>DISPLAY NAME</th>
+                            <th className="text-left" style={{ whiteSpace: "nowrap", padding: "4px 10px" }}>DIMENSIONS</th>
+                            {!isCondensed && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "4px 10px" }}>PITCH</th>}
+                            {!isCondensed && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "4px 10px" }}>RESOLUTION</th>}
+                            {!isCondensed && hasAnyBrightness && <th className="text-right" style={{ whiteSpace: "nowrap", padding: "4px 10px" }}>BRIGHTNESS</th>}
+                            <th className="text-right" style={{ whiteSpace: "nowrap", padding: "4px 10px" }}>QTY</th>
                         </tr>
                     </thead>
                     <tbody className="text-gray-900">
@@ -183,7 +183,7 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                                             ? formatNumberWithCommas(brightnessNumber)
                                             : "\u2014";
 
-                                const cellStyle = { overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, padding: "3px 8px" };
+                                const cellStyle = { overflow: 'hidden' as const, textOverflow: 'ellipsis' as const, padding: "4px 10px", fontFamily: "Arial, Helvetica, sans-serif" };
 
                                 return (
                                     <tr
