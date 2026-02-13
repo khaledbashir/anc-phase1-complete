@@ -1,0 +1,180 @@
+{
+    "companyName": "ANC",
+    "documentType": "Letter of Intent",
+    "date": "February 13, 2026",
+    "proposalNumber": "ANC-2026-0213",
+    "projectName": "Venue Digital Display Systems — Phase 1",
+    "clientName": "Client Corp",
+    "introText": "ANC is pleased to present this Letter of Intent for the design, fabrication, and installation of digital display systems as outlined below. This proposal includes all necessary hardware, software, and professional services.",
+    "pricingTables": [
+        {
+            "label": "HISTORY WALL LCD DISPLAY",
+            "items": [
+                {
+                    "description": "55\" Commercial LCD Displays (Qty: 12)",
+                    "price": "$42,000.00"
+                },
+                {
+                    "description": "Video Wall Controller & Processing",
+                    "price": "$8,500.00"
+                },
+                {
+                    "description": "Custom Mounting Structure",
+                    "price": "$12,750.00"
+                },
+                {
+                    "description": "Content Management System License (3-Year)",
+                    "price": "$4,200.00"
+                },
+                {
+                    "description": "Installation & Commissioning",
+                    "price": "$6,800.00"
+                },
+                {
+                    "description": "Project Management & Engineering",
+                    "price": "$3,500.00"
+                },
+                {
+                    "description": "Shipping & Logistics",
+                    "price": "$2,100.00"
+                },
+                {
+                    "description": "Extended Warranty (3 Year)",
+                    "price": "$1,800.00"
+                }
+            ],
+            "subtotal": "$81,650.00",
+            "taxLabel": "Sales Tax (7.25%)",
+            "tax": "$5,919.63",
+            "grandTotal": "$87,569.63"
+        },
+        {
+            "label": "BISTRO ELEVATOR LED DISPLAY",
+            "items": [
+                {
+                    "description": "Indoor LED Modules (1.875mm Pitch)",
+                    "price": "$28,000.00"
+                },
+                {
+                    "description": "LED Controller & Receiving Cards",
+                    "price": "$3,200.00"
+                },
+                {
+                    "description": "Steel Mounting Frame",
+                    "price": "$4,500.00"
+                },
+                {
+                    "description": "Installation & Programming",
+                    "price": "$5,800.00"
+                },
+                {
+                    "description": "Project Management",
+                    "price": "$2,000.00"
+                }
+            ],
+            "subtotal": "$43,500.00",
+            "taxLabel": "Sales Tax (7.25%)",
+            "tax": "$3,153.75",
+            "grandTotal": "$46,653.75"
+        },
+        {
+            "label": "OUTDOOR MARQUEE SIGN",
+            "items": [
+                {
+                    "description": "Outdoor LED Cabinet (10mm Pitch)",
+                    "price": "$65,000.00"
+                },
+                {
+                    "description": "Weatherproof Enclosure & HVAC",
+                    "price": "$8,000.00"
+                },
+                {
+                    "description": "Foundation & Steel Structure",
+                    "price": "$12,000.00"
+                },
+                {
+                    "description": "Electrical Infrastructure",
+                    "price": "$6,500.00"
+                },
+                {
+                    "description": "Permitting & Engineering Drawings",
+                    "price": "$3,500.00"
+                },
+                {
+                    "description": "Installation Crew (2 weeks)",
+                    "price": "$9,200.00"
+                },
+                {
+                    "description": "Shipping & Crane Rental",
+                    "price": "$4,800.00"
+                }
+            ],
+            "subtotal": "$109,000.00",
+            "taxLabel": "Sales Tax (7.25%)",
+            "tax": "$7,902.50",
+            "grandTotal": "$116,902.50"
+        }
+    ],
+    "screens": [
+        {
+            "name": "History Wall LCD Display",
+            "height": "2.22",
+            "width": "15.76",
+            "pitch": "0.44",
+            "resH": "1536",
+            "resW": "10920",
+            "brightness": "500",
+            "qty": 1
+        },
+        {
+            "name": "Bistro Elevator LED Display",
+            "height": "5.55",
+            "width": "9.98",
+            "pitch": "1.88",
+            "resH": "900",
+            "resW": "1600",
+            "brightness": "1,000",
+            "qty": 1
+        },
+        {
+            "name": "Outdoor Marquee Sign",
+            "height": "4.00",
+            "width": "12.00",
+            "pitch": "10.00",
+            "resH": "122",
+            "resW": "366",
+            "brightness": "7,500",
+            "qty": 1
+        },
+        {
+            "name": "Lobby Welcome Display",
+            "height": "3.33",
+            "width": "5.92",
+            "pitch": "1.25",
+            "resH": "810",
+            "resW": "1440",
+            "brightness": "800",
+            "qty": 2
+        },
+        {
+            "name": "Conference Room Display",
+            "height": "2.50",
+            "width": "4.44",
+            "pitch": "0.94",
+            "resH": "810",
+            "resW": "1440",
+            "brightness": "500",
+            "qty": 4
+        }
+    ],
+    "notes": [
+        "All prices quoted in USD. Valid for 30 days from date of proposal.",
+        "Payment terms: 50% upon signing, 40% upon delivery, 10% upon completion.",
+        "Estimated lead time: 8-12 weeks from signed agreement and deposit.",
+        "Client responsible for providing clean, conditioned power to each display location.",
+        "Structural engineering review by others — ANC to provide load requirements.",
+        "Pricing does not include any required building permits unless specifically noted.",
+        "Extended warranty covers parts and labor; excludes damage from misuse or vandalism.",
+        "Content creation and ongoing content management services available upon request."
+    ]
+}

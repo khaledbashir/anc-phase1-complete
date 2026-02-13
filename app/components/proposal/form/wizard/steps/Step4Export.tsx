@@ -45,6 +45,7 @@ import type { ProposalType } from "@/types";
 const Step4Export = () => {
     const {
         generatePdf,
+        generatePdfViaJsreport,
         downloadPdf,
         downloadBundlePdfs,
         previewPdfInTab,
@@ -1124,6 +1125,34 @@ const Step4Export = () => {
                                                     <p className="text-xs">{getPdfOnlyErrorMessage()}</p>
                                                 </TooltipContent>
                                             )}
+                                        </Tooltip>
+                                    </div>
+
+                                    <div className="p-4 flex items-center justify-between hover:bg-card/40 transition-colors border-t border-border/30">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
+                                                <Zap className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-bold text-zinc-900 dark:text-foreground">jsreport PDF</div>
+                                                <div className="text-[10px] text-zinc-500 dark:text-muted-foreground">Alternate Engine (Beta)</div>
+                                            </div>
+                                        </div>
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <button
+                                                    onClick={async () => {
+                                                        await generatePdfViaJsreport(getValues());
+                                                    }}
+                                                    disabled={mirrorMode ? isPdfPreviewBlocked : (!allScreensValid || isGatekeeperLocked)}
+                                                    className="p-2 hover:bg-purple-500/10 text-purple-500 hover:text-purple-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                </button>
+                                            </TooltipTrigger>
+                                            <TooltipContent side="right" className="max-w-xs">
+                                                <p className="text-xs">Generate PDF via jsreport engine (deterministic rendering)</p>
+                                            </TooltipContent>
                                         </Tooltip>
                                     </div>
                                 </div>

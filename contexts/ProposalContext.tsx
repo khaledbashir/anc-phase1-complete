@@ -25,6 +25,7 @@ import { exportProposal } from "@/services/proposal/client/exportProposal";
 import {
     FORM_DEFAULT_VALUES,
     GENERATE_PDF_API,
+    GENERATE_PDF_JSREPORT_API,
     SEND_PDF_API,
     SHORT_DATE_OPTIONS,
     LOCAL_STORAGE_PROPOSAL_DRAFT_KEY,
@@ -101,6 +102,7 @@ const defaultProposalContext = {
     newProposal: (_opts?: { silent?: boolean }) => { },
     resetProposal: () => { },
     generatePdf: async (data: ProposalType) => new Blob(),
+    generatePdfViaJsreport: async (data: ProposalType) => new Blob(),
     removeFinalPdf: () => { },
     downloadPdf: async () => { },
     downloadAllPdfVariants: async () => Promise.resolve(),
@@ -1285,6 +1287,85 @@ export const ProposalContextProvider = ({
                         ". Try using 'Print Preview' as an alternative.",
                     );
                 }
+            } finally {
+                setProposalPdfLoading(false);
+            }
+            return generated as Blob;
+        },
+        [getValues, pdfGenerationSuccess, showError],
+    );
+
+    /**
+     * Generate a PDF via jsreport engine (second engine).
+     * Same payload as generatePdf but calls /api/proposal/generate-jsreport.
+     */
+    const generatePdfViaJsreport = useCallback(
+        async (data: ProposalType): Promise<Blob> => {
+            setProposalPdfLoading(true);
+            setPdfGenerationProgress({ value: 10, label: "Preparing (jsreport)…" });
+            let generated: Blob = new Blob();
+
+            try {
+                const screens = (data?.details?.screens || []).map(
+                    (s: any) => ({
+                        name: s.name,
+                        productType: s.productType ?? "",
+                        heightFt: s.heightFt ?? s.height ?? 0,
+                        widthFt: s.widthFt ?? s.width ?? 0,
+                        quantity: s.quantity ?? 1,
+                        pitchMm: s.pitchMm ?? s.pixelPitch ?? undefined,
+                        costPerSqFt: s.costPerSqFt,
+                        desiredMargin: s.desiredMargin,
+                    }),
+                );
+
+                const audit = calculateProposalAudit(screens, {
+                    taxRate: getValues("details.taxRateOverride"),
+                    bondPct: getValues("details.bondRateOverride"),
+                    structuralTonnage: getValues("details.metadata.structuralTonnage"),
+                    reinforcingTonnage: getValues("details.metadata.reinforcingTonnage"),
+                    projectAddress:
+                        `${getValues("receiver.address") ?? ""} ${getValues("receiver.city") ?? ""} ${getValues("receiver.zipCode") ?? ""} ${getValues("details.location") ?? ""}`.trim(),
+                    venue: getValues("details.venue"),
+                });
+
+                const payload = {
+                    ...data,
+                    _audit: audit,
+                };
+
+                setPdfGenerationProgress({ value: 35, label: "Rendering via jsreport…" });
+
+                const response = await fetch(GENERATE_PDF_JSREPORT_API, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error("jsreport PDF generation error:", errorText);
+                    throw new Error(
+                        `jsreport PDF generation failed: ${response.status} ${response.statusText} - ${errorText}`,
+                    );
+                }
+
+                setPdfGenerationProgress({ value: 75, label: "Downloading…" });
+                const result = await response.blob();
+                generated = result;
+                setProposalPdf(result);
+
+                if (result.size > 0) {
+                    setPdfGenerationProgress({ value: 100, label: "Done (jsreport)" });
+                    setTimeout(() => setPdfGenerationProgress(null), 800);
+                    pdfGenerationSuccess();
+                }
+            } catch (err) {
+                console.error("jsreport PDF generation catch error:", err);
+                const errorMsg =
+                    err instanceof Error ? err.message : "Unable to generate PDF via jsreport";
+                setPdfGenerationProgress(null);
+                showError("jsreport PDF Failed", errorMsg);
             } finally {
                 setProposalPdfLoading(false);
             }
@@ -3505,6 +3586,7 @@ export const ProposalContextProvider = ({
                 newProposal,
                 resetProposal,
                 generatePdf,
+                generatePdfViaJsreport,
                 removeFinalPdf,
                 downloadPdf,
                 downloadAllPdfVariants,
