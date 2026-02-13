@@ -54,7 +54,7 @@ function SortableItem({ step, isOverlay = false }: { step: any, isOverlay?: bool
         transform: CSS.Transform.toString(transform),
         transition,
         zIndex: isDragging ? 50 : "auto",
-        position: "relative" as "relative",
+        position: "relative" as const,
     };
 
     // Local state for editing (mocking "Client Feedback" mode)
