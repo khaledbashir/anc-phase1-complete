@@ -6,7 +6,7 @@ import {
   Zap,
   Rocket,
   Microscope,
-  AlertCircle,
+  BarChart3,
   TrendingUp,
   FileText,
   Search,
