@@ -121,8 +121,8 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
     });
 
     return (
-        <div className="pt-1 break-inside-avoid">
-            <div className="mb-3 mt-1 break-inside-avoid">
+        <div className="pt-2 break-inside-avoid">
+            <div className="mb-6 mt-1 break-inside-avoid">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <div style={{ width: '3px', height: '12px', borderRadius: '1px', background: '#0A52EF', flexShrink: 0 }} />
                     <h2 className="text-[10px] font-semibold text-[#002C73] uppercase tracking-[0.15em]" style={{ margin: 0 }}>
