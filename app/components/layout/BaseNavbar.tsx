@@ -40,7 +40,12 @@ const BaseNavbar = () => {
   // 3. Projects Dashboard ("/projects") - Dashboard view
   // 4. Project Editor ("/projects/[id]") - Individual project
   const isAuth = pathname.startsWith("/auth");
-  const isEditor = pathname === "/" || pathname.startsWith("/projects") || pathname.startsWith("/share") || pathname.startsWith("/tools");
+  const isEditor =
+    pathname === "/" ||
+    pathname.startsWith("/projects") ||
+    pathname.startsWith("/share") ||
+    pathname.startsWith("/tools") ||
+    pathname.startsWith("/admin");
 
   if (isAuth || isEditor) return null;
 
