@@ -46,7 +46,7 @@ beforeAll(() => {
 // ============================================================================
 // IMPORT UNDER TEST
 // ============================================================================
-import ProposalTemplate5 from "../ProposalTemplate5";
+import ProposalTemplate5 from "@/app/components/templates/proposal-pdf/ProposalTemplate5";
 
 // ============================================================================
 // MOCK DATA BUILDERS
