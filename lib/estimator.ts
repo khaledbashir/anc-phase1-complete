@@ -52,7 +52,7 @@ export const MORGANTOWN_BO_TAX = 0.02; // 2% West Virginia B&O Tax (REQ-81)
 export const STEEL_PRICE_PER_TON = 3000; // REQ-86: Thornton Tomasetti rate $3,000/ton
 export const BOND_PCT = 0.015; // 1.5% Bond Fee
 export const DEFAULT_SALES_TAX = 0.095; // 9.5% Sales Tax
-export const DEFAULT_MARGIN = 0.25; // Default 25% margin
+export const DEFAULT_MARGIN = 0.30; // Validated: NBCU LED Cost Sheet V=0.3, all displays. Was 0.25.
 export const DEFAULT_COST_PER_SQFT = 120;
 export const DEFAULT_PITCH_MM = 10;
 export const DEFAULT_SERVICE_TYPE = "Front/Rear";

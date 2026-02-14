@@ -269,14 +269,96 @@ export function calculateExhibitG(
 }
 
 // ============================================================================
-// ROM PRICING ESTIMATOR
+// VALIDATED RATE CARD — Reverse-Engineered from ANC Excel Specimens
+//
+// Provenance: scripts/extract-excel-intel.mjs run against 5 workbooks:
+//   NBCU 2025 9C (Proposal), Indiana Fever (Proposal), USC Williams-Brice (Budget),
+//   Atlanta Pigeons (LOI), NBTEST Audit
+//
+// SWAP-READY: Every constant has a provenance comment. When Matt delivers
+// official rates, update the value and change the provenance comment.
+// All rates are overridable per-project via estimatePricing() options.
 // ============================================================================
 
-export const INSTALL_COST_PER_LB = 50.0;
-export const COMPLEX_MODIFIER = 1.2;
-export const PM_BASE_FEE = 5882.35;
-export const ENG_BASE_FEE = 4705.88;
+// --- MARGIN MODEL (Natalia Divisor Model: Sell = Cost / (1 - margin)) ---
+// NOT doc-type driven. Margin varies by COST CATEGORY and DISPLAY SCALE.
+
+export const MARGIN_PRESETS = {
+    ledHardware:      0.30,  // NBCU LED Cost Sheet: column V=0.3, ALL 9 displays. Universal.
+    servicesDefault:  0.20,  // Indiana Fever (6 sheets), USC (1 sheet), NBCU 9C Install. 8 of 11 sheets.
+    servicesSmall:    0.30,  // NBCU Ribbon/History/Lounge Install sheets. Displays <100 sqft.
+    livesync:         0.35,  // NBCU Margin Analysis rows 44-48 (CMS/Software).
+} as const;
+
+export type MarginCategory = keyof typeof MARGIN_PRESETS;
+
+export function getServiceMargin(totalSqFt: number): number {
+    return totalSqFt < 100 ? MARGIN_PRESETS.servicesSmall : MARGIN_PRESETS.servicesDefault;
+}
+
+// --- BOND & TAX ---
+
+export const BOND_RATE = 0.015;     // =W*0.015 — 21 formula hits across ALL 3 costed files. Universal.
+export const NYC_TAX_RATE = 0.08875; // NBCU Margin Analysis. Location-specific, not universal.
+
+// --- INSTALL RATES ---
+// Two models coexist: $/lb for structural steel, $/sqft for LED panel labor.
+// Rates vary by complexity tier. D19 in Install sheets = total display weight (lbs).
+
+export type InstallComplexity = 'simple' | 'standard' | 'complex' | 'heavy';
+
+export const STEEL_FABRICATION_PER_LB: Record<InstallComplexity, number> = {
+    simple:   25,   // USC Install(Base): =D19*25 (fab + install)
+    standard: 35,   // Indiana Fever Locker/Gym: =D19*35
+    complex:  55,   // Indiana Fever HOE: =D19*55
+    heavy:    75,   // Indiana Fever Round: =D19*75
+};
+
+export const LED_INSTALL_PER_SQFT: Record<InstallComplexity, number> = {
+    simple:   75,   // USC Install(Base): =D19*75
+    standard: 105,  // Indiana Fever Locker/TS: =C19*105, =D19*105
+    complex:  145,  // Indiana Fever Round: =D19*145
+    heavy:    145,  // Same as complex (no higher tier observed)
+};
+
+export const HEAVY_EQUIPMENT_PER_LB = 30;  // USC Install(Base): =D19*30
+export const PM_GC_TRAVEL_PER_LB = 5;      // USC Install(Base): =D19*5
+
+// Legacy aliases (used by estimator.ts imports)
+export const INSTALL_COST_PER_LB = STEEL_FABRICATION_PER_LB.standard;  // $35 default
+export const PM_BASE_FEE = 5882.35;   // estlogic.md + productCatalog.ts match. Zone-multiplied.
+export const ENG_BASE_FEE = 4705.88;  // estlogic.md + productCatalog.ts match. Zone-multiplied.
+
+// --- ELECTRICAL ---
+// No universal formula found. NBCU Budget Control shows $0 budget / $35K PO (vendor quote).
+// USC has =D19*125 for electrical materials — only Budget-stage rate found.
+
+export const ELECTRICAL_MATERIALS_PER_SQFT = 125; // USC Install(Base): =D19*125. Budget-stage only.
+
+// --- SPARE PARTS ---
+
+export const SPARE_PARTS_PCT_LCD = 0.05;  // Indiana Fever: =D*0.05 on LCD displays
+export const SPARE_PARTS_PCT_LED = 0.05;  // Default. No LED-specific rate found in formulas.
+
+// --- LED COST PER SQFT (by pitch) ---
+// Only one explicit formula-driven rate found: $430/sqft for 1.2mm ribbon.
+// Other display costs appear to be vendor quotes (flat values, not formula-driven).
+
+export const LED_COST_PER_SQFT_BY_PITCH: Record<string, number> = {
+    '1.2':  430,   // Indiana Fever: =M*430 (Locker Room Ribbon)
+    '1.875': 0,    // No formula found — vendor quote. NEEDS MATT DATA.
+    '2.5':  335,   // NBCU LED Cost Sheet: $105,120 / 314 sqft = $334.76 (calculated, not formula)
+    '10':   0,     // No formula found. NEEDS MATT DATA.
+};
+
+// --- WARRANTY ---
+
+export const WARRANTY_ANNUAL_ESCALATION = 0.10; // Indiana Fever: =C*1.1 chain (years 4-10)
+
+// --- ALTERNATE UPGRADE ---
+
 export const ALT1_UPGRADE_RATIO = 0.07;
+export const COMPLEX_MODIFIER = 1.2;
 
 /**
  * Hardware cost per square meter by product type.
@@ -305,18 +387,25 @@ const ZONE_MULTIPLIERS: Record<ZoneClass, number> = {
 
 /**
  * Estimate pricing from Exhibit G output + zone classification.
- * Based on validated formulas from Westfield RFP (99.3% accuracy on install).
+ * Uses validated rates from Excel extraction.
  */
 export function estimatePricing(
     exhibitG: ExhibitGOutput,
     zoneClass: ZoneClass,
     hardwareCost?: number,
+    overrides?: {
+        installComplexity?: InstallComplexity;
+        ledMarginPct?: number;
+        servicesMarginPct?: number;
+    },
 ): PricingEstimate {
+    const complexity = overrides?.installComplexity ?? 'standard';
     const isComplex = zoneClass === "complex";
     const complexityModifier = isComplex ? COMPLEX_MODIFIER : 1.0;
     const zoneMultiplier = ZONE_MULTIPLIERS[zoneClass];
 
-    const installCost = round2(exhibitG.totalWeightLbs * INSTALL_COST_PER_LB * complexityModifier);
+    const steelRate = STEEL_FABRICATION_PER_LB[complexity];
+    const installCost = round2(exhibitG.totalWeightLbs * steelRate * complexityModifier);
     const pmCost = round2(PM_BASE_FEE * zoneMultiplier);
     const engCost = round2(ENG_BASE_FEE * zoneMultiplier);
 

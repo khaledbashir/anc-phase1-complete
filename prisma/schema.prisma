@@ -620,3 +620,27 @@ model FormulaVariable {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+// ============================================================================
+// Rate Card — Single source of truth for estimation constants
+// Each row = one named rate constant with category, value, unit, and provenance.
+// Admin-editable via /admin/rate-card. CSV uploadable.
+// The estimator falls back to hardcoded defaults when no DB entry exists.
+// ============================================================================
+
+model RateCardEntry {
+  id            String   @id @default(cuid())
+  category      String   // "margin", "install", "electrical", "bond_tax", "spare_parts", "led_cost", "warranty", "other"
+  key           String   @unique // Machine-readable: "margin.led_hardware", "install.steel_fab.simple"
+  label         String   // Human-readable: "LED Hardware Margin"
+  value         Decimal  // The rate value (0.30 for 30%, 35 for $35/lb, etc.)
+  unit          String   // "pct", "per_lb", "per_sqft", "fixed", "pct_annual"
+  provenance    String?  // Where this came from: "NBCU LED Cost Sheet V=0.3" or "Matt delivery 2026-03-01"
+  confidence    String   @default("extracted") // "extracted", "validated", "official", "estimated"
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}

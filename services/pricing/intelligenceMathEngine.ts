@@ -63,10 +63,9 @@ export interface IntelligencePricingResult {
 // ============================================================================
 
 export const MARGIN_PRESETS: PricingPreset[] = [
-    { name: "Aggressive",  margin: 0.15, description: "15% — Competitive bid, volume play" },
-    { name: "Standard",    margin: 0.25, description: "25% — Default ANC margin" },
-    { name: "Premium",     margin: 0.35, description: "35% — High-value, sole-source" },
-    { name: "Strategic",   margin: 0.40, description: "40% — Premium with full services" },
+    { name: "Services",    margin: 0.20, description: "20% — Standard services margin (install, electrical, PM, engineering)" },
+    { name: "LED Hardware", margin: 0.30, description: "30% — Validated LED hardware margin (NBCU all displays)" },
+    { name: "CMS/Software", margin: 0.35, description: "35% — LiveSync/CMS margin (NBCU Margin Analysis)" },
 ];
 
 // ============================================================================

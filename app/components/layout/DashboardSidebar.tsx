@@ -13,6 +13,8 @@ import {
     Workflow,
     Settings,
     SlidersHorizontal,
+    DollarSign,
+    Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +31,8 @@ const toolsMenuItems = [
 
 const adminMenuItems = [
     { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", soon: false },
+    { icon: DollarSign, label: "Rate Card", href: "/admin/rate-card", soon: false },
+    { icon: Package, label: "Products", href: "/admin/products", soon: false },
 ];
 
 export default function DashboardSidebar() {

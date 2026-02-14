@@ -11,6 +11,7 @@
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
+        "extract:intel": "node scripts/extract-excel-intel.mjs --input ./specimens --out ./out",
         "test:pricing-parser": "npx tsx scripts/test-pricing-parser.ts",
         "test:pricing-parser:real": "npx tsx scripts/test-pricing-parser-real.ts",
         "test:pricing-parser:golden": "npx tsx scripts/test-pricing-parser-golden.ts",
