@@ -28,11 +28,11 @@ const toolsMenuItems = [
     { icon: Calculator, label: "Estimator", href: "/estimator", soon: false },
 ];
 
-const betaInternalItems = [
-    { icon: Package, label: "Product Catalog", href: "/admin/products", soon: false },
-    { icon: DollarSign, label: "Rate Card", href: "/admin/rate-card", soon: false },
-    { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", soon: false },
-    { icon: Users, label: "Team", href: "/admin/users", soon: false },
+const internalToolsItems = [
+    { icon: Package, label: "Product Catalog", href: "/admin/products", soon: false, beta: false },
+    { icon: DollarSign, label: "Rate Card", href: "/admin/rate-card", soon: false, beta: false },
+    { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", soon: false, beta: true },
+    { icon: Users, label: "Team", href: "/admin/users", soon: false, beta: false },
 ];
 
 export default function DashboardSidebar() {
@@ -121,11 +121,11 @@ export default function DashboardSidebar() {
                     );
                 })}
 
-                {/* Divider before Beta/Internal Tools */}
+                {/* Divider before Internal Tools */}
                 {isAdmin && <div className="h-px bg-border my-2" />}
 
-                {/* Beta / Internal Tools Section (Admin Only) */}
-                {isAdmin && betaInternalItems.map((item) => {
+                {/* Internal Tools Section (Admin Only) */}
+                {isAdmin && internalToolsItems.map((item) => {
                     const isActive = pathname === item.href;
                     return (
                         <Link
@@ -134,18 +134,22 @@ export default function DashboardSidebar() {
                             className={cn(
                                 "group relative p-3 rounded transition-all duration-200",
                                 isActive
-                                    ? "bg-amber-500/10 text-amber-500"
+                                    ? item.beta
+                                        ? "bg-amber-500/10 text-amber-500"
+                                        : "bg-primary/10 text-primary"
                                     : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
                                 item.soon && "pointer-events-none opacity-40"
                             )}
                         >
                             <item.icon className="w-5 h-5" />
 
-                            {/* Tooltip with BETA label */}
+                            {/* Tooltip with optional BETA label */}
                             <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
                                 <div className="flex items-center gap-2">
                                     <span>{item.label}</span>
-                                    <span className="text-[8px] bg-amber-500/20 text-amber-500 px-1 rounded">BETA</span>
+                                    {item.beta && (
+                                        <span className="text-[8px] bg-amber-500/20 text-amber-500 px-1 rounded">BETA</span>
+                                    )}
                                 </div>
                             </div>
                         </Link>
