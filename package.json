@@ -7,6 +7,8 @@
         "node": ">=20"
     },
     "scripts": {
+        "test": "vitest run",
+        "test:watch": "vitest",
         "dev": "next dev --port 3003",
         "build": "next build",
         "start": "next start",
@@ -109,12 +111,14 @@
         "@types/react-dom": "^18.2.7",
         "@types/react-signature-canvas": "^1.0.4",
         "@types/xml2js": "^0.4.13",
+        "@vitejs/plugin-react": "^5.1.4",
         "cross-env": "^7.0.3",
         "dotenv": "^17.2.3",
         "eslint": "^8.57.0",
         "eslint-config-next": "15.3.3",
         "ignore-loader": "^0.1.2",
         "prisma": "^5.22.0",
-        "puppeteer": "^24.10.0"
+        "puppeteer": "^24.10.0",
+        "vitest": "^4.0.18"
     }
 }
