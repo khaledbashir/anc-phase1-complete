@@ -58,7 +58,7 @@ export default function DashboardSidebar() {
 
     return (
         <>
-            <aside className="w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-4 z-50 transition-colors duration-300">
+            <aside className="h-screen w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-4 z-50 transition-colors duration-300">
                 {/* Minimal Logo */}
                 <div className="mb-6">
                     <Link href="/projects" className="flex items-center justify-center">
