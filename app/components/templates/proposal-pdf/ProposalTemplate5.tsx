@@ -33,23 +33,14 @@ import type { DocumentMode as CatalogDocumentMode } from "@/services/rfp/product
 import { ProposalType } from "@/types";
 import { PricingTable, RespMatrix, RespMatrixCategory, RespMatrixItem } from "@/types/pricing";
 import { computeTableTotals, computeDocumentTotalFromTables } from "@/lib/pricingMath";
-import {
-    SectionHeader as SectionHeaderComponent,
-    SignatureBlock as SignatureBlockComponent,
-    PaymentTermsSection as PaymentTermsSectionComponent,
-    NotesSection as NotesSectionComponent,
-    ScopeOfWorkSection as ScopeOfWorkSectionComponent,
-    HybridFooter as HybridFooterComponent,
-    ContinuationPageHeader as ContinuationPageHeaderComponent,
-    ProjectScheduleSection as ProjectScheduleSectionComponent,
-    RespMatrixSOW as RespMatrixSOWComponent,
-} from "./pdf-sections";
 
 interface ProposalTemplate5Props extends ProposalType {
     forceWhiteLogo?: boolean;
     screens?: any[];
     isSharedView?: boolean;
 }
+
+const DEFAULT_SIGNATURE_BLOCK_TEXT = "This agreement constitutes the entire understanding between the parties and supersedes all prior agreements. Any modifications must be in writing and signed by both parties.";
 
 const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const { sender, receiver, details, forceWhiteLogo, screens: screensProp, isSharedView = false } = data;
@@ -263,7 +254,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     // Unified Section Header — blue vertical bar accent + text (Natalia-approved)
     const templateSpacing = { contentPaddingX, headerToIntroGap, introToBodyGap, sectionSpacing, pricingTableGap, tableRowHeight, rowPaddingY };
     const SectionHeader = ({ title, subtitle }: { title: string; subtitle?: string }) => (
-        <SectionHeaderComponent title={title} subtitle={subtitle} colors={colors} spacing={templateSpacing} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: subtitle ? '4px' : '8px' }}>
+            <div style={{ width: '3px', height: '14px', borderRadius: '1px', background: colors.primary, flexShrink: 0 }} />
+            <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: colors.primaryDark }}>{title}</span>
+                {subtitle && <div className="text-[8px] mt-0.5" style={{ color: colors.textMuted }}>{subtitle}</div>}
+            </div>
+        </div>
     );
 
     // Calculate project total (shared between LOI summary and pricing section)
@@ -825,9 +822,15 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     };
 
     // Scope of Work Section - Universal (available for all document types)
-    const ScopeOfWorkSection = () => (
-        <ScopeOfWorkSectionComponent colors={colors} spacing={templateSpacing} scopeOfWorkText={(details as any)?.scopeOfWorkText} />
-    );
+    const ScopeOfWorkSection = () => {
+        const raw = ((details as any)?.scopeOfWorkText || "").toString().trim();
+        if (!raw) return null;
+        return (
+            <div className="rounded-lg p-3 text-[10px] leading-snug whitespace-pre-wrap" style={{ background: colors.surface, color: colors.text }}>
+                {raw}
+            </div>
+        );
+    };
 
     // Signature Block - Universal (available for all document types)
     const SignatureBlock = () => (
@@ -870,7 +873,11 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Continuation page header — thin blue underline with client + project name
     const ContinuationPageHeader = () => (
-        <ContinuationPageHeaderComponent colors={colors} purchaserName={purchaserName} proposalName={details?.proposalName} />
+        <div className="pb-2 mb-4 border-b-2" style={{ borderColor: colors.primary }}>
+            <div className="text-[8px] font-semibold" style={{ color: colors.textMuted }}>
+                {purchaserName} • {details?.proposalName || "Proposal"}
+            </div>
+        </div>
     );
 
     // Resp Matrix Statement of Work — from Excel "Resp Matrix" sheet OR Intelligence Mode explicit opt-in
@@ -967,6 +974,26 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     const ProjectScheduleSection = () => {
         if (!hasGeneratedSchedule) return null;
+
+        // Extract schedule metadata
+        const ntpLabel = generatedSchedule?.ntpDate || "—";
+        const completionLabel = generatedSchedule?.completionDate || "—";
+        const totalDuration = generatedSchedule?.totalDuration || 0;
+
+        // Group tasks by phase
+        const grouped = generatedScheduleTasks.reduce((acc: any[], task: any) => {
+            const phase = task?.phase || "General";
+            let group = acc.find(g => g.phase === phase);
+            if (!group) {
+                group = { phase, tasks: [] };
+                acc.push(group);
+            }
+            group.tasks.push(task);
+            return acc;
+        }, []);
+
+        let taskNumber = 0;
+
         return (
             <div data-preview-section="schedule" className="mt-2 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 <SectionHeader title="Project Schedule" subtitle="Generated from NTP date and screen configuration" />
@@ -1019,7 +1046,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
 
     // Simplified Footer — www.anc.com + blue vertical accent (matches header style)
     const HybridFooter = () => (
-        <HybridFooterComponent colors={colors} />
+        <div className="mt-8 pt-3 border-t flex items-center justify-between" style={{ borderColor: colors.border }}>
+            <div className="flex items-center gap-2">
+                <div style={{ width: '3px', height: '16px', background: colors.primary, borderRadius: '1px' }} />
+                <span className="text-[9px] font-semibold" style={{ color: colors.primary }}>www.anc.com</span>
+            </div>
+            <span className="text-[8px]" style={{ color: colors.textMuted }}>ANC Sports Enterprises, LLC</span>
+        </div>
     );
 
     return (
