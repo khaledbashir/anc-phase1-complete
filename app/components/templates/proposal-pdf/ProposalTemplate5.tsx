@@ -156,20 +156,6 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         });
     })();
     const shouldPushPricingToNewPage = autoPushLargeTables && tableSplitRiskDetected;
-    const autoPushLargeTables = Boolean(templateConfig?.autoPushLargeTables ?? false);
-    const tableSplitThreshold = clamp(Number(templateConfig?.tableSplitThreshold ?? 14) || 14, 10, 26);
-    const tableSplitRiskDetected = (() => {
-        const tables = (pricingDocument?.tables || []) as any[];
-        if (!tables.length) return false;
-        return tables.some((table: any) => {
-            const items = Array.isArray(table?.items) ? table.items : [];
-            const alternates = Array.isArray(table?.alternates) ? table.alternates : [];
-            const longRows = items.filter((row: any) => ((row?.description || "").toString().length > 88)).length;
-            const estimatedRows = items.length + alternates.length + 4 + Math.min(3, longRows);
-            return estimatedRows > tableSplitThreshold;
-        });
-    })();
-    const shouldPushPricingToNewPage = autoPushLargeTables && tableSplitRiskDetected;
 
     // Hybrid color palette - Modern base with Bold accents
     const colors = {
