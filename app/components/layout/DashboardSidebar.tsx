@@ -48,9 +48,15 @@ const adminMenuItems = [
 export default function DashboardSidebar() {
     const pathname = usePathname();
     const { data: session } = useSession();
-    const isAdmin = session?.user?.authRole === "admin";
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isNavExpanded, setIsNavExpanded] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    const isAdmin = mounted ? session?.user?.authRole === "admin" : false;
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         setIsNavExpanded(false);
