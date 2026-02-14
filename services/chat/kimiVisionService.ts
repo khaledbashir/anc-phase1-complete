@@ -26,6 +26,38 @@ export interface KimiResponse {
     actions: KimiScreenAction[];
 }
 
+let puterLoadPromise: Promise<void> | null = null;
+
+async function ensurePuterLoaded(): Promise<void> {
+    if (typeof window === "undefined") {
+        throw new Error("Puter is client-side only");
+    }
+
+    if (window.puter) return;
+
+    if (!puterLoadPromise) {
+        puterLoadPromise = new Promise<void>((resolve, reject) => {
+            const existingScript = document.querySelector<HTMLScriptElement>(
+                'script[src="https://js.puter.com/v2/"]'
+            );
+            if (existingScript) {
+                existingScript.addEventListener("load", () => resolve(), { once: true });
+                existingScript.addEventListener("error", () => reject(new Error("Failed to load Puter.js")), { once: true });
+                return;
+            }
+
+            const script = document.createElement("script");
+            script.src = "https://js.puter.com/v2/";
+            script.async = true;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error("Failed to load Puter.js"));
+            document.body.appendChild(script);
+        });
+    }
+
+    await puterLoadPromise;
+}
+
 const KIMI_SYSTEM_PROMPT = `You are the ANC Proposal Engine copilot. You help users build LED display proposals.
 
 You can SEE the user's screen. A screenshot is attached to every message.
@@ -141,6 +173,15 @@ export async function askKimiWithVision(
     conversationHistory: Array<{ role: "user" | "assistant"; content: string }>,
     fieldValues?: Record<string, any>
 ): Promise<KimiResponse> {
+    try {
+        await ensurePuterLoaded();
+    } catch (err: any) {
+        return {
+            reply: `Vision model unavailable: ${err?.message || String(err)}.`,
+            actions: [],
+        };
+    }
+
     if (!window.puter) {
         console.error("[Kimi] Puter.js not loaded");
         return {

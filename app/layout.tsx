@@ -80,8 +80,6 @@ export default async function RootLayout({
                     id="json-ld"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD) }}
                 />
-                {/* Puter.js — client-side AI (Kimi K2.5 vision) for copilot */}
-                <script src="https://js.puter.com/v2/" defer />
             </head>
             <body
                 className={`${workSans.className} ${playfairDisplay.variable} antialiased bg-background text-foreground`}
