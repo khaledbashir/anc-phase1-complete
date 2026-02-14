@@ -201,7 +201,7 @@ async function downloadOne(
   modeLabel: string,
   templateLabel: string
 ): Promise<string> {
-  const url = `${BASE_URL.replace(/\/$/, "")}/api/proposal/generate`;
+  const url = `${BASE_URL.replace(/\/$/, "")}/api/proposals/generate`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

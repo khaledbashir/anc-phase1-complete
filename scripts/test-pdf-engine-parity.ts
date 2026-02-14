@@ -2,8 +2,8 @@
  * PDF Engine Parity Smoke Test
  *
  * Calls BOTH PDF engines with the same payload:
- * - /api/proposal/generate (Puppeteer)
- * - /api/proposal/generate-jsreport (jsreport)
+ * - /api/proposals/generate (Puppeteer)
+ * - /api/proposals/generate-jsreport (jsreport)
  *
  * Verifies:
  * 1) Both endpoints return valid non-empty PDFs
@@ -194,8 +194,8 @@ async function main() {
     ? JSON.parse(fs.readFileSync(path.resolve(process.cwd(), payloadPath), "utf8"))
     : buildDefaultPayload();
 
-  const puppeteerUrl = `${baseUrl}/api/proposal/generate`;
-  const jsreportUrl = `${baseUrl}/api/proposal/generate-jsreport`;
+  const puppeteerUrl = `${baseUrl}/api/proposals/generate`;
+  const jsreportUrl = `${baseUrl}/api/proposals/generate-jsreport`;
 
   console.log(`BASE_URL: ${baseUrl}`);
   console.log(`Mode: ${String(payload?.details?.documentMode || "LOI").toUpperCase()}`);

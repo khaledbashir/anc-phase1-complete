@@ -4,6 +4,7 @@ import { BaseFooter, BaseNavbar } from "@/app/components";
 import { Toaster } from "@/components/ui/toaster";
 // Contexts
 import Providers from "@/contexts/Providers";
+import { auth } from "@/auth";
 // Fonts
 import {
     workSans,
@@ -51,13 +52,24 @@ export const viewport = {
     initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
     children,
 }: {
     children: React.ReactNode;
 }) {
     const locale = "en";
     const messages = enMessages;
+    const session = await auth();
+    const user = session?.user;
+    const userbackUserData = user
+        ? {
+              id: String((user as any).id ?? user.email ?? user.name ?? "unknown"),
+              info: {
+                  ...(user.name ? { name: user.name } : {}),
+                  ...(user.email ? { email: user.email } : {}),
+              },
+          }
+        : null;
 
     return (
         <html lang={locale} suppressHydrationWarning>
@@ -98,13 +110,7 @@ export default function RootLayout({
                                 __html: `
                                     window.Userback = window.Userback || {};
                                     Userback.access_token = ${JSON.stringify(process.env.NEXT_PUBLIC_USERBACK_ACCESS_TOKEN || "")};
-                                    Userback.user_data = {
-                                        id: "123456",
-                                        info: {
-                                            name: "someone",
-                                            email: "someone@example.com"
-                                        }
-                                    };
+                                    ${userbackUserData ? `Userback.user_data = ${JSON.stringify(userbackUserData)};` : ""}
                                     (function(d) {
                                         var s = d.createElement('script');s.async = true;s.src = 'https://static.userback.io/widget/v1.js';(d.head || d.body).appendChild(s);
                                     })(document);

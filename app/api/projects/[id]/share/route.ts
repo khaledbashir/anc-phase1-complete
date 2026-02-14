@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ProposalType } from "@/types";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import { PRICING_PARSER_STRICT_VERSION } from "@/services/pricing/pricingTableParser";
 
 import { prisma } from "@/lib/prisma";

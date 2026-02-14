@@ -7,7 +7,7 @@ Example: `PDF-TEST Letter of Intent Classic.pdf`. Set `CLIENT_NAME` to override 
 
 ## 1. Run the download script
 
-The script calls the app’s PDF API, so **the app must be running** when you run the script. If you see `404` or "Route POST:/api/proposal/generate not found", the app was not running at BASE_URL.
+The script calls the app’s PDF API, so **the app must be running** when you run the script. If you see `404` or "Route POST:/api/proposals/generate not found", the app was not running at BASE_URL.
 
 **Option A – App running locally**
 

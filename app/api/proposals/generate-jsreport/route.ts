@@ -47,7 +47,7 @@ async function getTailwindCss(): Promise<string> {
 }
 
 /**
- * POST /api/proposal/generate-jsreport
+ * POST /api/proposals/generate-jsreport
  *
  * Receives the same ProposalType payload as the Puppeteer route,
  * renders the same React template, then sends that HTML to jsreport chrome-pdf.

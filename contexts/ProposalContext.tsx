@@ -1297,7 +1297,7 @@ export const ProposalContextProvider = ({
 
     /**
      * Generate a PDF via jsreport engine (second engine).
-     * Same payload as generatePdf but calls /api/proposal/generate-jsreport.
+     * Same payload as generatePdf but calls /api/proposals/generate-jsreport.
      */
     const generatePdfViaJsreport = useCallback(
         async (data: ProposalType): Promise<Blob> => {

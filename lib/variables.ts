@@ -15,8 +15,8 @@ export const ANC_WEBSITE = "https://ancsports.com";
 /**
  * API endpoints
  */
-export const GENERATE_PDF_API = "/api/proposal/generate";
-export const GENERATE_PDF_JSREPORT_API = "/api/proposal/generate-jsreport";
+export const GENERATE_PDF_API = "/api/proposals/generate";
+export const GENERATE_PDF_JSREPORT_API = "/api/proposals/generate-jsreport";
 export const SEND_PDF_API = "/api/proposals/send";
 export const EXPORT_PROPOSAL_API = "/api/proposals/export";
 

@@ -35,7 +35,7 @@ export async function POST(
         
         // Create a mock request to call the PDF service directly
         // This avoids the internal HTTP fetch which can fail in some environments
-        const mockReq = new NextRequest("http://localhost/api/proposal/generate", {
+        const mockReq = new NextRequest("http://localhost/api/proposals/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(formPayload),

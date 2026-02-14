@@ -8,7 +8,6 @@ import { useSession } from "next-auth/react";
 import {
     LayoutGrid,
     FileText,
-    BarChart3,
     Users,
     Workflow,
     Settings,
@@ -22,7 +21,6 @@ import { cn } from "@/lib/utils";
 const menuItems = [
     { icon: LayoutGrid, label: "Vault", href: "/projects" },
     { icon: FileText, label: "Templates", href: "/templates", soon: true },
-    { icon: BarChart3, label: "Analytics", href: "/analytics", soon: true },
     { icon: Users, label: "Team", href: "/admin/users", soon: false },
 ];
 
