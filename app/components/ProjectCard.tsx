@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
     ArrowUpRight,
@@ -77,6 +77,12 @@ const safeFileName = (value: string) =>
 
 export default function ProjectCard({ project, onStatusChange, onBriefMe, onDelete, viewMode = "list" }: ProjectCardProps) {
     const router = useRouter();
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
+
+    const timeLabel = mounted
+        ? formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })
+        : new Date(project.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
     const status = statusConfig[project.status] || { label: project.status, dot: "bg-[#878787]" };
     const selectedStatus: DashboardStatus = (() => {
@@ -199,7 +205,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
 
                 {/* Time */}
                 <div className="hidden xl:block w-28 text-[11px] text-muted-foreground text-right shrink-0">
-                    {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
+                    {timeLabel}
                 </div>
 
                 {/* Actions */}
@@ -263,7 +269,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
             {/* Footer */}
             <div className="flex items-center justify-between px-3 py-1.5 border-t border-border">
                 <div className="text-[10px] text-muted-foreground">
-                    {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
+                    {timeLabel}
                 </div>
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100">
                     <button
