@@ -4,9 +4,7 @@
  */
 export const FEATURES = {
   INTELLIGENCE_MODE: false,
-  RFP_CHAT: false,
-  AI_AUDIT: false,
-  DOCUMENT_INTELLIGENCE: false,
+
   /** Dashboard "Ask the Intelligence Core" search bar */
   DASHBOARD_CHAT: false,
   /** Editor "17/20 Strategic Match" badge (show only when AI audit is real) */

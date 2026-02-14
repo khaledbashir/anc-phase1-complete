@@ -1,0 +1,14 @@
+./app/components/layout/StudioLayout.tsx:46:        if (!FEATURES.INTELLIGENCE_MODE && viewMode === "ai") setViewMode("form");
+./app/components/layout/StudioLayout.tsx:6:import { FEATURES } from "@/lib/featureFlags";
+./app/components/layout/StudioLayout.tsx:81:                            showIntelligence={FEATURES.INTELLIGENCE_MODE}
+./app/components/proposal/form/SingleScreen.tsx:24:import { FEATURES } from "@/lib/featureFlags";
+./app/components/proposal/form/SingleScreen.tsx:348:                            FEATURES.INTELLIGENCE_MODE && (
+./app/components/proposal/form/wizard/steps/Step1Ingestion.tsx:22:import { FEATURES } from "@/lib/featureFlags";
+./app/components/proposal/form/wizard/steps/Step4Export.tsx:1804:                        {FEATURES.CLIENT_REQUESTS && (
+./app/components/proposal/form/wizard/steps/Step4Export.tsx:1899:                {FEATURES.VERIFICATION_STUDIO && (
+./app/components/proposal/form/wizard/steps/Step4Export.tsx:42:import { FEATURES } from "@/lib/featureFlags";
+./app/components/ProposalPage.tsx:181:          {FEATURES.STRATEGIC_MATCH_BADGE && (
+./app/components/ProposalPage.tsx:24:import { FEATURES } from "@/lib/featureFlags";
+./app/projects/page.tsx:21:import { FEATURES } from "@/lib/featureFlags";
+./app/projects/page.tsx:420:                {FEATURES.DASHBOARD_CHAT && (
+./lib/featureFlags.ts:5:export const FEATURES = {

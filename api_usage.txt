@@ -1,0 +1,120 @@
+app/components/modals/NewProjectModal.tsx:33:      const resp = await fetch("/api/workspaces/create", {
+app/components/ProposalPage.tsx:210:    const res = await fetch("/api/copilot/chat", {
+app/components/chat/CopilotPanel.tsx:320:            const res = await fetch(`/api/projects/${projectId}`, {
+app/components/chat/CopilotPanel.tsx:327:                throw new Error(`PATCH /api/projects/${projectId} failed (${res.status}): ${text}`);
+app/components/chat/CopilotPanel.tsx:396:                const res = await fetch(`/api/projects/${id}`);
+app/components/chat/CopilotPanel.tsx:399:                    throw new Error(`GET /api/projects/${id} failed (${res.status}): ${text}`);
+app/components/chat/CopilotPanel.tsx:512:                    const res = await fetch(`/api/projects/${projectId}`, {
+app/components/chat/CopilotPanel.tsx:520:                        throw new Error(`PATCH /api/projects/${projectId} failed (${res.status}): ${text}`);
+app/components/chat/CopilotPanel.tsx:534:            const res = await fetch(`/api/projects/${projectId}`, {
+app/components/chat/CopilotPanel.tsx:541:                throw new Error(`PATCH /api/projects/${projectId} failed (${res.status}): ${text}`);
+app/components/chat/CopilotPanel.tsx:795:            const res = await fetch("/api/copilot/propose", {
+app/components/chat/CopilotPanel.tsx:836:            const res = await fetch("/api/copilot/stream", {
+app/components/ProjectCard.tsx:105:            const res = await fetch(`/api/projects/${project.id}/pdf`, { method: "POST" });
+app/components/reusables/AiWand.tsx:98:            const res = await fetch("/api/agent/enrich", {
+app/components/reusables/ExcelDropzone.tsx:27:      const res = await fetch("/api/proposals/import-excel", {
+app/components/dashboard/PromptLibrary.tsx:99:            const res = await fetch("/api/copilot/prompt", {
+app/components/dashboard/RfpFullAnalysis.tsx:189:                const res = await fetch("/api/rfp/process", { method: "POST", body: fd });
+app/components/dashboard/RfpFullAnalysis.tsx:198:                const res = await fetch("/api/rfp/extract-specs", { method: "POST", body: makeForm() });
+app/components/dashboard/RfpFullAnalysis.tsx:207:                const res = await fetch("/api/rfp/extract-pricing", { method: "POST", body: makeForm() });
+app/components/dashboard/RfpFullAnalysis.tsx:216:                const res = await fetch("/api/rfp/extract-schedule", { method: "POST", body: makeForm() });
+app/components/dashboard/RfpProcessor.tsx:81:            const scanRes = await fetch("/api/rfp/process", {
+app/components/dashboard/RfpProcessor.tsx:101:            const fullRes = await fetch("/api/rfp/process", {
+app/components/dashboard/DashboardBriefMe.tsx:51:                const res = await fetch(`/api/projects/${projectId}`, { cache: "no-store" });
+app/components/layout/StudioHeader.tsx:74:            const response = await fetch(`/api/projects/${projectId}/share`, {
+app/components/proposal/ActivityLog.tsx:55:                const res = await fetch(`/api/projects/${proposalId}/activities`, {
+app/components/proposal/intelligence/BriefMePanel.tsx:158:            const res = await fetch("/api/agent/intelligence-brief", {
+app/components/proposal/GapFillSidebar.tsx:85:                    await fetch(`/api/proposals/${proposalIdValue}/verify-field`, {
+app/components/proposal/form/wizard/RfpIngestion.tsx:37:            const res = await fetch("/api/intelligence/competitor-radar", {
+app/components/proposal/form/wizard/RfpIngestion.tsx:269:                const res = await fetch("/api/rfp/process", { method: "POST", body: fd });
+app/components/proposal/form/wizard/RfpIngestion.tsx:277:                const res = await fetch("/api/rfp/extract-specs", { method: "POST", body: makeForm() });
+app/components/proposal/form/wizard/RfpIngestion.tsx:285:                const res = await fetch("/api/rfp/extract-pricing", { method: "POST", body: makeForm() });
+app/components/proposal/form/wizard/RfpIngestion.tsx:293:                const res = await fetch("/api/rfp/extract-schedule", { method: "POST", body: makeForm() });
+app/components/proposal/form/wizard/steps/Step4Export.tsx:322:                const res = await fetch(`/api/projects/${proposalId}/change-requests`, { cache: "no-store" as any });
+app/components/proposal/form/wizard/steps/Step4Export.tsx:356:        const res = await fetch(`/api/projects/${proposalId}/change-requests`, {
+app/components/proposal/form/wizard/steps/Step4Export.tsx:591:            const res = await fetch("/api/proposals/verify", {
+app/components/proposal/form/wizard/steps/Step3Math.tsx:147:            const res = await fetch("/api/products?active=true");
+app/components/proposal/RfpSidebar.tsx:134:                const res = await fetch("/api/vision/analyze", {
+app/components/DashboardChat.tsx:71:            const response = await fetch("/api/dashboard/chat", {
+app/components/estimator/EstimatorStudio.tsx:64:            const res = await fetch("/api/proposals/export?format=xlsx", {
+app/share/[hash]/ShareChangeRequestForm.tsx:17:			const res = await fetch(`/api/share/${shareHash}/request`, {
+app/share/[hash]/ShareAnnotator.tsx:129:      const res = await fetch(`/api/share/${shareHash}/request`, {
+app/projects/page.tsx:97:            const response = await fetch(`/api/projects?${params.toString()}`, { cache: "no-store" });
+app/projects/page.tsx:191:        const response = await fetch(`/api/projects/${id}`, {
+app/projects/page.tsx:216:            const response = await fetch(`/api/projects/${id}`, {
+app/projects/page.tsx:265:            const res = await fetch("/api/copilot/dashboard", {
+app/tools/pdf-filter/lib/pdf-vision.ts:79:  const response = await fetch("/api/tools/pdf-vision", {
+app/tools/pdf-filter/PdfFilterClient.tsx:477:      const res = await fetch("/api/rfp/create-from-filter", {
+app/tools/pdf-filter/PdfFilterClient.tsx:504:          fetch("/api/rfp/upload", { method: "POST", body: fd }).catch((e) =>
+app/hooks/useDebouncedSave.ts:36:                // Usually PUT /api/proposals/[id] or similar.
+app/hooks/useDebouncedSave.ts:37:                // Let's assume standard Next.js route likely at /api/proposals/[id] based on conventions
+app/hooks/useDebouncedSave.ts:40:                await fetch(`/api/proposals/${proposalId}`, {
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:120:			const res = await fetch("/api/pricing-logic/categories");
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:138:			const res = await fetch(`/api/pricing-logic/tree?categoryId=${encodeURIComponent(catId)}`);
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:159:			const res = await fetch("/api/pricing-logic/categories", {
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:179:		await fetch(`/api/pricing-logic/categories/${id}`, {
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:188:		await fetch(`/api/pricing-logic/categories/${id}`, { method: "DELETE" });
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:201:			const res = await fetch("/api/pricing-logic/nodes", {
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:216:		await fetch(`/api/pricing-logic/nodes/${nodeId}`, {
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:225:		await fetch(`/api/pricing-logic/nodes/${nodeId}`, { method: "DELETE" });
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:247:		const res = await fetch("/api/pricing-logic/options", {
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:257:		await fetch(`/api/pricing-logic/options/${optionId}`, {
+app/admin/pricing-logic/PricingLogicTreeEditor.tsx:266:		await fetch(`/api/pricing-logic/options/${optionId}`, { method: "DELETE" });
+app/admin/pricing-logic/PricingLogicTreeViewer.tsx:65:    fetch(`/api/pricing-logic/tree?categoryId=${encodeURIComponent(categoryId)}`)
+app/admin/products/ProductCatalogAdmin.tsx:94:            const res = await fetch(`/api/products?${params.toString()}`);
+app/admin/products/ProductCatalogAdmin.tsx:121:            const res = await fetch("/api/products/import", { method: "POST", body: formData });
+app/admin/products/ProductCatalogAdmin.tsx:139:            await fetch(`/api/products/${id}`, { method: "DELETE" });
+app/admin/products/ProductCatalogAdmin.tsx:163:            await fetch(`/api/products/${editingId}`, {
+app/admin/products/ProductCatalogAdmin.tsx:196:            const res = await fetch("/api/products", {
+app/admin/rate-card/RateCardAdmin.tsx:140:            const res = await fetch(`/api/rate-card?${params.toString()}`);
+app/admin/rate-card/RateCardAdmin.tsx:158:            const res = await fetch("/api/rate-card/audit?limit=50");
+app/admin/rate-card/RateCardAdmin.tsx:190:            const res = await fetch("/api/rate-card", {
+app/admin/rate-card/RateCardAdmin.tsx:211:            const res = await fetch(`/api/rate-card?id=${id}`, { method: "DELETE" });
+app/admin/rate-card/RateCardAdmin.tsx:230:            const res = await fetch("/api/rate-card", {
+app/admin/rate-card/RateCardAdmin.tsx:258:            const res = await fetch("/api/rate-card/import", { method: "POST", body: formData });
+app/admin/rate-card/RateCardAdmin.tsx:347:                        href="/api/rate-card/template?type=anc"
+app/admin/rate-card/RateCardAdmin.tsx:355:                        href="/api/rate-card/template?type=dev"
+lib/anything-llm.ts:147:    const altBase = ANYTHING_LLM_BASE_URL.replace("/api/v1", "/v1");
+lib/anything-llm.ts:209:    const altBase = ANYTHING_LLM_BASE_URL.replace("/api/v1", "/v1");
+lib/pricingAuditor.ts:52:const ZHIPU_ENDPOINT = "https://api.z.ai/api/coding/paas/v4/";
+lib/useAutoSave.ts:72:            const response = await fetch(`/api/projects/${projectId}`, {
+lib/variables.ts:18:export const GENERATE_PDF_API = "/api/proposals/generate";
+lib/variables.ts:19:export const GENERATE_PDF_JSREPORT_API = "/api/proposals/generate-jsreport";
+lib/variables.ts:20:export const SEND_PDF_API = "/api/proposals/send";
+lib/variables.ts:21:export const EXPORT_PROPOSAL_API = "/api/proposals/export";
+lib/variables.ts:34:  "https://openexchangerates.org/api/currencies.json";
+lib/variables.ts:38: * Centralized hardcoded base URL with strict /api/v1 versioning
+lib/variables.ts:42:export const ANYTHING_LLM_BASE_URL = !rawUrl ? "" : rawUrl.endsWith("/api/v1") ? rawUrl : `${rawUrl.replace(/\/+$/, "")}/api/v1`;
+services/vision/glm-client.ts:9:    baseUrl?: string; // e.g. "https://open.bigmodel.cn/api/paas/v4/"
+services/vision/glm-client.ts:53:        let baseUrl = this.config.baseUrl || 'https://open.bigmodel.cn/api/paas/v4';
+services/vision/glm-client.ts:127:        let baseUrl = this.config.baseUrl || 'https://open.bigmodel.cn/api/paas/v4';
+services/AnythingLLMService.ts:17:        // Ensure we are using the /api/v1 prefix if not present in the env var (though user said it is)
+services/AnythingLLMService.ts:18:        // The user provided: http://basheer_anything-llm:3001/api/v1
+services/AnythingLLMService.ts:19:        if (this.baseUrl && !this.baseUrl.endsWith('/api/v1')) {
+contexts/ProposalContext.tsx:476:                const res = await fetch(`/api/proposals/${pid}/verify`, {
+contexts/ProposalContext.tsx:506:            const res = await fetch(`/api/rfp/upload?proposalId=${pid}`);
+contexts/ProposalContext.tsx:520:                const res = await fetch(`/api/rfp/upload?id=${id}`, {
+contexts/ProposalContext.tsx:755:            fetch(`/api/rfp/upload?proposalId=${effectiveId}`)
+contexts/ProposalContext.tsx:810:                    await fetch(`/api/projects/${projectId}`, {
+contexts/ProposalContext.tsx:911:             Note: The route /api/projects/[id] needs to handle PATCH.
+contexts/ProposalContext.tsx:913:                    await fetch(`/api/projects/${projectId}`, {
+contexts/ProposalContext.tsx:1156:            const resp = await fetch(`/api/projects/${projectId}`);
+contexts/ProposalContext.tsx:1300:     * Same payload as generatePdf but calls /api/proposals/generate-jsreport.
+contexts/ProposalContext.tsx:1474:                fetch(`/api/projects/${pid}/activities`, {
+contexts/ProposalContext.tsx:1689:            const excelRes = await fetch("/api/proposals/export/audit", {
+contexts/ProposalContext.tsx:1762:            fetch(`/api/projects/${pid}/activities`, {
+contexts/ProposalContext.tsx:1953:                        fetch("/api/proposals/create", {
+contexts/ProposalContext.tsx:2014:                const resp = await fetch("/api/workspaces/create", {
+contexts/ProposalContext.tsx:2116:                        await fetch(`/api/projects/${newId}`, {
+contexts/ProposalContext.tsx:2200:            const res = await fetch(`/api/projects/${effectiveId}`, {
+contexts/ProposalContext.tsx:2400:            const res = await fetch("/api/command", {
+contexts/ProposalContext.tsx:2700:                            const res = await fetch("/api/rag/sync", {
+contexts/ProposalContext.tsx:2768:            const res = await fetch("/api/proposals/export/audit", {
+contexts/ProposalContext.tsx:3224:            const res = await fetch("/api/proposals/import-excel", {
+contexts/ProposalContext.tsx:3551:                            fetch(`/api/projects/${pid}/activities`, {
+contexts/ProposalContext.tsx:3668:                        const res = await fetch("/api/rfp/upload", {
+contexts/ProposalContext.tsx:4274:                        const res = await fetch("/api/rfp/extract", {
+contexts/ProposalContext.tsx:4360:                                await fetch(`/api/projects/${proposalId}`, {
+contexts/ProposalContext.tsx:4473:                                    await fetch(`/api/projects/${proposalId}`, {
+contexts/ProposalContext.tsx:4532:                                    await fetch(`/api/projects/${proposalId}`, {
+contexts/ProposalContext.tsx:4562:                        const res = await fetch("/api/rfp/answer", {

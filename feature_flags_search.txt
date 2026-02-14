@@ -1,0 +1,6 @@
+./app/components/ProposalPage.tsx:24:import { FEATURES } from "@/lib/featureFlags";
+./app/components/layout/StudioLayout.tsx:6:import { FEATURES } from "@/lib/featureFlags";
+./app/components/proposal/form/wizard/steps/Step4Export.tsx:42:import { FEATURES } from "@/lib/featureFlags";
+./app/components/proposal/form/wizard/steps/Step1Ingestion.tsx:22:import { FEATURES } from "@/lib/featureFlags";
+./app/components/proposal/form/SingleScreen.tsx:24:import { FEATURES } from "@/lib/featureFlags";
+./app/projects/page.tsx:21:import { FEATURES } from "@/lib/featureFlags";
