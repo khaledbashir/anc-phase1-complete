@@ -104,6 +104,8 @@
     "devDependencies": {
         "@next/bundle-analyzer": "^14.0.4",
         "@sparticuz/chromium": "138.0.2",
+        "@testing-library/jest-dom": "^6.9.1",
+        "@testing-library/react": "^16.3.2",
         "@types/nodemailer": "^6.4.14",
         "@types/number-to-words": "^1.2.1",
         "@types/pdf-parse": "^1.1.5",
@@ -117,6 +119,7 @@
         "eslint": "^8.57.0",
         "eslint-config-next": "15.3.3",
         "ignore-loader": "^0.1.2",
+        "jsdom": "^28.0.0",
         "prisma": "^5.22.0",
         "puppeteer": "^24.10.0",
         "vitest": "^4.0.18"

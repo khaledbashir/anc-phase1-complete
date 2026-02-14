@@ -1,0 +1,404 @@
+/**
+ * @vitest-environment jsdom
+ */
+import { describe, it, expect, vi, beforeAll } from "vitest";
+import React from "react";
+import { render } from "@testing-library/react";
+import "@testing-library/jest-dom";
+
+// ============================================================================
+// MOCKS — stub out heavy/server-only dependencies
+// ============================================================================
+
+// ProposalLayout — just render children
+vi.mock("@/app/components", () => ({
+  ProposalLayout: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="proposal-layout">{children}</div>
+  ),
+}));
+
+// LogoSelectorServer — render a simple placeholder
+vi.mock("@/app/components/reusables/LogoSelectorServer", () => ({
+  default: (props: any) => <div data-testid="logo" />,
+}));
+
+// ExhibitA_TechnicalSpecs — render a stub
+vi.mock("@/app/components/templates/proposal-pdf/exhibits/ExhibitA_TechnicalSpecs", () => ({
+  default: (props: any) => <div data-testid="exhibit-a">ExhibitA Specs</div>,
+}));
+
+// PageBreak — render a marker div
+vi.mock("@/app/components/templates/proposal-pdf/PageBreak", () => ({
+  default: () => <div data-testid="page-break" />,
+}));
+
+// Sentry — not available in test
+vi.mock("@sentry/nextjs", () => ({
+  captureException: vi.fn(),
+}));
+
+// Suppress console noise
+beforeAll(() => {
+  vi.spyOn(console, "log").mockImplementation(() => {});
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+
+// ============================================================================
+// IMPORT UNDER TEST
+// ============================================================================
+import ProposalTemplate5 from "../ProposalTemplate5";
+
+// ============================================================================
+// MOCK DATA BUILDERS
+// ============================================================================
+
+function baseProps(overrides: Record<string, any> = {}) {
+  return {
+    sender: {
+      name: "ANC Sports Enterprises",
+      email: "info@anc.com",
+      address: "2 Manhattanville Road",
+      city: "Purchase",
+      zipCode: "10577",
+    },
+    receiver: {
+      name: "Test Client Corp",
+      email: "client@test.com",
+      address: "123 Main St",
+      city: "New York",
+      zipCode: "10001",
+    },
+    details: {
+      proposalName: "Test Stadium LED Project",
+      documentMode: "BUDGET",
+      showNotes: false,
+      showScopeOfWork: false,
+      showSignatureBlock: false,
+      showPaymentTerms: false,
+      showSpecifications: false,
+      showPricingTables: true,
+      showIntroText: true,
+      showCompanyFooter: false,
+      showExhibitA: false,
+      ...overrides,
+    },
+  } as any;
+}
+
+function buildPricingDocument(tables: any[], currency = "USD" as "CAD" | "USD") {
+  return {
+    tables,
+    mode: "MIRROR",
+    sourceSheet: "Margin Analysis",
+    currency,
+    documentTotal: tables.reduce((s: number, t: any) => s + (t.grandTotal || 0), 0),
+    metadata: { importedAt: new Date().toISOString(), fileName: "test.xlsx", tablesCount: tables.length, itemsCount: 0, alternatesCount: 0 },
+  };
+}
+
+function buildPricingTable(name: string, items: Array<{ description: string; sellingPrice: number }>, grandTotal: number, id?: string) {
+  return {
+    id: id || `table-${name.toLowerCase().replace(/\s+/g, "-")}`,
+    name,
+    currency: "USD",
+    items: items.map((i) => ({ ...i, isIncluded: i.sellingPrice === 0 })),
+    subtotal: items.reduce((s, i) => s + i.sellingPrice, 0),
+    tax: null,
+    bond: 0,
+    grandTotal,
+    alternates: [],
+    sourceStartRow: 0,
+    sourceEndRow: 10,
+  };
+}
+
+function buildRespMatrix(categories: Array<{ name: string; items: Array<{ description: string; anc: string; purchaser: string }> }>) {
+  return {
+    projectName: "Test Project",
+    date: "2026-02-15",
+    format: "long" as const,
+    categories,
+  };
+}
+
+// ============================================================================
+// 1. DOCUMENT MODES (3 tests)
+// ============================================================================
+
+describe("Document Modes", () => {
+  it("renders BUDGET mode with correct header label", () => {
+    const props = baseProps({ documentMode: "BUDGET" });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    // Budget mode shows "BUDGET ESTIMATE" header
+    expect(container.textContent).toContain("BUDGET ESTIMATE");
+  });
+
+  it("renders PROPOSAL mode with correct header label", () => {
+    const props = baseProps({ documentMode: "PROPOSAL" });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    expect(container.textContent).toContain("SALES QUOTATION");
+  });
+
+  it("renders LOI mode with correct header label", () => {
+    const props = baseProps({
+      documentMode: "LOI",
+      showSignatureBlock: true,
+      showPaymentTerms: true,
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    expect(container.textContent).toContain("LETTER OF INTENT");
+  });
+});
+
+// ============================================================================
+// 2. MIRROR vs INTELLIGENCE MODE (2 tests)
+// ============================================================================
+
+describe("Mirror vs Intelligence mode", () => {
+  it("Mirror mode renders pricing tables from pricingDocument", () => {
+    const table1 = buildPricingTable("LED Display", [
+      { description: "LG 1.2mm Panel", sellingPrice: 30000 },
+      { description: "Controller", sellingPrice: 5000 },
+    ], 35000);
+    const pricingDocument = buildPricingDocument([table1]);
+
+    const props = baseProps({
+      documentMode: "BUDGET",
+      pricingDocument,
+      mirrorMode: true,
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    expect(container.textContent).toContain("LG 1.2mm Panel");
+    expect(container.textContent).toContain("Controller");
+    expect(container.textContent).toContain("GRAND TOTAL");
+  });
+
+  it("Intelligence mode renders line items from screens/quoteItems", () => {
+    const props = baseProps({
+      documentMode: "PROPOSAL",
+      quoteItems: [
+        { id: "q1", locationName: "Main Scoreboard", description: "4mm LED", price: 50000 },
+        { id: "q2", locationName: "Ribbon Board", description: "10mm LED", price: 25000 },
+      ],
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    expect(container.textContent).toContain("MAIN SCOREBOARD");
+    expect(container.textContent).toContain("RIBBON BOARD");
+  });
+});
+
+// ============================================================================
+// 3. SPECS DISPLAY MODES (2 tests)
+// ============================================================================
+
+describe("Specs display modes", () => {
+  it("shows ExhibitA when showSpecifications is true and screens exist", () => {
+    const props = baseProps({
+      documentMode: "BUDGET",
+      showSpecifications: true,
+      showExhibitA: true,
+    });
+    // Need screens for specs to render
+    (props as any).screens = [
+      { id: "s1", name: "Main Display", heightFt: 10, widthFt: 20, pitchMm: 4 },
+    ];
+    const { queryByTestId } = render(<ProposalTemplate5 {...props} />);
+    expect(queryByTestId("exhibit-a")).toBeInTheDocument();
+  });
+
+  it("hides specs section when showSpecifications is false", () => {
+    const props = baseProps({
+      documentMode: "BUDGET",
+      showSpecifications: false,
+      showExhibitA: false,
+    });
+    (props as any).screens = [
+      { id: "s1", name: "Main Display", heightFt: 10, widthFt: 20, pitchMm: 4 },
+    ];
+    const { queryByTestId } = render(<ProposalTemplate5 {...props} />);
+    expect(queryByTestId("exhibit-a")).not.toBeInTheDocument();
+  });
+});
+
+// ============================================================================
+// 4. RESPONSIBILITY MATRIX (2 tests)
+// ============================================================================
+
+describe("Responsibility Matrix", () => {
+  it("renders when pricingDocument includes respMatrix", () => {
+    const table1 = buildPricingTable("LED Display", [
+      { description: "Panel", sellingPrice: 10000 },
+    ], 10000);
+    const pricingDocument = buildPricingDocument([table1]);
+    (pricingDocument as any).respMatrix = buildRespMatrix([
+      {
+        name: "PHYSICAL INSTALLATION",
+        items: [
+          { description: "Provide structural steel", anc: "X", purchaser: "" },
+          { description: "Provide electrical conduit", anc: "", purchaser: "X" },
+        ],
+      },
+    ]);
+
+    const props = baseProps({
+      documentMode: "BUDGET",
+      pricingDocument,
+      mirrorMode: true,
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    expect(container.textContent).toContain("Exhibit B — Statement of Work");
+    expect(container.textContent).toContain("PHYSICAL INSTALLATION");
+    expect(container.textContent).toContain("Provide structural steel");
+  });
+
+  it("hidden when includeResponsibilityMatrix is false and no respMatrix in pricingDocument", () => {
+    const table1 = buildPricingTable("LED Display", [
+      { description: "Panel", sellingPrice: 10000 },
+    ], 10000);
+    const pricingDocument = buildPricingDocument([table1]);
+    // No respMatrix on pricingDocument
+
+    const props = baseProps({
+      documentMode: "BUDGET",
+      pricingDocument,
+      mirrorMode: true,
+      includeResponsibilityMatrix: false,
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    expect(container.textContent).not.toContain("Exhibit B — Statement of Work");
+  });
+});
+
+// ============================================================================
+// 5. SIGNATURE BLOCK (1 test)
+// ============================================================================
+
+describe("Signature Block", () => {
+  it("LOI mode includes signature block with agreement text", () => {
+    const props = baseProps({
+      documentMode: "LOI",
+      showSignatureBlock: true,
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    expect(container.textContent).toContain("Agreed To And Accepted");
+    expect(container.textContent).toContain("ANC Sports Enterprises, LLC");
+    expect(container.textContent).toContain("Purchaser");
+    // Default signature block text
+    expect(container.textContent).toContain("entire understanding between the parties");
+  });
+});
+
+// ============================================================================
+// 6. PROJECT SUMMARY (1 test)
+// ============================================================================
+
+describe("Project Summary", () => {
+  it("shows master table summary when masterTableIndex is set", () => {
+    const summaryTable = buildPricingTable(
+      "Project Grand Total",
+      [
+        { description: "LED Display", sellingPrice: 35000 },
+        { description: "Installation", sellingPrice: 20000 },
+      ],
+      55000,
+      "table-0-project-grand-total"
+    );
+    const detailTable = buildPricingTable("LED Display", [
+      { description: "LG Panel", sellingPrice: 35000 },
+    ], 35000, "table-1-led-display");
+
+    const pricingDocument = buildPricingDocument([summaryTable, detailTable]);
+
+    const props = baseProps({
+      documentMode: "LOI",
+      pricingDocument,
+      mirrorMode: true,
+      masterTableIndex: 0,
+      showSignatureBlock: false,
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    // Master table summary renders "Project Pricing" label
+    expect(container.textContent).toContain("Project Pricing");
+  });
+});
+
+// ============================================================================
+// 7. PRICING TABLES COUNT (1 test)
+// ============================================================================
+
+describe("Pricing Tables", () => {
+  it("renders correct number of pricing table sections from mock data", () => {
+    const table1 = buildPricingTable("LED Display", [
+      { description: "LG Panel", sellingPrice: 30000 },
+    ], 30000, "table-0-led");
+    const table2 = buildPricingTable("Installation", [
+      { description: "Steel Work", sellingPrice: 12000 },
+    ], 12000, "table-1-install");
+    const table3 = buildPricingTable("Electrical", [
+      { description: "Conduit", sellingPrice: 8000 },
+    ], 8000, "table-2-electrical");
+    const pricingDocument = buildPricingDocument([table1, table2, table3]);
+
+    const props = baseProps({
+      documentMode: "BUDGET",
+      pricingDocument,
+      mirrorMode: true,
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    // All 3 table names should appear as section headers (uppercase)
+    expect(container.textContent).toContain("LED DISPLAY");
+    expect(container.textContent).toContain("INSTALLATION");
+    expect(container.textContent).toContain("ELECTRICAL");
+  });
+});
+
+// ============================================================================
+// 8. ADDITIONAL REGRESSION TESTS (4 tests)
+// ============================================================================
+
+describe("Additional Regression", () => {
+  it("renders intro text for BUDGET mode with client name", () => {
+    const props = baseProps({
+      documentMode: "BUDGET",
+      showIntroText: true,
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    expect(container.textContent).toContain("Test Client Corp");
+    expect(container.textContent).toContain("budget");
+  });
+
+  it("renders LOI legal intro with purchaser name when includeLegalIntro is true", () => {
+    const props = baseProps({
+      documentMode: "LOI",
+      showIntroText: true,
+      showSignatureBlock: false,
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    // LOI legal intro references both parties
+    expect(container.textContent).toContain("Purchaser");
+    expect(container.textContent).toContain("ANC Sports Enterprises, LLC");
+  });
+
+  it("renders payment terms section when showPaymentTerms is true in LOI", () => {
+    const props = baseProps({
+      documentMode: "LOI",
+      showPaymentTerms: true,
+      showSignatureBlock: false,
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    expect(container.textContent).toContain("Payment Terms");
+    // Default terms
+    expect(container.textContent).toContain("50% on Deposit");
+  });
+
+  it("renders notes section when showNotes is true and additionalNotes provided", () => {
+    const props = baseProps({
+      documentMode: "BUDGET",
+      showNotes: true,
+      additionalNotes: "All prices are valid for 30 days from date of proposal.",
+    });
+    const { container } = render(<ProposalTemplate5 {...props} />);
+    expect(container.textContent).toContain("Notes");
+    expect(container.textContent).toContain("All prices are valid for 30 days");
+  });
+});
