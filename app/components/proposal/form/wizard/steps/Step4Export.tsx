@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { useFormContext } from "react-hook-form";
@@ -42,6 +42,132 @@ import ExcelGridViewer from "@/app/components/ExcelGridViewer";
 import { FEATURES } from "@/lib/featureFlags";
 import type { ProposalType } from "@/types";
 
+const PREVIEW_SECTION_CONTROL_MAP: Record<string, string> = {
+    header: "template-control-header-to-intro-gap",
+    intro: "template-control-intro-to-body-gap",
+    pricing: "template-control-pricing-box-gap",
+    "exhibit-a": "template-control-exhibit-a-title-gap",
+    "payment-terms": "template-control-section-spacing",
+    notes: "template-control-section-spacing",
+    signature: "template-control-section-spacing",
+    schedule: "template-control-section-spacing",
+};
+
+type VisualBuilderSnapshot = {
+    densityPreset?: "compact" | "balanced" | "airy";
+    contentPaddingX: number;
+    headerToIntroGap: number;
+    introToBodyGap: number;
+    sectionSpacing: number;
+    pricingTableGap: number;
+    tableRowHeight: number;
+    exhibitAHeaderGap: number;
+    accentColor: string;
+    autoPushLargeTables: boolean;
+    tableSplitThreshold: number;
+    slash: {
+        width: number;
+        height: number;
+        count: number;
+        opacity: number;
+        top: number;
+        right: number;
+    };
+};
+
+const BUILTIN_STYLE_PRESETS: Array<{ key: string; label: string; value: Partial<VisualBuilderSnapshot> }> = [
+    {
+        key: "natalia-tight",
+        label: "Natalia Tight",
+        value: {
+            densityPreset: "compact",
+            contentPaddingX: 22,
+            headerToIntroGap: 12,
+            introToBodyGap: 12,
+            sectionSpacing: 10,
+            pricingTableGap: 10,
+            tableRowHeight: 22,
+            exhibitAHeaderGap: 14,
+            tableSplitThreshold: 14,
+        },
+    },
+    {
+        key: "client-airy",
+        label: "Client Airy",
+        value: {
+            densityPreset: "airy",
+            contentPaddingX: 28,
+            headerToIntroGap: 26,
+            introToBodyGap: 28,
+            sectionSpacing: 24,
+            pricingTableGap: 24,
+            tableRowHeight: 30,
+            exhibitAHeaderGap: 34,
+            tableSplitThreshold: 18,
+        },
+    },
+    {
+        key: "print-safe",
+        label: "Print Safe",
+        value: {
+            densityPreset: "balanced",
+            contentPaddingX: 24,
+            headerToIntroGap: 18,
+            introToBodyGap: 18,
+            sectionSpacing: 16,
+            pricingTableGap: 16,
+            tableRowHeight: 24,
+            exhibitAHeaderGap: 24,
+            autoPushLargeTables: true,
+            tableSplitThreshold: 13,
+        },
+    },
+];
+
+const BASE_VISUAL_DEFAULTS: VisualBuilderSnapshot = {
+    densityPreset: "balanced",
+    contentPaddingX: 24,
+    headerToIntroGap: 16,
+    introToBodyGap: 16,
+    sectionSpacing: 16,
+    pricingTableGap: 16,
+    tableRowHeight: 24,
+    exhibitAHeaderGap: 24,
+    accentColor: "#0A52EF",
+    autoPushLargeTables: false,
+    tableSplitThreshold: 14,
+    slash: {
+        width: 68,
+        height: 86,
+        count: 5,
+        opacity: 0.1,
+        top: 2,
+        right: 2,
+    },
+};
+
+const normalizeVisualSnapshot = (config: Record<string, any>, defaults: VisualBuilderSnapshot): VisualBuilderSnapshot => ({
+    densityPreset: (config?.densityPreset || defaults.densityPreset || "balanced") as "compact" | "balanced" | "airy",
+    contentPaddingX: Number(config?.contentPaddingX ?? defaults.contentPaddingX),
+    headerToIntroGap: Number(config?.headerToIntroGap ?? defaults.headerToIntroGap),
+    introToBodyGap: Number(config?.introToBodyGap ?? defaults.introToBodyGap),
+    sectionSpacing: Number(config?.sectionSpacing ?? defaults.sectionSpacing),
+    pricingTableGap: Number(config?.pricingTableGap ?? defaults.pricingTableGap),
+    tableRowHeight: Number(config?.tableRowHeight ?? defaults.tableRowHeight),
+    exhibitAHeaderGap: Number(config?.exhibitAHeaderGap ?? defaults.exhibitAHeaderGap),
+    accentColor: (config?.accentColor || defaults.accentColor).toString(),
+    autoPushLargeTables: Boolean(config?.autoPushLargeTables ?? defaults.autoPushLargeTables),
+    tableSplitThreshold: Number(config?.tableSplitThreshold ?? defaults.tableSplitThreshold),
+    slash: {
+        width: Number(config?.slash?.width ?? defaults.slash.width),
+        height: Number(config?.slash?.height ?? defaults.slash.height),
+        count: Number(config?.slash?.count ?? defaults.slash.count),
+        opacity: Number(config?.slash?.opacity ?? defaults.slash.opacity),
+        top: Number(config?.slash?.top ?? defaults.slash.top),
+        right: Number(config?.slash?.right ?? defaults.slash.right),
+    },
+});
+
 const Step4Export = () => {
     const {
         generatePdf,
@@ -77,7 +203,13 @@ const Step4Export = () => {
     const [changeRequests, setChangeRequests] = useState<any[]>([]);    // State for toggling sections
     const [isVerificationExpanded, setIsVerificationExpanded] = useState(true);
     const [isTextEditOpen, setIsTextEditOpen] = useState(true);
+    const [isVisualBuilderOpen, setIsVisualBuilderOpen] = useState(false);
     const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+    const [builderHistory, setBuilderHistory] = useState<VisualBuilderSnapshot[]>([]);
+    const [builderHistoryIndex, setBuilderHistoryIndex] = useState(-1);
+    const [selectedStylePresetKey, setSelectedStylePresetKey] = useState("");
+    const [newPresetName, setNewPresetName] = useState("");
+    const suppressHistoryRef = useRef(false);
 
     // Get proposal data
     const screens = watch("details.screens") || [];
@@ -90,24 +222,25 @@ const Step4Export = () => {
     const pricingDocument = watch("details.pricingDocument" as any);
     const mirrorMode =
         mirrorModeFlag === true || ((pricingDocument as any)?.tables?.length ?? 0) > 0;
-    const templateConfig = (watch("details.templateConfig" as any) || {}) as Record<string, any>;
-    const visualDefaults = {
-        contentPaddingX: 24,
-        headerToIntroGap: 16,
-        introToBodyGap: 16,
-        sectionSpacing: 16,
-        pricingTableGap: 16,
-        tableRowHeight: 24,
-        exhibitAHeaderGap: 24,
-        accentColor: "#0A52EF",
+    const watchedTemplateConfig = watch("details.templateConfig" as any);
+    const templateConfig = useMemo(() => (watchedTemplateConfig || {}) as Record<string, any>, [watchedTemplateConfig]);
+    const visualDefaults = BASE_VISUAL_DEFAULTS;
+
+    const mergeVisualSnapshotIntoConfig = (snapshot: VisualBuilderSnapshot, base: Record<string, any>) => ({
+        ...base,
+        ...snapshot,
         slash: {
-            width: 68,
-            height: 86,
-            count: 5,
-            opacity: 0.1,
-            top: 2,
-            right: 2,
+            ...(base?.slash || {}),
+            ...snapshot.slash,
         },
+    });
+
+    const applyVisualSnapshot = (snapshot: VisualBuilderSnapshot, options?: { suppressHistory?: boolean }) => {
+        if (options?.suppressHistory) {
+            suppressHistoryRef.current = true;
+        }
+        const merged = mergeVisualSnapshotIntoConfig(snapshot, templateConfig);
+        setValue("details.templateConfig" as any, merged as any, { shouldDirty: true });
     };
 
     const setTemplateConfigValue = (path: string, value: any) => {
@@ -121,13 +254,63 @@ const Step4Export = () => {
             airy: { headerToIntroGap: 26, introToBodyGap: 28, sectionSpacing: 24, pricingTableGap: 24, tableRowHeight: 30, exhibitAHeaderGap: 34 },
         } as const;
         const next = map[preset];
-        setTemplateConfigValue("details.templateConfig.densityPreset", preset);
-        setTemplateConfigValue("details.templateConfig.headerToIntroGap", next.headerToIntroGap);
-        setTemplateConfigValue("details.templateConfig.introToBodyGap", next.introToBodyGap);
-        setTemplateConfigValue("details.templateConfig.sectionSpacing", next.sectionSpacing);
-        setTemplateConfigValue("details.templateConfig.pricingTableGap", next.pricingTableGap);
-        setTemplateConfigValue("details.templateConfig.tableRowHeight", next.tableRowHeight);
-        setTemplateConfigValue("details.templateConfig.exhibitAHeaderGap", next.exhibitAHeaderGap);
+        applyVisualSnapshot({
+            ...currentVisualSnapshot,
+            densityPreset: preset,
+            headerToIntroGap: next.headerToIntroGap,
+            introToBodyGap: next.introToBodyGap,
+            sectionSpacing: next.sectionSpacing,
+            pricingTableGap: next.pricingTableGap,
+            tableRowHeight: next.tableRowHeight,
+            exhibitAHeaderGap: next.exhibitAHeaderGap,
+        });
+    };
+
+    const currentVisualSnapshot = useMemo(() => normalizeVisualSnapshot(templateConfig, visualDefaults), [templateConfig, visualDefaults]);
+    const historyIndexRef = useRef(-1);
+    const lastHistoryFingerprintRef = useRef("");
+
+    useEffect(() => {
+        historyIndexRef.current = builderHistoryIndex;
+    }, [builderHistoryIndex]);
+
+    useEffect(() => {
+        const fingerprint = JSON.stringify(currentVisualSnapshot);
+        if (!fingerprint) return;
+        if (suppressHistoryRef.current) {
+            suppressHistoryRef.current = false;
+            lastHistoryFingerprintRef.current = fingerprint;
+            return;
+        }
+        if (fingerprint === lastHistoryFingerprintRef.current) return;
+
+        const currentIndex = historyIndexRef.current;
+        setBuilderHistory((prev) => {
+            const base = currentIndex >= 0 ? prev.slice(0, currentIndex + 1) : [];
+            const next = [...base, currentVisualSnapshot];
+            const capped = next.length > 80 ? next.slice(next.length - 80) : next;
+            const nextIndex = capped.length - 1;
+            historyIndexRef.current = nextIndex;
+            setBuilderHistoryIndex(nextIndex);
+            lastHistoryFingerprintRef.current = fingerprint;
+            return capped;
+        });
+    }, [currentVisualSnapshot]);
+
+    const undoVisualBuilder = () => {
+        if (builderHistoryIndex <= 0) return;
+        const target = builderHistory[builderHistoryIndex - 1];
+        if (!target) return;
+        setBuilderHistoryIndex((prev) => Math.max(0, prev - 1));
+        applyVisualSnapshot(target, { suppressHistory: true });
+    };
+
+    const redoVisualBuilder = () => {
+        if (builderHistoryIndex < 0 || builderHistoryIndex >= builderHistory.length - 1) return;
+        const target = builderHistory[builderHistoryIndex + 1];
+        if (!target) return;
+        setBuilderHistoryIndex((prev) => Math.min(builderHistory.length - 1, prev + 1));
+        applyVisualSnapshot(target, { suppressHistory: true });
     };
 
     useEffect(() => {
@@ -149,6 +332,24 @@ const Step4Export = () => {
             cancelled = true;
         };
     }, [proposalId]);
+
+    useEffect(() => {
+        const handlePreviewFocus = (evt: Event) => {
+            const custom = evt as CustomEvent<{ section?: string }>;
+            const section = (custom.detail?.section || "").toLowerCase().trim();
+            const controlId = PREVIEW_SECTION_CONTROL_MAP[section];
+            if (!controlId) return;
+            const target = document.getElementById(controlId);
+            if (!target) return;
+            target.scrollIntoView({ behavior: "smooth", block: "center" });
+            target.classList.add("ring-2", "ring-brand-blue/50", "rounded-md");
+            window.setTimeout(() => {
+                target.classList.remove("ring-2", "ring-brand-blue/50", "rounded-md");
+            }, 900);
+        };
+        window.addEventListener("anc-focus-control", handlePreviewFocus as EventListener);
+        return () => window.removeEventListener("anc-focus-control", handlePreviewFocus as EventListener);
+    }, []);
 
     const updateChangeRequestStatus = async (requestId: string, status: "OPEN" | "RESOLVED") => {
         if (!proposalId) return;
@@ -213,6 +414,74 @@ const Step4Export = () => {
     const isPdfPreviewBlocked = mirrorMode
         ? !allScreensValid || hasOptionPlaceholder || !internalAudit || isGatekeeperLocked
         : !allScreensValid || isGatekeeperLocked;
+    const pricingTables = useMemo(() => (((pricingDocument as any)?.tables || []) as any[]), [pricingDocument]);
+    const tableSplitThreshold = Number(templateConfig?.tableSplitThreshold ?? visualDefaults.tableSplitThreshold);
+    const pricingSplitRisk = useMemo(() => {
+        if (pricingTables.length === 0) return null;
+        const evaluated = pricingTables.map((table: any) => {
+            const items = Array.isArray(table?.items) ? table.items : [];
+            const alternates = Array.isArray(table?.alternates) ? table.alternates : [];
+            const longRows = items.filter((row: any) => ((row?.description || "").toString().length > 88)).length;
+            const estimatedRows = items.length + alternates.length + 4 + Math.min(3, longRows);
+            return {
+                id: table?.id || table?.name || "table",
+                name: (table?.name || "Section").toString(),
+                estimatedRows,
+            };
+        });
+        const largest = evaluated.reduce((top, current) => current.estimatedRows > top.estimatedRows ? current : top, evaluated[0]);
+        if (!largest) return null;
+        return {
+            ...largest,
+            threshold: tableSplitThreshold,
+            atRisk: largest.estimatedRows > tableSplitThreshold,
+        };
+    }, [pricingTables, tableSplitThreshold]);
+
+    const userStylePresets = useMemo(
+        () => ((templateConfig?.userStylePresets || []) as Array<{ id: string; name: string; snapshot: VisualBuilderSnapshot }>),
+        [templateConfig?.userStylePresets]
+    );
+    const stylePresetOptions = useMemo(() => {
+        const user = userStylePresets.map((preset) => ({ key: `user:${preset.id}`, label: preset.name, value: preset.snapshot }));
+        return [...BUILTIN_STYLE_PRESETS, ...user];
+    }, [userStylePresets]);
+
+    const applyStylePreset = (presetKey: string) => {
+        if (!presetKey) return;
+        const found = stylePresetOptions.find((preset) => preset.key === presetKey);
+        if (!found) return;
+        applyVisualSnapshot({
+            ...currentVisualSnapshot,
+            ...found.value,
+            slash: {
+                ...currentVisualSnapshot.slash,
+                ...(found.value?.slash || {}),
+            },
+        });
+    };
+
+    const saveCurrentAsPreset = () => {
+        const name = newPresetName.trim();
+        if (!name) return;
+        const id = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 40) || `preset-${Date.now()}`;
+        const existing = userStylePresets.find((preset) => preset.id === id);
+        const nextPreset = { id, name, snapshot: currentVisualSnapshot };
+        const nextPresets = existing
+            ? userStylePresets.map((preset) => preset.id === id ? nextPreset : preset)
+            : [...userStylePresets, nextPreset];
+        setTemplateConfigValue("details.templateConfig.userStylePresets", nextPresets);
+        setSelectedStylePresetKey(`user:${id}`);
+        setNewPresetName("");
+    };
+
+    const deleteSelectedPreset = () => {
+        if (!selectedStylePresetKey.startsWith("user:")) return;
+        const id = selectedStylePresetKey.replace("user:", "");
+        const next = userStylePresets.filter((preset) => preset.id !== id);
+        setTemplateConfigValue("details.templateConfig.userStylePresets", next);
+        setSelectedStylePresetKey("");
+    };
 
     // Helper functions to generate helpful error messages
     const getDownloadBundleErrorMessage = () => {
@@ -967,13 +1236,46 @@ const Step4Export = () => {
                         </Card>
 
                         <Card className="bg-card/40 border border-border/60 overflow-hidden">
-                            <CardHeader className="border-b border-border/60 pb-3">
-                                <CardTitle className="text-sm font-bold text-foreground">Template Visual Builder (V1)</CardTitle>
+                            <CardHeader
+                                className="border-b border-border/60 pb-3 cursor-pointer select-none"
+                                onClick={() => setIsVisualBuilderOpen(!isVisualBuilderOpen)}
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <CardTitle className="text-sm font-bold text-foreground">Template Visual Builder (V1)</CardTitle>
+                                    <ChevronDown className={cn(
+                                        "w-4 h-4 text-muted-foreground transition-transform shrink-0",
+                                        isVisualBuilderOpen && "rotate-180"
+                                    )} />
+                                </div>
                                 <CardDescription className="text-xs text-muted-foreground">
                                     Live PDF layout controls for spacing, accent color, and slash styling (applies to both Puppeteer + jsreport exports)
                                 </CardDescription>
                             </CardHeader>
+                            {isVisualBuilderOpen && (
                             <CardContent className="p-4 space-y-4">
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="text-[11px] text-muted-foreground">
+                                        History: {Math.max(builderHistoryIndex + 1, 0)}/{builderHistory.length}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={undoVisualBuilder}
+                                            disabled={builderHistoryIndex <= 0}
+                                            className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Undo
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={redoVisualBuilder}
+                                            disabled={builderHistoryIndex < 0 || builderHistoryIndex >= builderHistory.length - 1}
+                                            className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Redo
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="rounded-lg border border-border/50 p-3">
                                     <div className="text-xs font-semibold text-foreground mb-2">Density Preset</div>
                                     <div className="flex flex-wrap gap-2">
@@ -998,8 +1300,95 @@ const Step4Export = () => {
                                         ))}
                                     </div>
                                 </div>
+                                <div className="rounded-lg border border-border/50 p-3 space-y-2">
+                                    <div className="text-xs font-semibold text-foreground">Saved Style Presets</div>
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={selectedStylePresetKey}
+                                            onChange={(e) => setSelectedStylePresetKey(e.target.value)}
+                                            className="h-8 flex-1 rounded border border-border bg-background px-2 text-xs"
+                                        >
+                                            <option value="">Select preset</option>
+                                            {stylePresetOptions.map((preset) => (
+                                                <option key={preset.key} value={preset.key}>{preset.label}</option>
+                                            ))}
+                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={() => applyStylePreset(selectedStylePresetKey)}
+                                            disabled={!selectedStylePresetKey}
+                                            className="h-8 px-2 rounded border border-border text-xs font-semibold hover:bg-muted/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Apply
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={deleteSelectedPreset}
+                                            disabled={!selectedStylePresetKey.startsWith("user:")}
+                                            className="h-8 px-2 rounded border border-border text-xs font-semibold hover:bg-muted/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={newPresetName}
+                                            onChange={(e) => setNewPresetName(e.target.value)}
+                                            placeholder="Preset name"
+                                            className="h-8 flex-1 rounded border border-border bg-background px-2 text-xs"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={saveCurrentAsPreset}
+                                            disabled={!newPresetName.trim()}
+                                            className="h-8 px-2 rounded border border-border text-xs font-semibold hover:bg-muted/60 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            Save Current
+                                        </button>
+                                    </div>
+                                </div>
+                                {pricingSplitRisk && (
+                                    <div className={cn(
+                                        "rounded-lg border p-3 space-y-2",
+                                        pricingSplitRisk.atRisk ? "border-amber-500/40 bg-amber-500/10" : "border-emerald-500/30 bg-emerald-500/10"
+                                    )}>
+                                        <div className="text-xs font-semibold text-foreground">
+                                            Table Split Risk: {pricingSplitRisk.atRisk ? "At Risk" : "Stable"}
+                                        </div>
+                                        <div className="text-[11px] text-muted-foreground">
+                                            Largest table: <span className="font-semibold text-foreground">{pricingSplitRisk.name}</span> ({pricingSplitRisk.estimatedRows} estimated rows, threshold {pricingSplitRisk.threshold})
+                                        </div>
+                                        <div className="flex items-center justify-between gap-4">
+                                            <div className="flex flex-col">
+                                                <Label htmlFor="autoPushLargeTables" className="text-xs font-semibold text-foreground">Auto-push large pricing tables to next page</Label>
+                                                <p className="text-[10px] text-muted-foreground">Adds a page break before pricing when risk exceeds threshold.</p>
+                                            </div>
+                                            <Switch
+                                                id="autoPushLargeTables"
+                                                checked={Boolean(templateConfig?.autoPushLargeTables ?? visualDefaults.autoPushLargeTables)}
+                                                onCheckedChange={(checked) => setTemplateConfigValue("details.templateConfig.autoPushLargeTables", checked)}
+                                                className="data-[state=checked]:bg-brand-blue"
+                                            />
+                                        </div>
+                                        <label className="text-xs font-medium text-foreground">
+                                            <span className="flex items-center justify-between">
+                                                <span>Split Threshold: {Number(templateConfig?.tableSplitThreshold ?? visualDefaults.tableSplitThreshold)} rows</span>
+                                                <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.tableSplitThreshold", visualDefaults.tableSplitThreshold)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
+                                            </span>
+                                            <input
+                                                type="range"
+                                                min={10}
+                                                max={26}
+                                                value={Number(templateConfig?.tableSplitThreshold ?? visualDefaults.tableSplitThreshold)}
+                                                onChange={(e) => setTemplateConfigValue("details.templateConfig.tableSplitThreshold", Number(e.target.value))}
+                                                className="w-full mt-1 accent-[#0A52EF]"
+                                            />
+                                        </label>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <label className="text-xs font-medium text-foreground">
+                                    <label id="template-control-content-padding" className="text-xs font-medium text-foreground">
                                         <span className="flex items-center justify-between">
                                             <span>Content Padding: {Number(templateConfig?.contentPaddingX ?? visualDefaults.contentPaddingX)}px</span>
                                             <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.contentPaddingX", visualDefaults.contentPaddingX)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
@@ -1010,10 +1399,10 @@ const Step4Export = () => {
                                             max={48}
                                             value={Number(templateConfig?.contentPaddingX ?? visualDefaults.contentPaddingX)}
                                             onChange={(e) => setTemplateConfigValue("details.templateConfig.contentPaddingX", Number(e.target.value))}
-                                            className="w-full mt-1"
+                                            className="w-full mt-1 accent-[#0A52EF]"
                                         />
                                     </label>
-                                    <label className="text-xs font-medium text-foreground">
+                                    <label id="template-control-header-to-intro-gap" className="text-xs font-medium text-foreground">
                                         <span className="flex items-center justify-between">
                                             <span>Header to Intro Gap: {Number(templateConfig?.headerToIntroGap ?? visualDefaults.headerToIntroGap)}px</span>
                                             <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.headerToIntroGap", visualDefaults.headerToIntroGap)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
@@ -1024,10 +1413,10 @@ const Step4Export = () => {
                                             max={64}
                                             value={Number(templateConfig?.headerToIntroGap ?? visualDefaults.headerToIntroGap)}
                                             onChange={(e) => setTemplateConfigValue("details.templateConfig.headerToIntroGap", Number(e.target.value))}
-                                            className="w-full mt-1"
+                                            className="w-full mt-1 accent-[#0A52EF]"
                                         />
                                     </label>
-                                    <label className="text-xs font-medium text-foreground">
+                                    <label id="template-control-intro-to-body-gap" className="text-xs font-medium text-foreground">
                                         <span className="flex items-center justify-between">
                                             <span>Intro to Body Gap: {Number(templateConfig?.introToBodyGap ?? visualDefaults.introToBodyGap)}px</span>
                                             <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.introToBodyGap", visualDefaults.introToBodyGap)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
@@ -1038,10 +1427,10 @@ const Step4Export = () => {
                                             max={72}
                                             value={Number(templateConfig?.introToBodyGap ?? visualDefaults.introToBodyGap)}
                                             onChange={(e) => setTemplateConfigValue("details.templateConfig.introToBodyGap", Number(e.target.value))}
-                                            className="w-full mt-1"
+                                            className="w-full mt-1 accent-[#0A52EF]"
                                         />
                                     </label>
-                                    <label className="text-xs font-medium text-foreground">
+                                    <label id="template-control-section-spacing" className="text-xs font-medium text-foreground">
                                         <span className="flex items-center justify-between">
                                             <span>Section Spacing: {Number(templateConfig?.sectionSpacing ?? visualDefaults.sectionSpacing)}px</span>
                                             <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.sectionSpacing", visualDefaults.sectionSpacing)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
@@ -1052,10 +1441,10 @@ const Step4Export = () => {
                                             max={36}
                                             value={Number(templateConfig?.sectionSpacing ?? visualDefaults.sectionSpacing)}
                                             onChange={(e) => setTemplateConfigValue("details.templateConfig.sectionSpacing", Number(e.target.value))}
-                                            className="w-full mt-1"
+                                            className="w-full mt-1 accent-[#0A52EF]"
                                         />
                                     </label>
-                                    <label className="text-xs font-medium text-foreground">
+                                    <label id="template-control-pricing-box-gap" className="text-xs font-medium text-foreground">
                                         <span className="flex items-center justify-between">
                                             <span>Pricing Box Gap: {Number(templateConfig?.pricingTableGap ?? visualDefaults.pricingTableGap)}px</span>
                                             <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.pricingTableGap", visualDefaults.pricingTableGap)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
@@ -1066,10 +1455,10 @@ const Step4Export = () => {
                                             max={36}
                                             value={Number(templateConfig?.pricingTableGap ?? visualDefaults.pricingTableGap)}
                                             onChange={(e) => setTemplateConfigValue("details.templateConfig.pricingTableGap", Number(e.target.value))}
-                                            className="w-full mt-1"
+                                            className="w-full mt-1 accent-[#0A52EF]"
                                         />
                                     </label>
-                                    <label className="text-xs font-medium text-foreground">
+                                    <label id="template-control-table-row-height" className="text-xs font-medium text-foreground">
                                         <span className="flex items-center justify-between">
                                             <span>Table Row Height: {Number(templateConfig?.tableRowHeight ?? visualDefaults.tableRowHeight)}px</span>
                                             <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.tableRowHeight", visualDefaults.tableRowHeight)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
@@ -1080,10 +1469,10 @@ const Step4Export = () => {
                                             max={40}
                                             value={Number(templateConfig?.tableRowHeight ?? visualDefaults.tableRowHeight)}
                                             onChange={(e) => setTemplateConfigValue("details.templateConfig.tableRowHeight", Number(e.target.value))}
-                                            className="w-full mt-1"
+                                            className="w-full mt-1 accent-[#0A52EF]"
                                         />
                                     </label>
-                                    <label className="text-xs font-medium text-foreground">
+                                    <label id="template-control-exhibit-a-title-gap" className="text-xs font-medium text-foreground">
                                         <span className="flex items-center justify-between">
                                             <span>Exhibit A Title Gap: {Number(templateConfig?.exhibitAHeaderGap ?? visualDefaults.exhibitAHeaderGap)}px</span>
                                             <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.exhibitAHeaderGap", visualDefaults.exhibitAHeaderGap)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
@@ -1094,7 +1483,7 @@ const Step4Export = () => {
                                             max={72}
                                             value={Number(templateConfig?.exhibitAHeaderGap ?? visualDefaults.exhibitAHeaderGap)}
                                             onChange={(e) => setTemplateConfigValue("details.templateConfig.exhibitAHeaderGap", Number(e.target.value))}
-                                            className="w-full mt-1"
+                                            className="w-full mt-1 accent-[#0A52EF]"
                                         />
                                     </label>
                                     <label className="text-xs font-medium text-foreground">
@@ -1127,42 +1516,42 @@ const Step4Export = () => {
                                                 <span>Width: {Number(templateConfig?.slash?.width ?? visualDefaults.slash.width)}px</span>
                                                 <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.width", visualDefaults.slash.width)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
                                             </span>
-                                            <input type="range" min={32} max={140} value={Number(templateConfig?.slash?.width ?? visualDefaults.slash.width)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.width", Number(e.target.value))} className="w-full mt-1" />
+                                            <input type="range" min={32} max={140} value={Number(templateConfig?.slash?.width ?? visualDefaults.slash.width)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.width", Number(e.target.value))} className="w-full mt-1 accent-[#0A52EF]" />
                                         </label>
                                         <label className="text-xs font-medium text-foreground">
                                             <span className="flex items-center justify-between">
                                                 <span>Height: {Number(templateConfig?.slash?.height ?? visualDefaults.slash.height)}px</span>
                                                 <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.height", visualDefaults.slash.height)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
                                             </span>
-                                            <input type="range" min={40} max={160} value={Number(templateConfig?.slash?.height ?? visualDefaults.slash.height)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.height", Number(e.target.value))} className="w-full mt-1" />
+                                            <input type="range" min={40} max={160} value={Number(templateConfig?.slash?.height ?? visualDefaults.slash.height)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.height", Number(e.target.value))} className="w-full mt-1 accent-[#0A52EF]" />
                                         </label>
                                         <label className="text-xs font-medium text-foreground">
                                             <span className="flex items-center justify-between">
                                                 <span>Count: {Number(templateConfig?.slash?.count ?? visualDefaults.slash.count)}</span>
                                                 <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.count", visualDefaults.slash.count)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
                                             </span>
-                                            <input type="range" min={2} max={10} value={Number(templateConfig?.slash?.count ?? visualDefaults.slash.count)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.count", Number(e.target.value))} className="w-full mt-1" />
+                                            <input type="range" min={2} max={10} value={Number(templateConfig?.slash?.count ?? visualDefaults.slash.count)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.count", Number(e.target.value))} className="w-full mt-1 accent-[#0A52EF]" />
                                         </label>
                                         <label className="text-xs font-medium text-foreground">
                                             <span className="flex items-center justify-between">
                                                 <span>Opacity: {Number(templateConfig?.slash?.opacity ?? visualDefaults.slash.opacity).toFixed(2)}</span>
                                                 <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.opacity", visualDefaults.slash.opacity)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
                                             </span>
-                                            <input type="range" min={0.03} max={0.25} step={0.01} value={Number(templateConfig?.slash?.opacity ?? visualDefaults.slash.opacity)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.opacity", Number(e.target.value))} className="w-full mt-1" />
+                                            <input type="range" min={0.03} max={0.25} step={0.01} value={Number(templateConfig?.slash?.opacity ?? visualDefaults.slash.opacity)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.opacity", Number(e.target.value))} className="w-full mt-1 accent-[#0A52EF]" />
                                         </label>
                                         <label className="text-xs font-medium text-foreground">
                                             <span className="flex items-center justify-between">
                                                 <span>Top Offset: {Number(templateConfig?.slash?.top ?? visualDefaults.slash.top)}px</span>
                                                 <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.top", visualDefaults.slash.top)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
                                             </span>
-                                            <input type="range" min={0} max={20} value={Number(templateConfig?.slash?.top ?? visualDefaults.slash.top)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.top", Number(e.target.value))} className="w-full mt-1" />
+                                            <input type="range" min={0} max={20} value={Number(templateConfig?.slash?.top ?? visualDefaults.slash.top)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.top", Number(e.target.value))} className="w-full mt-1 accent-[#0A52EF]" />
                                         </label>
                                         <label className="text-xs font-medium text-foreground">
                                             <span className="flex items-center justify-between">
                                                 <span>Right Offset: {Number(templateConfig?.slash?.right ?? visualDefaults.slash.right)}px</span>
                                                 <button type="button" onClick={() => setTemplateConfigValue("details.templateConfig.slash.right", visualDefaults.slash.right)} className="text-[10px] px-1.5 py-0.5 rounded border border-border hover:bg-muted/60 transition-colors">Reset</button>
                                             </span>
-                                            <input type="range" min={0} max={20} value={Number(templateConfig?.slash?.right ?? visualDefaults.slash.right)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.right", Number(e.target.value))} className="w-full mt-1" />
+                                            <input type="range" min={0} max={20} value={Number(templateConfig?.slash?.right ?? visualDefaults.slash.right)} onChange={(e) => setTemplateConfigValue("details.templateConfig.slash.right", Number(e.target.value))} className="w-full mt-1 accent-[#0A52EF]" />
                                         </label>
                                     </div>
                                 </div>
@@ -1170,13 +1559,14 @@ const Step4Export = () => {
                                 <div className="pt-2 flex justify-end">
                                     <button
                                         type="button"
-                                        onClick={() => setTemplateConfigValue("details.templateConfig", visualDefaults)}
+                                        onClick={() => applyVisualSnapshot(visualDefaults)}
                                         className="px-3 py-2 rounded-lg border border-border text-xs font-semibold text-foreground hover:bg-muted/60 transition-colors"
                                     >
                                         Reset Natalia Defaults
                                     </button>
                                 </div>
                             </CardContent>
+                            )}
                         </Card>
 
                         {/* ─── Spacer between text editing and export ─── */}

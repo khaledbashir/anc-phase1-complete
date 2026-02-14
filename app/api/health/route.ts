@@ -43,6 +43,8 @@ export async function GET() {
   const healthy = database === "connected";
   const body = {
     status: healthy ? "healthy" : "degraded",
+    liveness: "ok",
+    readiness: healthy ? "ready" : "degraded",
     database,
     version,
     uptime: uptimeSeconds,
@@ -54,5 +56,7 @@ export async function GET() {
     },
   };
 
-  return NextResponse.json(body, { status: healthy ? 200 : 503 });
+  // Liveness must stay 200 so reverse proxies keep routing traffic even when
+  // a dependency (DB) is degraded. Dependency state is still surfaced in body.
+  return NextResponse.json(body, { status: 200 });
 }

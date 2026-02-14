@@ -18,10 +18,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const menuItems = [
-    { icon: LayoutGrid, label: "Vault", href: "/projects" },
+const mainMenuItems = [
+    { icon: LayoutGrid, label: "Projects", href: "/projects" },
     { icon: FileText, label: "Templates", href: "/templates", soon: true },
-    { icon: Users, label: "Team", href: "/admin/users", soon: false },
 ];
 
 const toolsMenuItems = [
@@ -29,17 +28,17 @@ const toolsMenuItems = [
     { icon: Calculator, label: "Estimator", href: "/estimator", soon: false },
 ];
 
-const adminMenuItems = [
-    { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", soon: false },
+const betaInternalItems = [
+    { icon: Package, label: "Product Catalog", href: "/admin/products", soon: false },
     { icon: DollarSign, label: "Rate Card", href: "/admin/rate-card", soon: false },
-    { icon: Package, label: "Products", href: "/admin/products", soon: false },
+    { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", soon: false },
+    { icon: Users, label: "Team", href: "/admin/users", soon: false },
 ];
 
 export default function DashboardSidebar() {
     const pathname = usePathname();
     const { data: session } = useSession();
     const isAdmin = session?.user?.authRole === "admin";
-    const allItems = [...menuItems, ...toolsMenuItems, ...(isAdmin ? adminMenuItems : [])];
 
     return (
         <aside className="w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-8 z-50 transition-colors duration-300">
@@ -68,8 +67,9 @@ export default function DashboardSidebar() {
             </div>
 
             {/* Main Nav */}
-            <nav className="flex-1 flex flex-col gap-6">
-                {allItems.map((item) => {
+            <nav className="flex-1 flex flex-col gap-3">
+                {/* Main Section */}
+                {mainMenuItems.map((item) => {
                     const isActive = pathname === item.href;
                     return (
                         <Link
@@ -88,6 +88,65 @@ export default function DashboardSidebar() {
                             {/* Tooltip */}
                             <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
                                 {item.label} {item.soon && "(Soon)"}
+                            </div>
+                        </Link>
+                    );
+                })}
+
+                {/* Divider */}
+                <div className="h-px bg-border my-2" />
+
+                {/* Tools Section */}
+                {toolsMenuItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                        <Link
+                            key={item.label}
+                            href={item.href}
+                            className={cn(
+                                "group relative p-3 rounded transition-all duration-200",
+                                isActive
+                                    ? "bg-primary/10 text-primary"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary",
+                                item.soon && "pointer-events-none opacity-40"
+                            )}
+                        >
+                            <item.icon className="w-5 h-5" />
+
+                            {/* Tooltip */}
+                            <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
+                                {item.label} {item.soon && "(Soon)"}
+                            </div>
+                        </Link>
+                    );
+                })}
+
+                {/* Divider before Beta/Internal Tools */}
+                {isAdmin && <div className="h-px bg-border my-2" />}
+
+                {/* Beta / Internal Tools Section (Admin Only) */}
+                {isAdmin && betaInternalItems.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                        <Link
+                            key={item.label}
+                            href={item.href}
+                            className={cn(
+                                "group relative p-3 rounded transition-all duration-200",
+                                isActive
+                                    ? "bg-amber-500/10 text-amber-500"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50",
+                                item.soon && "pointer-events-none opacity-40"
+                            )}
+                        >
+                            <item.icon className="w-5 h-5" />
+
+                            {/* Tooltip with BETA label */}
+                            <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
+                                <div className="flex items-center gap-2">
+                                    <span>{item.label}</span>
+                                    <span className="text-[8px] bg-amber-500/20 text-amber-500 px-1 rounded">BETA</span>
+                                </div>
                             </div>
                         </Link>
                     );

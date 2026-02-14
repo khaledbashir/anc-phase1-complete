@@ -84,8 +84,11 @@ const PdfViewer = () => {
     const [pageNumber, setPageNumber] = useState(1);
     const [compareMode, setCompareMode] = useState(false);
     const [baselineValues, setBaselineValues] = useState<ProposalType | null>(null);
+    const [compareSplitPct, setCompareSplitPct] = useState(50);
+    const [showControls, setShowControls] = useState(false);
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const isDraggingRef = useRef(false);
+    const wasDraggedRef = useRef(false);
     const dragStartRef = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
     const lastGeneratedFingerprint = useRef<string>("");
     const isGenerating = useRef(false);
@@ -158,6 +161,7 @@ const PdfViewer = () => {
     const onMouseDown = useCallback((e: React.MouseEvent) => {
         if (exactPdfPreview || zoomPct <= 100) return;
         isDraggingRef.current = true;
+        wasDraggedRef.current = false;
         dragStartRef.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
     }, [exactPdfPreview, zoomPct, pan.x, pan.y]);
 
@@ -165,6 +169,9 @@ const PdfViewer = () => {
         if (!isDraggingRef.current) return;
         const dx = e.clientX - dragStartRef.current.x;
         const dy = e.clientY - dragStartRef.current.y;
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+            wasDraggedRef.current = true;
+        }
         setPan({
             x: dragStartRef.current.panX + dx,
             y: dragStartRef.current.panY + dy,
@@ -175,104 +182,136 @@ const PdfViewer = () => {
         isDraggingRef.current = false;
     }, []);
 
+    const onPreviewClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+        if (wasDraggedRef.current) {
+            wasDraggedRef.current = false;
+            return;
+        }
+        const target = e.target as HTMLElement | null;
+        if (!target) return;
+        const sectionEl = target.closest("[data-preview-section]") as HTMLElement | null;
+        const section = sectionEl?.dataset?.previewSection;
+        if (!section) return;
+        window.dispatchEvent(new CustomEvent("anc-focus-control", { detail: { section } }));
+    }, []);
+
     const iframeSrc = useMemo(() => {
         if (!pdfUrl) return "";
         const safePage = Math.max(1, pageNumber || 1);
+        if (exactPdfPreview) {
+            return `${pdfUrl}#page=${safePage}&zoom=page-width`;
+        }
         const safeZoom = Math.max(50, Math.min(200, zoomPct || 100));
         return `${pdfUrl}#page=${safePage}&zoom=${safeZoom}`;
-    }, [pdfUrl, pageNumber, zoomPct]);
+    }, [pdfUrl, pageNumber, zoomPct, exactPdfPreview]);
 
     return (
         <div className="w-full h-full flex flex-col items-center">
-            <div className="w-full shrink-0 px-4 py-3 border-b border-border bg-background/60 flex items-center justify-between">
-                <div className="text-xs font-semibold tracking-wide">
-                    {exactPdfPreview ? "Exact PDF Preview" : "Live Preview"}
+            <div className="w-full shrink-0 px-4 py-3 border-b border-border bg-background/60">
+                <div className="flex items-center justify-between">
+                    <div className="text-xs font-semibold tracking-wide">
+                        {exactPdfPreview ? "Exact PDF Preview" : "Live Preview"}
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <button
+                            type="button"
+                            onClick={() => setShowControls((v) => !v)}
+                            className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60"
+                        >
+                            {showControls ? "Hide Tools" : "Show Tools"}
+                        </button>
+                        <div className="h-5 w-px bg-border mx-1" />
+                        <div className="text-[11px] text-muted-foreground">Exact PDF</div>
+                        <Switch checked={exactPdfPreview} onCheckedChange={setExactPdfPreview} />
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setZoomPct((z) => Math.max(50, z - 10))}
-                        className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60"
-                    >
-                        -
-                    </button>
-                    <span className="text-[11px] w-12 text-center tabular-nums">{zoomPct}%</span>
-                    <button
-                        type="button"
-                        onClick={() => setZoomPct((z) => Math.min(200, z + 10))}
-                        className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60"
-                    >
-                        +
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setZoomPct(100)}
-                        className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60"
-                    >
-                        100%
-                    </button>
-                    <div className="h-5 w-px bg-border mx-1" />
-                    <button
-                        type="button"
-                        onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
-                        disabled={!exactPdfPreview}
-                        className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50"
-                    >
-                        Prev
-                    </button>
-                    <span className="text-[11px]">Page</span>
-                    <input
-                        type="number"
-                        min={1}
-                        value={pageNumber}
-                        disabled={!exactPdfPreview}
-                        onChange={(e) => setPageNumber(Math.max(1, Number(e.target.value) || 1))}
-                        className="w-14 h-7 rounded border border-border bg-background px-2 text-[11px]"
-                    />
-                    <button
-                        type="button"
-                        onClick={() => setPageNumber((p) => Math.max(1, p + 1))}
-                        disabled={!exactPdfPreview}
-                        className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50"
-                    >
-                        Next
-                    </button>
-                    {!exactPdfPreview && (
-                        <>
-                            <div className="h-5 w-px bg-border mx-1" />
-                            <button
-                                type="button"
-                                onClick={captureBaseline}
-                                className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60"
-                            >
-                                Set Before
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setCompareMode((v) => !v)}
-                                disabled={!baselineValues}
-                                className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50"
-                            >
-                                {compareMode ? "Single" : "Compare"}
-                            </button>
-                        </>
-                    )}
-                    <div className="h-5 w-px bg-border mx-1" />
-                    <div className="text-[11px] text-muted-foreground">Exact PDF</div>
-                    <Switch checked={exactPdfPreview} onCheckedChange={setExactPdfPreview} />
-                </div>
+                {showControls && (
+                    <div className="flex items-center gap-2 mt-3 flex-wrap">
+                        <button
+                            type="button"
+                            onClick={() => setZoomPct((z) => Math.max(50, z - 10))}
+                            disabled={exactPdfPreview}
+                            className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50"
+                        >
+                            -
+                        </button>
+                        <span className="text-[11px] w-12 text-center tabular-nums">{zoomPct}%</span>
+                        <button
+                            type="button"
+                            onClick={() => setZoomPct((z) => Math.min(200, z + 10))}
+                            disabled={exactPdfPreview}
+                            className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50"
+                        >
+                            +
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setZoomPct(100)}
+                            disabled={exactPdfPreview}
+                            className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50"
+                        >
+                            100%
+                        </button>
+                        <div className="h-5 w-px bg-border mx-1" />
+                        <button
+                            type="button"
+                            onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
+                            disabled={!exactPdfPreview}
+                            className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50"
+                        >
+                            Prev
+                        </button>
+                        <span className="text-[11px]">Page</span>
+                        <input
+                            type="number"
+                            min={1}
+                            value={pageNumber}
+                            disabled={!exactPdfPreview}
+                            onChange={(e) => setPageNumber(Math.max(1, Number(e.target.value) || 1))}
+                            className="w-14 h-7 rounded border border-border bg-background px-2 text-[11px]"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setPageNumber((p) => Math.max(1, p + 1))}
+                            disabled={!exactPdfPreview}
+                            className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50"
+                        >
+                            Next
+                        </button>
+                        {!exactPdfPreview && (
+                            <>
+                                <div className="h-5 w-px bg-border mx-1" />
+                                <button
+                                    type="button"
+                                    onClick={captureBaseline}
+                                    className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60"
+                                >
+                                    Set Baseline
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCompareMode((v) => !v)}
+                                    disabled={!baselineValues}
+                                    className="px-2 py-1 rounded border border-border text-[11px] hover:bg-muted/60 disabled:opacity-50"
+                                >
+                                    {compareMode ? "Exit Compare" : "Compare to Baseline"}
+                                </button>
+                            </>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div
                 ref={containerRef}
-                className="w-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden"
+                className={exactPdfPreview ? "w-full flex-1 min-h-0 overflow-hidden" : "w-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden"}
                 onMouseMove={onMouseMove}
                 onMouseUp={onMouseUp}
                 onMouseLeave={onMouseUp}
             >
                 {exactPdfPreview ? (
                     pdfUrl ? (
-                        <iframe className="w-full h-full" src={iframeSrc} title="PDF Preview" />
+                        <iframe className="w-full h-full border-0" src={iframeSrc} title="PDF Preview" />
                     ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
                             {proposalPdfLoading ? "Generating PDF..." : "PDF preview will appear after generation."}
@@ -291,6 +330,7 @@ const PdfViewer = () => {
                         const renderTemplate = (values: ProposalType) => (
                             <div
                                 onMouseDown={onMouseDown}
+                                onClick={onPreviewClick}
                                 style={{
                                     width: `${pageWidthPx}px`,
                                     transformOrigin: "top left",
@@ -303,19 +343,57 @@ const PdfViewer = () => {
                         );
                         if (compareMode && baselineValues) {
                             return (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-2">
-                                    <div>
-                                        <div className="text-[11px] font-semibold text-muted-foreground mb-2">Before</div>
-                                        {renderTemplate(baselineValues)}
+                                <div className="p-2">
+                                    <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground mb-2">
+                                        <span>Before (baseline snapshot)</span>
+                                        <span>After (live edits now)</span>
                                     </div>
-                                    <div>
-                                        <div className="text-[11px] font-semibold text-muted-foreground mb-2">After</div>
-                                        {renderTemplate(debouncedValues)}
+                                    <div className="relative inline-block">
+                                        {renderTemplate(baselineValues)}
+                                        <div
+                                            className="absolute inset-0 pointer-events-none"
+                                            style={{ clipPath: `inset(0 ${100 - compareSplitPct}% 0 0)` }}
+                                        >
+                                            <div
+                                                style={{
+                                                    width: `${pageWidthPx}px`,
+                                                    transformOrigin: "top left",
+                                                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${effectiveScale})`,
+                                                }}
+                                            >
+                                                <Template {...debouncedValues} />
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="absolute top-0 bottom-0 w-0.5 bg-brand-blue pointer-events-none"
+                                            style={{ left: `${compareSplitPct}%` }}
+                                        />
+                                    </div>
+                                    <div className="mt-3 flex items-center gap-3">
+                                        <span className="text-[10px] font-semibold text-muted-foreground">Swipe</span>
+                                        <input
+                                            type="range"
+                                            min={0}
+                                            max={100}
+                                            value={compareSplitPct}
+                                            onChange={(e) => setCompareSplitPct(Number(e.target.value))}
+                                            className="w-full accent-[#0A52EF]"
+                                        />
+                                        <span className="text-[10px] text-muted-foreground tabular-nums w-10 text-right">{compareSplitPct}%</span>
                                     </div>
                                 </div>
                             );
                         }
-                        return renderTemplate(debouncedValues);
+                        return (
+                            <div className="p-2">
+                                <div className="text-[11px] text-muted-foreground mb-2">
+                                    {baselineValues
+                                        ? "Baseline saved. Click 'Compare to Baseline' to view before vs after."
+                                        : "No baseline yet. Click 'Set Baseline' first, then compare."}
+                                </div>
+                                {renderTemplate(debouncedValues)}
+                            </div>
+                        );
                     })()
                 ) : (
                     <div className="flex items-center justify-center h-full text-gray-400">
