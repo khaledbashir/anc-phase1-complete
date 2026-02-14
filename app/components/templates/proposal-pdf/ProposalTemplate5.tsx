@@ -981,7 +981,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
         const totalDuration = generatedSchedule?.totalDuration || 0;
 
         // Group tasks by phase
-        const grouped = generatedScheduleTasks.reduce((acc: any[], task: any) => {
+        const grouped = generatedScheduleTasks.reduce((acc: Array<{ phase: string; tasks: any[] }>, task: any) => {
             const phase = task?.phase || "General";
             let group = acc.find(g => g.phase === phase);
             if (!group) {
@@ -1013,7 +1013,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         <div className="col-span-1 text-right">Days</div>
                     </div>
 
-                    {grouped.map((group) => (
+                    {grouped.map((group: { phase: string; tasks: any[] }) => (
                         <React.Fragment key={`phase-${group.phase}`}>
                             <div className="px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider border-t" style={{ borderColor: colors.borderLight, background: colors.surface, color: colors.primaryDark }}>
                                 {group.phase}
