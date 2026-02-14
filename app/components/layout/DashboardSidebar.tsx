@@ -15,6 +15,7 @@ import {
     SlidersHorizontal,
     DollarSign,
     Package,
+    Calculator,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,7 @@ const menuItems = [
 
 const toolsMenuItems = [
     { icon: SlidersHorizontal, label: "PDF Filter", href: "/tools/pdf-filter", soon: false },
+    { icon: Calculator, label: "Estimator", href: "/estimator", soon: false },
 ];
 
 const adminMenuItems = [

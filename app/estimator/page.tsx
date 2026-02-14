@@ -1,0 +1,12 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+import EstimatorStudio from "@/app/components/estimator/EstimatorStudio";
+
+export default async function EstimatorPage() {
+    const session = await auth();
+    if (!session?.user) {
+        redirect("/");
+    }
+
+    return <EstimatorStudio />;
+}

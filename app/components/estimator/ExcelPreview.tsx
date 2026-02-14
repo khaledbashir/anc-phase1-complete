@@ -1,0 +1,218 @@
+"use client";
+
+/**
+ * ExcelPreview — Live spreadsheet preview with sheet tabs.
+ *
+ * Renders the estimator output as a realistic Excel-like table.
+ * Sheet tabs at the bottom switch between Budget Summary, Display Details, etc.
+ * Updates in real-time as the user answers questions.
+ */
+
+import React, { useState } from "react";
+import { cn } from "@/lib/utils";
+import { FileSpreadsheet, Download } from "lucide-react";
+import type { ExcelPreviewData, SheetTab, SheetRow, SheetCell } from "./EstimatorBridge";
+
+interface ExcelPreviewProps {
+    data: ExcelPreviewData;
+    onExport?: () => void;
+    exporting?: boolean;
+}
+
+export default function ExcelPreview({ data, onExport, exporting }: ExcelPreviewProps) {
+    const [activeTab, setActiveTab] = useState(0);
+
+    const activeSheet = data.sheets[activeTab] || data.sheets[0];
+    if (!activeSheet) {
+        return (
+            <div className="h-full flex flex-col items-center justify-center text-muted-foreground gap-3">
+                <FileSpreadsheet className="w-12 h-12 opacity-30" />
+                <p className="text-sm">Answer questions to see the preview</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-full flex flex-col bg-white dark:bg-zinc-900 rounded-lg border border-border overflow-hidden shadow-sm">
+            {/* Title bar */}
+            <div className="flex items-center justify-between px-3 py-1.5 bg-[#217346] text-white text-xs shrink-0">
+                <div className="flex items-center gap-2">
+                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                    <span className="font-medium truncate max-w-[300px]">{data.fileName}</span>
+                </div>
+                {onExport && (
+                    <button
+                        onClick={onExport}
+                        disabled={exporting}
+                        className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
+                    >
+                        <Download className="w-3 h-3" />
+                        {exporting ? "Exporting..." : "Export .xlsx"}
+                    </button>
+                )}
+            </div>
+
+            {/* Toolbar mock */}
+            <div className="flex items-center gap-1 px-2 py-1 border-b border-border bg-zinc-50 dark:bg-zinc-800 text-[10px] text-muted-foreground shrink-0">
+                <span className="px-1.5 py-0.5 bg-background border border-border rounded">File</span>
+                <span className="px-1.5 py-0.5 hover:bg-accent rounded cursor-default">Edit</span>
+                <span className="px-1.5 py-0.5 hover:bg-accent rounded cursor-default">View</span>
+                <span className="px-1.5 py-0.5 hover:bg-accent rounded cursor-default">Data</span>
+            </div>
+
+            {/* Column letter header */}
+            <div className="flex border-b border-border bg-zinc-50 dark:bg-zinc-800 shrink-0">
+                <div className="w-10 shrink-0 border-r border-border" />
+                {activeSheet.columns.map((col, i) => (
+                    <div
+                        key={i}
+                        className="flex-1 min-w-[80px] px-2 py-0.5 text-center text-[10px] font-medium text-muted-foreground border-r border-border last:border-r-0"
+                    >
+                        {String.fromCharCode(65 + i)}
+                    </div>
+                ))}
+            </div>
+
+            {/* Sheet content */}
+            <div className="flex-1 overflow-auto">
+                <table className="w-full border-collapse text-xs">
+                    <tbody>
+                        {activeSheet.rows.map((row, rowIdx) => (
+                            <SheetRowView key={rowIdx} row={row} rowNum={rowIdx + 1} colCount={activeSheet.columns.length} />
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Sheet tabs */}
+            <div className="flex items-end border-t border-border bg-zinc-50 dark:bg-zinc-800 shrink-0 overflow-x-auto">
+                {data.sheets.map((sheet, idx) => (
+                    <button
+                        key={idx}
+                        onClick={() => setActiveTab(idx)}
+                        className={cn(
+                            "px-3 py-1.5 text-[11px] font-medium border-r border-border whitespace-nowrap transition-colors relative",
+                            idx === activeTab
+                                ? "bg-white dark:bg-zinc-900 text-foreground"
+                                : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                        )}
+                    >
+                        {idx === activeTab && (
+                            <div
+                                className="absolute bottom-0 left-0 right-0 h-[2px]"
+                                style={{ backgroundColor: sheet.color }}
+                            />
+                        )}
+                        <span
+                            className="inline-block w-2 h-2 rounded-full mr-1.5"
+                            style={{ backgroundColor: sheet.color }}
+                        />
+                        {sheet.name}
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ============================================================================
+// ROW RENDERER
+// ============================================================================
+
+function SheetRowView({ row, rowNum, colCount }: { row: SheetRow; rowNum: number; colCount: number }) {
+    if (row.isSeparator) {
+        return (
+            <tr className="h-5">
+                <td className="w-10 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
+                    {rowNum}
+                </td>
+                {Array.from({ length: colCount }).map((_, i) => (
+                    <td key={i} className="border-r border-b border-border last:border-r-0" />
+                ))}
+            </tr>
+        );
+    }
+
+    // Handle spanned rows (title rows)
+    const firstCell = row.cells[0];
+    if (firstCell?.span && firstCell.span > 1) {
+        return (
+            <tr className={cn(row.isHeader && "bg-[#0A52EF]/5 dark:bg-[#0A52EF]/10", row.isTotal && "bg-emerald-50 dark:bg-emerald-900/20")}>
+                <td className="w-10 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
+                    {rowNum}
+                </td>
+                <td
+                    colSpan={colCount}
+                    className={cn(
+                        "px-2 py-1 border-b border-border",
+                        firstCell.bold && "font-semibold",
+                        firstCell.header && "text-[#0A52EF] dark:text-blue-400",
+                        firstCell.align === "center" && "text-center",
+                    )}
+                >
+                    {formatCellValue(firstCell)}
+                </td>
+            </tr>
+        );
+    }
+
+    return (
+        <tr className={cn(
+            "hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors",
+            row.isHeader && "bg-zinc-100 dark:bg-zinc-800",
+            row.isTotal && "bg-emerald-50 dark:bg-emerald-900/20",
+        )}>
+            <td className="w-10 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
+                {rowNum}
+            </td>
+            {Array.from({ length: colCount }).map((_, i) => {
+                const cell = row.cells[i];
+                if (!cell) {
+                    return <td key={i} className="px-2 py-1 border-r border-b border-border last:border-r-0" />;
+                }
+                return (
+                    <td
+                        key={i}
+                        className={cn(
+                            "px-2 py-1 border-r border-b border-border last:border-r-0",
+                            cell.bold && "font-semibold",
+                            cell.header && "font-semibold text-[11px]",
+                            cell.highlight && "bg-yellow-100 dark:bg-yellow-900/30",
+                            cell.align === "right" && "text-right font-mono",
+                            cell.align === "center" && "text-center",
+                        )}
+                        title={cell.formula || undefined}
+                    >
+                        {formatCellValue(cell)}
+                    </td>
+                );
+            })}
+        </tr>
+    );
+}
+
+// ============================================================================
+// CELL FORMATTING
+// ============================================================================
+
+function formatCellValue(cell: SheetCell): string {
+    if (cell.value === "" || cell.value == null) return "";
+
+    if (cell.currency && typeof cell.value === "number") {
+        return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+            minimumFractionDigits: 2,
+        }).format(cell.value);
+    }
+
+    if (cell.percent && typeof cell.value === "number") {
+        return `${(cell.value * 100).toFixed(1)}%`;
+    }
+
+    if (typeof cell.value === "number") {
+        return cell.value.toLocaleString();
+    }
+
+    return String(cell.value);
+}
