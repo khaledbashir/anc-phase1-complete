@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -16,6 +16,8 @@ import {
     Package,
     Calculator,
     X,
+    PanelLeftOpen,
+    PanelLeftClose,
     UserCircle,
     Bell,
 } from "lucide-react";
@@ -48,12 +50,17 @@ export default function DashboardSidebar() {
     const { data: session } = useSession();
     const isAdmin = session?.user?.authRole === "admin";
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isNavExpanded, setIsNavExpanded] = useState(false);
+
+    useEffect(() => {
+        setIsNavExpanded(false);
+    }, [pathname]);
 
     return (
         <>
-            <aside className="w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-8 z-50 transition-colors duration-300">
+            <aside className="w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-4 z-50 transition-colors duration-300">
                 {/* Minimal Logo */}
-                <div className="mb-12">
+                <div className="mb-6">
                     <Link href="/projects" className="flex items-center justify-center">
                         <div className="w-10 h-10 flex items-center justify-center relative">
                             <Image
@@ -74,8 +81,19 @@ export default function DashboardSidebar() {
                     </Link>
                 </div>
 
+                <button
+                    onClick={() => setIsNavExpanded((prev) => !prev)}
+                    className="group relative p-2 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200 mb-4"
+                    aria-label={isNavExpanded ? "Collapse navigation" : "Expand navigation"}
+                >
+                    {isNavExpanded ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
+                    <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
+                        {isNavExpanded ? "Collapse" : "Expand"}
+                    </div>
+                </button>
+
                 {/* Main Nav */}
-                <nav className="flex-1 flex flex-col gap-3">
+                <nav className="flex-1 flex flex-col gap-2 overflow-y-auto">
                     {/* Primary Navigation */}
                     {mainMenuItems.map((item) => {
                         const isActive = pathname === item.href;
@@ -126,7 +144,7 @@ export default function DashboardSidebar() {
                 </nav>
 
                 {/* Bottom Nav */}
-                <div className="flex flex-col gap-6 mt-auto">
+                <div className="flex flex-col gap-4 mt-auto">
                     <button
                         onClick={() => setIsSettingsOpen(true)}
                         className="group relative p-3 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
@@ -141,6 +159,93 @@ export default function DashboardSidebar() {
                     </div>
                 </div>
             </aside>
+
+            {/* Expandable Nav Panel */}
+            <div
+                className={cn(
+                    "fixed top-0 left-16 md:left-20 bottom-0 w-72 border-r border-border bg-background z-[70] transition-all duration-200",
+                    isNavExpanded ? "translate-x-0 opacity-100" : "-translate-x-4 opacity-0 pointer-events-none"
+                )}
+            >
+                <div className="h-full flex flex-col">
+                    <div className="h-14 border-b border-border flex items-center justify-between px-4">
+                        <span className="text-sm font-semibold text-foreground">Navigation</span>
+                        <button
+                            onClick={() => setIsNavExpanded(false)}
+                            className="p-2 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                            aria-label="Close expanded navigation"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-3 space-y-6">
+                        <div>
+                            <h3 className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Main</h3>
+                            <div className="space-y-1">
+                                {mainMenuItems.map((item) => {
+                                    const isActive = pathname === item.href;
+                                    return (
+                                        <Link
+                                            key={item.label}
+                                            href={item.href}
+                                            className={cn(
+                                                "flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors",
+                                                isActive
+                                                    ? "bg-primary/10 text-primary"
+                                                    : "text-foreground hover:bg-accent",
+                                                item.soon && "pointer-events-none opacity-40"
+                                            )}
+                                        >
+                                            <item.icon className="w-4 h-4" />
+                                            <span className="flex-1">{item.label}</span>
+                                            {item.soon && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Soon</span>}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Tools</h3>
+                            <div className="space-y-1">
+                                {toolsMenuItems.map((item) => {
+                                    const isActive = pathname === item.href;
+                                    return (
+                                        <Link
+                                            key={item.label}
+                                            href={item.href}
+                                            className={cn(
+                                                "flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors",
+                                                isActive
+                                                    ? "bg-primary/10 text-primary"
+                                                    : "text-foreground hover:bg-accent"
+                                            )}
+                                        >
+                                            <item.icon className="w-4 h-4" />
+                                            <span>{item.label}</span>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Settings</h3>
+                            <button
+                                onClick={() => {
+                                    setIsNavExpanded(false);
+                                    setIsSettingsOpen(true);
+                                }}
+                                className="w-full flex items-center gap-3 px-3 py-2 rounded text-sm text-foreground hover:bg-accent transition-colors"
+                            >
+                                <Settings className="w-4 h-4" />
+                                <span>Open Settings</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             {/* Settings Panel */}
             {isSettingsOpen && (
