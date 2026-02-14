@@ -15,7 +15,6 @@ import {
 import NewProjectModal from "@/app/components/modals/NewProjectModal";
 import ProjectCard, { type DashboardStatus, type ProjectCardData } from "@/app/components/ProjectCard";
 import DashboardChat from "@/app/components/DashboardChat";
-import DashboardSidebar from "@/app/components/layout/DashboardSidebar";
 import DashboardBriefMe from "@/app/components/dashboard/DashboardBriefMe";
 import CopilotPanel from "@/app/components/chat/CopilotPanel";
 import PromptLibraryPanel from "@/app/components/dashboard/PromptLibraryPanel";
@@ -283,10 +282,8 @@ export default function ProjectsPage() {
 
     return (
         <div className="flex min-h-screen min-w-0 bg-background text-muted-foreground selection:bg-brand-blue/30 overflow-x-hidden">
-            <DashboardSidebar />
-
-            <div className="flex-1 flex flex-col min-w-0 relative ml-16 md:ml-20 overflow-x-hidden">
-                <header className="fixed top-0 left-16 md:left-20 right-0 h-14 border-b border-border flex items-center justify-between gap-3 px-4 sm:px-6 bg-background/80 backdrop-blur-md z-50 min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 relative overflow-x-hidden">
+                <header className="sticky top-0 h-14 border-b border-border flex items-center justify-between gap-3 px-4 sm:px-6 bg-background/80 backdrop-blur-md z-50 min-w-0">
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                         <Link href="/" className="flex items-center gap-2 shrink-0">
                             <span className="text-foreground font-semibold text-sm tracking-tight">ANC</span>
@@ -327,7 +324,7 @@ export default function ProjectsPage() {
                     </div>
                 </header>
 
-                <main className="flex-1 mt-14 pt-6 pb-48 px-6 sm:px-10 lg:px-12 overflow-y-auto">
+                <main className="flex-1 pt-6 pb-48 px-6 sm:px-10 lg:px-12 overflow-y-auto">
                     <div className="max-w-7xl mx-auto space-y-5">
                         {/* Hero */}
                         <div className="flex flex-col md:flex-row md:items-end justify-between gap-3">

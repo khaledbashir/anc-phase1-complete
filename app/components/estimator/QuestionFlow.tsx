@@ -218,7 +218,7 @@ export default function QuestionFlow({ answers, onChange, onComplete }: Question
             </div>
 
             {/* Question area */}
-            <div className="flex-1 flex flex-col items-center justify-center px-8 py-12">
+            <div className="flex-1 flex flex-col items-center justify-start px-8 py-12 overflow-y-auto">
                 <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-300" key={`${phase}-${displayIndex}-${currentStep}`}>
                     {/* Question number */}
                     <div className="flex items-center gap-2 mb-3">

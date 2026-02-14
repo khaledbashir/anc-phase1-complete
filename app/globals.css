@@ -238,15 +238,13 @@
 /* ── Copilot Panel Layout Adjustment ── */
 /* When copilot is open, shrink main content to make room */
 body.copilot-open #main-content,
-body.copilot-open .proposal-layout,
-body.copilot-open main {
+body.copilot-open .proposal-layout {
     transition: margin-right 0.3s ease, padding-right 0.3s ease;
 }
 
 @media (min-width: 1024px) {
     body.copilot-open #main-content,
-    body.copilot-open .proposal-layout,
-    body.copilot-open main {
+    body.copilot-open .proposal-layout {
         margin-right: 400px;
     }
 }
@@ -254,8 +252,7 @@ body.copilot-open main {
 /* On narrow screens, panel goes full-width overlay (no margin shift) */
 @media (max-width: 1023px) {
     body.copilot-open #main-content,
-    body.copilot-open .proposal-layout,
-    body.copilot-open main {
+    body.copilot-open .proposal-layout {
         margin-right: 0;
     }
 }

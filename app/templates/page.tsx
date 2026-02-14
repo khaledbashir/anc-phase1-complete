@@ -2,13 +2,11 @@
 
 import Link from "next/link";
 import { FileText } from "lucide-react";
-import DashboardSidebar from "@/app/components/layout/DashboardSidebar";
 
 export default function TemplatesPage() {
   return (
-    <div className="flex min-h-screen bg-background text-muted-foreground">
-      <DashboardSidebar />
-      <main className="flex-1 flex flex-col min-w-0 ml-16 md:ml-20 p-8">
+    <div className="min-h-screen bg-background text-muted-foreground">
+      <main className="flex flex-col min-w-0 p-8">
         <div className="max-w-2xl mx-auto text-center space-y-6 py-24">
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto">
             <FileText className="w-8 h-8 text-muted-foreground" />

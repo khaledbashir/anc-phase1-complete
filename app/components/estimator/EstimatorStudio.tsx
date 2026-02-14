@@ -94,9 +94,9 @@ export default function EstimatorStudio() {
     }, []);
 
     return (
-        <div className="h-screen w-screen overflow-hidden flex flex-col bg-background text-foreground">
+        <div className="h-[100dvh] w-full min-w-0 overflow-hidden flex flex-col bg-background text-foreground">
             {/* Header */}
-            <header className="h-14 shrink-0 border-b border-border bg-background/80 backdrop-blur-md flex items-center px-4 gap-4 z-50">
+            <header className="h-14 shrink-0 border-b border-border bg-background/95 backdrop-blur-md flex items-center px-4 gap-4 z-30 sticky top-0">
                 <Link
                     href="/projects"
                     className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -136,9 +136,9 @@ export default function EstimatorStudio() {
             </header>
 
             {/* Split screen */}
-            <main className="flex-1 overflow-hidden grid grid-cols-2">
+            <main className="flex-1 min-h-0 overflow-hidden grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                 {/* Left: Questions */}
-                <section className="relative flex flex-col overflow-hidden bg-background border-r border-border">
+                <section className="relative min-w-0 min-h-0 flex flex-col overflow-hidden bg-background border-r border-border">
                     <QuestionFlow
                         answers={answers}
                         onChange={handleChange}
@@ -147,7 +147,7 @@ export default function EstimatorStudio() {
                 </section>
 
                 {/* Right: Excel Preview */}
-                <section className="relative bg-zinc-100 dark:bg-zinc-950 overflow-hidden flex flex-col p-4">
+                <section className="relative min-w-0 min-h-0 bg-zinc-100 dark:bg-zinc-950 overflow-hidden flex flex-col p-3">
                     <ExcelPreview
                         data={previewData}
                         onExport={handleExport}

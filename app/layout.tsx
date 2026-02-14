@@ -1,5 +1,6 @@
 // Components
 import { BaseFooter, BaseNavbar } from "@/app/components";
+import AppShell from "@/app/components/layout/AppShell";
 // ShadCn
 import { Toaster } from "@/components/ui/toaster";
 // Contexts
@@ -90,7 +91,7 @@ export default async function RootLayout({
                     <Providers>
                         <BaseNavbar />
 
-                        <div className="flex flex-col">{children}</div>
+                        <AppShell>{children}</AppShell>
 
                         <BaseFooter />
 
