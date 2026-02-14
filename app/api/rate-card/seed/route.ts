@@ -7,7 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 const SEED_DATA = [
     { category: "margin", key: "margin.led_hardware", label: "LED Hardware Margin", value: 0.3, unit: "pct", provenance: "NBCU LED Cost Sheet all 9 displays", confidence: "validated" },
