@@ -6,6 +6,17 @@
 **Root Cause**: Docker Swarm VIP (Virtual IP) routing mesh completely broken — VIP exists but doesn't forward traffic to actual containers
 **Impact**: Affects all services using default VIP endpoint mode
 
+## ⚠️ CRITICAL: EasyPanel Resets Services to VIP Mode
+
+**IMPORTANT**: Every time EasyPanel redeploys a service, it resets the endpoint mode back to VIP (broken state).
+
+**Quick Fix** (run after ANY EasyPanel deployment):
+```bash
+/root/fix-vip.sh
+```
+
+This script automatically detects and fixes all services in VIP mode. Add it to your deployment workflow or run it whenever you see 502 errors after a deploy.
+
 ## When to Suspect This Issue
 
 You're experiencing this Docker Swarm VIP routing failure if you see:
