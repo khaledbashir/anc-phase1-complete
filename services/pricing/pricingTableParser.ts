@@ -166,8 +166,26 @@ function parsePricingTablesInner(
 
   // 6. Identify table boundaries (standard)
   let boundaries = findTableBoundaries(rows, headerRowLabel);
+  const hasAnyNumericPricingRows = rows.some(
+    (r) =>
+      !r.isEmpty &&
+      !r.isHeader &&
+      !r.isAlternateHeader &&
+      (Number.isFinite(r.sell) || Number.isFinite(r.cost))
+  );
 
-  // Fallback: if no boundaries detected, attempt flexible column shift + single-table mode.
+  // Fallback: if no boundaries detected, attempt safe single-table mode first.
+  // Some budget workbooks provide one continuous pricing block under one header row.
+  if (boundaries.length === 0) {
+    if (hasAnyNumericPricingRows) {
+      const singleTableName = headerRowLabel || sheetName;
+      boundaries = buildSingleTableBoundary(rows, singleTableName);
+      parserWarnings.push(`No section headers detected — parsed as single table "${singleTableName}"`);
+      console.warn(`[PRICING PARSER] No section headers detected; using single-table mode: "${singleTableName}"`);
+    }
+  }
+
+  // Secondary fallback: if still no boundaries, attempt flexible column shift + single-table mode.
   if (boundaries.length === 0) {
     if (strict) {
       return fail("No viable pricing sections detected", sheetName);

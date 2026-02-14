@@ -44,4 +44,17 @@ export const goldenFixtures: GoldenFixture[] = [
       htmlMustNotContain: ["TOTAL PROJECT VALUE", "LG REBATE"],
     },
   },
+  {
+    name: "USC Williams-Brice Single-Block Budget",
+    file: path.resolve(process.cwd(), "test-fixtures/pricing/golden/USC - Williams-Brice Stadium - Additional LED Displays - Cost Analysis (Budget) - DJC & JSR - 2026-02-09 (1).xlsx"),
+    expected: {
+      minTables: 1,
+      expectedDocumentTotal: 3998971.515,
+      mustContainTableNames: [/led video displays/i],
+      minRespMatrixCategories: 1,
+      requiredRespMatrixCategories: ["Physical Installation", "Electrical & Data Installation", "Control System"],
+      htmlMustContain: ["EXHIBIT B", "STATEMENT OF WORK", "PHYSICAL INSTALLATION"],
+      htmlMustNotContain: ["TOTAL PROJECT VALUE", "LG REBATE"],
+    },
+  },
 ];

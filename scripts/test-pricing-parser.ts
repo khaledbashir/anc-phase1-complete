@@ -95,6 +95,28 @@ function testCurrencyPrecisionPreserved() {
   assert.equal(table.grandTotal, 321548.810769228);
 }
 
+function testSingleBlockBudgetSheetParsesInStrictMode() {
+  const rows: SheetRow[] = [
+    ["Project Name: Demo Budget", "", "", "", ""],
+    ["LED Video Displays", "Cost", "Selling Price", "Margin $", "Margin %"],
+    ["Main Display", 1000, 1250, 250, 0.2],
+    ["Structural Materials", 100, 125, 25, 0.2],
+    ["", 1100, 1375, 275, 0.2],
+    ["TAX", 0, 0, "", ""],
+    ["BOND", 0, 0, "", ""],
+    ["SUB TOTAL (BID FORM)", "", 1375, 275, 0.2],
+  ];
+  const wb = workbookFromRows(rows);
+  const result = parsePricingTablesWithValidation(wb, "single-block-budget.xlsx", { strict: true });
+  assert.equal(result.validation.status, "PASS", `strict validation should pass: ${result.validation.errors.join("; ")}`);
+  assert.ok(result.document, "parser should produce document");
+  const doc = result.document!;
+  assert.ok(doc.tables.length >= 1, `expected at least 1 table, got ${doc.tables.length}`);
+  const detail = doc.tables.find((t) => /led video displays/i.test(t.name)) || doc.tables[0];
+  assert.ok(detail.items.length >= 2, "expected line items from single-block budget");
+  assert.ok(Math.abs(doc.documentTotal - 1375) < 0.01, `expected document total 1375, got ${doc.documentTotal}`);
+}
+
 function testStrictFailOnMissingHeaders() {
   const wb = workbookFromRows([["foo", "bar"], ["x", "y"]]);
   const result = parsePricingTablesWithValidation(wb, "missing-headers.xlsx", { strict: true });
@@ -140,6 +162,7 @@ function run() {
   testNoSummaryBleedAndTravelPreserved();
   testAlternateDeductCaptured();
   testCurrencyPrecisionPreserved();
+  testSingleBlockBudgetSheetParsesInStrictMode();
   testStrictFailOnMissingHeaders();
   testStrictFailOnMalformedRespMatrixCandidate();
   console.log("PASS: pricing parser regression suite");
