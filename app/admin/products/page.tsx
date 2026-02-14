@@ -1,11 +1,18 @@
-import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import ProductCatalogAdmin from "./ProductCatalogAdmin";
+import Unauthorized from "@/app/components/reusables/Unauthorized";
+import type { UserRole } from "@/lib/rbac";
 
 export default async function AdminProductsPage() {
 	const session = await auth();
-	if (session?.user?.authRole !== "admin") {
-		redirect("/");
+	const userRole = (session?.user as any)?.role as UserRole | undefined;
+
+	// Check RBAC permission
+	const allowedRoles: UserRole[] = ["ADMIN", "PRODUCT_EXPERT"];
+	const hasAccess = userRole && allowedRoles.includes(userRole);
+
+	if (!hasAccess) {
+		return <Unauthorized allowedRoles={allowedRoles} featureName="Product Catalog" />;
 	}
 
 	return (

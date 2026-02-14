@@ -20,39 +20,66 @@ import {
     PanelLeftClose,
     UserCircle,
     Bell,
+    Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRbac } from "@/hooks/useRbac";
+import type { UserRole } from "@/lib/rbac";
 
 const mainMenuItems = [
-    { icon: LayoutGrid, label: "Projects", href: "/projects" },
-    { icon: FileText, label: "Templates", href: "/templates", soon: true },
+    { icon: LayoutGrid, label: "Projects", href: "/projects", allowedRoles: null }, // All roles
+    { icon: FileText, label: "Templates", href: "/templates", soon: true, allowedRoles: null },
 ];
 
 const toolsMenuItems = [
-    { icon: SlidersHorizontal, label: "PDF Filter", href: "/tools/pdf-filter" },
-    { icon: Calculator, label: "Estimator", href: "/estimator" },
+    { icon: SlidersHorizontal, label: "PDF Filter", href: "/tools/pdf-filter", allowedRoles: null }, // All roles
+    { icon: Calculator, label: "Estimator", href: "/estimator", allowedRoles: null },
 ];
 
 const settingsMenuItems = [
-    { icon: UserCircle, label: "Profile", href: "/settings/profile", adminOnly: false },
-    { icon: Bell, label: "Notifications", href: "/settings/notifications", adminOnly: false },
-    { icon: Users, label: "Team", href: "/admin/users", adminOnly: false },
+    { icon: UserCircle, label: "Profile", href: "/settings/profile", allowedRoles: null },
+    { icon: Bell, label: "Notifications", href: "/settings/notifications", allowedRoles: null },
+    { icon: Users, label: "Users", href: "/admin/users", allowedRoles: ["ADMIN"] as UserRole[] },
 ];
 
 const adminMenuItems = [
-    { icon: Package, label: "Product Catalog", href: "/admin/products" },
-    { icon: DollarSign, label: "Rate Card", href: "/admin/rate-card" },
-    { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", beta: true },
+    {
+        icon: Package,
+        label: "Product Catalog",
+        href: "/admin/products",
+        allowedRoles: ["ADMIN", "PRODUCT_EXPERT"] as UserRole[],
+    },
+    {
+        icon: DollarSign,
+        label: "Rate Card",
+        href: "/admin/rate-card",
+        allowedRoles: ["ADMIN"] as UserRole[],
+    },
+    {
+        icon: Workflow,
+        label: "Pricing Logic",
+        href: "/admin/pricing-logic",
+        beta: true,
+        allowedRoles: ["ADMIN"] as UserRole[],
+    },
 ];
 
 export default function DashboardSidebar() {
     const pathname = usePathname();
     const { data: session } = useSession();
+    const { hasRole, userRole, isLoading } = useRbac();
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isNavExpanded, setIsNavExpanded] = useState(false);
     const [mounted, setMounted] = useState(false);
 
     const isAdmin = mounted ? session?.user?.authRole === "admin" : false;
+
+    // Helper to check if user can access a nav item
+    const canAccess = (allowedRoles: UserRole[] | null): boolean => {
+        if (isLoading || !mounted) return false;
+        if (!allowedRoles) return true; // null = available to all
+        return hasRole(allowedRoles);
+    };
 
     useEffect(() => {
         setMounted(true);
@@ -103,21 +130,29 @@ export default function DashboardSidebar() {
                     {/* Primary Navigation */}
                     {mainMenuItems.map((item) => {
                         const isActive = pathname === item.href;
+                        const hasAccess = canAccess(item.allowedRoles);
+                        const isRestricted = item.allowedRoles && !hasAccess;
+                        const requiredRoles = item.allowedRoles?.join(", ") || "";
+
                         return (
                             <Link
                                 key={item.label}
-                                href={item.href}
+                                href={isRestricted ? "#" : item.href}
                                 className={cn(
                                     "group relative p-3 rounded transition-all duration-200",
-                                    isActive
+                                    isActive && hasAccess
                                         ? "bg-primary/10 text-primary"
                                         : "text-muted-foreground hover:text-foreground hover:bg-secondary",
-                                    item.soon && "pointer-events-none opacity-40"
+                                    (item.soon || isRestricted) && "pointer-events-none opacity-40"
                                 )}
                             >
-                                <item.icon className="w-5 h-5" />
+                                {isRestricted ? (
+                                    <Lock className="w-5 h-5" />
+                                ) : (
+                                    <item.icon className="w-5 h-5" />
+                                )}
                                 <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
-                                    {item.label} {item.soon && "(Soon)"}
+                                    {item.label} {item.soon && "(Soon)"} {isRestricted && `(Requires ${requiredRoles})`}
                                 </div>
                             </Link>
                         );
@@ -129,20 +164,29 @@ export default function DashboardSidebar() {
                     {/* Tools */}
                     {toolsMenuItems.map((item) => {
                         const isActive = pathname === item.href;
+                        const hasAccess = canAccess(item.allowedRoles);
+                        const isRestricted = item.allowedRoles && !hasAccess;
+                        const requiredRoles = item.allowedRoles?.join(", ") || "";
+
                         return (
                             <Link
                                 key={item.label}
-                                href={item.href}
+                                href={isRestricted ? "#" : item.href}
                                 className={cn(
                                     "group relative p-3 rounded transition-all duration-200",
-                                    isActive
+                                    isActive && hasAccess
                                         ? "bg-primary/10 text-primary"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-secondary",
+                                    isRestricted && "pointer-events-none opacity-40"
                                 )}
                             >
-                                <item.icon className="w-5 h-5" />
+                                {isRestricted ? (
+                                    <Lock className="w-5 h-5" />
+                                ) : (
+                                    <item.icon className="w-5 h-5" />
+                                )}
                                 <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
-                                    {item.label}
+                                    {item.label} {isRestricted && `(Requires ${requiredRoles})`}
                                 </div>
                             </Link>
                         );
@@ -191,21 +235,24 @@ export default function DashboardSidebar() {
                             <div className="space-y-1">
                                 {mainMenuItems.map((item) => {
                                     const isActive = pathname === item.href;
+                                    const hasAccess = canAccess(item.allowedRoles);
+                                    const isRestricted = item.allowedRoles && !hasAccess;
                                     return (
                                         <Link
                                             key={item.label}
-                                            href={item.href}
+                                            href={isRestricted ? "#" : item.href}
                                             className={cn(
                                                 "flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors",
-                                                isActive
+                                                isActive && hasAccess
                                                     ? "bg-primary/10 text-primary"
                                                     : "text-foreground hover:bg-accent",
-                                                item.soon && "pointer-events-none opacity-40"
+                                                (item.soon || isRestricted) && "pointer-events-none opacity-40"
                                             )}
                                         >
-                                            <item.icon className="w-4 h-4" />
+                                            {isRestricted ? <Lock className="w-4 h-4" /> : <item.icon className="w-4 h-4" />}
                                             <span className="flex-1">{item.label}</span>
                                             {item.soon && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Soon</span>}
+                                            {isRestricted && <Lock className="w-3 h-3 text-muted-foreground" />}
                                         </Link>
                                     );
                                 })}
@@ -217,19 +264,23 @@ export default function DashboardSidebar() {
                             <div className="space-y-1">
                                 {toolsMenuItems.map((item) => {
                                     const isActive = pathname === item.href;
+                                    const hasAccess = canAccess(item.allowedRoles);
+                                    const isRestricted = item.allowedRoles && !hasAccess;
                                     return (
                                         <Link
                                             key={item.label}
-                                            href={item.href}
+                                            href={isRestricted ? "#" : item.href}
                                             className={cn(
                                                 "flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors",
-                                                isActive
+                                                isActive && hasAccess
                                                     ? "bg-primary/10 text-primary"
-                                                    : "text-foreground hover:bg-accent"
+                                                    : "text-foreground hover:bg-accent",
+                                                isRestricted && "pointer-events-none opacity-40"
                                             )}
                                         >
-                                            <item.icon className="w-4 h-4" />
-                                            <span>{item.label}</span>
+                                            {isRestricted ? <Lock className="w-4 h-4" /> : <item.icon className="w-4 h-4" />}
+                                            <span className="flex-1">{item.label}</span>
+                                            {isRestricted && <Lock className="w-3 h-3 text-muted-foreground" />}
                                         </Link>
                                     );
                                 })}
@@ -275,7 +326,8 @@ export default function DashboardSidebar() {
                                 <h3 className="text-sm font-semibold text-foreground mb-3">General</h3>
                                 <div className="space-y-1">
                                     {settingsMenuItems.map((item) => {
-                                        if (item.adminOnly && !isAdmin) return null;
+                                        const hasAccess = canAccess(item.allowedRoles);
+                                        if (item.allowedRoles && !hasAccess) return null;
                                         const isActive = pathname === item.href;
                                         return (
                                             <Link

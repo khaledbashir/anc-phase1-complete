@@ -20,6 +20,7 @@ import useToasts from "@/hooks/useToasts";
 
 // Services
 import { exportProposal } from "@/services/proposal/client/exportProposal";
+import { apiFetch, isForbidden } from "@/lib/api-client";
 
 // Variables
 import {
@@ -1237,13 +1238,17 @@ export const ProposalContextProvider = ({
                     );
                 }
 
-                const response = await fetch(GENERATE_PDF_API, {
+                const response = await apiFetch(GENERATE_PDF_API, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload),
                 });
 
                 if (!response.ok) {
+                    // 403 already handled by apiFetch with toast
+                    if (isForbidden(response)) {
+                        throw new Error("Permission denied");
+                    }
                     const errorText = await response.text();
                     console.error("PDF generation API error:", errorText);
                     throw new Error(
@@ -2011,7 +2016,7 @@ export const ProposalContextProvider = ({
                     hasMarginAnalysis: !!(formValues as any)?.marginAnalysis,
                     proposalId: effectiveId,
                 });
-                const resp = await fetch("/api/workspaces/create", {
+                const resp = await apiFetch("/api/workspaces/create", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -2029,6 +2034,10 @@ export const ProposalContextProvider = ({
                 });
                 const json = await resp.json().catch(() => null);
                 if (!resp.ok) {
+                    // 403 already handled by apiFetch with toast
+                    if (isForbidden(resp)) {
+                        return { created: false, error: "Permission denied" };
+                    }
                     const base = (json as any)?.error || "Create failed";
                     const details = (json as any)?.details;
                     return {
@@ -2765,7 +2774,7 @@ export const ProposalContextProvider = ({
         }
 
         try {
-            const res = await fetch("/api/proposals/export/audit", {
+            const res = await apiFetch("/api/proposals/export/audit", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -2786,6 +2795,8 @@ export const ProposalContextProvider = ({
             });
 
             if (!res.ok) {
+                // 403 already handled by apiFetch with toast
+                if (isForbidden(res)) return;
                 const errText = await res.text();
                 console.error("Audit export failed", errText);
                 showError(
