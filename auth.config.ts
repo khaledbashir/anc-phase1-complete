@@ -31,6 +31,7 @@ export const authConfig = {
       if (user) {
         token.id = user.id;
         token.email = user.email;
+        token.role = (user as { role?: string }).role;
         token.authRole = (user as { authRole?: string }).authRole;
       }
       return token;
@@ -38,6 +39,7 @@ export const authConfig = {
     session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        (session.user as { role?: string }).role = token.role as string;
         (session.user as { authRole?: string }).authRole = token.authRole as string;
       }
       return session;

@@ -9,6 +9,8 @@
 export type UserRole = 
   | "ADMIN" 
   | "ESTIMATOR" 
+  | "PRODUCT_EXPERT"
+  | "PROPOSAL_LEAD"
   | "FINANCE" 
   | "VIEWER" 
   | "OUTSIDER";
@@ -74,6 +76,40 @@ const PERMISSION_MATRIX: Record<UserRole, Permission[]> = {
     "proposal:edit",
     "proposal:view",
     // ❌ BLOCKED: proposal:delete (Admin only)
+    "export:pdf",
+    "export:excel_audit",
+    "export:share_link",
+    "view:costs",
+    "view:margins",
+    "view:selling_price",
+    "view:internal_audit",
+    "ai:run_extraction",
+    "ai:chat",
+  ],
+
+  PRODUCT_EXPERT: [
+    // Same as ESTIMATOR but WITHOUT workspace:create — they validate specs, not create projects
+    "proposal:create",
+    "proposal:edit",
+    "proposal:view",
+    "export:pdf",
+    "export:excel_audit",
+    "export:share_link",
+    "view:costs",
+    "view:margins",
+    "view:selling_price",
+    "view:internal_audit",
+    "ai:run_extraction",
+    "ai:chat",
+  ],
+
+  PROPOSAL_LEAD: [
+    // Same as ESTIMATOR PLUS proposal:delete — they have approval authority
+    "workspace:create",
+    "proposal:create",
+    "proposal:edit",
+    "proposal:delete",         // ✅ Approval authority
+    "proposal:view",
     "export:pdf",
     "export:excel_audit",
     "export:share_link",
@@ -217,6 +253,16 @@ export function getRoleInfo(role: UserRole): {
       label: "Estimator",
       description: "Create and edit proposals, run AI extraction, generate all exports",
       color: "blue",
+    },
+    PRODUCT_EXPERT: {
+      label: "Product Expert",
+      description: "Validate technical specs, edit proposals, all exports except workspace creation",
+      color: "purple",
+    },
+    PROPOSAL_LEAD: {
+      label: "Proposal Lead",
+      description: "Full estimator access plus proposal deletion and approval authority",
+      color: "indigo",
     },
     FINANCE: {
       label: "Finance",
