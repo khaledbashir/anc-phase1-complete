@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { invalidateRateCardCache } from "@/services/rfp/rateCardLoader";
 
 export async function POST(request: NextRequest) {
     try {
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
+        invalidateRateCardCache();
         return NextResponse.json({
             created,
             updated,

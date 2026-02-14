@@ -12,6 +12,9 @@ import {
     RefreshCw,
     Search,
     Filter,
+    History,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react";
 
 // ============================================================================
@@ -30,6 +33,17 @@ interface RateCardEntry {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
+}
+
+interface AuditEntry {
+    id: string;
+    action: string;
+    field: string | null;
+    oldValue: string | null;
+    newValue: string | null;
+    changedBy: string | null;
+    createdAt: string;
+    entry: { key: string; label: string } | null;
 }
 
 interface CategoryCount {
@@ -109,6 +123,11 @@ export default function RateCardAdmin() {
     const [importResult, setImportResult] = useState<any>(null);
     const fileRef = useRef<HTMLInputElement>(null);
 
+    // Audit trail
+    const [showAudit, setShowAudit] = useState(false);
+    const [audits, setAudits] = useState<AuditEntry[]>([]);
+    const [auditsLoading, setAuditsLoading] = useState(false);
+
     // ========================================================================
     // FETCH
     // ========================================================================
@@ -132,6 +151,23 @@ export default function RateCardAdmin() {
     useEffect(() => {
         fetchEntries();
     }, [fetchEntries]);
+
+    const fetchAudits = useCallback(async () => {
+        setAuditsLoading(true);
+        try {
+            const res = await fetch("/api/rate-card/audit?limit=50");
+            const data = await res.json();
+            setAudits(data.audits || []);
+        } catch (err) {
+            console.error("Failed to fetch audits:", err);
+        } finally {
+            setAuditsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (showAudit) fetchAudits();
+    }, [showAudit, fetchAudits]);
 
     // Filter by search text client-side
     const filtered = entries.filter((e) => {
@@ -307,6 +343,14 @@ export default function RateCardAdmin() {
                         <RefreshCw className="w-3 h-3" />
                         Refresh
                     </button>
+                    <a
+                        href="/api/rate-card/template"
+                        download
+                        className="flex items-center gap-1.5 text-xs border border-border rounded px-3 py-1.5 hover:bg-accent transition-colors"
+                    >
+                        <Download className="w-3 h-3" />
+                        Template
+                    </a>
                     <button
                         onClick={handleExport}
                         className="flex items-center gap-1.5 text-xs border border-border rounded px-3 py-1.5 hover:bg-accent transition-colors"
@@ -649,6 +693,71 @@ export default function RateCardAdmin() {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Audit Trail */}
+            <div className="border border-border rounded">
+                <button
+                    onClick={() => setShowAudit(!showAudit)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-sm hover:bg-accent/20 transition-colors"
+                >
+                    <span className="flex items-center gap-2 font-medium text-muted-foreground">
+                        <History className="w-3.5 h-3.5" />
+                        Change History
+                    </span>
+                    {showAudit ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                </button>
+                {showAudit && (
+                    <div className="border-t border-border">
+                        {auditsLoading ? (
+                            <div className="px-4 py-6 text-center text-sm text-muted-foreground">Loading history...</div>
+                        ) : audits.length === 0 ? (
+                            <div className="px-4 py-6 text-center text-sm text-muted-foreground">No changes recorded yet.</div>
+                        ) : (
+                            <div className="max-h-80 overflow-y-auto">
+                                <table className="w-full text-xs">
+                                    <thead className="sticky top-0 bg-accent/30 border-b border-border">
+                                        <tr>
+                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">When</th>
+                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Entry</th>
+                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Action</th>
+                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Field</th>
+                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Old</th>
+                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">New</th>
+                                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">By</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {audits.map((a) => (
+                                            <tr key={a.id} className="border-b border-border last:border-0 hover:bg-accent/10">
+                                                <td className="px-3 py-1.5 text-muted-foreground whitespace-nowrap">
+                                                    {new Date(a.createdAt).toLocaleString()}
+                                                </td>
+                                                <td className="px-3 py-1.5 font-mono">
+                                                    {a.entry?.key || "—"}
+                                                </td>
+                                                <td className="px-3 py-1.5">
+                                                    <span className={`px-1.5 py-0.5 rounded border ${
+                                                        a.action === "create" ? "text-green-700 bg-green-50 border-green-200" :
+                                                        a.action === "update" ? "text-blue-700 bg-blue-50 border-blue-200" :
+                                                        a.action === "delete" ? "text-red-700 bg-red-50 border-red-200" :
+                                                        "text-amber-700 bg-amber-50 border-amber-200"
+                                                    }`}>
+                                                        {a.action}
+                                                    </span>
+                                                </td>
+                                                <td className="px-3 py-1.5 text-muted-foreground">{a.field || "—"}</td>
+                                                <td className="px-3 py-1.5 font-mono text-red-600 max-w-[120px] truncate" title={a.oldValue || ""}>{a.oldValue || "—"}</td>
+                                                <td className="px-3 py-1.5 font-mono text-green-600 max-w-[120px] truncate" title={a.newValue || ""}>{a.newValue || "—"}</td>
+                                                <td className="px-3 py-1.5 text-muted-foreground">{a.changedBy || "—"}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );

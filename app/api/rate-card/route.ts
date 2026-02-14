@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { invalidateRateCardCache } from "@/services/rfp/rateCardLoader";
 
 export async function GET(request: NextRequest) {
     try {
@@ -65,6 +66,11 @@ export async function POST(request: NextRequest) {
             },
         });
 
+        await prisma.rateCardAudit.create({
+            data: { entryId: entry.id, action: "create", newValue: JSON.stringify({ category, key, label, value, unit, provenance, confidence }), changedBy: "admin" },
+        });
+
+        invalidateRateCardCache();
         return NextResponse.json({ entry }, { status: 201 });
     } catch (err: any) {
         if (err.code === "P2002") {
@@ -83,11 +89,25 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: "Missing id" }, { status: 400 });
         }
 
+        const before = await prisma.rateCardEntry.findUnique({ where: { id } });
         const entry = await prisma.rateCardEntry.update({
             where: { id },
             data,
         });
 
+        // Log each changed field
+        if (before) {
+            for (const [field, newVal] of Object.entries(data)) {
+                const oldVal = (before as any)[field];
+                if (oldVal != null && String(oldVal) !== String(newVal)) {
+                    await prisma.rateCardAudit.create({
+                        data: { entryId: id, action: "update", field, oldValue: String(oldVal), newValue: String(newVal), changedBy: "admin" },
+                    });
+                }
+            }
+        }
+
+        invalidateRateCardCache();
         return NextResponse.json({ entry });
     } catch (err: any) {
         if (err.code === "P2025") {
@@ -106,8 +126,15 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ error: "Missing id" }, { status: 400 });
         }
 
+        const before = await prisma.rateCardEntry.findUnique({ where: { id } });
         await prisma.rateCardEntry.delete({ where: { id } });
-        return NextResponse.json({ deleted: true });
+
+        // Audit is cascade-deleted with the entry, so log to a detached record
+        // We skip audit here since the entry (and its audits) are deleted together.
+        // If you need deletion history, use soft-delete (isActive=false) instead.
+
+        invalidateRateCardCache();
+        return NextResponse.json({ deleted: true, key: before?.key });
     } catch (err: any) {
         if (err.code === "P2025") {
             return NextResponse.json({ error: "Entry not found" }, { status: 404 });
