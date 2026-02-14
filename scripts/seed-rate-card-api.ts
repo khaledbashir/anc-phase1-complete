@@ -1,12 +1,4 @@
-/**
- * /api/rate-card/seed — One-click seed of all 27 validated rate card entries
- *
- * POST: Upserts all extracted rates into the database. Safe to call multiple times.
- * Admin-only. Replaces the need for scripts/seed-rate-card.mjs inside Docker.
- */
 
-import { NextResponse } from "next/server";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 const SEED_DATA = [
@@ -39,12 +31,8 @@ const SEED_DATA = [
     { category: "demolition", key: "demolition.flat", label: "Demolition Flat Fee", value: 5000, unit: "usd", provenance: "Standard ANC", confidence: "estimated" },
 ];
 
-export async function POST() {
-    const session = await auth();
-    if (!session?.user || (session.user as any).authRole !== "admin") {
-        return NextResponse.json({ error: "Admin access required" }, { status: 403 });
-    }
-
+async function main() {
+    console.log("Seeding rate card data...");
     let created = 0;
     let updated = 0;
 
@@ -62,11 +50,14 @@ export async function POST() {
         }
     }
 
-    return NextResponse.json({
-        success: true,
-        created,
-        updated,
-        total: SEED_DATA.length,
-        message: `Seeded ${created} new + ${updated} existing = ${SEED_DATA.length} rate card entries`,
-    });
+    console.log(`Seeding complete: ${created} new, ${updated} updated.`);
 }
+
+main()
+    .catch((e) => {
+        console.error(e);
+        process.exit(1);
+    })
+    .finally(async () => {
+        await prisma.$disconnect();
+    });

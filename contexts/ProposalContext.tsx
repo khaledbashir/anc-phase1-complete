@@ -4559,15 +4559,16 @@ export const ProposalContextProvider = ({
                 ) => {
                     const proposalId = getValues().details?.proposalId;
                     try {
-                        const res = await fetch("/api/rfp/answer", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                proposalId,
-                                questionId,
-                                answer,
-                            }),
-                        });
+                        // TODO: /api/rfp/answer route does not exist — disabled until RFP answer endpoint is implemented.
+                        // const res = await fetch("/api/rfp/answer", {
+                        //     method: "POST",
+                        //     headers: { "Content-Type": "application/json" },
+                        //     body: JSON.stringify({
+                        //         proposalId,
+                        //         questionId,
+                        //         answer,
+                        //     }),
+                        // });
                         const data = await res.json();
                         if (data.ok) {
                             setRfpQuestions((prev) =>
