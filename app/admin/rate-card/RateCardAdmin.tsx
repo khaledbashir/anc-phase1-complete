@@ -344,12 +344,20 @@ export default function RateCardAdmin() {
                         Refresh
                     </button>
                     <a
-                        href="/api/rate-card/template"
+                        href="/api/rate-card/template?type=anc"
+                        download
+                        className="flex items-center gap-1.5 text-xs border border-border rounded px-3 py-1.5 hover:bg-accent transition-colors text-[#0A52EF]"
+                    >
+                        <Download className="w-3 h-3" />
+                        ANC Template
+                    </a>
+                    <a
+                        href="/api/rate-card/template?type=dev"
                         download
                         className="flex items-center gap-1.5 text-xs border border-border rounded px-3 py-1.5 hover:bg-accent transition-colors"
                     >
                         <Download className="w-3 h-3" />
-                        Template
+                        Dev Template
                     </a>
                     <button
                         onClick={handleExport}
