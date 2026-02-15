@@ -19,6 +19,8 @@ export type QuestionType =
     | "dimensions"    // Width × Height compound input
     | "yes-no"
     | "display-loop"  // Special: "Add another display?" branching
+    | "display-type"  // Display type presets with auto-fill
+    | "product-select" // Product catalog selector
     | "section";      // Visual separator / phase header
 
 export interface QuestionOption {
@@ -157,17 +159,95 @@ export const PROJECT_QUESTIONS: Question[] = [
 ];
 
 // ============================================================================
+// DISPLAY TYPE PRESETS — Auto-fill downstream fields
+// ============================================================================
+
+export interface DisplayTypePreset {
+    value: string;
+    label: string;
+    description: string;
+    defaults: Partial<DisplayAnswers>;
+}
+
+export const DISPLAY_TYPE_PRESETS: DisplayTypePreset[] = [
+    {
+        value: "main-scoreboard",
+        label: "Main Scoreboard",
+        description: "Center-hung or end-wall primary video board",
+        defaults: { locationType: "scoreboard", pixelPitch: "4", installComplexity: "standard" },
+    },
+    {
+        value: "center-hung",
+        label: "Center-Hung",
+        description: "Suspended 4-sided scoreboard cluster",
+        defaults: { locationType: "scoreboard", pixelPitch: "4", installComplexity: "complex" },
+    },
+    {
+        value: "ribbon-board",
+        label: "Ribbon Board",
+        description: "Long, narrow perimeter display for sponsorship",
+        defaults: { locationType: "ribbon", pixelPitch: "6", installComplexity: "standard" },
+    },
+    {
+        value: "fascia-board",
+        label: "Fascia Board",
+        description: "Mounted on balcony fascia or suite rail",
+        defaults: { locationType: "fascia", pixelPitch: "4", installComplexity: "standard" },
+    },
+    {
+        value: "concourse-display",
+        label: "Concourse Display",
+        description: "Wall-mounted indoor close-view display",
+        defaults: { locationType: "wall", pixelPitch: "2.5", installComplexity: "simple" },
+    },
+    {
+        value: "end-zone",
+        label: "End Zone Board",
+        description: "Large end-wall or end-zone video board",
+        defaults: { locationType: "wall", pixelPitch: "6", installComplexity: "standard" },
+    },
+    {
+        value: "marquee",
+        label: "Marquee / Entrance",
+        description: "Exterior entrance or roadside display",
+        defaults: { locationType: "outdoor", pixelPitch: "10", installComplexity: "standard" },
+    },
+    {
+        value: "auxiliary",
+        label: "Auxiliary Board",
+        description: "Secondary info display, stats, or wayfinding",
+        defaults: { locationType: "wall", pixelPitch: "4", installComplexity: "simple" },
+    },
+    {
+        value: "custom",
+        label: "Custom",
+        description: "Enter a custom name and configure manually",
+        defaults: {},
+    },
+];
+
+// ============================================================================
 // DISPLAY PHASE — Repeated per display
 // ============================================================================
 
 export const DISPLAY_QUESTIONS: Question[] = [
     {
+        id: "displayType",
+        phase: "display",
+        type: "display-type",
+        label: "What kind of display?",
+        subtitle: "Pick a preset to auto-fill settings, or choose Custom",
+        required: true,
+        affectsSheet: "Display Details",
+    },
+    {
         id: "displayName",
         phase: "display",
         type: "text",
         label: "Display name?",
-        subtitle: "e.g., Main Scoreboard, Ribbon Board, Fascia Left",
+        subtitle: "Give this display a name for the estimate",
         placeholder: "Main Scoreboard",
+        showIf: (answers) => answers.displayType === "custom",
         required: true,
         affectsSheet: "Display Details",
     },
@@ -185,6 +265,7 @@ export const DISPLAY_QUESTIONS: Question[] = [
             { value: "freestanding", label: "Freestanding / Column", description: "Requires new structural support" },
             { value: "outdoor", label: "Outdoor / Marquee", description: "External, weather-rated" },
         ],
+        showIf: (answers) => answers.displayType === "custom",
         required: true,
         affectsSheet: "Display Details",
     },
@@ -216,6 +297,14 @@ export const DISPLAY_QUESTIONS: Question[] = [
         ],
         defaultValue: "4",
         required: true,
+        affectsSheet: "Display Details",
+    },
+    {
+        id: "productId",
+        phase: "display",
+        type: "product-select",
+        label: "LED product?",
+        subtitle: "Select a product from the catalog to auto-fill cost/sqft and specs",
         affectsSheet: "Display Details",
     },
     {
@@ -411,11 +500,14 @@ export interface EstimatorAnswers {
 }
 
 export interface DisplayAnswers {
+    displayType: string;       // Preset key or "custom"
     displayName: string;
     locationType: string;
     widthFt: number;
     heightFt: number;
     pixelPitch: string;
+    productId: string;         // ManufacturerProduct ID from catalog
+    productName: string;       // Cached product display name
     installComplexity: string;
     serviceType: string;
     isReplacement: boolean;
@@ -447,11 +539,14 @@ export function getDefaultAnswers(): EstimatorAnswers {
 
 export function getDefaultDisplayAnswers(): DisplayAnswers {
     return {
+        displayType: "",
         displayName: "",
         locationType: "wall",
         widthFt: 0,
         heightFt: 0,
         pixelPitch: "4",
+        productId: "",
+        productName: "",
         installComplexity: "standard",
         serviceType: "Front/Rear",
         isReplacement: false,

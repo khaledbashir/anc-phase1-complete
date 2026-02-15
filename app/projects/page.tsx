@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
     Bell,
+    Calculator,
     LayoutGrid,
     List,
     Plus,
@@ -316,6 +317,13 @@ export default function ProjectsPage() {
                             <Settings className="w-4 h-4" />
                         </button>
                         <div className="h-5 w-px bg-border/60 mx-1" />
+                        <Link
+                            href="/estimator"
+                            className="px-3.5 py-1.5 border border-border text-foreground rounded hover:bg-muted transition-colors text-xs font-medium flex items-center gap-1.5"
+                        >
+                            <Calculator className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">New Estimate</span>
+                        </Link>
                         <NewProjectModal>
                             <button className="px-3.5 py-1.5 bg-foreground text-background rounded hover:opacity-80 active:opacity-70 transition-opacity duration-150 text-xs font-medium flex items-center gap-1.5">
                                 <Plus className="w-3.5 h-3.5" />

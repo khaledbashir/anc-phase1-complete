@@ -13,11 +13,12 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Plus, Check, ArrowRight } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2 } from "lucide-react";
 import {
     PROJECT_QUESTIONS,
     DISPLAY_QUESTIONS,
     FINANCIAL_QUESTIONS,
+    DISPLAY_TYPE_PRESETS,
     type Question,
     type EstimatorAnswers,
     type DisplayAnswers,
@@ -89,6 +90,16 @@ export default function QuestionFlow({ answers, onChange, onComplete }: Question
         }
         onChange(next);
     }, [answers, phase, currentQ, displayIndex, onChange]);
+
+    // Set multiple display fields at once (used by display-type presets)
+    const setDisplayFields = useCallback((fields: Partial<DisplayAnswers>) => {
+        const next = { ...answers };
+        while (next.displays.length <= displayIndex) {
+            next.displays.push(getDefaultDisplayAnswers());
+        }
+        next.displays[displayIndex] = { ...next.displays[displayIndex], ...fields };
+        onChange(next);
+    }, [answers, displayIndex, onChange]);
 
     // Navigation
     const goNext = useCallback(() => {
@@ -242,6 +253,9 @@ export default function QuestionFlow({ answers, onChange, onComplete }: Question
                         value={getValue()}
                         onChange={setValue}
                         onNext={goNext}
+                        setDisplayFields={setDisplayFields}
+                        answers={answers}
+                        displayIndex={displayIndex}
                     />
 
                     {/* Display loop buttons */}
@@ -313,11 +327,17 @@ function QuestionInput({
     value,
     onChange,
     onNext,
+    setDisplayFields,
+    answers,
+    displayIndex,
 }: {
     question: Question;
     value: any;
     onChange: (val: any) => void;
     onNext: () => void;
+    setDisplayFields?: (fields: Partial<DisplayAnswers>) => void;
+    answers?: EstimatorAnswers;
+    displayIndex?: number;
 }) {
     switch (question.type) {
         case "text":
@@ -442,12 +462,168 @@ function QuestionInput({
                 </div>
             );
 
+        case "display-type":
+            return (
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                    {DISPLAY_TYPE_PRESETS.map((preset) => (
+                        <button
+                            key={preset.value}
+                            onClick={() => {
+                                if (setDisplayFields) {
+                                    setDisplayFields({
+                                        displayType: preset.value,
+                                        displayName: preset.value === "custom" ? "" : preset.label,
+                                        ...preset.defaults,
+                                    });
+                                } else {
+                                    onChange(preset.value);
+                                }
+                                setTimeout(onNext, 200);
+                            }}
+                            className={cn(
+                                "text-left px-4 py-3 rounded-lg border-2 transition-all",
+                                value === preset.value
+                                    ? "border-[#0A52EF] bg-[#0A52EF]/5"
+                                    : "border-border hover:border-[#0A52EF]/40 hover:bg-accent/20"
+                            )}
+                        >
+                            <div className="text-sm font-medium">{preset.label}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">{preset.description}</div>
+                        </button>
+                    ))}
+                </div>
+            );
+
+        case "product-select":
+            return (
+                <ProductSelectInput
+                    value={value}
+                    answers={answers}
+                    displayIndex={displayIndex}
+                    setDisplayFields={setDisplayFields}
+                    onNext={onNext}
+                />
+            );
+
         case "display-loop":
             return null; // Buttons handled in parent
 
         default:
             return null;
     }
+}
+
+// ============================================================================
+// PRODUCT SELECTOR — Fetches from /api/products, filtered by pitch + environment
+// ============================================================================
+
+function ProductSelectInput({
+    value,
+    answers,
+    displayIndex,
+    setDisplayFields,
+    onNext,
+}: {
+    value: string;
+    answers?: EstimatorAnswers;
+    displayIndex?: number;
+    setDisplayFields?: (fields: Partial<DisplayAnswers>) => void;
+    onNext: () => void;
+}) {
+    const [products, setProducts] = React.useState<any[]>([]);
+    const [loading, setLoading] = React.useState(true);
+
+    // Current display's pitch for filtering
+    const currentDisplay = answers?.displays[(displayIndex ?? 0)] || getDefaultDisplayAnswers();
+    const pitch = parseFloat(currentDisplay.pixelPitch) || 4;
+    const env = answers?.isIndoor ? "indoor" : "outdoor";
+
+    React.useEffect(() => {
+        let cancelled = false;
+        const fetchProducts = async () => {
+            setLoading(true);
+            try {
+                // Filter by environment + pitch (±0.5mm tolerance for variations)
+                const params = new URLSearchParams({
+                    environment: env,
+                    pitchMin: String(Math.max(0, pitch - 0.5)),
+                    pitchMax: String(pitch + 0.5),
+                });
+                const res = await fetch(`/api/products?${params.toString()}`);
+                if (res.ok && !cancelled) {
+                    const data = await res.json();
+                    setProducts(data.products || []);
+                }
+            } catch (err) {
+                console.error("Failed to fetch products:", err);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        };
+        fetchProducts();
+        return () => { cancelled = true; };
+    }, [pitch, env]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading catalog...
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-2 mt-2">
+            {products.length === 0 && (
+                <p className="text-sm text-muted-foreground mb-3">
+                    No {env} products found at {pitch}mm pitch. You can skip this step.
+                </p>
+            )}
+            {products.map((p: any) => (
+                <button
+                    key={p.id}
+                    onClick={() => {
+                        if (setDisplayFields) {
+                            setDisplayFields({ productId: p.id, productName: p.displayName });
+                        }
+                        setTimeout(onNext, 200);
+                    }}
+                    className={cn(
+                        "w-full text-left px-4 py-3 rounded-lg border-2 transition-all",
+                        value === p.id
+                            ? "border-[#0A52EF] bg-[#0A52EF]/5"
+                            : "border-border hover:border-[#0A52EF]/40 hover:bg-accent/20"
+                    )}
+                >
+                    <div className="flex items-center gap-3">
+                        <Package className="w-5 h-5 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">{p.displayName}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5 flex gap-3">
+                                <span>{p.manufacturer}</span>
+                                <span>{p.pixelPitch}mm</span>
+                                {p.maxNits && <span>{p.maxNits} nits</span>}
+                                {p.costPerSqFt && <span>${p.costPerSqFt}/sqft</span>}
+                            </div>
+                        </div>
+                        {value === p.id && <Check className="w-4 h-4 text-[#0A52EF] shrink-0" />}
+                    </div>
+                </button>
+            ))}
+            <button
+                onClick={() => {
+                    if (setDisplayFields) {
+                        setDisplayFields({ productId: "", productName: "" });
+                    }
+                    onNext();
+                }}
+                className="w-full text-left px-4 py-3 rounded-lg border-2 border-dashed border-border hover:border-[#0A52EF]/40 hover:bg-accent/20 transition-all"
+            >
+                <div className="text-sm text-muted-foreground">Skip — use rate card pricing instead</div>
+            </button>
+        </div>
+    );
 }
 
 // ============================================================================
