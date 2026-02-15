@@ -2,7 +2,7 @@
  * POST /api/estimator/ai-quick
  *
  * AI Quick Estimate — User describes a project in plain English,
- * AnythingLLM extracts structured EstimatorAnswers.
+ * AnythingLLM (anc-estimator workspace) extracts structured EstimatorAnswers.
  *
  * Input:  { description: string }
  * Output: { answers: Partial<EstimatorAnswers>, displays: DisplayAnswers[] }
@@ -11,48 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { queryVault } from "@/lib/anything-llm";
 
-const EXTRACTION_PROMPT = `You are an LED display estimation assistant for ANC Sports Enterprises.
-Extract structured project data from the user's description and return ONLY valid JSON (no markdown, no explanation).
-
-Return this exact JSON shape:
-{
-  "clientName": "string or empty",
-  "projectName": "string or empty",
-  "location": "city, state or empty",
-  "docType": "budget" | "proposal" | "loi",
-  "currency": "USD" | "CAD" | "EUR" | "GBP",
-  "isIndoor": true | false,
-  "isNewInstall": true | false,
-  "isUnion": true | false,
-  "displays": [
-    {
-      "displayName": "e.g. Main Scoreboard",
-      "displayType": "scoreboard" | "fascia" | "ribbon" | "videoboard" | "marquee" | "center-hung" | "custom",
-      "locationType": "wall" | "ceiling" | "floor" | "fascia" | "freestanding" | "outdoor",
-      "widthFt": number,
-      "heightFt": number,
-      "pixelPitch": "2.5" | "3.9" | "4" | "6" | "10" (string),
-      "installComplexity": "standard" | "complex" | "major",
-      "serviceType": "Front/Rear" | "front" | "rear",
-      "isReplacement": true | false
-    }
-  ]
-}
-
-Rules:
-- If the user mentions a stadium/arena name, use it as projectName
-- If they mention a team/organization, use it as clientName
-- Default pixelPitch to "4" if not specified
-- Default isIndoor to true unless they mention outdoor
-- Default isNewInstall to true unless they mention replacement/upgrade
-- Default isUnion to false unless they mention union labor
-- If dimensions aren't specified, estimate reasonable sizes based on the display type:
-  - Scoreboard: 20x12, Center-hung: 15x10, Ribbon/fascia: 100x3, Marquee: 30x6, Videoboard: 25x14
-- Extract ALL displays mentioned. If they say "two scoreboards", create 2 entries.
-- If docType isn't clear, default to "budget"
-
-User description:
-`;
+const WORKSPACE = "anc-estimator";
 
 export async function POST(req: NextRequest) {
     try {
@@ -66,21 +25,16 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const prompt = EXTRACTION_PROMPT + description.trim();
-
-        // Use AnythingLLM in chat mode for structured extraction
-        const response = await queryVault("anc-estimator", prompt, "chat");
+        // The workspace system prompt handles extraction rules.
+        // We just pass the user's description directly.
+        const response = await queryVault(WORKSPACE, description.trim(), "chat");
 
         if (!response || response.startsWith("Error")) {
-            // Fallback: try the default workspace
-            const fallbackResponse = await queryVault("default", prompt, "chat");
-            if (!fallbackResponse || fallbackResponse.startsWith("Error")) {
-                return NextResponse.json(
-                    { error: "AI service unavailable. Please fill in the form manually." },
-                    { status: 503 }
-                );
-            }
-            return parseAndRespond(fallbackResponse);
+            console.error("[ai-quick] AnythingLLM error:", response);
+            return NextResponse.json(
+                { error: "AI service unavailable. Please try again." },
+                { status: 502 }
+            );
         }
 
         return parseAndRespond(response);
@@ -93,10 +47,16 @@ export async function POST(req: NextRequest) {
     }
 }
 
-function parseAndRespond(rawResponse: string) {
+function parseAndRespond(rawResponse: string): NextResponse {
     try {
-        // Try to extract JSON from response (might be wrapped in markdown or text)
-        const jsonMatch = rawResponse.match(/\{[\s\S]*"displays"[\s\S]*\}/);
+        // Strip markdown code fences if present
+        let cleaned = rawResponse
+            .replace(/```json\s*/gi, "")
+            .replace(/```\s*/g, "")
+            .trim();
+
+        // Extract JSON object from response
+        const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
             console.error("[ai-quick] No JSON found in response:", rawResponse.slice(0, 500));
             return NextResponse.json(
@@ -131,6 +91,13 @@ function parseAndRespond(rawResponse: string) {
                   isReplacement: Boolean(d.isReplacement),
               }))
             : [];
+
+        if (displays.length === 0 && Object.keys(answers).length === 0) {
+            return NextResponse.json(
+                { error: "AI couldn't extract project data. Try being more specific." },
+                { status: 422 }
+            );
+        }
 
         return NextResponse.json({
             answers,
