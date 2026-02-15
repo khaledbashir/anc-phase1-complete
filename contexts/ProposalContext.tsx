@@ -557,6 +557,7 @@ export const ProposalContextProvider = ({
     >(FORM_DEFAULT_VALUES.details.calculationMode);
     const setCalculationMode = useCallback(
         (mode: "MIRROR" | "INTELLIGENCE") => {
+            calcModeUserChanged.current = true;
             setCalculationModeState(mode);
             setValue("details.calculationMode", mode, {
                 shouldValidate: true,
@@ -775,6 +776,7 @@ export const ProposalContextProvider = ({
             setValue("details.aiWorkspaceSlug", det.aiWorkspaceSlug);
         }
 
+        calcModeUserChanged.current = false; // Don't auto-save mode on load
         setCalculationModeState(
             det.calculationMode || FORM_DEFAULT_VALUES.details.calculationMode,
         );
@@ -803,9 +805,13 @@ export const ProposalContextProvider = ({
     // PROMPT 56: Removed legacy Prisma mapping path - all data is form-shaped from mapDbToFormSchema
     // WizardWrapper is the single hydration authority for form data
 
-    // SAVE CALCULATION MODE TO DATABASE
+    // Track whether calculationMode was explicitly changed by user action
+    const calcModeUserChanged = useRef(false);
+
+    // SAVE CALCULATION MODE TO DATABASE — only on user-initiated changes
     useEffect(() => {
         if (!calculationMode || typeof window === "undefined") return;
+        if (!calcModeUserChanged.current) return; // Skip auto-save on load
 
         const handler = setTimeout(async () => {
             const currentValues = getValues();

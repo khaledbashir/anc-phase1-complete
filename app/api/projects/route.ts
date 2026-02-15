@@ -116,6 +116,19 @@ export async function GET(req: NextRequest) {
 
             const sectionCount = pricingTables.length;
 
+            // Derive actual mode from data — stored calculationMode can be wrong
+            // because ProposalContext auto-saves MIRROR (form default) on every load
+            const storedMode = project.calculationMode;
+            let derivedMode: string;
+            if (storedMode === "ESTIMATE") {
+                derivedMode = "ESTIMATE";
+            } else if (sectionCount > 0) {
+                // Has Excel pricing tables → Mirror (uploaded spreadsheet)
+                derivedMode = "MIRROR";
+            } else {
+                derivedMode = "INTELLIGENCE";
+            }
+
             return {
                 id: project.id,
                 createdAt: project.createdAt,
@@ -129,7 +142,7 @@ export async function GET(req: NextRequest) {
                 venue: project.venue || null,
                 documentMode: project.documentMode || "BUDGET",
                 mirrorMode: project.mirrorMode ?? false,
-                calculationMode: project.calculationMode || "INTELLIGENCE",
+                calculationMode: derivedMode,
                 totalAmount,
                 currency: pricingDocument?.currency || "USD",
                 sectionCount,
