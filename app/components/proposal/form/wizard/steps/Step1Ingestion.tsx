@@ -33,6 +33,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ModeSelector, { type WorkflowMode } from "@/app/components/proposal/form/wizard/ModeSelector";
 import RfpIngestion from "@/app/components/proposal/form/wizard/RfpIngestion";
 import ColumnMapper from "@/app/components/proposal/form/wizard/ColumnMapper";
+import MappingWizard from "@/app/components/import/MappingWizard";
 import { isModeUnselected, isMirrorMode as checkMirrorMode } from "@/lib/modeDetection";
 
 const Step1Ingestion = () => {
@@ -49,6 +50,9 @@ const Step1Ingestion = () => {
         aiWorkspaceSlug,
         columnMapperNeeded,
         applyManualPricingDocument,
+        mappingWizardData,
+        clearMappingWizard,
+        importedExcelFile,
     } = useProposalContext();
 
     const { getValues, watch, control, setValue } = useFormContext();
@@ -342,6 +346,23 @@ const Step1Ingestion = () => {
                                         )}
                                     </div>
                                 </div>
+
+                                {/* Frankenstein Mapping Wizard — shown when normalizer detects unknown format */}
+                                {mappingWizardData && importedExcelFile && (
+                                    <div className="rounded-2xl border-2 border-[#0A52EF]/30 bg-card overflow-hidden" style={{ minHeight: 500 }}>
+                                        <MappingWizard
+                                            fingerprint={mappingWizardData.fingerprint}
+                                            rawPreview={mappingWizardData.rawPreview}
+                                            fileName={mappingWizardData.fileName}
+                                            file={importedExcelFile}
+                                            onComplete={(result) => {
+                                                console.log("[MAPPING WIZARD] Profile saved, extracted:", result);
+                                                clearMappingWizard();
+                                            }}
+                                            onCancel={() => clearMappingWizard()}
+                                        />
+                                    </div>
+                                )}
 
                                 {/* Column Mapper — shown when standard parser fails */}
                                 {columnMapperNeeded && excelPreview?.sheets && (

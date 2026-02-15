@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import * as Sentry from "@sentry/nextjs";
 import { parseANCExcel } from "@/services/proposal/server/excelImportService";
 import { parsePricingTablesWithValidation, PRICING_PARSER_STRICT_VERSION } from "@/services/pricing/pricingTableParser";
+import { normalizeExcel } from "@/services/import/excelNormalizer";
 import * as xlsx from "xlsx";
 import crypto from "node:crypto";
 
@@ -86,12 +87,38 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(data);
     } catch (err) {
+        // Standard parsers failed — try the Frankenstein normalizer as fallback
+        console.warn("[EXCEL IMPORT] Standard parser failed, trying normalizer:", String(err));
+        try {
+            const fallbackFormData = await req.clone().formData();
+            const fallbackFile = fallbackFormData.get("file") as File;
+            if (fallbackFile) {
+                const fallbackBuffer = Buffer.from(await fallbackFile.arrayBuffer());
+                const normResult = await normalizeExcel(fallbackBuffer, fallbackFile.name);
+
+                if (normResult.status === "success") {
+                    // Profile matched — return extracted data with a flag
+                    return NextResponse.json({
+                        ...normResult,
+                        normalizedImport: true,
+                    });
+                }
+
+                // No profile — return 202 so frontend shows the Mapping Wizard
+                return NextResponse.json({
+                    ...normResult,
+                    normalizedImport: true,
+                    originalError: String(err),
+                }, { status: 202 });
+            }
+        } catch (normErr) {
+            Sentry.captureException(normErr, { tags: { area: "excelNormalizerFallback" } });
+            console.error("[EXCEL IMPORT] Normalizer fallback also failed:", normErr);
+        }
+
+        // Both parsers failed — return the original error
         Sentry.captureException(err, { tags: { area: "excelImport" } });
         console.error("Excel import error:", err);
-        const rawError = String(err || "");
-        const normalizedError = /margin\s*analysis/i.test(rawError)
-            ? "No Margin Analysis sheet in here. Wrong workbook?"
-            : rawError;
-        return NextResponse.json({ error: normalizedError }, { status: 500 });
+        return NextResponse.json({ error: String(err) }, { status: 500 });
     }
 }

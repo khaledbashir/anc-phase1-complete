@@ -96,6 +96,8 @@ const defaultProposalContext = {
     verificationExceptions: [] as VerificationException[],
     columnMapperNeeded: false,
     applyManualPricingDocument: (doc: any) => { },
+    mappingWizardData: null as { fingerprint: string; rawPreview: any[]; fileName: string } | null,
+    clearMappingWizard: () => { },
     loadExcelPreview: (file: File) => Promise.resolve(),
     savedProposals: [] as ProposalType[],
     pdfUrl: null as string | null,
@@ -273,6 +275,7 @@ export const ProposalContextProvider = ({
     const [excelValidationOk, setExcelValidationOk] = useState<boolean>(false);
     const [importedExcelFile, setImportedExcelFile] = useState<File | null>(null);
     const [columnMapperNeeded, setColumnMapperNeeded] = useState(false);
+    const [mappingWizardData, setMappingWizardData] = useState<{ fingerprint: string; rawPreview: any[]; fileName: string } | null>(null);
     const [excelSourceData, setExcelSourceData] = useState<any | null>(null);
     const [excelDiagnostics, setExcelDiagnostics] = useState<{
         warnings: string[];
@@ -3253,7 +3256,22 @@ export const ProposalContextProvider = ({
             }
 
             const data = await res.json();
+
+            // Always store the file reference (needed by MappingWizard if triggered)
             setImportedExcelFile(file);
+
+            // Frankenstein Normalizer: if the response is a mapping_required signal,
+            // surface the wizard data and stop — don't try to parse as a standard import.
+            if (data.status === "mapping_required" && data.rawPreview) {
+                console.log("[EXCEL IMPORT] Normalizer returned mapping_required — launching Mapping Wizard");
+                setMappingWizardData({
+                    fingerprint: data.fingerprint,
+                    rawPreview: data.rawPreview,
+                    fileName: data.fileName || file.name,
+                });
+                setExcelImportLoading(false);
+                return;
+            }
 
             setExcelSourceData(data.excelData ?? null);
             setVerificationManifest(data.verificationManifest ?? null);
@@ -3661,6 +3679,8 @@ export const ProposalContextProvider = ({
                 verificationExceptions,
                 columnMapperNeeded,
                 applyManualPricingDocument,
+                mappingWizardData,
+                clearMappingWizard: () => setMappingWizardData(null),
                 loadExcelPreview,
                 savedProposals,
                 pdfUrl,

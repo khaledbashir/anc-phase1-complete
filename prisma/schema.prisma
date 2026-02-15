@@ -670,3 +670,34 @@ model RateCardAudit {
   @@index([entryId])
   @@index([createdAt])
 }
+
+// ============================================================================
+// Frankenstein Excel Normalizer — "Map Once, Remember Forever"
+// Stores layout fingerprints so non-standard Excel formats auto-import on repeat.
+// ============================================================================
+model ImportProfile {
+  id                String   @id @default(cuid())
+  name              String   // Human label, e.g. "Moody Center Format"
+  fingerprint       String   @unique // SHA-256 of sheet names + first 10 rows content
+
+  // Anchor strategy: where is the data?
+  targetSheet       String?  // Sheet name (exact) or null = first sheet
+  headerRowIndex    Int      // 0-indexed row where column headers live
+  dataStartRowIndex Int      // 0-indexed row where actual data begins
+
+  // Column mapping: field name → column letter (e.g. {"description":"B","sellingPrice":"F"})
+  columnMapping     Json
+
+  // Data boundary
+  dataEndStrategy   String   @default("blank_row") // "blank_row" | "keyword:<text>" | "row:<n>"
+
+  // Metadata
+  createdBy         String?  // User email
+  usageCount        Int      @default(0) // How many times this profile has been auto-matched
+  lastUsedAt        DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([fingerprint])
+}
