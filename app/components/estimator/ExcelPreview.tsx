@@ -52,13 +52,7 @@ export default function ExcelPreview({ data, onExport, exporting }: ExcelPreview
                 )}
             </div>
 
-            {/* Toolbar mock */}
-            <div className="flex items-center gap-1 px-2 py-1 border-b border-border bg-zinc-50 dark:bg-zinc-800 text-[10px] text-muted-foreground shrink-0">
-                <span className="px-1.5 py-0.5 bg-background border border-border rounded">File</span>
-                <span className="px-1.5 py-0.5 hover:bg-accent rounded cursor-default">Edit</span>
-                <span className="px-1.5 py-0.5 hover:bg-accent rounded cursor-default">View</span>
-                <span className="px-1.5 py-0.5 hover:bg-accent rounded cursor-default">Data</span>
-            </div>
+            {/* Toolbar removed - fake buttons served no purpose */}
 
             {/* Column letter header */}
             <div className="flex border-b border-border bg-zinc-50 dark:bg-zinc-800 shrink-0">
