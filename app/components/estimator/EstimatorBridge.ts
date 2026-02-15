@@ -79,6 +79,14 @@ const STRUCTURE_PCT: Record<string, number> = {
     "Top": 0.10,
 };
 
+/** Optional rate card from DB — passed through from useRateCard hook */
+export type RateCard = Record<string, number>;
+
+/** Resolve a rate: DB rate card first, then hardcoded fallback */
+function rc(rates: RateCard | undefined, key: string, fallback: number): number {
+    return rates?.[key] ?? fallback;
+}
+
 // ============================================================================
 // CALCULATION ENGINE (client-side, mirrors server estimator)
 // ============================================================================
@@ -110,7 +118,7 @@ export interface ScreenCalc {
     finalTotal: number;
 }
 
-export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers): ScreenCalc {
+export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, rates?: RateCard): ScreenCalc {
     const w = d.widthFt || 0;
     const h = d.heightFt || 0;
     const area = w * h;
@@ -119,12 +127,15 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers): 
     const pixelsW = Math.round((w * 304.8) / pitch);
     const pixelsH = Math.round((h * 304.8) / pitch);
 
+    // LED cost per sqft: user override > rate card > hardcoded pitch table
+    const pitchKey = `led_cost.${d.pixelPitch.replace(".", "_")}mm`;
     const costPerSqFt = answers.costPerSqFtOverride > 0
         ? answers.costPerSqFtOverride
-        : (DEFAULT_COST_PER_SQFT[d.pixelPitch] || 120);
+        : rc(rates, pitchKey, DEFAULT_COST_PER_SQFT[d.pixelPitch] || 120);
 
+    const sparePartsPct = rc(rates, "spare_parts.led_pct", 0.05);
     const hardwareBase = area * costPerSqFt;
-    const spareParts = d.includeSpareParts ? hardwareBase * 0.05 : 0;
+    const spareParts = d.includeSpareParts ? hardwareBase * sparePartsPct : 0;
     const hardware = hardwareBase + spareParts;
 
     const structPct = STRUCTURE_PCT[d.serviceType] || 0.20;
@@ -132,13 +143,14 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers): 
 
     // Weight estimate: ~45 lbs/m² average, area in sqft → m² = area * 0.0929
     const estimatedWeightLbs = area * 0.0929 * 45;
-    const steelRate = STEEL_RATES[d.installComplexity] || 35;
-    const ledInstallRate = LED_INSTALL_RATES[d.installComplexity] || 105;
+    const steelRate = rc(rates, `install.steel_fab.${d.installComplexity}`, STEEL_RATES[d.installComplexity] || 35);
+    const ledInstallRate = rc(rates, `install.led_panel.${d.installComplexity}`, LED_INSTALL_RATES[d.installComplexity] || 105);
 
     const installCost = (estimatedWeightLbs * steelRate) + (area * ledInstallRate);
-    const electricalCost = area * 125; // $125/sqft validated from USC
-    const pmCost = 5882.35 * (d.installComplexity === "complex" || d.installComplexity === "heavy" ? 2 : 1);
-    const engineeringCost = 4705.88 * (d.installComplexity === "complex" || d.installComplexity === "heavy" ? 2 : 1);
+    const electricalCost = area * rc(rates, "electrical.materials_per_sqft", 125);
+    const complexMult = (d.installComplexity === "complex" || d.installComplexity === "heavy") ? rc(rates, "other.complex_modifier", 2) : 1;
+    const pmCost = rc(rates, "other.pm_base_fee", 5882.35) * complexMult;
+    const engineeringCost = rc(rates, "other.eng_base_fee", 4705.88) * complexMult;
     const shippingCost = estimatedWeightLbs * 0.5; // ~$0.50/lb shipping estimate
     const demolitionCost = d.isReplacement ? 5000 : 0;
 
@@ -191,11 +203,11 @@ function fmt(n: number): string {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2 }).format(n);
 }
 
-export function buildPreviewSheets(answers: EstimatorAnswers): ExcelPreviewData {
+export function buildPreviewSheets(answers: EstimatorAnswers, rates?: RateCard): ExcelPreviewData {
     const clientName = answers.clientName || "Client";
     const fileName = `ANC_${clientName.replace(/\s+/g, "_")}_Cost_Analysis.xlsx`;
 
-    const calcs = answers.displays.map((d) => calculateDisplay(d, answers));
+    const calcs = answers.displays.map((d) => calculateDisplay(d, answers, rates));
 
     const sheets: SheetTab[] = [
         buildBudgetSummary(answers, calcs),

@@ -10,13 +10,14 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
-import { FileSpreadsheet, ArrowLeft, Download } from "lucide-react";
+import { FileSpreadsheet, ArrowLeft, Download, Loader2 } from "lucide-react";
 import Link from "next/link";
 import QuestionFlow from "./QuestionFlow";
 import ExcelPreview from "./ExcelPreview";
 import { buildPreviewSheets, type ExcelPreviewData, type SheetTab } from "./EstimatorBridge";
 import { getDefaultAnswers, type EstimatorAnswers } from "./questions";
 import { exportEstimatorExcel } from "./exportEstimatorExcel";
+import { useRateCard } from "@/hooks/useRateCard";
 
 const SHEET_COLORS = ["#6366F1", "#EC4899", "#14B8A6", "#F59E0B", "#8B5CF6", "#EF4444"];
 
@@ -39,11 +40,13 @@ export default function EstimatorStudio({
     const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>(initialCellOverrides || {});
     // User-added custom sheets
     const [customSheets, setCustomSheets] = useState<SheetTab[]>(initialCustomSheets || []);
+    // Rate card from DB (replaces hardcoded constants)
+    const { rates, loading: ratesLoading } = useRateCard();
 
-    // Build preview data reactively from answers
+    // Build preview data reactively from answers + rate card
     const basePreviewData: ExcelPreviewData = useMemo(() => {
-        return buildPreviewSheets(answers);
-    }, [answers]);
+        return buildPreviewSheets(answers, rates ?? undefined);
+    }, [answers, rates]);
 
     // Merge computed data + custom sheets + cell overrides
     const previewData: ExcelPreviewData = useMemo(() => {
@@ -142,6 +145,12 @@ export default function EstimatorStudio({
                     )}
                 </div>
                 <div className="ml-auto flex items-center gap-2">
+                    {ratesLoading && (
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Loading rates...
+                        </span>
+                    )}
                     {answers.displays.length > 0 && (
                         <>
                             <span className="text-[10px] text-muted-foreground">
