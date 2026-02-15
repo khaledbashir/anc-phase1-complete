@@ -75,7 +75,34 @@ A dedicated calculator for quick cost estimates — no Excel needed.
 2. See a live Excel-style preview that updates as you answer
 3. Export the estimate or convert it to a full proposal
 
-**AI Quick Estimate:** Describe the project in plain English (e.g., "Indiana Fever at Gainbridge Fieldhouse needs a 20x12 scoreboard at 4mm and two ribbon boards") and AI fills in the entire form automatically.
+#### AI Quick Estimate — How It Works
+
+Normally, building an estimate means answering 50+ questions one at a time: client name, venue, each display's type, dimensions, pixel pitch, mounting, complexity, and so on. That's fine for a detailed session, but when you're on a call or in a meeting and just need a ballpark, it's too slow.
+
+**AI Quick Estimate lets you skip all of that.** You describe the project the way you'd describe it to a colleague:
+
+> "Indiana Fever at Gainbridge Fieldhouse needs a new 20x12 main scoreboard at 4mm, two 100x3 ribbon boards at 6mm, and a 30x6 marquee at 10mm. Indoor, union labor."
+
+The AI reads that sentence and extracts every detail:
+
+| What you wrote | What the system fills in |
+|---------------|------------------------|
+| "Indiana Fever" | Client Name |
+| "Gainbridge Fieldhouse" | Project Name |
+| "20x12 main scoreboard at 4mm" | Display 1: Scoreboard, 20'×12', 4mm pitch |
+| "two 100x3 ribbon boards at 6mm" | Display 2 & 3: Ribbon Board, 100'×3', 6mm pitch |
+| "30x6 marquee at 10mm" | Display 4: Marquee, 30'×6', 10mm pitch |
+| "Indoor" | Environment: Indoor |
+| "union labor" | Union: Yes (+15% labor) |
+
+One sentence → all project fields filled, all displays created, ready for pricing. The system jumps straight to the financial questions (margin tier, bond rate) so you can have a budget number in under 30 seconds.
+
+**What it doesn't do:** It doesn't guess at things you didn't mention. If you don't specify dimensions, it uses industry-standard defaults (scoreboards default to 20×12, ribbons to 100×3). If you don't mention union labor, it defaults to non-union. You can always go back and adjust any field after the AI fills it in.
+
+**When to use it:**
+- Quick ROM on a call — describe what the client is asking for, get a number
+- Initial pipeline entry — capture the opportunity fast, refine later
+- Multi-display venues — instead of filling the same questions 4 times, describe all displays in one paragraph
 
 **Built-in tools available inside the Estimator:**
 
