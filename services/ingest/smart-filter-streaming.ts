@@ -32,31 +32,18 @@ interface PageScore {
  * Uses pdf-parse with page range options if available, falls back to estimation
  */
 async function parsePdfChunk(
-  fileBuffer: Buffer,
+  fullText: string,
   startPage: number,
   endPage: number,
   totalPages: number
 ): Promise<string> {
-  try {
-    const { extractText } = await import("unpdf");
-    
-    // unpdf: works in Node.js serverless (no web worker needed)
-    const result = await extractText(new Uint8Array(fileBuffer));
-    const fullText = typeof result.text === "string" ? result.text : (result.text || []).join("\n\n");
-    
-    // Estimate pages based on text length
-    const estimatedTotalPages = totalPages || Math.max(1, Math.ceil(fullText.length / 3000));
-    const charsPerPage = Math.ceil(fullText.length / estimatedTotalPages);
-    
-    // Extract text for requested page range
-    const startChar = (startPage - 1) * charsPerPage;
-    const endChar = Math.min(endPage * charsPerPage, fullText.length);
-    
-    return fullText.slice(startChar, endChar);
-  } catch (error) {
-    console.error(`[StreamingFilter] Error parsing chunk ${startPage}-${endPage}:`, error);
-    return "";
-  }
+  const estimatedTotalPages = totalPages || Math.max(1, Math.ceil(fullText.length / 3000));
+  const charsPerPage = Math.ceil(fullText.length / estimatedTotalPages);
+
+  const startChar = (startPage - 1) * charsPerPage;
+  const endChar = Math.min(endPage * charsPerPage, fullText.length);
+
+  return fullText.slice(startChar, endChar);
 }
 
 /**
@@ -170,12 +157,10 @@ export async function smartFilterStreaming(
 
   console.log(`[StreamingFilter] Starting tournament parse: ${totalPages} pages, chunk size ${chunkSize}`);
 
-  // Phase 1: Parse full text to get all content
-  // Note: For true streaming, we'd use a PDF lib with page range support
-  // For now, we parse once and simulate chunking by text position
-  const { extractText } = await import("unpdf");
-  const result = await extractText(new Uint8Array(fileBuffer));
-  const fullText = typeof result.text === "string" ? result.text : (result.text || []).join("\n\n");
+  // Phase 1: Parse full text via Kreuzberg
+  const { extractText } = await import("@/services/kreuzberg/kreuzbergClient");
+  const result = await extractText(fileBuffer, "document.pdf");
+  const fullText = result.text;
 
   // Calculate actual page count
   const actualTotalPages = totalPages || Math.max(1, Math.ceil(fullText.length / 3000));

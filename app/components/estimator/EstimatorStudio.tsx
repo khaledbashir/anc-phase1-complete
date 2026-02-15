@@ -438,6 +438,7 @@ export default function EstimatorStudio({
                             answers={answers}
                             onChange={handleChange}
                             onComplete={handleComplete}
+                            productSpecs={productSpecs}
                         />
                     </section>
                 )}

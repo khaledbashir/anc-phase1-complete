@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { scanForLiabilities } from "@/services/sow/liabilityScanner";
+import { extractText } from "@/services/kreuzberg/kreuzbergClient";
 
 export async function POST(request: NextRequest) {
     try {
@@ -23,40 +24,23 @@ export async function POST(request: NextRequest) {
             const fileName = file.name.toLowerCase();
             const buffer = Buffer.from(await file.arrayBuffer());
 
-            if (fileName.endsWith(".pdf")) {
-                try {
-                    const { extractText } = await import("unpdf");
-                    const result = await extractText(new Uint8Array(buffer));
-                    const pages = result.text;
-                    text = Array.isArray(pages)
-                        ? pages.join("\n")
-                        : String(pages || "");
-                } catch {
-                    try {
-                        const pdfParseModule = await import("pdf-parse");
-                        const pdfParse =
-                            pdfParseModule.default || pdfParseModule;
-                        const parsed = await (pdfParse as any)(buffer);
-                        text = parsed.text || "";
-                    } catch {
-                        return NextResponse.json(
-                            {
-                                error: "Could not extract text from PDF. Try a text file instead.",
-                            },
-                            { status: 422 }
-                        );
-                    }
-                }
+            if (
+                fileName.endsWith(".pdf") ||
+                fileName.endsWith(".docx") ||
+                fileName.endsWith(".doc")
+            ) {
+                // Kreuzberg handles PDF, DOCX, DOC natively with OCR
+                const result = await extractText(buffer, file.name);
+                text = result.text;
             } else if (
                 fileName.endsWith(".txt") ||
-                fileName.endsWith(".md") ||
-                fileName.endsWith(".docx")
+                fileName.endsWith(".md")
             ) {
                 text = buffer.toString("utf-8");
             } else {
                 return NextResponse.json(
                     {
-                        error: "Unsupported file type. Upload a PDF, TXT, or DOCX file.",
+                        error: "Unsupported file type. Upload a PDF, DOCX, TXT, or MD file.",
                     },
                     { status: 400 }
                 );

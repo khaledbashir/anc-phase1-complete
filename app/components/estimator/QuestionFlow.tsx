@@ -11,9 +11,9 @@
  * - Live callback on every answer change for real-time preview
  */
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2, Building2, Monitor, DollarSign, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2, Building2, Monitor, DollarSign, Sparkles, Ruler, ArrowUpDown } from "lucide-react";
 import {
     PROJECT_QUESTIONS,
     DISPLAY_QUESTIONS,
@@ -25,14 +25,17 @@ import {
     getDefaultAnswers,
     getDefaultDisplayAnswers,
 } from "./questions";
+import { calculateCabinetLayout, type ProductSpec } from "./EstimatorBridge";
+import { feetToFeetInches, formatDeltaInches, mmToFeet } from "@/lib/imperialFormat";
 
 interface QuestionFlowProps {
     answers: EstimatorAnswers;
     onChange: (answers: EstimatorAnswers) => void;
     onComplete?: () => void;
+    productSpecs?: Record<string, ProductSpec>;
 }
 
-export default function QuestionFlow({ answers, onChange, onComplete }: QuestionFlowProps) {
+export default function QuestionFlow({ answers, onChange, onComplete, productSpecs }: QuestionFlowProps) {
     const [currentStep, setCurrentStep] = useState(0);
     const [phase, setPhase] = useState<"project" | "display" | "financial" | "complete">("project");
     const [displayIndex, setDisplayIndex] = useState(0);
@@ -250,6 +253,8 @@ export default function QuestionFlow({ answers, onChange, onComplete }: Question
                         setDisplayFields={setDisplayFields}
                         answers={answers}
                         displayIndex={displayIndex}
+                        productSpecs={productSpecs}
+                        phase={phase}
                     />
 
                     {/* Display loop buttons */}
@@ -399,6 +404,8 @@ function QuestionInput({
     setDisplayFields,
     answers,
     displayIndex,
+    productSpecs,
+    phase,
 }: {
     question: Question;
     value: any;
@@ -407,6 +414,8 @@ function QuestionInput({
     setDisplayFields?: (fields: Partial<DisplayAnswers>) => void;
     answers?: EstimatorAnswers;
     displayIndex?: number;
+    productSpecs?: Record<string, ProductSpec>;
+    phase?: string;
 }) {
     switch (question.type) {
         case "text":
@@ -473,40 +482,114 @@ function QuestionInput({
                 </div>
             );
 
-        case "dimensions":
+        case "dimensions": {
+            const currentDisplay = (phase === "display" && answers?.displays) ? answers.displays[displayIndex ?? 0] : null;
+            const currentProductId = currentDisplay?.productId;
+            const currentProductSpec = currentProductId && productSpecs ? productSpecs[currentProductId] : null;
+            const snapLayout = (value?.widthFt > 0 && value?.heightFt > 0 && currentProductSpec)
+                ? calculateCabinetLayout(value.widthFt, value.heightFt, currentProductSpec, currentDisplay?.productName)
+                : null;
+
             return (
-                <div className="flex items-center gap-4 mt-2">
-                    <div>
-                        <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1 block">Width (ft)</label>
-                        <input
-                            type="number"
-                            value={value?.widthFt || ""}
-                            onChange={(e) => onChange({ ...value, widthFt: parseFloat(e.target.value) || 0 })}
-                            min={0}
-                            step={0.5}
-                            autoFocus
-                            className="w-28 bg-transparent border-b-2 border-border focus:border-[#0A52EF] outline-none text-lg py-2 transition-colors text-center"
-                        />
+                <div className="mt-2 space-y-3">
+                    <div className="flex items-center gap-4">
+                        <div>
+                            <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1 block">Width (ft)</label>
+                            <input
+                                type="number"
+                                value={value?.widthFt || ""}
+                                onChange={(e) => onChange({ ...value, widthFt: parseFloat(e.target.value) || 0 })}
+                                min={0}
+                                step={0.5}
+                                autoFocus
+                                className="w-28 bg-transparent border-b-2 border-border focus:border-[#0A52EF] outline-none text-lg py-2 transition-colors text-center"
+                            />
+                        </div>
+                        <span className="text-2xl text-muted-foreground mt-5">×</span>
+                        <div>
+                            <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1 block">Height (ft)</label>
+                            <input
+                                type="number"
+                                value={value?.heightFt || ""}
+                                onChange={(e) => onChange({ ...value, heightFt: parseFloat(e.target.value) || 0 })}
+                                min={0}
+                                step={0.5}
+                                className="w-28 bg-transparent border-b-2 border-border focus:border-[#0A52EF] outline-none text-lg py-2 transition-colors text-center"
+                            />
+                        </div>
+                        {value?.widthFt > 0 && value?.heightFt > 0 && (
+                            <div className="ml-2 mt-5 text-sm text-muted-foreground">
+                                = <span className="font-semibold text-foreground">{(value.widthFt * value.heightFt).toFixed(1)}</span> sqft
+                            </div>
+                        )}
                     </div>
-                    <span className="text-2xl text-muted-foreground mt-5">×</span>
-                    <div>
-                        <label className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold mb-1 block">Height (ft)</label>
-                        <input
-                            type="number"
-                            value={value?.heightFt || ""}
-                            onChange={(e) => onChange({ ...value, heightFt: parseFloat(e.target.value) || 0 })}
-                            min={0}
-                            step={0.5}
-                            className="w-28 bg-transparent border-b-2 border-border focus:border-[#0A52EF] outline-none text-lg py-2 transition-colors text-center"
-                        />
-                    </div>
-                    {value?.widthFt > 0 && value?.heightFt > 0 && (
-                        <div className="ml-2 mt-5 text-sm text-muted-foreground">
-                            = <span className="font-semibold text-foreground">{(value.widthFt * value.heightFt).toFixed(1)}</span> sqft
+
+                    {/* Metric Mirror — Snap Result Card */}
+                    {snapLayout && (
+                        <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+                            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
+                                <Ruler className="w-3 h-3" />
+                                Metric Mirror — Snap to {snapLayout.cabinetWidthMm}×{snapLayout.cabinetHeightMm}mm
+                            </div>
+                            <div className="grid grid-cols-3 gap-3 text-xs">
+                                <div>
+                                    <div className="text-muted-foreground">Actual Width</div>
+                                    <div className="font-semibold text-foreground">
+                                        {feetToFeetInches(snapLayout.actualWidthFt)}
+                                        <span className="text-muted-foreground font-normal ml-1">({snapLayout.actualWidthFt.toFixed(2)} ft)</span>
+                                    </div>
+                                    <div className={cn(
+                                        "text-[10px] font-medium",
+                                        Math.abs(snapLayout.deltaWidthInches) < 0.5 ? "text-emerald-600" :
+                                        Math.abs(snapLayout.deltaWidthInches) <= 2 ? "text-amber-600" : "text-red-600"
+                                    )}>
+                                        {formatDeltaInches(snapLayout.deltaWidthFt).text}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground">Actual Height</div>
+                                    <div className="font-semibold text-foreground">
+                                        {feetToFeetInches(snapLayout.actualHeightFt)}
+                                        <span className="text-muted-foreground font-normal ml-1">({snapLayout.actualHeightFt.toFixed(2)} ft)</span>
+                                    </div>
+                                    <div className={cn(
+                                        "text-[10px] font-medium",
+                                        Math.abs(snapLayout.deltaHeightInches) < 0.5 ? "text-emerald-600" :
+                                        Math.abs(snapLayout.deltaHeightInches) <= 2 ? "text-amber-600" : "text-red-600"
+                                    )}>
+                                        {formatDeltaInches(snapLayout.deltaHeightFt).text}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="text-muted-foreground">Module Grid</div>
+                                    <div className="font-semibold text-foreground">
+                                        {snapLayout.columnsCount} × {snapLayout.rowsCount}
+                                    </div>
+                                    <div className="text-[10px] text-muted-foreground">
+                                        {snapLayout.totalCabinets} cabinets · {snapLayout.actualAreaSqFt} sqft
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-1 border-t border-border/50">
+                                <span>{snapLayout.actualResolutionW} × {snapLayout.actualResolutionH} px</span>
+                                <span>·</span>
+                                <span>{snapLayout.totalWeightLbs.toLocaleString()} lbs</span>
+                                <span>·</span>
+                                <span>{snapLayout.totalMaxPowerW.toLocaleString()} W</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Hint when no product selected */}
+                    {value?.widthFt > 0 && value?.heightFt > 0 && !currentProductSpec && (
+                        <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <ArrowUpDown className="w-3 h-3" />
+                            Select an LED product to see snap-to-grid dimensions
                         </div>
                     )}
                 </div>
             );
+        }
 
         case "yes-no":
             return (

@@ -172,12 +172,11 @@ export async function processPdf(
   buffer: Buffer,
   fileName: string = "document.pdf"
 ): Promise<ProcessedPdf> {
-  // unpdf: works in Node.js serverless (no web worker needed)
-  const { extractText } = await import("unpdf");
+  const { extractText } = await import("@/services/kreuzberg/kreuzbergClient");
 
-  const result = await extractText(new Uint8Array(buffer));
-  const rawText = typeof result.text === "string" ? result.text : (result.text || []).join("\n\n");
-  const totalPages = result.totalPages || Math.ceil(rawText.length / 3000);
+  const result = await extractText(buffer, fileName);
+  const rawText = result.text;
+  const totalPages = result.totalPages;
 
   // Split into sections
   const sections = splitIntoSections(rawText, totalPages);

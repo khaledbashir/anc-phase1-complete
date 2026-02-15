@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { extractFromExcel, extractFromText } from "@/services/vendor/vendorParser";
+import { extractText } from "@/services/kreuzberg/kreuzbergClient";
 
 export async function POST(request: NextRequest) {
     try {
@@ -31,32 +32,13 @@ export async function POST(request: NextRequest) {
         }
 
         if (fileName.endsWith(".pdf")) {
-            // Extract text from PDF using unpdf (same lib used by RFP extractor)
-            let text = "";
-            try {
-                const { extractText } = await import("unpdf");
-                const result = await extractText(new Uint8Array(buffer));
-                // unpdf returns text as string[] (per page) — join them
-                const pages = result.text;
-                text = Array.isArray(pages) ? pages.join("\n") : String(pages || "");
-            } catch {
-                // Fallback: try pdf-parse
-                try {
-                    const pdfParseModule = await import("pdf-parse");
-                    const pdfParse = pdfParseModule.default || pdfParseModule;
-                    const parsed = await (pdfParse as any)(buffer);
-                    text = parsed.text || "";
-                } catch {
-                    return NextResponse.json(
-                        { error: "Could not extract text from PDF. Try an Excel file instead." },
-                        { status: 422 }
-                    );
-                }
-            }
+            // Kreuzberg handles PDFs with full OCR (scanned docs work too)
+            const result = await extractText(buffer, file.name);
+            const text = result.text;
 
             if (!text.trim()) {
                 return NextResponse.json(
-                    { error: "PDF appears to be image-only (no extractable text). Try an Excel file instead." },
+                    { error: "Could not extract text from PDF. Try an Excel file instead." },
                     { status: 422 }
                 );
             }
@@ -70,7 +52,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Plain text fallback
-        if (fileName.endsWith(".txt") || fileName.endsWith(".csv")) {
+        if (fileName.endsWith(".txt")) {
             const text = buffer.toString("utf-8");
             const spec = extractFromText(text);
             return NextResponse.json({

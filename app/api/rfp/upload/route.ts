@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { smartFilterPdf } from "@/services/ingest/smart-filter";
 import { smartFilterStreaming, shouldUseStreaming } from "@/services/ingest/smart-filter-streaming";
+import { extractText as kreuzbergExtract } from "@/services/kreuzberg/kreuzbergClient";
 import { screenshotPdfPage } from "@/services/ingest/pdf-screenshot";
 import { DrawingService } from "@/services/vision/drawing-service";
 import { analyzeTTEContent, TonnageResult } from "@/services/ingest/tonnage-extractor";
@@ -175,8 +176,7 @@ ${excelExtractedData.lineItems.map((li: any) => `- ${li.description}: $${li.sell
 
       try {
         // Determine if we need streaming (2,500+ pages) or standard filtering
-        const { extractText } = await import("unpdf");
-        const pdfResult = await extractText(new Uint8Array(buffer));
+        const pdfResult = await kreuzbergExtract(buffer, file.name);
         const totalPages = pdfResult.totalPages || 0;
         
         let filterResult;

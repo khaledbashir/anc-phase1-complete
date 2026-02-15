@@ -87,15 +87,12 @@ function buildPartialPages(totalPages: number, maxPages: number): number[] | und
 
 export async function smartFilterPdf(fileBuffer: Buffer): Promise<FilterResult> {
   try {
-    // unpdf: works in Node.js serverless (no web worker needed)
-    const { extractText } = await import("unpdf");
-    const result = await extractText(new Uint8Array(fileBuffer));
-    
-    // Extract metadata
+    const { extractText } = await import("@/services/kreuzberg/kreuzbergClient");
+    const result = await extractText(fileBuffer, "document.pdf");
+
     const totalPagesFromDoc = result.totalPages || 0;
-    const fullText = typeof result.text === "string" ? result.text : (result.text || []).join("\n\n");
-    
-    // Estimate pages if not provided
+    const fullText = result.text;
+
     const estimatedPages = totalPagesFromDoc || Math.max(1, Math.ceil(fullText.length / 3000));
     const charsPerPage = Math.ceil(fullText.length / estimatedPages);
     
