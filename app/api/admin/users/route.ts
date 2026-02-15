@@ -29,8 +29,6 @@ export async function GET() {
         role: true,
         authRole: true,
         emailVerified: true,
-        createdAt: true,
-        updatedAt: true,
         sessions: {
           select: {
             expires: true,
@@ -52,8 +50,6 @@ export async function GET() {
       role: user.role,
       authRole: user.authRole,
       emailVerified: user.emailVerified,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
       lastLogin: user.sessions[0]?.expires
         ? new Date(user.sessions[0].expires).toISOString()
         : null,
