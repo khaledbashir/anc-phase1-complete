@@ -2,7 +2,7 @@
 
 **Branch:** `phase2/product-database`
 **Last Updated:** 2026-02-15
-**Total Features:** 11 (5 shipped earlier, 6 shipped in Phases 7-9)
+**Total Features:** 14 (5 shipped earlier, 6 shipped in Phases 7-9, 1 infrastructure, 2 shipped in Phase 10)
 
 ---
 
@@ -21,6 +21,9 @@
 | 9 | **Liability Hunter** | ✅ Shipped | 8 | `505093d7` | See §9 below |
 | 10 | **Visual Cut-Sheet Automator** | ✅ Shipped | 9 | See below | See §10 below |
 | 11 | **Vendor RFQ Bot** | ✅ Shipped | 9 | `505093d7` | See §11 below |
+| 12 | **Kreuzberg OCR Integration** | ✅ Shipped | Infra | `8cb142d6` | See §12 below |
+| 13 | **Frankenstein Excel Normalizer** | ✅ Shipped | 10 | `deda528b` | See §13 below |
+| 14 | **Metric Mirror (Imperial/Metric Bridge)** | ✅ Shipped | 10 | `8cb142d6` | See §14 below |
 
 ---
 
@@ -193,7 +196,7 @@ Response: { result: ScanResult }
 - `riskScore = min(100, sum)`
 - Display: 0-30 green (Low), 31-60 amber (Medium), 61-100 red (High)
 
-**PDF Extraction:** Uses `unpdf` (primary) with `pdf-parse` fallback — same pattern as `app/api/vendor/parse/route.ts`.
+**PDF Extraction:** Uses Kreuzberg OCR (Tesseract + PaddleOCR) via `@/services/kreuzberg/kreuzbergClient`. Handles PDF, DOCX, DOC natively with full OCR for scanned documents.
 
 **Integration Points:**
 - Pure standalone — no DB dependency, no external API calls
@@ -350,6 +353,130 @@ Response: { cutSheet: CutSheetDocument, textSheets: string[] }
 
 ---
 
+## Infrastructure
+
+### §12 — Kreuzberg OCR Integration
+
+**Purpose:** Universal document extraction backend replacing `unpdf` + `pdf-parse` across all server-side extraction points. Kreuzberg v4.3.2 (Rust core, Tesseract + PaddleOCR) handles 75+ file formats with native OCR for scanned documents.
+
+**Files:**
+| File | Path | Lines | Role |
+|------|------|-------|------|
+| Client | `services/kreuzberg/kreuzbergClient.ts` | ~214 | Universal extraction client + unpdf-compatible wrapper |
+
+**Connectivity:**
+- Docker internal: `http://kreuz:8000` (primary)
+- Docker alt: `http://basheer_kreuz:8000` (fallback)
+- External: `https://basheer-kreuz.prd42b.easypanel.host` (last resort)
+- Health check wired into `/api/health` — shows version + status
+
+**Replaced In (7 files):**
+| File | Previous Library |
+|------|-----------------|
+| `services/rfp/rfpExtractor.ts` | unpdf |
+| `services/rfp/pdfProcessor.ts` | unpdf |
+| `services/ingest/smart-filter.ts` | unpdf |
+| `services/ingest/smart-filter-streaming.ts` | unpdf |
+| `app/api/rfp/upload/route.ts` | unpdf |
+| `app/api/sow/scan/route.ts` | unpdf + pdf-parse |
+| `app/api/vendor/parse/route.ts` | unpdf + pdf-parse |
+
+**Key Exports:**
+- `extractText(buffer, filename)` — drop-in unpdf replacement, returns `{ text, totalPages, pages[] }`
+- `extractDocument(buffer, filename)` — full Kreuzberg result with tables, OCR elements, metadata
+- `healthCheck()` — returns `{ ok, version, url }`
+
+**Gains:**
+- Scanned PDFs now extractable (OCR) — previously returned "image-only" errors
+- DOCX properly parsed (not raw UTF-8 of zip)
+- Single extraction path (no more dual unpdf/pdf-parse fallback)
+- 75+ format support (PDF, DOCX, DOC, PPTX, images, etc.)
+
+---
+
+## Phase 10 Features
+
+### §13 — Frankenstein Excel Normalizer
+
+**Purpose:** Handle non-standard "ugly" Excel spreadsheets (Moody Center, Huntington Bank Field, etc.) that don't match ANC's standard parser. Uses a "Map Once, Remember Forever" approach — fingerprint the layout, let the user map columns once, then auto-extract on all future uploads with the same layout.
+
+**Files:**
+| File | Path | Lines | Role |
+|------|------|-------|------|
+| Prisma Model | `prisma/schema.prisma` (ImportProfile) | ~15 | Stores fingerprint + column mapping |
+| Migration | `prisma/migrations/20260215070000_add_import_profile/migration.sql` | ~38 | DDL for ImportProfile table |
+| Service | `services/import/excelNormalizer.ts` | ~260 | Fingerprint, extract, normalize, save |
+| Column Utils | `services/import/columnUtils.ts` | ~30 | Client-safe col letter ↔ index (no node:crypto) |
+| API (normalize) | `app/api/import/normalize/route.ts` | ~58 | `POST /api/import/normalize` |
+| API (profile) | `app/api/import/profile/route.ts` | ~90 | `POST /api/import/profile` |
+| UI | `app/components/import/MappingWizard.tsx` | ~330 | 4-step mapping wizard |
+
+**How It Works:**
+1. **Fingerprint** — SHA-256 hash of sorted sheet names + structural content (headers/labels, not data values) of first 10 rows per sheet
+2. **Lookup** — `ImportProfile` table matched by fingerprint
+3. **Happy Path** — Profile found → extract data using saved column mapping → auto-import (zero user intervention)
+4. **Frankenstein Path** — No profile → return 202 with rawPreview → Mapping Wizard UI launches
+
+**Mapping Wizard (4 Steps):**
+1. Select Sheet — "Which tab has the data?" (skipped if only 1 sheet)
+2. Select Header Row — Click the row with column headers
+3. Map Columns — Click a field (Description, Price, Qty...), then click its column
+4. Save & Import — Names the profile, saves to DB, extracts data immediately
+
+**Key Technical Decisions:**
+- `cellFormula: false` in xlsx.read() — reads computed values, not formula strings
+- Merged cell resolution via `sheet["!merges"]` — finds master cell of merge ranges
+- Structural fingerprint excludes numeric values so same-format files with different data match
+- Data end strategy: `blank_row` (default), `keyword:<text>`, or `row:<n>`
+- `columnUtils.ts` separated from `excelNormalizer.ts` to avoid `node:crypto` in client bundles
+
+**Integration Points:**
+- `app/api/proposals/import-excel/route.ts` — normalizer runs as fallback when standard parsers fail
+- `contexts/ProposalContext.tsx` — handles 202 `mapping_required` response, surfaces `mappingWizardData`
+- `app/components/proposal/form/wizard/steps/Step1Ingestion.tsx` — renders MappingWizard when triggered
+
+---
+
+### §14 — Metric Mirror (Imperial/Metric Bridge)
+
+**Purpose:** Eliminate manual math errors when converting client dimensions (Imperial feet) to LED module arrays (Metric mm). The system accepts target dimensions in feet, snaps to the nearest cabinet/module grid, and returns the *actual* physical dimensions back in Imperial — in real time, as the user types.
+
+**Files:**
+| File | Path | Lines | Role |
+|------|------|-------|------|
+| Imperial Formatting | `lib/imperialFormat.ts` | ~100 | `feetToFeetInches()`, `feetToFeetInchesFraction()`, `formatDeltaInches()`, `mmToFeet()`, `feetToMm()` |
+
+**Modified Existing Files:**
+| File | Change |
+|------|--------|
+| `app/components/estimator/QuestionFlow.tsx` | Added Snap Result Card to dimension input; imports `calculateCabinetLayout` + imperial formatting; accepts `productSpecs` + `phase` props |
+| `app/components/estimator/EstimatorStudio.tsx` | Passes `productSpecs` prop to QuestionFlow |
+
+**No New Calculation Engine** — leverages existing `calculateCabinetLayout()` in `EstimatorBridge.ts` which already handles:
+- Imperial → mm conversion
+- Module vs cabinet granularity (Eric's request via `moduleWidthMm`/`moduleHeightMm`)
+- Snap-to-nearest rounding (`Math.round`, minimum 1)
+- Actual dimensions back in feet with delta
+- Resolution, weight, power calculations
+
+**Snap Result Card (shown in dimension input when product selected):**
+- **Actual Width/Height** in Feet'-Inches" format (e.g. `9'-10"`) + decimal feet
+- **Color-coded delta**: green (<0.5"), amber (≤2"), red (>2")
+- **Module Grid**: columns × rows, total cabinets, actual sqft
+- **Footer**: resolution (px), weight (lbs), power (W)
+- **Hint text** when no product selected: "Select an LED product to see snap-to-grid dimensions"
+
+**Imperial Formatting Helpers:**
+| Function | Example |
+|----------|--------|
+| `feetToFeetInches(9.84)` | `"9'-10""` |
+| `feetToFeetInchesFraction(9.84)` | `"9'-10 1/16""` (1/16" precision) |
+| `formatDeltaInches(-0.16)` | `{ text: "-1.97\"", isOver: false }` |
+| `mmToFeet(3000)` | `9.8425...` |
+| `feetToMm(10)` | `3048` |
+
+---
+
 ## Architecture Notes
 
 ### Shared Patterns
@@ -368,7 +495,7 @@ These files are owned by the core estimator and should not be modified by standa
 - `app/components/estimator/EstimatorBridge.ts` (except for bundler integration which was planned)
 - `app/components/estimator/EstimatorStudio.tsx` (integration wiring is done)
 - `app/components/estimator/questions.ts`
-- `app/components/estimator/QuestionFlow.tsx`
+- `app/components/estimator/QuestionFlow.tsx` (modified for Metric Mirror — snap card is self-contained)
 - `app/components/estimator/ExcelPreview.tsx`
 
 ---
@@ -379,11 +506,22 @@ These files are owned by the core estimator and should not be modified by standa
 - [x] Wire `ReverseEngineerPanel` into `EstimatorStudio.tsx` (Budget button, teal) — commit `df727b79`
 - [x] Wire `LiabilityPanel` into `EstimatorStudio.tsx` (Risk button, rose) — commit `df727b79`
 - [x] Wire `RfqPanel` into `EstimatorStudio.tsx` (RFQ button, cyan) — commit `df727b79`
+- [x] Wire `RevisionRadarPanel` into `EstimatorStudio.tsx` (Delta button, amber) — commit `fc27ea76`
+- [x] Wire `CutSheetPanel` into `EstimatorStudio.tsx` (Cuts button, indigo) — commit `fc27ea76`
+- [x] Replace all `unpdf`/`pdf-parse` with Kreuzberg client — commit `8cb142d6`
+- [x] Kreuzberg health check in `/api/health` — commit `c67d902f`
+- [x] Wire Frankenstein normalizer fallback into `import-excel/route.ts` — commit `deda528b`
+- [x] Wire MappingWizard into `Step1Ingestion.tsx` + ProposalContext 202 handling — commit `deda528b`
+- [x] Wire Metric Mirror snap card into `QuestionFlow.tsx` + pass `productSpecs` — commit `8cb142d6`
 
 ## Remaining Work
 
 - [ ] Add E2E tests for API endpoints
 - [ ] Add product catalog data (waiting on Matt) — reverse engineer returns empty if DB has no products
+- [ ] RFQ Bot improvements (see suggestions below §11)
+- [ ] Run ImportProfile migration on production DB (`prisma migrate deploy` or manual SQL)
+- [ ] Add rounding mode toggle (ceil/floor) to Metric Mirror for hard architectural constraints
+- [ ] Add imperial formatting to PDF proposal output (use `feetToFeetInches()` for actual dims)
 
 ---
 
@@ -394,6 +532,11 @@ These files are owned by the core estimator and should not be modified by standa
 | 2026-02-15 | `9a0a8fe5` | Phase 7: Smart Assembly Bundler (5 files, 767 insertions) |
 | 2026-02-15 | `505093d7` | Phase 7+8+9: Reverse Engineer + Liability Hunter + Vendor RFQ Bot (9 files, 2365 lines) |
 | 2026-02-15 | `df727b79` | Integration: Wire Reverse Engineer, Liability, RFQ panels into EstimatorStudio |
+| 2026-02-15 | `fc27ea76` | Phase 8-9: Revision Radar + Visual Cut-Sheet Automator |
+| 2026-02-15 | `8cb142d6` | Kreuzberg OCR: Replace unpdf/pdf-parse across 7 files |
+| 2026-02-15 | `c67d902f` | Kreuzberg health check in /api/health |
+| 2026-02-15 | `deda528b` | Phase 10: Frankenstein Excel Normalizer — Map Once, Remember Forever (10 files, 1203 insertions) |
+| 2026-02-15 | `8cb142d6` | Phase 10: Metric Mirror — Imperial/Metric snap-to-grid bridge (3 files, 477 insertions) |
 
 ---
 
