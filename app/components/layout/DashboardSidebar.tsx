@@ -213,7 +213,7 @@ export default function DashboardSidebar() {
                         </div>
                     </button>
                     <button
-                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        onClick={() => signOut({ callbackUrl: "/auth/login" })}
                         className="group relative p-3 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
                     >
                         <LogOut className="w-5 h-5" />
@@ -334,7 +334,7 @@ export default function DashboardSidebar() {
                             </span>
                         </div>
                         <button
-                            onClick={() => signOut({ callbackUrl: "/login" })}
+                            onClick={() => signOut({ callbackUrl: "/auth/login" })}
                             className="w-full flex items-center justify-center gap-2 rounded border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors"
                         >
                             <LogOut className="w-4 h-4" />

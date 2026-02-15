@@ -34,7 +34,7 @@ export default auth((req) => {
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/api/share") ||
     pathname.startsWith("/api/agent-skill") ||
-    pathname === "/login"
+    pathname.startsWith("/auth/")
   ) {
     return NextResponse.next();
   }
@@ -47,7 +47,7 @@ export default auth((req) => {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    return NextResponse.redirect(new URL("/login", req.url));
+    return NextResponse.redirect(new URL("/auth/login", req.url));
   }
   
   const userRole = user.role || "VIEWER"; // Default to most restrictive
