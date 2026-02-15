@@ -222,6 +222,7 @@ export function buildPreviewSheets(answers: EstimatorAnswers, rates?: RateCard):
     const calcs = answers.displays.map((d) => calculateDisplay(d, answers, rates));
 
     const sheets: SheetTab[] = [
+        buildProjectInfo(answers, calcs),
         buildBudgetSummary(answers, calcs),
         buildDisplayDetails(answers, calcs),
         buildLaborWorksheet(answers, calcs),
@@ -230,6 +231,94 @@ export function buildPreviewSheets(answers: EstimatorAnswers, rates?: RateCard):
 
     sheets[0].active = true;
     return { fileName, sheets };
+}
+
+// --- Project Info ---
+function buildProjectInfo(answers: EstimatorAnswers, calcs: ScreenCalc[]): SheetTab {
+    const rows: SheetRow[] = [];
+    const now = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+    rows.push({
+        cells: [{ value: "ANC COST ANALYSIS — PROJECT INFORMATION", bold: true, header: true, span: 2, align: "center" }],
+        isHeader: true,
+    });
+    rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+    const infoRows: [string, string | number][] = [
+        ["Client", answers.clientName || "—"],
+        ["Project Name", answers.projectName || "—"],
+        ["Location", answers.location || "—"],
+        ["Date Created", now],
+        ["Document Type", answers.docType === "budget" ? "Budget Estimate" : answers.docType === "loi" ? "Letter of Intent" : "Sales Quotation"],
+        ["Estimate Depth", answers.estimateDepth === "rom" ? "ROM / Budget" : "Detailed"],
+        ["Currency", answers.currency || "USD"],
+        ["Environment", answers.isIndoor ? "Indoor" : "Outdoor"],
+        ["New Installation", answers.isNewInstall ? "Yes" : "No"],
+        ["Union Labor", answers.isUnion ? "Yes (+15%)" : "No"],
+        ["Number of Displays", answers.displays.length],
+    ];
+
+    for (const [label, value] of infoRows) {
+        rows.push({
+            cells: [
+                { value: label, bold: true },
+                { value },
+            ],
+        });
+    }
+
+    rows.push({ cells: [{ value: "" }], isSeparator: true });
+    rows.push({
+        cells: [{ value: "FINANCIAL PARAMETERS", bold: true, header: true, span: 2 }],
+        isHeader: true,
+    });
+
+    const financialRows: [string, string | number][] = [
+        ["Margin Tier", answers.marginTier === "proposal" ? "Proposal (LED 38%, Svc 20%)" : "Budget (LED 15%, Svc 20%)"],
+        ["LED Hardware Margin", `${answers.ledMargin || 15}%`],
+        ["Services Margin", `${answers.servicesMargin || 20}%`],
+        ["Default Blended Margin", `${answers.defaultMargin || 30}%`],
+        ["Bond Rate", `${answers.bondRate || 1.5}%`],
+        ["Sales Tax Rate", `${answers.salesTaxRate || 9.5}%`],
+        ["Cost/sqft Override", answers.costPerSqFtOverride > 0 ? `$${answers.costPerSqFtOverride}` : "None (catalog pricing)"],
+    ];
+
+    for (const [label, value] of financialRows) {
+        rows.push({
+            cells: [
+                { value: label, bold: true },
+                { value },
+            ],
+        });
+    }
+
+    if (calcs.length > 0) {
+        rows.push({ cells: [{ value: "" }], isSeparator: true });
+        rows.push({
+            cells: [{ value: "SUMMARY TOTALS", bold: true, header: true, span: 2 }],
+            isHeader: true,
+        });
+
+        const totalCost = calcs.reduce((s, c) => s + c.totalCost, 0);
+        const totalSell = calcs.reduce((s, c) => s + c.sellPrice, 0);
+        const grandTotal = calcs.reduce((s, c) => s + c.finalTotal, 0);
+        const blended = totalCost > 0 ? ((1 - totalCost / totalSell) * 100).toFixed(1) : "0";
+
+        rows.push({ cells: [{ value: "Total Cost", bold: true }, { value: totalCost, currency: true }] });
+        rows.push({ cells: [{ value: "Total Sell Price", bold: true }, { value: totalSell, currency: true }] });
+        rows.push({ cells: [{ value: "Blended Margin", bold: true }, { value: `${blended}%` }] });
+        rows.push({
+            cells: [{ value: "Grand Total", bold: true }, { value: grandTotal, currency: true, bold: true, highlight: true }],
+            isTotal: true,
+        });
+    }
+
+    return {
+        name: "Project Info",
+        color: "#6366F1",
+        columns: ["FIELD", "VALUE"],
+        rows,
+    };
 }
 
 // --- Budget Summary ---

@@ -10,8 +10,9 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
-import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare } from "lucide-react";
+import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import QuestionFlow from "./QuestionFlow";
 import ExcelPreview from "./ExcelPreview";
 import EstimatorCopilot from "./EstimatorCopilot";
@@ -36,9 +37,12 @@ export default function EstimatorStudio({
     initialCellOverrides,
     initialCustomSheets,
 }: EstimatorStudioProps = {}) {
+    const router = useRouter();
     const [answers, setAnswers] = useState<EstimatorAnswers>(initialAnswers || getDefaultAnswers());
     const [exporting, setExporting] = useState(false);
     const [copilotOpen, setCopilotOpen] = useState(false);
+    const [converting, setConverting] = useState(false);
+    const [duplicating, setDuplicating] = useState(false);
     // Cell overrides: key = "sheetIdx-rowIdx-colIdx", value = edited value
     const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>(initialCellOverrides || {});
     // User-added custom sheets
@@ -137,6 +141,51 @@ export default function EstimatorStudio({
         // Questions finished — nothing extra to do, user sees the complete state
     }, []);
 
+    const handleConvert = useCallback(async () => {
+        if (!projectId || converting) return;
+        if (!confirm("Convert this estimate to a full Intelligence Mode proposal? This will create screens from your displays.")) return;
+        setConverting(true);
+        try {
+            const res = await fetch("/api/estimator/convert", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ projectId }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Conversion failed");
+            }
+            const data = await res.json();
+            router.push(`/projects/${data.projectId}`);
+        } catch (err) {
+            alert(`Conversion failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+        } finally {
+            setConverting(false);
+        }
+    }, [projectId, converting, router]);
+
+    const handleDuplicate = useCallback(async () => {
+        if (!projectId || duplicating) return;
+        setDuplicating(true);
+        try {
+            const res = await fetch("/api/estimator/duplicate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ projectId }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Duplication failed");
+            }
+            const data = await res.json();
+            router.push(`/estimator/${data.projectId}`);
+        } catch (err) {
+            alert(`Duplicate failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+        } finally {
+            setDuplicating(false);
+        }
+    }, [projectId, duplicating, router]);
+
     return (
         <div className="h-[100dvh] w-full min-w-0 overflow-hidden flex flex-col bg-background text-foreground">
             {/* Header */}
@@ -191,6 +240,28 @@ export default function EstimatorStudio({
                             >
                                 <Download className="w-3 h-3" />
                                 {exporting ? "Exporting..." : "Export .xlsx"}
+                            </button>
+                        </>
+                    )}
+                    {projectId && answers.displays.length > 0 && (
+                        <>
+                            <button
+                                onClick={handleDuplicate}
+                                disabled={duplicating}
+                                className="flex items-center gap-1 px-2.5 py-1.5 border border-border rounded text-xs text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                                title="Duplicate estimate"
+                            >
+                                <Copy className="w-3 h-3" />
+                                {duplicating ? "..." : "Duplicate"}
+                            </button>
+                            <button
+                                onClick={handleConvert}
+                                disabled={converting}
+                                className="flex items-center gap-1 px-2.5 py-1.5 border border-border rounded text-xs text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                                title="Convert to full proposal"
+                            >
+                                <ArrowRightLeft className="w-3 h-3" />
+                                {converting ? "..." : "To Proposal"}
                             </button>
                         </>
                     )}

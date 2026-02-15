@@ -1,0 +1,57 @@
+/**
+ * POST /api/estimator/duplicate
+ *
+ * Duplicates an ESTIMATE project with all estimator data.
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+export async function POST(req: NextRequest) {
+    try {
+        const body = await req.json();
+        const { projectId } = body;
+
+        if (!projectId) {
+            return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+        }
+
+        const source = await prisma.proposal.findUnique({
+            where: { id: projectId },
+        });
+
+        if (!source) {
+            return NextResponse.json({ error: "Project not found" }, { status: 404 });
+        }
+
+        // Clone estimator answers with "(Copy)" suffix on project name
+        const answers = (source.estimatorAnswers as any) || {};
+        const clonedAnswers = {
+            ...answers,
+            projectName: `${answers.projectName || "Estimate"} (Copy)`,
+        };
+
+        const duplicate = await prisma.proposal.create({
+            data: {
+                clientName: `${source.clientName} (Copy)`,
+                calculationMode: "ESTIMATE",
+                status: "DRAFT",
+                workspaceId: source.workspaceId,
+                estimatorAnswers: clonedAnswers,
+                estimatorDisplays: source.estimatorDisplays ?? undefined,
+                estimatorDepth: source.estimatorDepth,
+                estimatorCellOverrides: source.estimatorCellOverrides ?? undefined,
+                estimatorCustomSheets: source.estimatorCustomSheets ?? undefined,
+                estimatorRateSnapshot: source.estimatorRateSnapshot ?? undefined,
+            },
+        });
+
+        return NextResponse.json({
+            success: true,
+            projectId: duplicate.id,
+        });
+    } catch (error) {
+        console.error("POST /api/estimator/duplicate error:", error);
+        return NextResponse.json({ error: "Duplication failed" }, { status: 500 });
+    }
+}
