@@ -1,4 +1,4 @@
-# ANC Proposal Engine — Deliverables & Scope Overview
+# ANC Proposal Engine — Project Status & Capabilities
 
 **Prepared for:** Natalia Kovaleva, Jared, ANC Leadership
 **Prepared by:** Ahmad, Assisted.VIP
@@ -6,208 +6,173 @@
 
 ---
 
-## Purpose of This Document
+## Overview
 
-This document outlines three things clearly:
+This document provides a clear picture of where the project stands today:
 
-1. **What was originally agreed upon** — the Phase 1 scope of work that was quoted and paid for
-2. **What was actually delivered** — everything built to date, including significant work beyond the original scope
-3. **What Phase 2 could look like** — based on Natalia's request and suggested capabilities the platform can support
-
----
-
-# Part 1: Original Agreement (Phase 1 Scope)
-
-Based on our kickoff meeting discussions, the agreed scope of work covered two core deliverables:
-
-### A. Mirror Mode — "Excel In, Branded PDF Out"
-
-**The problem:** Natalia spends hours manually retyping numbers from estimators' Excel spreadsheets into InDesign or Word to produce client-facing proposals. In multimillion-dollar deals, a single typo is unacceptable.
-
-**What was agreed:**
-- Upload an ANC pricing Excel file
-- The system reads the exact cell values — line items, section headers, subtotals, grand total
-- It generates a branded PDF that matches the Excel precisely
-- Zero math — the system trusts the Excel 100%, no rounding, no recalculation
-- Professional ANC branding on every page (fonts, margins, blue slash graphics)
-- Ability to make minor modifications before final export
-
-**Status: Delivered.**
+1. **Phase 1 deliverables** — current status of what was agreed upon
+2. **Additional capabilities** — working demos built to showcase what the platform can do, ready to be finalized upon approval
+3. **Phase 2 scope** — the RFP module and other capabilities requested for the next phase
 
 ---
 
-### B. LED Budget Estimator — "The Question Tree"
+# Phase 1: Agreed Deliverables
 
-**The problem:** When someone with limited experience (like a sales rep) needs a quick budget number, they currently have to bother Matt or Jeremy. The team wanted a self-serve tool where anyone can get a rough budget by answering simple questions.
-
-**What was agreed (Natalia's exact description from our meeting):**
-
-> *"Scope of work is somebody with no experience like myself comes in and says I want to price a marquee. The engine asks me is it outdoor indoor, I say outdoor. It asks me the size, I give it the size. It tells me the closest size from LG, the closest from Yaham. What pixel pitch? I say this pitch. It says okay, I have size and pitch, I can calculate pixel count. Tell me about the structure — five options, I click one. Tell me about electrical, I click one. Tell me about permits, I click one. Tell me about shipping, I click one. It says okay, your budget is ready, and spills that Excel for me — like a rough budget."*
-
-**Key requirements from the team:**
-- **Not conversational** — no chat-style AI interaction. Step-by-step, one question at a time
-- **Pre-built answer options** — not free-form text. "Indoor or Outdoor?" with two buttons, not a text box
-- **Formulas built in** — structure, electrical, shipping, permits all calculated automatically based on the answers. The user never enters dollar amounts
-- **Usable by the least technical person on the team** — designed so someone like Alex (sales, minimal technical knowledge) can produce a rough budget without bothering Matt
-- **Output is an Excel** — the budget spills out as a spreadsheet, not just a PDF
-
-**What Natalia explicitly said was NOT in Phase 1 scope:**
-
-> *"For RFP, do not spend too much time on that because this was not quoted and I don't want you to work on something that is outside of what we talked about."*
-
-> *"Don't spend time building it because that's not in the scope of work."*
-
-**Status: Delivered — and significantly exceeded.**
+The original scope covered two core tools for the ANC team.
 
 ---
 
-# Part 2: What Was Actually Delivered
+### A. Mirror Mode
 
-Everything in Phase 1 scope was delivered. On top of that, the platform now includes a substantial amount of additional functionality that was built proactively to address pain points the team described during our meetings. This work goes well beyond the original quote.
+**What it solves:** Eliminates the manual process of retyping Excel numbers into design software for client-facing proposals. The system reads the estimator's Excel file — every line item, section header, subtotal, and grand total — and generates a branded ANC proposal PDF. It performs zero math and zero rounding. The numbers in the PDF are identical to the numbers in the Excel. Professional ANC branding (Work Sans typeface, blue slash graphics, strict margins) is applied automatically on every page.
 
-## Phase 1 Scope — Delivered
-
-| # | Deliverable | Status |
-|---|-------------|--------|
-| 1 | **Mirror Mode** — Upload Excel → branded PDF, zero math, exact match | Delivered |
-| 2 | **LED Budget Estimator** — Step-by-step question flow, pre-built options, auto-calculated budget Excel | Delivered |
-
-## Beyond Phase 1 — Delivered at No Additional Cost
-
-The following features were built based on pain points discussed in our meetings. They were not part of the original quote but are live and working on the platform today.
-
-### For Natalia (Proposals & Formatting)
-
-| # | Feature | What It Does |
-|---|---------|-------------|
-| 3 | **Three-Mode Document Toggle** | One switch changes the entire document between Budget (soft language, no signatures), Proposal (Sales Quotation), and LOI (full legal wrapper with payment terms, liability clauses, signature blocks). No more manually editing headers and footers for each deal stage. |
-| 4 | **Frankenstein Excel Normalizer** | When a non-standard Excel comes in (weird columns, merged cells — like Moody Center), the system asks you to map the columns once. It saves that fingerprint and auto-recognizes the format forever after. Map once, remember forever. |
-| 5 | **Share Links** | Generate a unique link for any proposal. The client views it in their browser — no login, no PDF attachment. The link is version-locked (old link always shows old version), expires after 30 days, and optionally password-protected. Internal costs and margins are stripped — clients only see selling prices. |
-| 6 | **E-Signature Integration** | DocuSign integration for LOI documents. Client can sign electronically. Full audit trail — who signed, when, from where. |
-| 7 | **AI Verification Guardrail** | If any data in a proposal was filled by AI and hasn't been verified by a human, the system blocks sharing. No unverified numbers go to clients. |
-
-### For Matt (Estimating & Pricing)
-
-| # | Feature | What It Does |
-|---|---------|-------------|
-| 8 | **Smart Assembly Bundler** | 22-rule logic engine. Select "Scoreboard" and it auto-adds video processor ($12K), receiving cards, spare modules, fiber converter, mounting brackets. Select "Wall Mount" and it adds vertical steel and plywood. No more forgetting $5K-$30K in hidden line items. Toggle any item on or off. |
-| 9 | **AI Quick Estimate** | Describe a project in one paragraph ("Indiana Fever needs a 20x12 scoreboard at 4mm, two ribbon boards at 6mm, indoor, union"). The AI extracts every detail and fills the entire question flow automatically. |
-| 10 | **Vendor RFQ Generator** | One-click button that takes project specs and generates a formatted Request for Quotation with an RFQ number. Select LG, Yaham, or multiple manufacturers — each gets their own document. No more retyping specs into emails. |
-| 11 | **Budget Reverse Engineer** | Client says "I have $500K." Enter the budget, and the system searches the product catalog to show which LED products and configurations fit within that number, ranked by best fit with headroom shown. |
-| 12 | **Metric Mirror** | Matt types "20 ft wide." The system finds the closest cabinet count in millimeters, snaps to it, and shows: "You asked for 20ft, actual build is 19.69ft (12 cabinets)." Color-coded: green (close), amber (noticeable gap), red (significant mismatch). |
-| 13 | **Cost Category Breakdown (3A-3G)** | In Detailed mode, shows a full per-display breakdown across all 7 ANC cost categories: Structural Materials, Labor & LED Install, Electrical & Data, Lighting Cove, PM/GC/Travel, Engineering & Permits, Equipment & Logistics. |
-| 14 | **AI Copilot (Lux)** | Chat assistant inside the Estimator. "Set margin to 38%", "Add a 20x10 ribbon board", "What's the total?" — it updates the estimate in real time. Also works on the Dashboard: "What's the pipeline value?", "Which projects need attention?" |
-
-### For Jeremy (RFPs & Risk)
-
-| # | Feature | What It Does |
-|---|---------|-------------|
-| 15 | **PDF Page Triage** | Upload a 3,000-page construction PDF. The system scores every page for relevance (LED specs, AV drawings, display schedules) and separates signal from noise. Drag pages between Keep and Discard. Export a filtered PDF with only what matters. |
-| 16 | **Contract Risk Scanner (Liability Hunter)** | Paste contract text or upload a PDF. The system runs a 20-point checklist hunting for financial landmines: liquidated damages, performance bonds, union requirements, prevailing wage, insurance, warranty terms. Each item flagged as pass, warning, or critical. |
-| 17 | **Revision Radar** | Upload two Excel files — original and revised. The system diffs them section by section: changed rows in amber, price increases in red, decreases in green. Grand total delta at the top. No more re-reading 50-page addendums to find what changed. |
-| 18 | **Visual Cut-Sheet Automator** | Auto-generates per-display spec sheets with dimensions, resolution, power, weight, and installation notes based on environment and mount type. |
-
-### For Everyone (Platform & Admin)
-
-| # | Feature | What It Does |
-|---|---------|-------------|
-| 19 | **Projects Dashboard** | Pipeline view with total value, project counts by mode, status tracking (Draft → Approved → Signed), search, and KPI strip. |
-| 20 | **Brief Me** | Click the sparkle icon on any project. AI reads the data, researches the client, and gives a one-page intelligence brief. |
-| 21 | **Product Catalog** | Full database of LED products — manufacturer, model, pixel pitch, cabinet dimensions, weight, power, brightness, cost per sqft. Feeds into the Estimator, Reverse Engineer, and RFQ Bot. |
-| 22 | **Rate Card** | All pricing constants in one place — LED cost by pitch, labor rates, PM fees, margins, bond rates. Change a rate and every new estimate uses it. |
-| 23 | **Gap Fill Assistant** | After AI extracts data from an uploaded document, the system walks through missing fields one question at a time: "I found 'Main Scoreboard' but cannot find the pixel pitch. What is it?" |
-| 24 | **Document OCR** | Built-in text extraction for scanned PDFs, DOCX, DOC, and 75+ formats. Even image-only PDFs are readable. |
-| 25 | **Modern UI Dialogs** | Every confirmation and error message uses a professional, branded dialog instead of browser-default popups. |
+**Current status:** Built and delivered. Pending Natalia's review and final approval on template styling.
 
 ---
 
-### Summary: Phase 1 Value
+### B. LED Budget Estimator
+
+**What it solves:** Allows anyone on the team — regardless of experience level — to produce a rough budget estimate without tying up senior estimators. The tool walks the user through a straightforward, step-by-step question flow: indoor or outdoor, display size, pixel pitch, structure type, electrical, permits, shipping. Each question presents pre-built options (buttons and dropdowns, not free-form text). All pricing formulas are built into the engine — the user never enters dollar amounts. At the end, the system produces a calculated budget Excel.
+
+The tool is designed to be used by the least technical person on the team. It is not a chat or a conversation — it is a guided, linear questionnaire with one question at a time.
+
+**Current status:** Built and ready for the team to review. This was just completed and has not yet been presented.
+
+---
+
+# Additional Capabilities — Working Demos
+
+During the course of building Phase 1, the team shared a number of pain points and workflow challenges across estimating, proposals, RFP processing, and deal management. Based on those conversations, we built working demos of additional capabilities to show what the platform can support.
+
+**These are functional prototypes.** They are live on the platform and can be tested today. Upon approval, each capability gets wired into the production workflow and polished for day-to-day use by the team.
+
+---
+
+### For Proposals (Natalia's Workflow)
+
+| # | Capability | What It Does |
+|---|-----------|-------------|
+| 1 | **Three-Mode Document Toggle** | One switch reformats the entire proposal between Budget (soft language, no signatures), Proposal (formal sales quotation), and LOI (full legal wrapper with payment terms, liability clauses, and signature blocks). Eliminates the need to manually edit headers, footers, and legal text when a deal moves between stages. |
+| 2 | **Non-Standard Excel Importer** | Handles the ~10% of pricing Excels that come in with unusual layouts, merged cells, or non-standard columns. The system asks the user to map the columns once, saves that layout profile, and auto-recognizes it on every future upload. One-time setup per format. |
+| 3 | **Client Share Links** | Generates a unique, secure link for any proposal. Clients view it in a clean browser experience — no login, no PDF attachment. Internal costs and margins are stripped automatically. Links are version-locked, expire after 30 days, and can be password-protected. |
+| 4 | **E-Signature (DocuSign)** | Enables electronic signing on LOI documents with a full audit trail — who signed, when, from which device. |
+| 5 | **AI Verification Guardrail** | If any field in a proposal was filled by AI and has not been verified by a human, the system prevents sharing. No unverified data reaches the client. |
+
+### For Estimating (Matt's Workflow)
+
+| # | Capability | What It Does |
+|---|-----------|-------------|
+| 6 | **Smart Assembly Bundler** | Automatically suggests the accessories and hidden line items that go with each display type. Select "Scoreboard" and it recommends: video processor, receiving cards, spare modules, fiber converter, mounting brackets, cable kits. Select "Wall Mount" and it adds vertical steel and plywood backing. Each item can be toggled on or off. Prevents the $5K–$30K in forgotten line items that slip through mental math. |
+| 7 | **AI Quick Estimate** | Describe a project in plain English — the AI extracts client name, venue, display types, dimensions, pixel pitches, environment, labor requirements — and fills the entire questionnaire automatically. Useful when someone sends a quick text like "I need three screens for the Dodgers" and you need a number fast. |
+| 8 | **Vendor RFQ Generator** | Takes the configured project specs and produces a formatted Request for Quotation with a unique RFQ number, ready to send to LG, Yaham, or any manufacturer. No more retyping specs into emails. |
+| 9 | **Budget Reverse Engineer** | Enter a client's budget (e.g., $500K) and the system searches the product catalog to show which LED products and configurations fit within that number, ranked by best fit. |
+| 10 | **Metric Mirror** | Converts between imperial and metric in real time, accounting for the fact that LED cabinets cannot be cut. Shows the actual build dimension after snapping to the nearest whole cabinet count, with a color-coded indicator showing how far off the target the real size is. |
+| 11 | **Cost Category Breakdown (3A–3G)** | In detailed mode, produces a per-display breakdown across all seven ANC cost categories: Structural Materials, Labor & LED Install, Electrical & Data, Lighting Cove, PM/GC/Travel, Engineering & Permits, Equipment & Logistics. |
+| 12 | **AI Copilot (Lux)** | A command-driven assistant inside the Estimator. Accepts instructions like "Set margin to 38%", "Add a 20x10 ribbon board", "What's the total?" and updates the estimate in real time. Also available on the Dashboard for pipeline questions and project lookups. |
+
+### For RFPs (Jeremy's Workflow)
+
+| # | Capability | What It Does |
+|---|-----------|-------------|
+| 13 | **PDF Page Triage** | Upload a large construction PDF. The system scores every page for relevance to LED and AV scope, separates signal from noise, and lets you drag pages between Keep and Discard. Export a filtered PDF containing only the pages that matter. |
+| 14 | **Contract Risk Scanner** | Scans contract or SOW text against a 20-point checklist of financial and legal risk items: liquidated damages, performance bonds, union requirements, prevailing wage, insurance, warranty terms, payment timelines. Each item is flagged as pass, warning, or critical. |
+| 15 | **Revision Radar** | Upload an original and a revised Excel. The system compares them section by section: changed rows highlighted, price increases in red, decreases in green, grand total delta at the top. No more re-reading entire addendums to find what changed. |
+| 16 | **Cut-Sheet Generator** | Produces per-display spec sheets with dimensions, resolution, power, weight, and auto-generated installation notes based on environment and mount type. |
+
+### Platform & Administration
+
+| # | Capability | What It Does |
+|---|-----------|-------------|
+| 17 | **Projects Dashboard** | Central pipeline view with total deal value, project counts by mode, status tracking (Draft → Approved → Signed), search, and KPI metrics. |
+| 18 | **Project Intelligence (Brief Me)** | One-click AI briefing on any project — reads the project data, researches the client, and delivers a summary with key insights and a bottom-line recommendation. |
+| 19 | **Product Catalog** | Centralized LED product database — manufacturer, model, pixel pitch, cabinet dimensions, weight, power, brightness, cost per sqft. Feeds into the Estimator, Reverse Engineer, and RFQ Generator. |
+| 20 | **Rate Card** | All pricing constants managed in one place — LED cost by pitch, labor rates, PM fees, default margins, bond and insurance rates. Update a rate once, and every new estimate uses it. |
+| 21 | **Gap Fill Assistant** | After AI extracts data from an uploaded document, walks through missing or uncertain fields one at a time, asking targeted questions until the proposal is complete. |
+| 22 | **Document OCR** | Built-in text extraction for scanned PDFs, DOCX, and 75+ document formats. Even image-only PDFs are processed. |
+
+---
+
+### Summary
 
 | | Count |
 |--|-------|
-| **Agreed deliverables** | 2 |
-| **Actually delivered** | 25 |
-| **Additional features at no extra cost** | 23 |
+| **Phase 1 agreed deliverables** | 2 |
+| **Additional working demos** | 22 |
+| **Total capabilities on the platform today** | 24 |
 
 ---
 
-# Part 3: Phase 2 — What Natalia Requested
+# Phase 2: Requested Scope
 
-On Slack, Natalia communicated the following:
+Based on our recent conversations, Phase 2 focuses on the **RFP processing module** and the **internal audit Excel**.
 
-> *"Send a new proposal for Phase II — RFP identification — upload RFP — it reads it, extracts key points — spits out Excel with the list of all screens. Add list of potential capabilities as well as alternatives."*
-
-> *"My boss is putting pressure on estimation to help with building the tree."*
-
-> *"My boss also wants a call with you to discuss how that 'audit' Excel should look like."*
-
-### What's Being Asked For
+### Requested Capabilities
 
 | # | Capability | Description |
 |---|-----------|-------------|
-| A | **RFP Intelligence Engine** | Upload a full RFP (hundreds or thousands of pages). The system reads it, identifies every LED display mentioned, and produces an Excel listing each screen with its name, specified size, pixel pitch, location, and any other extracted specs. |
-| B | **Key Point Extraction** | Beyond just screens — extract schedule milestones, liquidated damages, bond requirements, union/prevailing wage, insurance minimums, warranty terms, and any other commercially significant items. Presented as a structured summary. |
+| A | **RFP Intelligence Engine** | Upload a full RFP — hundreds or thousands of pages. The system reads it, identifies every LED display mentioned, and produces an Excel listing each screen with its name, specified size, pixel pitch, location, and any other extracted specs. |
+| B | **Key Point Extraction** | Beyond screens — extract schedule milestones, liquidated damages, bond requirements, union/prevailing wage, insurance minimums, warranty terms, and any other commercially significant items. Delivered as a structured summary. |
 | C | **Product Matching** | For each extracted screen, suggest matching products from ANC's catalog — closest sizes from each manufacturer, with pixel pitch options and pricing. |
-| D | **Audit Excel** | A detailed internal Excel that shows the full math behind every number — costs, margins, formulas, rate card values. For the CFO to verify that the margin is correct. (Jared wants to discuss format.) |
-| E | **Drawing Analysis** | AI vision that scans architectural and AV drawing pages, identifies display locations, reads schedule-of-displays tables directly from drawings, and feeds them into the extraction. |
+| D | **Internal Audit Excel** | A detailed internal Excel that shows the full math behind every number — costs, margins, formulas, rate card values applied. Designed for finance to verify margin accuracy. Format to be discussed with Jared. |
+| E | **Drawing Analysis** | AI vision that scans architectural and AV drawing pages, identifies display locations, reads schedule-of-displays tables directly from drawings, and feeds them into the extraction pipeline. |
 
-### Suggested Additional Capabilities for Phase 2
+### Suggested Additional Capabilities
 
-Based on what the platform can already do and the workflows we've observed, these would add significant value:
+Based on the workflows we've observed and what the platform's architecture already supports, these would be natural additions to Phase 2:
 
 | # | Capability | Why It Matters |
 |---|-----------|---------------|
-| F | **RFP-to-Estimate Pipeline** | After extracting screens from an RFP, one click to push them into the Estimator with all specs pre-filled. Jeremy extracts, Matt prices — seamless handoff. |
-| G | **Scope of Work Generator** | Based on extracted RFP requirements + configured displays, auto-generate a scope of work document with ANC's standard language, tailored to the specific project. |
-| H | **Compliance Checklist** | Cross-reference RFP requirements against the proposed solution. Flag anything the RFP asks for that isn't covered — before the client finds it. |
-| I | **Multi-Version Tracking** | As addendums come in, upload each version. The system tracks what changed across all versions and maintains a running delta log. |
-| J | **Event-Day Labor Calculator** | For venues that require on-site technicians during events (e.g., "4 hours before gates open, 4 events per week"), calculate: (Events x Hours x Rate) + (Techs x Per Diem). Catches variable labor costs that flat-rate estimates miss. |
-| K | **Bid/No-Bid Scorecard** | Before spending 40 hours on an RFP response, score the opportunity: margin potential, competition level, relationship strength, compliance difficulty. Quick go/no-go decision support. |
+| F | **RFP-to-Estimate Pipeline** | After extracting screens from an RFP, push them directly into the Estimator with all specs pre-filled. Jeremy extracts, Matt prices — seamless handoff, no re-entry. |
+| G | **Scope of Work Generator** | Based on RFP requirements and configured displays, auto-generate a scope of work document using ANC's standard language, tailored to the specific project. |
+| H | **Compliance Checklist** | Cross-reference RFP requirements against the proposed solution. Flag anything the RFP asks for that isn't addressed — before the client finds it. |
+| I | **Multi-Version Tracking** | As addendums arrive, upload each version. The system tracks what changed across all versions and maintains a running delta log. |
+| J | **Event-Day Labor Calculator** | For venues requiring on-site technicians during events, calculates: (Events × Hours × Rate) + (Technicians × Per Diem). Catches variable labor costs that flat-rate estimates miss. |
+| K | **Bid/No-Bid Scorecard** | Before investing time in an RFP response, score the opportunity on margin potential, competition level, relationship strength, and compliance difficulty. Quick go/no-go decision support. |
 
 ---
 
-# Part 4: What We Need to Move Forward
+# Next Steps
 
-### From ANC (for Phase 2 quote)
+### From ANC
 
-1. **Confirmation from Jared** — green light to proceed with Phase 2 scope
-2. **Call with Jared** — to discuss the audit Excel format and what finance needs to see
-3. **Matt and Jeremy's question tree** — the logic for how screens are priced (Matt committed to providing this). Even rough notes, voice memos, or a brain-dump work. Ahmad can structure it.
-4. **Eric's product data** — LED product specs and pricing to populate the catalog for accurate matching
-5. **Sample RFPs** — 2-3 real RFPs to test the extraction engine against (the bigger and messier, the better)
+1. **Jared's green light** on Phase 2 scope
+2. **Call with Jared** to align on the audit Excel format
+3. **Estimating team input** — the question tree and pricing logic from Matt and Jeremy. Raw notes or a brain dump is fine — we will structure it.
+4. **Product data from Eric** — LED product specs and pricing for the catalog
+5. **2–3 sample RFPs** to test extraction accuracy (the bigger and messier, the better)
 
-### From Ahmad / Assisted.VIP (next steps)
+### From Assisted.VIP
 
-1. **Phase 2 proposal with pricing** — based on confirmed scope from this document
-2. **Timeline estimate** — delivery milestones for each capability
-3. **Demo of existing RFP capabilities** — the platform already has partial RFP functionality (PDF Triage, Liability Scanner, Drawing Analysis). We can demo what's working before quoting the full build.
+1. **Phase 2 proposal with pricing** based on the confirmed scope above
+2. **Delivery timeline** with milestones for each capability
+3. **Live demo** of existing RFP-adjacent capabilities (PDF Triage, Risk Scanner, Drawing Analysis) — available anytime
 
 ---
 
-# Appendix: Feature Location Reference
+# Appendix: Where to Find Everything
 
-For anyone on the ANC team who wants to try what's already live:
+For anyone on the team who wants to explore what's on the platform today:
 
-| Feature | Where to Find It |
-|---------|-----------------|
+| Capability | Where to Find It |
+|-----------|-----------------|
 | Dashboard & Pipeline | Home page after login |
 | Mirror Mode | New Project → Upload Excel |
 | LED Estimator | New Estimate → Answer questions |
 | AI Quick Estimate | Estimator → first question → "Describe your project" |
-| Smart Bundler | Estimator toolbar → orange button |
-| Budget Reverse | Estimator toolbar → teal button |
-| Vendor RFQ | Estimator toolbar → cyan button |
-| Risk Scanner | Estimator toolbar → rose button |
-| Revision Radar | Estimator toolbar → amber button |
-| Cut Sheets | Estimator toolbar → indigo button |
-| Metric Mirror | Estimator → display dimensions (shows snap card) |
+| Smart Bundler | Estimator toolbar → Bundle button |
+| Budget Reverse | Estimator toolbar → Budget button |
+| Vendor RFQ | Estimator toolbar → RFQ button |
+| Risk Scanner | Estimator toolbar → Risk button |
+| Revision Radar | Estimator toolbar → Delta button |
+| Cut Sheets | Estimator toolbar → Cuts button |
+| Metric Mirror | Estimator → display dimensions (snap card appears) |
 | PDF Page Triage | Sidebar → Tools → PDF Filter |
 | Product Catalog | Sidebar → Admin → Product Catalog |
 | Rate Card | Sidebar → Admin → Rate Card |
 | AI Copilot (Lux) | Dashboard chat icon / Estimator toolbar |
 | Share a Proposal | Open project → Step 4 → Share |
 | Brief Me | Dashboard → sparkle icon on any project card |
-| Document Mode Toggle | Project settings → Budget / Proposal / LOI |
+| Document Mode | Project settings → Budget / Proposal / LOI toggle |
 
 ---
 
