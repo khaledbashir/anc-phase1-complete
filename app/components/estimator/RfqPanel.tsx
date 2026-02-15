@@ -193,10 +193,7 @@ export default function RfqPanel({ open, onClose, answers }: RfqPanelProps) {
     if (!open) return null;
 
     return (
-        <div className="fixed inset-y-0 right-0 z-50 flex">
-            <div className="fixed inset-0 bg-black/20" onClick={onClose} />
-
-            <div className="relative ml-auto w-full max-w-lg bg-white shadow-lg flex flex-col h-full">
+        <div className="flex flex-col h-full w-full bg-white">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-[#E8E8E8]">
                     <div className="flex items-center gap-2">
@@ -518,7 +515,6 @@ export default function RfqPanel({ open, onClose, answers }: RfqPanelProps) {
                         </div>
                     )}
                 </div>
-            </div>
         </div>
     );
 }

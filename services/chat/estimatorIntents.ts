@@ -20,6 +20,9 @@ import type { ScreenCalc } from "@/app/components/estimator/EstimatorBridge";
 export type EstimatorIntentType =
     | "add_display"
     | "remove_display"
+    | "set_client_name"
+    | "set_project_name"
+    | "set_location"
     | "set_led_margin"
     | "set_services_margin"
     | "set_all_margins"
@@ -32,6 +35,7 @@ export type EstimatorIntentType =
     | "set_pixel_pitch"
     | "set_cost_override"
     | "set_margin_tier"
+    | "set_number_of_displays"
     | "query_total"
     | "query_display"
     | "explain_cost"
@@ -95,6 +99,45 @@ const INTENT_PATTERNS: IntentPattern[] = [
             else if (lower.includes("wall")) result.locationType = "wall";
             return result;
         },
+    },
+    // Set client name
+    {
+        type: "set_client_name",
+        patterns: [
+            /(?:client|customer)\s+(?:is|name\s+is|name:?)\s+["']?(.+?)["']?$/i,
+            /(?:set|change|update)\s+(?:the\s+)?client\s+(?:name\s+)?(?:to\s+)?["']?(.+?)["']?$/i,
+            /(?:the\s+)?client\s+is\s+["']?(.+?)["']?$/i,
+        ],
+        extractParams: (match) => ({ name: (match[1] || "").trim() }),
+    },
+    // Set project name
+    {
+        type: "set_project_name",
+        patterns: [
+            /(?:project|estimate)\s+(?:is|name\s+is|name:?|called)\s+["']?(.+?)["']?$/i,
+            /(?:set|change|update)\s+(?:the\s+)?project\s+(?:name\s+)?(?:to\s+)?["']?(.+?)["']?$/i,
+            /(?:call|name)\s+(?:this|the)\s+(?:project|estimate)\s+["']?(.+?)["']?$/i,
+        ],
+        extractParams: (match) => ({ name: (match[1] || "").trim() }),
+    },
+    // Set location
+    {
+        type: "set_location",
+        patterns: [
+            /(?:location|venue|city|site)\s+(?:is|:)\s+["']?(.+?)["']?$/i,
+            /(?:set|change|update)\s+(?:the\s+)?location\s+(?:to\s+)?["']?(.+?)["']?$/i,
+            /(?:this\s+is\s+(?:in|at|for))\s+["']?(.+?)["']?$/i,
+        ],
+        extractParams: (match) => ({ location: (match[1] || "").trim() }),
+    },
+    // Set number of displays
+    {
+        type: "set_number_of_displays",
+        patterns: [
+            /(?:set|change)?\s*(?:number\s+of\s+)?displays?\s*(?:to|:|=)\s*(\d+)/i,
+            /(\d+)\s+displays?/i,
+        ],
+        extractParams: (match) => ({ count: parseInt(match[1], 10) }),
     },
     // Remove display
     {
@@ -573,6 +616,60 @@ export function executeEstimatorIntent(
             }
             if (!msg) msg = "Specify a cost category: hardware, structural, install, electrical, or margin.";
             return { success: true, message: msg };
+        }
+
+        case "set_client_name": {
+            const name = intent.params.name;
+            if (!name) return { success: false, message: "Please provide a client name." };
+            return {
+                success: true,
+                message: `Client set to **${name}**.`,
+                updatedAnswers: { ...answers, clientName: name },
+            };
+        }
+
+        case "set_project_name": {
+            const name = intent.params.name;
+            if (!name) return { success: false, message: "Please provide a project name." };
+            return {
+                success: true,
+                message: `Project name set to **${name}**.`,
+                updatedAnswers: { ...answers, projectName: name },
+            };
+        }
+
+        case "set_location": {
+            const loc = intent.params.location;
+            if (!loc) return { success: false, message: "Please provide a location." };
+            return {
+                success: true,
+                message: `Location set to **${loc}**.`,
+                updatedAnswers: { ...answers, location: loc },
+            };
+        }
+
+        case "set_number_of_displays": {
+            const count = intent.params.count;
+            if (!count || count < 1 || count > 20) return { success: false, message: `Invalid display count: ${count}. Must be 1-20.` };
+            const current = answers.displays.length;
+            if (count === current) return { success: true, message: `Already have ${count} display(s).` };
+            if (count > current) {
+                const newDisplays = [...answers.displays];
+                for (let i = current; i < count; i++) {
+                    newDisplays.push({ ...getDefaultDisplayAnswers(), displayName: `Display ${i + 1}` });
+                }
+                return {
+                    success: true,
+                    message: `Added ${count - current} display(s). Now have **${count}** total.`,
+                    updatedAnswers: { ...answers, displays: newDisplays },
+                };
+            }
+            // Reduce
+            return {
+                success: true,
+                message: `Reduced to **${count}** display(s) (removed ${current - count}).`,
+                updatedAnswers: { ...answers, displays: answers.displays.slice(0, count) },
+            };
         }
 
         case "general_question":

@@ -99,7 +99,7 @@ export default function DashboardSidebar() {
 
     return (
         <>
-            <aside className="h-screen w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-4 z-50 transition-colors duration-300">
+            <aside className="h-screen w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-4 z-50 transition-colors duration-300 sticky top-0">
                 {/* Minimal Logo */}
                 <div className="mb-6">
                     <Link href="/projects" className="flex items-center justify-center">
@@ -124,7 +124,7 @@ export default function DashboardSidebar() {
 
                 <button
                     onClick={() => setIsNavExpanded((prev) => !prev)}
-                    className="group relative p-2 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200 mb-4"
+                    className="group relative p-2.5 rounded bg-secondary/60 text-foreground hover:bg-secondary transition-all duration-200 mb-4"
                     aria-label={isNavExpanded ? "Collapse navigation" : "Expand navigation"}
                 >
                     {isNavExpanded ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
@@ -134,7 +134,7 @@ export default function DashboardSidebar() {
                 </button>
 
                 {/* Main Nav */}
-                <nav className="flex-1 flex flex-col gap-2 overflow-y-auto">
+                <nav className="flex flex-col gap-2 overflow-y-auto">
                     {/* Primary Navigation */}
                     {mainMenuItems.map((item) => {
                         const isActive = pathname === item.href;
@@ -201,8 +201,8 @@ export default function DashboardSidebar() {
                     })}
                 </nav>
 
-                {/* Bottom Nav */}
-                <div className="flex flex-col gap-4 mt-auto">
+                {/* Bottom Nav — always pinned to bottom */}
+                <div className="flex flex-col gap-3 mt-auto pt-4 border-t border-border">
                     <button
                         onClick={() => setIsSettingsOpen(true)}
                         className="group relative p-3 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"

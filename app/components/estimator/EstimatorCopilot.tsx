@@ -335,7 +335,7 @@ export default function EstimatorCopilot({
                                         {isUser ? (
                                             <p className="whitespace-pre-wrap">{msg.content}</p>
                                         ) : (
-                                            <div className="prose prose-xs max-w-none [&_table]:text-[10px] [&_th]:px-1.5 [&_td]:px-1.5 [&_th]:py-0.5 [&_td]:py-0.5 [&_p]:my-0.5 [&_strong]:text-zinc-900">
+                                            <div className="prose prose-sm max-w-none prose-zinc prose-p:my-1 prose-li:my-0 prose-ul:my-1 prose-ol:my-1 prose-headings:my-1.5 prose-headings:text-zinc-900 prose-strong:text-zinc-900 prose-table:text-[10px] [&_th]:px-1.5 [&_td]:px-1.5 [&_th]:py-0.5 [&_td]:py-0.5 [&_table]:my-1 [&_th]:text-left [&_th]:border-b [&_th]:border-zinc-300 [&_td]:border-b [&_td]:border-zinc-200">
                                                 <ReactMarkdown>{msg.content}</ReactMarkdown>
                                             </div>
                                         )}
