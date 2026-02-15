@@ -256,56 +256,66 @@ Response: { result: DeltaResult }
 
 ## Phase 9 Features
 
-### §11 — Vendor RFQ Bot
+### §11 — Vendor RFQ Bot V2
 
-**Purpose:** Auto-generates professional RFQ emails to LED manufacturers with display specs, quantities, ANC standard terms. One per manufacturer.
+**Purpose:** Auto-generates professional RFQ documents to LED manufacturers with enriched display specs (resolution, brightness, IP rating), RFQ numbering, and a rich styled preview UI. One per manufacturer, generated in parallel.
 
 **Files:**
 | File | Path | Lines | Role |
 |------|------|-------|------|
-| Service | `services/rfq/rfqGenerator.ts` | ~150 | Email template builder |
-| API | `app/api/rfq/generate/route.ts` | ~45 | `POST /api/rfq/generate` |
-| UI Panel | `app/components/estimator/RfqPanel.tsx` | ~340 | 3-step wizard panel |
+| Service | `services/rfq/rfqGenerator.ts` | ~292 | RFQ document builder with enrichment |
+| API (generate) | `app/api/rfq/generate/route.ts` | ~45 | `POST /api/rfq/generate` |
+| API (manufacturers) | `app/api/manufacturers/list/route.ts` | ~25 | `GET /api/manufacturers/list` (from DB) |
+| UI Panel | `app/components/estimator/RfqPanel.tsx` | ~640 | 3-step wizard with rich preview |
+| Tooltips | `app/components/estimator/ToolDescription.tsx` | ~112 | Rich hover tooltips for toolbar buttons |
+
+**V2 Upgrades (commit `953725a1`):**
+- RFQ numbering: `RFQ-YYYY-NNNN` (time-based sequence)
+- Date stamps on every RFQ
+- Enrichment from EstimatorBridge: resolution (pixelsW × pixelsH), area (sqft), cabinet layout
+- Enrichment from ManufacturerProduct: brightness (nits), IP rating, refresh rate (wired as null until product DB enriched)
+- Manufacturer list fetched from DB (`ManufacturerProduct` distinct active), fallback to hardcoded [LG, Yaham, Absen, Unilumin]
+- `Promise.all()` parallel generation across multiple manufacturers
+- Rich styled preview: DisplayCards with 2-column spec grids, colored sections (amber spares, purple requirements), manufacturer pills
+- Download filename includes RFQ number: `RFQ-2026-0847_LG.txt`
 
 **API Contract:**
 ```
 POST /api/rfq/generate
 Body: {
   answers: {
-    clientName: string,
-    projectName: string,
-    location: string,
-    displays: Array<{
-      displayName, widthFt, heightFt, pixelPitch,
-      productName, locationType, serviceType, isReplacement
-    }>
+    clientName, projectName, location,
+    displays: Array<{ displayName, widthFt, heightFt, pixelPitch,
+      productName, locationType, serviceType, isReplacement, quantity?, installComplexity? }>,
+    calcs?: Array<{ pixelsW?, pixelsH?, areaSqFt?, cabinetLayout? }>,
+    products?: Array<{ maxNits?, ipRating?, refreshRate?, environment? } | null>
   },
   manufacturer: string,
-  options?: {
-    deliveryTimeline?: string,
-    includeSpares?: boolean,  // default true (2% spare modules)
-    contactName?: string,
-    contactEmail?: string,
-    specialRequirements?: string[]
-  }
+  options?: { deliveryTimeline?, includeSpares?, contactName?, contactEmail?, specialRequirements? }
 }
 Response: { rfq: RfqDocument }
+
+GET /api/manufacturers/list
+Response: { manufacturers: string[] }
 ```
 
 **Key Types:**
-- `RfqLineItem` — per-display line (name, dims, area, pitch, environment, preferred product)
-- `RfqDocument` — full email (subject, recipient, body text, line items, metadata)
+- `RfqLineItem` — per-display (name, dims, area, pitch, environment, quantity, resolution, brightnessNits, ipRating, installComplexity)
+- `RfqDocument` — full document (rfqNumber, date, subject, recipient, lineItems, bodyText, contactInfo, metadata)
+- `CalcInput` — enrichment from ScreenCalc (pixelsW, pixelsH, areaSqFt, cabinetLayout)
+- `ProductInput` — enrichment from ManufacturerProduct (maxNits, ipRating, refreshRate, environment)
 
 **Integration Points:**
-- Pure standalone — no DB dependency, no AI calls
-- Pre-fills from parent estimator's current `answers` object
-- Wired into EstimatorStudio.tsx via "RFQ" button (cyan) — commit `df727b79`
+- Enriched with `calcs` (ScreenCalc[]) and `productSpecs` from EstimatorStudio
+- DB manufacturers via `/api/manufacturers/list` with graceful fallback
+- ToolDescription tooltips on all estimator toolbar buttons
+- Wired into EstimatorStudio.tsx via "RFQ" button (cyan) — commit `df727b79`, upgraded `953725a1`
 
 **Known Limitations:**
 - Plain text output only (no HTML email or PDF)
 - No email sending — copy/download only
 - No persistence of generated RFQs
-- Does not auto-detect manufacturer from selected products
+- Product enrichment (brightness, IP) awaiting ManufacturerProduct data population
 
 ---
 
@@ -513,12 +523,13 @@ These files are owned by the core estimator and should not be modified by standa
 - [x] Wire Frankenstein normalizer fallback into `import-excel/route.ts` — commit `deda528b`
 - [x] Wire MappingWizard into `Step1Ingestion.tsx` + ProposalContext 202 handling — commit `deda528b`
 - [x] Wire Metric Mirror snap card into `QuestionFlow.tsx` + pass `productSpecs` — commit `8cb142d6`
+- [x] RFQ Bot V2 — rich preview, RFQ numbering, DB manufacturers, parallel generation — commit `953725a1`
 
 ## Remaining Work
 
 - [ ] Add E2E tests for API endpoints
 - [ ] Add product catalog data (waiting on Matt) — reverse engineer returns empty if DB has no products
-- [ ] RFQ Bot improvements (see suggestions below §11)
+- [x] RFQ Bot V2 — rich preview, RFQ numbering, parallel generation, DB manufacturers — commit `953725a1`
 - [ ] Run ImportProfile migration on production DB (`prisma migrate deploy` or manual SQL)
 - [ ] Add rounding mode toggle (ceil/floor) to Metric Mirror for hard architectural constraints
 - [ ] Add imperial formatting to PDF proposal output (use `feetToFeetInches()` for actual dims)
@@ -537,6 +548,7 @@ These files are owned by the core estimator and should not be modified by standa
 | 2026-02-15 | `c67d902f` | Kreuzberg health check in /api/health |
 | 2026-02-15 | `deda528b` | Phase 10: Frankenstein Excel Normalizer — Map Once, Remember Forever (10 files, 1203 insertions) |
 | 2026-02-15 | `8cb142d6` | Phase 10: Metric Mirror — Imperial/Metric snap-to-grid bridge (3 files, 477 insertions) |
+| 2026-02-15 | `953725a1` | Phase 11: RFQ Bot V2 — rich preview, RFQ numbering, parallel generation, DB manufacturers (5 files, 281 insertions) |
 
 ---
 
