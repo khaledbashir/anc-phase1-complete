@@ -436,6 +436,12 @@ export function buildPreviewSheets(answers: EstimatorAnswers, rates?: RateCard):
         buildMarginAnalysis(answers, calcs),
     ];
 
+    // Add Cost Category Breakdown (3A-3G) in Detailed mode
+    if (answers.estimateDepth === "detailed" && calcs.length > 0) {
+        // Insert after Labor Worksheet (index 3), before Margin Analysis
+        sheets.splice(4, 0, buildCostCategoryBreakdown(answers, calcs, rates));
+    }
+
     // Add Cabinet Layout sheet if any display has cabinet data
     const hasCabinets = calcs.some((c) => c.cabinetLayout);
     if (hasCabinets) {
@@ -1007,6 +1013,378 @@ function buildBundleSheet(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sheet
         name: "Bundle Accessories",
         color: "#F97316",
         columns: ["ITEM", "CATEGORY", "QTY", "UNIT COST", "TOTAL", "TRIGGER"],
+        rows,
+    };
+}
+
+// --- Cost Category Breakdown (3A-3G) — Detailed Mode Only ---
+function buildCostCategoryBreakdown(answers: EstimatorAnswers, calcs: ScreenCalc[], rates?: RateCard): SheetTab {
+    const rows: SheetRow[] = [];
+    const cols = ["CATEGORY", "LINE ITEM", "QUANTITY", "RATE", "COST", "NOTES"];
+
+    rows.push({
+        cells: [{ value: "COST CATEGORY BREAKDOWN (3A–3G)", bold: true, header: true, span: 6, align: "center" }],
+        isHeader: true,
+    });
+    rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+    if (calcs.length === 0) {
+        rows.push({ cells: [{ value: "No displays configured yet", span: 6, align: "center" }] });
+    } else {
+        for (let i = 0; i < calcs.length; i++) {
+            const c = calcs[i];
+            const d = answers.displays[i];
+            if (!d) continue;
+
+            const area = c.areaSqFt;
+            const pitch = c.pixelPitch;
+            const estimatedWeightLbs = area * 0.0929 * 45;
+            const unionLabel = answers.isUnion ? " (union +15%)" : "";
+
+            // Display header
+            rows.push({
+                cells: [{ value: `▸ ${c.name} — ${c.widthFt}′ × ${c.heightFt}′ (${area.toFixed(1)} sqft) @ ${pitch}mm`, bold: true, header: true, span: 6 }],
+                isHeader: true,
+            });
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+            // ----- 3A: Structural Materials -----
+            const steelScope = d.steelScope || "full";
+            const structPctLabel = d.useExistingStructure ? "existing (5%)"
+                : steelScope === "existing" ? "existing (5%)"
+                : steelScope === "secondary" ? "secondary only (12%)"
+                : `full build (${d.serviceType === "Top" ? "10" : "20"}%)`;
+
+            rows.push({ cells: [{ value: "3A — STRUCTURAL MATERIALS", bold: true, header: true, span: 6 }], isHeader: true });
+            rows.push({
+                cells: cols.map(c => ({ value: c, bold: true, header: true, align: c === "COST" || c === "RATE" ? "right" as const : undefined })),
+                isHeader: true,
+            });
+            rows.push({
+                cells: [
+                    { value: "Structural" }, { value: `Steel scope: ${structPctLabel}` },
+                    { value: `${area.toFixed(0)} sqft` }, { value: "% of HW" },
+                    { value: c.structureCost, currency: true, align: "right" },
+                    { value: `Based on ${steelScope} scope${unionLabel}` },
+                ],
+            });
+            rows.push({
+                cells: [
+                    { value: "" }, { value: "3A SUBTOTAL", bold: true },
+                    { value: "" }, { value: "" },
+                    { value: c.structureCost, currency: true, align: "right", bold: true, highlight: true },
+                    { value: "" },
+                ],
+                isTotal: true,
+            });
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+            // ----- 3B: Labor & LED Install -----
+            const steelRate = rc(rates, `install.steel_fab.${d.installComplexity}`, STEEL_RATES[d.installComplexity] || 35);
+            const ledRate = rc(rates, `install.led_panel.${d.installComplexity}`, LED_INSTALL_RATES[d.installComplexity] || 105);
+            const steelLabor = estimatedWeightLbs * steelRate;
+            const ledLabor = area * ledRate;
+
+            rows.push({ cells: [{ value: "3B — LABOR & LED INSTALL", bold: true, header: true, span: 6 }], isHeader: true });
+            rows.push({
+                cells: cols.map(c => ({ value: c, bold: true, header: true, align: c === "COST" || c === "RATE" ? "right" as const : undefined })),
+                isHeader: true,
+            });
+            rows.push({
+                cells: [
+                    { value: "Steel Erection" }, { value: `${d.installComplexity} complexity` },
+                    { value: `${Math.round(estimatedWeightLbs)} lbs` }, { value: `$${steelRate}/lb`, align: "right" },
+                    { value: steelLabor * (answers.isUnion ? 1.15 : 1), currency: true, align: "right" },
+                    { value: `Weight-based${unionLabel}` },
+                ],
+            });
+            rows.push({
+                cells: [
+                    { value: "LED Panel Mount" }, { value: `${d.installComplexity} complexity` },
+                    { value: `${area.toFixed(0)} sqft` }, { value: `$${ledRate}/sqft`, align: "right" },
+                    { value: ledLabor * (answers.isUnion ? 1.15 : 1), currency: true, align: "right" },
+                    { value: `Area-based${unionLabel}` },
+                ],
+            });
+            if (d.isReplacement) {
+                rows.push({
+                    cells: [
+                        { value: "Demolition" }, { value: "Remove existing display" },
+                        { value: "1" }, { value: "$5,000", align: "right" },
+                        { value: c.demolitionCost, currency: true, align: "right" },
+                        { value: "Flat rate" },
+                    ],
+                });
+            }
+            const installTotal = c.installCost + c.demolitionCost;
+            rows.push({
+                cells: [
+                    { value: "" }, { value: "3B SUBTOTAL", bold: true },
+                    { value: "" }, { value: "" },
+                    { value: installTotal, currency: true, align: "right", bold: true, highlight: true },
+                    { value: "" },
+                ],
+                isTotal: true,
+            });
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+            // ----- 3C: Electrical & Data -----
+            const elecMatRate = rc(rates, "electrical.materials_per_sqft", 125);
+            const powerMult = (d.powerDistance || "near") === "near" ? 1.0 : d.powerDistance === "medium" ? 1.3 : 1.8;
+            const powerLabel = (d.powerDistance || "near") === "near" ? "< 10 ft" : d.powerDistance === "medium" ? "10-50 ft" : "> 50 ft";
+
+            rows.push({ cells: [{ value: "3C — ELECTRICAL & DATA", bold: true, header: true, span: 6 }], isHeader: true });
+            rows.push({
+                cells: cols.map(c => ({ value: c, bold: true, header: true, align: c === "COST" || c === "RATE" ? "right" as const : undefined })),
+                isHeader: true,
+            });
+            rows.push({
+                cells: [
+                    { value: "Electrical" }, { value: `Materials + labor (${powerLabel} run)` },
+                    { value: `${area.toFixed(0)} sqft` }, { value: `$${elecMatRate} × ${powerMult}×`, align: "right" },
+                    { value: c.electricalCost, currency: true, align: "right" },
+                    { value: `Distance multiplier: ${powerMult}×${unionLabel}` },
+                ],
+            });
+            if (c.dataCablingCost > 0) {
+                rows.push({
+                    cells: [
+                        { value: "Data Cabling" }, { value: "Fiber optic conversion" },
+                        { value: "1" }, { value: fmt(c.dataCablingCost), align: "right" },
+                        { value: c.dataCablingCost, currency: true, align: "right" },
+                        { value: "> 300 ft run requires fiber" },
+                    ],
+                });
+            } else {
+                rows.push({
+                    cells: [
+                        { value: "Data Cabling" }, { value: "Standard copper (Cat6)" },
+                        { value: "—" }, { value: "$0", align: "right" },
+                        { value: 0, currency: true, align: "right" },
+                        { value: "< 300 ft, no conversion needed" },
+                    ],
+                });
+            }
+            rows.push({
+                cells: [
+                    { value: "" }, { value: "3C SUBTOTAL", bold: true },
+                    { value: "" }, { value: "" },
+                    { value: c.electricalCost + c.dataCablingCost, currency: true, align: "right", bold: true, highlight: true },
+                    { value: "" },
+                ],
+                isTotal: true,
+            });
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+            // ----- 3D: Lighting Cove (conditional) -----
+            rows.push({ cells: [{ value: "3D — LIGHTING COVE", bold: true, header: true, span: 6 }], isHeader: true });
+            rows.push({
+                cells: [
+                    { value: "" }, { value: "Not included in this estimate" },
+                    { value: "" }, { value: "" },
+                    { value: 0, currency: true, align: "right" },
+                    { value: "Add via financial overrides if needed" },
+                ],
+            });
+            rows.push({
+                cells: [
+                    { value: "" }, { value: "3D SUBTOTAL", bold: true },
+                    { value: "" }, { value: "" },
+                    { value: 0, currency: true, align: "right", bold: true },
+                    { value: "" },
+                ],
+                isTotal: true,
+            });
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+            // ----- 3E: PM, GC, Travel -----
+            const pmComplexity = answers.pmComplexity || "standard";
+            const pmMult = pmComplexity === "standard" ? 1 : pmComplexity === "complex" ? 2 : 3;
+            const pmBase = rc(rates, "other.pm_base_fee", 5882.35);
+
+            rows.push({ cells: [{ value: "3E — PM, GC & TRAVEL", bold: true, header: true, span: 6 }], isHeader: true });
+            rows.push({
+                cells: cols.map(c => ({ value: c, bold: true, header: true, align: c === "COST" || c === "RATE" ? "right" as const : undefined })),
+                isHeader: true,
+            });
+            rows.push({
+                cells: [
+                    { value: "Project Management" }, { value: `${pmComplexity} complexity (${pmMult}× base)` },
+                    { value: pmMult }, { value: fmt(pmBase), align: "right" },
+                    { value: c.pmCost, currency: true, align: "right" },
+                    { value: `Base fee × ${pmMult}` },
+                ],
+            });
+            rows.push({
+                cells: [
+                    { value: "" }, { value: "3E SUBTOTAL", bold: true },
+                    { value: "" }, { value: "" },
+                    { value: c.pmCost, currency: true, align: "right", bold: true, highlight: true },
+                    { value: "" },
+                ],
+                isTotal: true,
+            });
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+            // ----- 3F: Engineering & Permits -----
+            const engBase = rc(rates, "other.eng_base_fee", 4705.88);
+
+            rows.push({ cells: [{ value: "3F — ENGINEERING & PERMITS", bold: true, header: true, span: 6 }], isHeader: true });
+            rows.push({
+                cells: cols.map(c => ({ value: c, bold: true, header: true, align: c === "COST" || c === "RATE" ? "right" as const : undefined })),
+                isHeader: true,
+            });
+            rows.push({
+                cells: [
+                    { value: "Engineering" }, { value: `Submittals & structural engineering (${pmComplexity})` },
+                    { value: pmMult }, { value: fmt(engBase), align: "right" },
+                    { value: c.engineeringCost, currency: true, align: "right" },
+                    { value: `Base fee × ${pmMult}` },
+                ],
+            });
+            rows.push({
+                cells: [
+                    { value: "" }, { value: "3F SUBTOTAL", bold: true },
+                    { value: "" }, { value: "" },
+                    { value: c.engineeringCost, currency: true, align: "right", bold: true, highlight: true },
+                    { value: "" },
+                ],
+                isTotal: true,
+            });
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+            // ----- 3G: Equipment & Logistics -----
+            const liftLabel = (d.liftType || "scissor") === "none" ? "No equipment" : d.liftType === "scissor" ? "Scissor lift" : d.liftType === "boom" ? "Boom lift" : "Crane";
+
+            rows.push({ cells: [{ value: "3G — EQUIPMENT & LOGISTICS", bold: true, header: true, span: 6 }], isHeader: true });
+            rows.push({
+                cells: cols.map(c => ({ value: c, bold: true, header: true, align: c === "COST" || c === "RATE" ? "right" as const : undefined })),
+                isHeader: true,
+            });
+            if (c.equipmentCost > 0) {
+                rows.push({
+                    cells: [
+                        { value: "Equipment Rental" }, { value: liftLabel },
+                        { value: "1" }, { value: fmt(c.equipmentCost), align: "right" },
+                        { value: c.equipmentCost, currency: true, align: "right" },
+                        { value: `${liftLabel} rental` },
+                    ],
+                });
+            }
+            rows.push({
+                cells: [
+                    { value: "Shipping & Freight" }, { value: "Estimated from weight" },
+                    { value: `${Math.round(estimatedWeightLbs)} lbs` }, { value: "$0.50/lb", align: "right" },
+                    { value: c.shippingCost, currency: true, align: "right" },
+                    { value: "" },
+                ],
+            });
+            if (c.spareParts > 0) {
+                rows.push({
+                    cells: [
+                        { value: "Spare Parts" }, { value: "5% of LED hardware" },
+                        { value: "1" }, { value: "5%", align: "right" },
+                        { value: c.spareParts, currency: true, align: "right" },
+                        { value: "LED modules + power supplies" },
+                    ],
+                });
+            }
+            const cat3gTotal = c.equipmentCost + c.shippingCost + c.spareParts;
+            rows.push({
+                cells: [
+                    { value: "" }, { value: "3G SUBTOTAL", bold: true },
+                    { value: "" }, { value: "" },
+                    { value: cat3gTotal, currency: true, align: "right", bold: true, highlight: true },
+                    { value: "" },
+                ],
+                isTotal: true,
+            });
+
+            // ----- Display Grand Total -----
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+            const displayGrandCost = c.structureCost + installTotal + c.electricalCost + c.dataCablingCost
+                + c.pmCost + c.engineeringCost + cat3gTotal;
+            rows.push({
+                cells: [
+                    { value: `${c.name} — TOTAL SERVICES COST`, bold: true, header: true }, { value: "" },
+                    { value: "" }, { value: "" },
+                    { value: displayGrandCost, currency: true, align: "right", bold: true, highlight: true },
+                    { value: `Excludes LED hardware (${fmt(c.hardwareCost - c.spareParts)})` },
+                ],
+                isTotal: true,
+            });
+
+            // Separator between displays
+            if (i < calcs.length - 1) {
+                rows.push({ cells: [{ value: "" }], isSeparator: true });
+                rows.push({ cells: [{ value: "" }], isSeparator: true });
+            }
+        }
+
+        // Project totals across all displays
+        rows.push({ cells: [{ value: "" }], isSeparator: true });
+        rows.push({ cells: [{ value: "" }], isSeparator: true });
+        rows.push({
+            cells: [{ value: "PROJECT CATEGORY TOTALS", bold: true, header: true, span: 6, align: "center" }],
+            isHeader: true,
+        });
+        rows.push({
+            cells: [
+                { value: "CATEGORY", bold: true, header: true },
+                { value: "", bold: true, header: true },
+                { value: "", bold: true, header: true },
+                { value: "", bold: true, header: true },
+                { value: "TOTAL", bold: true, header: true, align: "right" },
+                { value: "% OF SERVICES", bold: true, header: true, align: "right" },
+            ],
+            isHeader: true,
+        });
+
+        const totals = {
+            structural: calcs.reduce((s, c) => s + c.structureCost, 0),
+            labor: calcs.reduce((s, c) => s + c.installCost + c.demolitionCost, 0),
+            electrical: calcs.reduce((s, c) => s + c.electricalCost + c.dataCablingCost, 0),
+            pm: calcs.reduce((s, c) => s + c.pmCost, 0),
+            engineering: calcs.reduce((s, c) => s + c.engineeringCost, 0),
+            equipment: calcs.reduce((s, c) => s + c.equipmentCost + c.shippingCost + c.spareParts, 0),
+        };
+        const servicesGrand = Object.values(totals).reduce((a, b) => a + b, 0);
+
+        const pctOf = (v: number) => servicesGrand > 0 ? `${((v / servicesGrand) * 100).toFixed(1)}%` : "—";
+
+        const catRows: [string, number][] = [
+            ["3A — Structural Materials", totals.structural],
+            ["3B — Labor & LED Install", totals.labor],
+            ["3C — Electrical & Data", totals.electrical],
+            ["3D — Lighting Cove", 0],
+            ["3E — PM, GC & Travel", totals.pm],
+            ["3F — Engineering & Permits", totals.engineering],
+            ["3G — Equipment & Logistics", totals.equipment],
+        ];
+        for (const [label, val] of catRows) {
+            rows.push({
+                cells: [
+                    { value: label, bold: true }, { value: "" }, { value: "" }, { value: "" },
+                    { value: val, currency: true, align: "right" },
+                    { value: pctOf(val), align: "right" },
+                ],
+            });
+        }
+        rows.push({ cells: [{ value: "" }], isSeparator: true });
+        rows.push({
+            cells: [
+                { value: "TOTAL SERVICES", bold: true }, { value: "" }, { value: "" }, { value: "" },
+                { value: servicesGrand, currency: true, align: "right", bold: true, highlight: true },
+                { value: "100%", align: "right", bold: true },
+            ],
+            isTotal: true,
+        });
+    }
+
+    return {
+        name: "Cost Categories",
+        color: "#DC2626",
+        columns: cols,
         rows,
     };
 }

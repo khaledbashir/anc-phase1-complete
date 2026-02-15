@@ -2,7 +2,7 @@
 
 **Branch:** `phase2/product-database`
 **Last Updated:** 2026-02-15
-**Total Features:** 17 (5 shipped earlier, 6 shipped in Phases 7-9, 1 infrastructure, 2 shipped in Phase 10, 3 shipped in Phase 11-12)
+**Total Features:** 19 (5 shipped earlier, 6 shipped in Phases 7-9, 1 infrastructure, 2 shipped in Phase 10, 3 shipped in Phase 11-12, 2 shipped in Phase 13)
 
 ---
 
@@ -27,6 +27,8 @@
 | 15 | **Modern Dialog System** | ✅ Shipped | 12 | See below | See §15 below |
 | 16 | **Toolbar Descriptions** | ✅ Shipped | 11 | `953725a1` | See §16 below |
 | 17 | **Liability Scanner Fix** | ✅ Shipped | 12 | `dc7efa11` | See §17 below |
+| 18 | **AI Quick Estimate** | ✅ Shipped | 13 | TBD | See §18 below |
+| 19 | **Cost Category Breakdown (3A-3G)** | ✅ Shipped | 13 | TBD | See §19 below |
 
 ---
 
@@ -513,6 +515,64 @@ These files are owned by the core estimator and should not be modified by standa
 
 ---
 
+## Phase 13 Features
+
+### §18 — AI Quick Estimate
+
+**Purpose:** "Describe your project in plain English" — user types a free-form project description, AnythingLLM extracts structured data and auto-fills the questionnaire. Skips straight to the Financial phase with all project + display fields populated.
+
+**Files:**
+| File | Path | Lines | Role |
+|------|------|-------|------|
+| API | `app/api/estimator/ai-quick/route.ts` | ~153 | POST endpoint — sends description to AnythingLLM, parses JSON response |
+| UI | `app/components/estimator/QuestionFlow.tsx` | +90 | "Describe your project" button + text area + AI merge logic |
+
+**How It Works:**
+1. On the first question (clientName), a "Describe your project" button appears
+2. User clicks → expands a textarea with placeholder example
+3. User types description → "Fill Form with AI" button calls `POST /api/estimator/ai-quick`
+4. AnythingLLM (workspace `anc-estimator`, fallback `default`) extracts JSON with project fields + display array
+5. Response merges into EstimatorAnswers via `onChange()`, jumps to Financial phase
+
+**Extraction Prompt Covers:**
+- clientName, projectName, location, docType, currency
+- isIndoor, isNewInstall, isUnion
+- displays[]: displayName, displayType, locationType, widthFt, heightFt, pixelPitch, installComplexity, serviceType, isReplacement
+- Default dimension presets by display type (scoreboard 20×12, ribbon 100×3, etc.)
+
+**Keyboard:**
+- `Ctrl+Enter` to submit description
+- "Fill manually instead" to dismiss AI mode
+
+---
+
+### §19 — Cost Category Breakdown (3A-3G)
+
+**Purpose:** When `estimateDepth === "detailed"`, adds a "Cost Categories" sheet to the Excel preview showing a per-display breakdown of all 7 ANC cost categories with line-item detail, rates, quantities, and notes.
+
+**Files:**
+| File | Path | Change |
+|------|------|--------|
+| Bridge | `app/components/estimator/EstimatorBridge.ts` | +`buildCostCategoryBreakdown()` function (~250 lines), conditionally added to sheets array |
+
+**7 Cost Categories Per Display:**
+| Category | Contents |
+|----------|----------|
+| **3A — Structural Materials** | Steel scope (existing/secondary/full), % of hardware, union multiplier |
+| **3B — Labor & LED Install** | Steel erection ($/lb × weight), LED panel mount ($/sqft × area), demolition if replacement |
+| **3C — Electrical & Data** | Materials + labor with power distance multiplier, fiber optic conversion if >300ft |
+| **3D — Lighting Cove** | Optional — placeholder row, "add via financial overrides if needed" |
+| **3E — PM, GC & Travel** | Project management base fee × complexity multiplier (1×/2×/3×) |
+| **3F — Engineering & Permits** | Engineering base fee × complexity multiplier |
+| **3G — Equipment & Logistics** | Equipment rental (lift/crane), shipping ($/lb), spare parts (5% of LED) |
+
+**Also Includes:**
+- Per-display grand total (services cost excluding LED hardware)
+- Project Category Totals — all 7 categories summed across displays with % of services column
+- Only shows when `estimateDepth === "detailed"` (not visible in ROM mode)
+
+---
+
 ## Completed Integration Work
 
 - [x] Wire `BundlePanel` into `EstimatorStudio.tsx` — commit `9a0a8fe5`
@@ -541,6 +601,8 @@ These files are owned by the core estimator and should not be modified by standa
 - [x] Liability Scanner Fix — scoring logic for conditional checks + severity-aware icons
 - [x] Lux Copilot — proper grid layout (pushes content) + remark-gfm for markdown tables
 - [x] Kimi/Puter removal — EstimatorCopilot cleaned of all Puter/Kimi references
+- [x] AI Quick Estimate — "Describe your project" → AnythingLLM fills the form
+- [x] Cost Category Breakdown (3A-3G) — Detailed mode per-display cost sheets
 
 ---
 

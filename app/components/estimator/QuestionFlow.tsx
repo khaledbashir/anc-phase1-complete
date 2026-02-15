@@ -13,7 +13,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2, Building2, Monitor, DollarSign, Sparkles, Ruler, ArrowUpDown } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2, Building2, Monitor, DollarSign, Sparkles, Ruler, ArrowUpDown, Wand2 } from "lucide-react";
 import {
     PROJECT_QUESTIONS,
     DISPLAY_QUESTIONS,
@@ -39,7 +39,66 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
     const [currentStep, setCurrentStep] = useState(0);
     const [phase, setPhase] = useState<"project" | "display" | "financial" | "complete">("project");
     const [displayIndex, setDisplayIndex] = useState(0);
+    const [aiMode, setAiMode] = useState(false);
+    const [aiDescription, setAiDescription] = useState("");
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiError, setAiError] = useState("");
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // AI Quick Estimate — describe your project, AI fills the form
+    const handleAiQuickEstimate = useCallback(async () => {
+        if (!aiDescription.trim() || aiDescription.trim().length < 10) {
+            setAiError("Please describe the project in at least 10 characters.");
+            return;
+        }
+        setAiLoading(true);
+        setAiError("");
+        try {
+            const res = await fetch("/api/estimator/ai-quick", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ description: aiDescription.trim() }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || "AI extraction failed");
+            }
+            // Merge AI-extracted answers into current state
+            const next = { ...answers };
+            if (data.answers.clientName) next.clientName = data.answers.clientName;
+            if (data.answers.projectName) next.projectName = data.answers.projectName;
+            if (data.answers.location) next.location = data.answers.location;
+            if (data.answers.docType) next.docType = data.answers.docType;
+            if (data.answers.currency) next.currency = data.answers.currency;
+            if (typeof data.answers.isIndoor === "boolean") next.isIndoor = data.answers.isIndoor;
+            if (typeof data.answers.isNewInstall === "boolean") next.isNewInstall = data.answers.isNewInstall;
+            if (typeof data.answers.isUnion === "boolean") next.isUnion = data.answers.isUnion;
+            // Merge displays
+            if (Array.isArray(data.displays) && data.displays.length > 0) {
+                next.displays = data.displays.map((d: any) => ({
+                    ...getDefaultDisplayAnswers(),
+                    displayName: d.displayName || "",
+                    displayType: d.displayType || "custom",
+                    locationType: d.locationType || "wall",
+                    widthFt: d.widthFt || 0,
+                    heightFt: d.heightFt || 0,
+                    pixelPitch: String(d.pixelPitch || "4"),
+                    installComplexity: d.installComplexity || "standard",
+                    serviceType: d.serviceType || "Front/Rear",
+                    isReplacement: Boolean(d.isReplacement),
+                }));
+            }
+            onChange(next);
+            // Jump to financial phase (project + displays filled)
+            setAiMode(false);
+            setPhase("financial");
+            setCurrentStep(0);
+        } catch (err) {
+            setAiError(err instanceof Error ? err.message : "AI extraction failed");
+        } finally {
+            setAiLoading(false);
+        }
+    }, [aiDescription, answers, onChange]);
 
     // Build the flat question list for current state
     const questions = getQuestionList(phase, displayIndex);
@@ -227,7 +286,86 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
 
             {/* Question area */}
             <div className="flex-1 flex flex-col items-center justify-start px-8 py-12 overflow-y-auto">
+                {/* AI Quick Estimate mode */}
+                {aiMode ? (
+                    <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Wand2 className="w-4 h-4 text-[#0A52EF]" />
+                            <span className="text-xs font-bold text-[#0A52EF]">AI Quick Estimate</span>
+                        </div>
+                        <h2 className="text-2xl font-semibold text-foreground mb-1 leading-tight">
+                            Describe your project
+                        </h2>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            Tell us about the venue, displays, and requirements. AI will fill in the form for you.
+                        </p>
+                        <textarea
+                            value={aiDescription}
+                            onChange={(e) => setAiDescription(e.target.value)}
+                            placeholder="e.g., Indiana Fever at Gainbridge Fieldhouse needs a new 20x12 main scoreboard at 4mm, two 100x3 ribbon boards at 6mm around the concourse, and a 30x6 marquee at 10mm for the entrance. Indoor, new install, union labor required."
+                            rows={5}
+                            autoFocus
+                            disabled={aiLoading}
+                            className="w-full bg-transparent border-2 border-border focus:border-[#0A52EF] rounded-lg outline-none text-sm py-3 px-4 transition-colors placeholder:text-muted-foreground/40 resize-none disabled:opacity-50"
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                                    e.preventDefault();
+                                    handleAiQuickEstimate();
+                                }
+                            }}
+                        />
+                        {aiError && (
+                            <p className="text-xs text-destructive mt-2">{aiError}</p>
+                        )}
+                        <div className="mt-4 flex items-center gap-3">
+                            <button
+                                onClick={handleAiQuickEstimate}
+                                disabled={aiLoading || aiDescription.trim().length < 10}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-[#0A52EF] text-white hover:bg-[#0A52EF]/90 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                            >
+                                {aiLoading ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Extracting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-4 h-4" />
+                                        Fill Form with AI
+                                    </>
+                                )}
+                            </button>
+                            <button
+                                onClick={() => { setAiMode(false); setAiError(""); }}
+                                disabled={aiLoading}
+                                className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                            >
+                                Fill manually instead
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-3">
+                            <kbd className="px-1 py-0.5 bg-accent rounded text-[10px]">Ctrl+Enter</kbd> to submit
+                        </p>
+                    </div>
+                ) : (
                 <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-300" key={`${phase}-${displayIndex}-${currentStep}`}>
+                    {/* AI Quick button — show on first project question */}
+                    {phase === "project" && currentStep === 0 && (
+                        <button
+                            onClick={() => setAiMode(true)}
+                            className="w-full mb-6 flex items-center gap-3 px-4 py-3 rounded-lg border-2 border-dashed border-[#0A52EF]/30 hover:border-[#0A52EF]/60 hover:bg-[#0A52EF]/5 transition-all group"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-[#0A52EF]/10 group-hover:bg-[#0A52EF]/20 flex items-center justify-center transition-colors">
+                                <Wand2 className="w-4 h-4 text-[#0A52EF]" />
+                            </div>
+                            <div className="text-left">
+                                <div className="text-sm font-medium text-foreground">Describe your project</div>
+                                <div className="text-xs text-muted-foreground">Let AI fill in the form from a plain-English description</div>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-muted-foreground ml-auto group-hover:text-[#0A52EF] transition-colors" />
+                        </button>
+                    )}
+
                     {/* Question number */}
                     <div className="flex items-center gap-2 mb-3">
                         <span className="text-xs font-bold text-[#0A52EF]">
@@ -293,6 +431,7 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
                         </div>
                     )}
                 </div>
+                )}
             </div>
 
             {/* Bottom nav */}
