@@ -10,11 +10,12 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
-import { FileSpreadsheet, ArrowLeft, Download, Loader2 } from "lucide-react";
+import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import QuestionFlow from "./QuestionFlow";
 import ExcelPreview from "./ExcelPreview";
-import { buildPreviewSheets, type ExcelPreviewData, type SheetTab } from "./EstimatorBridge";
+import EstimatorCopilot from "./EstimatorCopilot";
+import { buildPreviewSheets, calculateDisplay, type ExcelPreviewData, type SheetTab } from "./EstimatorBridge";
 import { getDefaultAnswers, type EstimatorAnswers } from "./questions";
 import { exportEstimatorExcel } from "./exportEstimatorExcel";
 import { useRateCard } from "@/hooks/useRateCard";
@@ -37,6 +38,7 @@ export default function EstimatorStudio({
 }: EstimatorStudioProps = {}) {
     const [answers, setAnswers] = useState<EstimatorAnswers>(initialAnswers || getDefaultAnswers());
     const [exporting, setExporting] = useState(false);
+    const [copilotOpen, setCopilotOpen] = useState(false);
     // Cell overrides: key = "sheetIdx-rowIdx-colIdx", value = edited value
     const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>(initialCellOverrides || {});
     // User-added custom sheets
@@ -51,6 +53,11 @@ export default function EstimatorStudio({
         customSheets,
         rates,
     });
+
+    // Calculate per-display cost breakdowns (used by copilot for query responses)
+    const calcs = useMemo(() => {
+        return answers.displays.map((d) => calculateDisplay(d, answers, rates ?? undefined));
+    }, [answers, rates]);
 
     // Build preview data reactively from answers + rate card
     const basePreviewData: ExcelPreviewData = useMemo(() => {
@@ -187,6 +194,18 @@ export default function EstimatorStudio({
                             </button>
                         </>
                     )}
+                    <button
+                        onClick={() => setCopilotOpen((v) => !v)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                            copilotOpen
+                                ? "bg-[#0055B3] text-white"
+                                : "border border-border text-muted-foreground hover:bg-muted"
+                        }`}
+                        title="Toggle Lux copilot"
+                    >
+                        <MessageSquare className="w-3 h-3" />
+                        Lux
+                    </button>
                 </div>
             </header>
 
@@ -201,7 +220,7 @@ export default function EstimatorStudio({
                     />
                 </section>
 
-                {/* Right: Excel Preview */}
+                {/* Right: Excel Preview + Copilot overlay */}
                 <section className="relative min-w-0 min-h-0 bg-zinc-100 dark:bg-zinc-950 overflow-hidden flex flex-col p-3">
                     <ExcelPreview
                         data={previewData}
@@ -210,6 +229,13 @@ export default function EstimatorStudio({
                         editable={true}
                         onCellEdit={handleCellEdit}
                         onAddSheet={handleAddSheet}
+                    />
+                    <EstimatorCopilot
+                        answers={answers}
+                        calcs={calcs}
+                        onUpdateAnswers={handleChange}
+                        isOpen={copilotOpen}
+                        onClose={() => setCopilotOpen(false)}
                     />
                 </section>
             </main>
