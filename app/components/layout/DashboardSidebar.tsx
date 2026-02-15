@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import {
     LayoutGrid,
     FileText,
@@ -21,6 +21,7 @@ import {
     UserCircle,
     Bell,
     Lock,
+    LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRbac } from "@/hooks/useRbac";
@@ -71,6 +72,13 @@ export default function DashboardSidebar() {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isNavExpanded, setIsNavExpanded] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const displayRole = userRole
+        ? userRole
+              .toLowerCase()
+              .split("_")
+              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+              .join(" ")
+        : "Viewer";
 
     const isAdmin = mounted ? session?.user?.authRole === "admin" : false;
 
@@ -132,7 +140,7 @@ export default function DashboardSidebar() {
                         const isActive = pathname === item.href;
                         const hasAccess = canAccess(item.allowedRoles);
                         const isRestricted = item.allowedRoles && !hasAccess;
-                        const requiredRoles = item.allowedRoles?.join(", ") || "";
+                        const requiredRoles = (item.allowedRoles as UserRole[] | null)?.join(", ") || "";
 
                         return (
                             <Link
@@ -166,7 +174,7 @@ export default function DashboardSidebar() {
                         const isActive = pathname === item.href;
                         const hasAccess = canAccess(item.allowedRoles);
                         const isRestricted = item.allowedRoles && !hasAccess;
-                        const requiredRoles = item.allowedRoles?.join(", ") || "";
+                        const requiredRoles = (item.allowedRoles as UserRole[] | null)?.join(", ") || "";
 
                         return (
                             <Link
@@ -202,6 +210,15 @@ export default function DashboardSidebar() {
                         <Settings className="w-5 h-5" />
                         <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
                             Settings
+                        </div>
+                    </button>
+                    <button
+                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        className="group relative p-3 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
+                    >
+                        <LogOut className="w-5 h-5" />
+                        <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
+                            Sign Out
                         </div>
                     </button>
                     <div className="w-8 h-8 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden">
@@ -300,6 +317,29 @@ export default function DashboardSidebar() {
                                 <span>Open Settings</span>
                             </button>
                         </div>
+                    </div>
+
+                    <div className="shrink-0 border-t border-border p-3 space-y-2">
+                        <div className="px-2">
+                            <p className="text-sm font-medium text-foreground truncate">
+                                {session?.user?.name || "User"}
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                                {session?.user?.email || "No email"}
+                            </p>
+                        </div>
+                        <div className="px-2">
+                            <span className="inline-flex items-center rounded bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                {displayRole}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => signOut({ callbackUrl: "/login" })}
+                            className="w-full flex items-center justify-center gap-2 rounded border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            Sign Out
+                        </button>
                     </div>
                 </div>
             </div>
