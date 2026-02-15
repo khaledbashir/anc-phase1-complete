@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
-import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package } from "lucide-react";
+import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QuestionFlow from "./QuestionFlow";
@@ -19,6 +19,7 @@ import EstimatorCopilot from "./EstimatorCopilot";
 import { buildPreviewSheets, calculateDisplay, type ExcelPreviewData, type SheetTab, type ProductSpec } from "./EstimatorBridge";
 import { getDefaultAnswers, type EstimatorAnswers, type DisplayAnswers } from "./questions";
 import VendorDropZone from "./VendorDropZone";
+import BundlePanel from "./BundlePanel";
 import type { VendorExtractedSpec } from "@/services/vendor/vendorParser";
 import { useProductSpecs } from "@/hooks/useProductSpecs";
 import { exportEstimatorExcel } from "./exportEstimatorExcel";
@@ -47,6 +48,7 @@ export default function EstimatorStudio({
     const [converting, setConverting] = useState(false);
     const [duplicating, setDuplicating] = useState(false);
     const [vendorOpen, setVendorOpen] = useState(false);
+    const [bundleOpen, setBundleOpen] = useState(false);
     // Cell overrides: key = "sheetIdx-rowIdx-colIdx", value = edited value
     const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>(initialCellOverrides || {});
     // User-added custom sheets
@@ -168,6 +170,21 @@ export default function EstimatorStudio({
         setAnswers(next);
         setVendorOpen(false);
     }, [answers, activeDisplayIndex]);
+
+    const handleBundleToggle = useCallback((displayIndex: number, itemId: string) => {
+        setAnswers((prev) => {
+            const next = { ...prev, displays: [...prev.displays] };
+            const d = { ...next.displays[displayIndex] };
+            const excluded = d.excludedBundleItems || [];
+            if (excluded.includes(itemId)) {
+                d.excludedBundleItems = excluded.filter((id) => id !== itemId);
+            } else {
+                d.excludedBundleItems = [...excluded, itemId];
+            }
+            next.displays[displayIndex] = d;
+            return next;
+        });
+    }, []);
 
     const handleConvert = useCallback(async () => {
         if (!projectId || converting) return;
@@ -294,6 +311,18 @@ export default function EstimatorStudio({
                         </>
                     )}
                     <button
+                        onClick={() => setBundleOpen((v) => !v)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                            bundleOpen
+                                ? "bg-orange-600 text-white"
+                                : "border border-border text-muted-foreground hover:bg-muted"
+                        }`}
+                        title="Smart Assembly Bundle"
+                    >
+                        <Boxes className="w-3 h-3" />
+                        Bundle
+                    </button>
+                    <button
                         onClick={() => setVendorOpen((v) => !v)}
                         className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
                             vendorOpen
@@ -348,6 +377,17 @@ export default function EstimatorStudio({
                         isOpen={copilotOpen}
                         onClose={() => setCopilotOpen(false)}
                     />
+                    {/* Bundle panel overlay */}
+                    {bundleOpen && (
+                        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm rounded-lg border border-border shadow-lg">
+                            <BundlePanel
+                                calcs={calcs}
+                                displays={answers.displays}
+                                onToggleItem={handleBundleToggle}
+                                onClose={() => setBundleOpen(false)}
+                            />
+                        </div>
+                    )}
                     {/* Vendor spec panel overlay */}
                     {vendorOpen && (
                         <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm rounded-lg border border-border shadow-lg">

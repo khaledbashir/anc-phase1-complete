@@ -7,6 +7,7 @@
  */
 
 import type { EstimatorAnswers, DisplayAnswers } from "./questions";
+import { calculateBundle, type BundleItem, type BundleResult, CATEGORY_LABELS } from "@/services/estimator/bundleRules";
 
 // ============================================================================
 // TYPES — Sheet data for ExcelPreview
@@ -248,6 +249,10 @@ export interface ScreenCalc {
     bondCost: number;
     salesTaxCost: number;
     finalTotal: number;
+    /** Smart Assembly Bundle — auto-suggested accessories cost */
+    bundleCost: number;
+    /** Individual bundle items (for UI display) */
+    bundleItems: BundleItem[];
     /** If targetPrice > 0, this is the reverse-calculated margin needed */
     profitShieldMargin?: number;
     /** Cabinet layout if product selected with cabinet dimensions */
@@ -321,14 +326,36 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
     const adjStructureCost = structureCost * unionMult;
     const adjElectricalCost = electricalCost * unionMult;
 
+    // Smart Assembly Bundle — auto-suggested accessories
+    const bundleInput = {
+        displayType: d.displayType || "",
+        displayName: d.displayName || "",
+        widthFt: w,
+        heightFt: h,
+        pixelPitch: d.pixelPitch,
+        locationType: d.locationType || "wall",
+        serviceType: d.serviceType || "Front/Rear",
+        isReplacement: d.isReplacement,
+        isIndoor: answers.isIndoor,
+        dataRunDistance: d.dataRunDistance || "copper",
+        liftType: d.liftType || "scissor",
+        installComplexity: d.installComplexity || "standard",
+        totalCabinets: productSpec ? (calculateCabinetLayout(w, h, productSpec)?.totalCabinets || 0) : 0,
+        areaSqFt: area,
+        excludedIds: d.excludedBundleItems || [],
+    };
+    const bundle = calculateBundle(bundleInput);
+
     const totalCost = hardware + adjStructureCost + adjInstallCost + adjElectricalCost
-        + equipmentCost + dataCablingCost + pmCost + engineeringCost + shippingCost + demolitionCost;
+        + equipmentCost + dataCablingCost + pmCost + engineeringCost + shippingCost + demolitionCost
+        + bundle.totalCost;
 
     // Tiered margins: separate LED hardware vs services margins
     const ledMarginPct = (answers.ledMargin || answers.defaultMargin || 30) / 100;
     const svcMarginPct = (answers.servicesMargin || answers.defaultMargin || 30) / 100;
     const serviceCost = adjStructureCost + adjInstallCost + adjElectricalCost
-        + equipmentCost + dataCablingCost + pmCost + engineeringCost + shippingCost + demolitionCost;
+        + equipmentCost + dataCablingCost + pmCost + engineeringCost + shippingCost + demolitionCost
+        + bundle.totalCost;
     const hardwareSell = hardware / (1 - ledMarginPct);
     const servicesSell = serviceCost / (1 - svcMarginPct);
     const sellPrice = hardwareSell + servicesSell;
@@ -372,6 +399,8 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
         engineeringCost,
         shippingCost,
         demolitionCost,
+        bundleCost: bundle.totalCost,
+        bundleItems: bundle.items,
         totalCost,
         marginPct,
         sellPrice,
@@ -411,6 +440,12 @@ export function buildPreviewSheets(answers: EstimatorAnswers, rates?: RateCard):
     const hasCabinets = calcs.some((c) => c.cabinetLayout);
     if (hasCabinets) {
         sheets.splice(3, 0, buildCabinetLayout(answers, calcs));
+    }
+
+    // Add Bundle Accessories sheet if any display has bundle items
+    const hasBundle = calcs.some((c) => c.bundleItems.length > 0);
+    if (hasBundle) {
+        sheets.push(buildBundleSheet(answers, calcs));
     }
 
     sheets[0].active = true;
@@ -560,7 +595,7 @@ function buildBudgetSummary(answers: EstimatorAnswers, calcs: ScreenCalc[]): She
             cells: [{ value: "2.0 SERVICES", bold: true }, { value: "Labor, PM & Eng" }, { value: "" }, { value: "" }, { value: "" }, { value: "" }],
         });
         for (const c of calcs) {
-            const svcCost = c.installCost + c.structureCost + c.electricalCost + c.equipmentCost + c.dataCablingCost + c.pmCost + c.engineeringCost + c.shippingCost + c.demolitionCost;
+            const svcCost = c.installCost + c.structureCost + c.electricalCost + c.equipmentCost + c.dataCablingCost + c.pmCost + c.engineeringCost + c.shippingCost + c.demolitionCost + c.bundleCost;
             rows.push({
                 cells: [
                     { value: "" },
@@ -881,6 +916,97 @@ function buildCabinetLayout(answers: EstimatorAnswers, calcs: ScreenCalc[]): She
         name: "Cabinet Layout",
         color: "#8B5CF6",
         columns: ["", "A", "B", "C", "", "D", "E", "F"],
+        rows,
+    };
+}
+
+// --- Bundle Accessories (Smart Assembly Bundler) ---
+function buildBundleSheet(answers: EstimatorAnswers, calcs: ScreenCalc[]): SheetTab {
+    const rows: SheetRow[] = [];
+
+    rows.push({
+        cells: [{ value: "SMART ASSEMBLY BUNDLE — AUTO-SUGGESTED ACCESSORIES", bold: true, header: true, span: 6, align: "center" }],
+        isHeader: true,
+    });
+    rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+    let projectBundleTotal = 0;
+
+    for (let i = 0; i < calcs.length; i++) {
+        const c = calcs[i];
+        const d = answers.displays[i];
+        if (!c.bundleItems.length) continue;
+
+        // Display header
+        rows.push({
+            cells: [{ value: `${c.name}`, bold: true, header: true, span: 6 }],
+            isHeader: true,
+        });
+        rows.push({
+            cells: [
+                { value: "ITEM", bold: true, header: true },
+                { value: "CATEGORY", bold: true, header: true },
+                { value: "QTY", bold: true, header: true, align: "center" },
+                { value: "UNIT COST", bold: true, header: true, align: "right" },
+                { value: "TOTAL", bold: true, header: true, align: "right" },
+                { value: "TRIGGER", bold: true, header: true },
+            ],
+            isHeader: true,
+        });
+
+        const excludedIds = d?.excludedBundleItems || [];
+        let displayTotal = 0;
+
+        for (const item of c.bundleItems) {
+            const isExcluded = excludedIds.includes(item.id);
+            if (!isExcluded) displayTotal += item.totalCost;
+
+            rows.push({
+                cells: [
+                    { value: isExcluded ? `✗ ${item.name}` : item.name },
+                    { value: CATEGORY_LABELS[item.category] || item.category },
+                    { value: item.quantity, align: "center" },
+                    { value: item.unitCost, currency: true, align: "right" },
+                    { value: isExcluded ? 0 : item.totalCost, currency: true, align: "right", bold: !isExcluded },
+                    { value: item.trigger },
+                ],
+            });
+        }
+
+        projectBundleTotal += displayTotal;
+
+        rows.push({ cells: [{ value: "" }], isSeparator: true });
+        rows.push({
+            cells: [
+                { value: `${c.name} Bundle Total`, bold: true },
+                { value: "" }, { value: "" }, { value: "" },
+                { value: displayTotal, currency: true, align: "right", bold: true, highlight: true },
+                { value: "" },
+            ],
+            isTotal: true,
+        });
+
+        if (i < calcs.length - 1) {
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+        }
+    }
+
+    // Project total
+    rows.push({ cells: [{ value: "" }], isSeparator: true });
+    rows.push({
+        cells: [
+            { value: "PROJECT BUNDLE TOTAL", bold: true },
+            { value: "" }, { value: "" }, { value: "" },
+            { value: projectBundleTotal, currency: true, align: "right", bold: true, highlight: true },
+            { value: "" },
+        ],
+        isTotal: true,
+    });
+
+    return {
+        name: "Bundle Accessories",
+        color: "#F97316",
+        columns: ["ITEM", "CATEGORY", "QTY", "UNIT COST", "TOTAL", "TRIGGER"],
         rows,
     };
 }

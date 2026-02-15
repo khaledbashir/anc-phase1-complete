@@ -609,6 +609,8 @@ export interface DisplayAnswers {
     liftType: string;          // "none" | "scissor" | "boom" | "crane"
     powerDistance: string;      // "near" | "medium" | "far"
     dataRunDistance: string;    // "copper" | "fiber"
+    // Smart Assembly Bundle — excluded accessory IDs
+    excludedBundleItems: string[];
 }
 
 export function getDefaultAnswers(): EstimatorAnswers {
@@ -654,6 +656,7 @@ export function getDefaultDisplayAnswers(): DisplayAnswers {
         liftType: "scissor",
         powerDistance: "near",
         dataRunDistance: "copper",
+        excludedBundleItems: [],
     };
 }
 
