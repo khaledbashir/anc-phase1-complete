@@ -20,7 +20,7 @@
 | 8 | **Revision Radar (Delta Scanner)** | ✅ Shipped | 8 | See below | See §8 below |
 | 9 | **Liability Hunter** | ✅ Shipped | 8 | `505093d7` | See §9 below |
 | 10 | **Visual Cut-Sheet Automator** | ✅ Shipped | 9 | See below | See §10 below |
-| 11 | **Vendor RFQ Bot** | ✅ Shipped | 9 | `505093d7` | See §11 below |
+| 11 | **Vendor RFQ Bot V2** | ✅ Shipped | 9+11 | `953725a1` | See §11 below |
 | 12 | **Kreuzberg OCR Integration** | ✅ Shipped | Infra | `8cb142d6` | See §12 below |
 | 13 | **Frankenstein Excel Normalizer** | ✅ Shipped | 10 | `deda528b` | See §13 below |
 | 14 | **Metric Mirror (Imperial/Metric Bridge)** | ✅ Shipped | 10 | `8cb142d6` | See §14 below |
