@@ -3,7 +3,7 @@
 import React from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LockKeyhole } from "lucide-react";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRoleInfo } from "@/lib/rbac";
@@ -44,7 +44,7 @@ export default function Unauthorized({ allowedRoles, message, featureName }: Una
       <Card className="max-w-md w-full border-border">
         <CardHeader className="text-center space-y-4">
           <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-            <LockKeyhole className="w-8 h-8 text-muted-foreground" />
+            <Lock className="w-8 h-8 text-muted-foreground" />
           </div>
           <div className="space-y-2">
             <CardTitle className="text-xl font-semibold text-foreground">
