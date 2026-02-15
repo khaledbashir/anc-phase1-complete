@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
-import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes } from "lucide-react";
+import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes, Search, Shield, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QuestionFlow from "./QuestionFlow";
@@ -20,6 +20,9 @@ import { buildPreviewSheets, calculateDisplay, type ExcelPreviewData, type Sheet
 import { getDefaultAnswers, type EstimatorAnswers, type DisplayAnswers } from "./questions";
 import VendorDropZone from "./VendorDropZone";
 import BundlePanel from "./BundlePanel";
+import ReverseEngineerPanel from "./ReverseEngineerPanel";
+import LiabilityPanel from "./LiabilityPanel";
+import RfqPanel from "./RfqPanel";
 import type { VendorExtractedSpec } from "@/services/vendor/vendorParser";
 import { useProductSpecs } from "@/hooks/useProductSpecs";
 import { exportEstimatorExcel } from "./exportEstimatorExcel";
@@ -49,6 +52,9 @@ export default function EstimatorStudio({
     const [duplicating, setDuplicating] = useState(false);
     const [vendorOpen, setVendorOpen] = useState(false);
     const [bundleOpen, setBundleOpen] = useState(false);
+    const [reverseOpen, setReverseOpen] = useState(false);
+    const [liabilityOpen, setLiabilityOpen] = useState(false);
+    const [rfqOpen, setRfqOpen] = useState(false);
     // Cell overrides: key = "sheetIdx-rowIdx-colIdx", value = edited value
     const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>(initialCellOverrides || {});
     // User-added custom sheets
@@ -185,6 +191,16 @@ export default function EstimatorStudio({
             return next;
         });
     }, []);
+
+    const handleReverseSelect = useCallback((productId: string, productName: string) => {
+        const idx = activeDisplayIndex;
+        if (idx >= 0 && idx < answers.displays.length) {
+            const next = { ...answers, displays: [...answers.displays] };
+            next.displays[idx] = { ...next.displays[idx], productId, productName };
+            setAnswers(next);
+        }
+        setReverseOpen(false);
+    }, [answers, activeDisplayIndex]);
 
     const handleConvert = useCallback(async () => {
         if (!projectId || converting) return;
@@ -323,6 +339,18 @@ export default function EstimatorStudio({
                         Bundle
                     </button>
                     <button
+                        onClick={() => setReverseOpen((v) => !v)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                            reverseOpen
+                                ? "bg-teal-600 text-white"
+                                : "border border-border text-muted-foreground hover:bg-muted"
+                        }`}
+                        title="Price-to-Spec: find products that fit your budget"
+                    >
+                        <Search className="w-3 h-3" />
+                        Budget
+                    </button>
+                    <button
                         onClick={() => setVendorOpen((v) => !v)}
                         className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
                             vendorOpen
@@ -333,6 +361,30 @@ export default function EstimatorStudio({
                     >
                         <Package className="w-3 h-3" />
                         Vendor
+                    </button>
+                    <button
+                        onClick={() => setRfqOpen((v) => !v)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                            rfqOpen
+                                ? "bg-cyan-600 text-white"
+                                : "border border-border text-muted-foreground hover:bg-muted"
+                        }`}
+                        title="Generate vendor RFQ"
+                    >
+                        <Send className="w-3 h-3" />
+                        RFQ
+                    </button>
+                    <button
+                        onClick={() => setLiabilityOpen((v) => !v)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                            liabilityOpen
+                                ? "bg-rose-600 text-white"
+                                : "border border-border text-muted-foreground hover:bg-muted"
+                        }`}
+                        title="Scan SOW/RFP for liability gaps"
+                    >
+                        <Shield className="w-3 h-3" />
+                        Risk
                     </button>
                     <button
                         onClick={() => setCopilotOpen((v) => !v)}
@@ -396,6 +448,36 @@ export default function EstimatorStudio({
                                 currentDisplay={answers.displays[activeDisplayIndex] || { widthFt: 0, heightFt: 0 } as any}
                                 onApplySpecs={handleVendorApply}
                                 onClose={() => setVendorOpen(false)}
+                            />
+                        </div>
+                    )}
+                    {/* Reverse Engineer panel overlay */}
+                    {reverseOpen && (
+                        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm rounded-lg border border-border shadow-lg overflow-hidden">
+                            <ReverseEngineerPanel
+                                open={reverseOpen}
+                                onClose={() => setReverseOpen(false)}
+                                currentDisplay={answers.displays[activeDisplayIndex] || {} as any}
+                                onSelectProduct={handleReverseSelect}
+                            />
+                        </div>
+                    )}
+                    {/* Liability scanner panel overlay */}
+                    {liabilityOpen && (
+                        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm rounded-lg border border-border shadow-lg overflow-hidden">
+                            <LiabilityPanel
+                                open={liabilityOpen}
+                                onClose={() => setLiabilityOpen(false)}
+                            />
+                        </div>
+                    )}
+                    {/* RFQ generator panel overlay */}
+                    {rfqOpen && (
+                        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm rounded-lg border border-border shadow-lg overflow-hidden">
+                            <RfqPanel
+                                open={rfqOpen}
+                                onClose={() => setRfqOpen(false)}
+                                answers={answers}
                             />
                         </div>
                     )}
