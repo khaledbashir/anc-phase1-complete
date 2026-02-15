@@ -17,10 +17,13 @@ interface ExcelPreviewProps {
     data: ExcelPreviewData;
     onExport?: () => void;
     exporting?: boolean;
+    editable?: boolean;
+    onCellEdit?: (sheetIndex: number, rowIndex: number, colIndex: number, newValue: string) => void;
 }
 
-export default function ExcelPreview({ data, onExport, exporting }: ExcelPreviewProps) {
+export default function ExcelPreview({ data, onExport, exporting, editable = false, onCellEdit }: ExcelPreviewProps) {
     const [activeTab, setActiveTab] = useState(0);
+    const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
 
     const activeSheet = data.sheets[activeTab] || data.sheets[0];
     if (!activeSheet) {
@@ -72,7 +75,22 @@ export default function ExcelPreview({ data, onExport, exporting }: ExcelPreview
                 <table className="w-full border-collapse text-xs">
                     <tbody>
                         {activeSheet.rows.map((row, rowIdx) => (
-                            <SheetRowView key={rowIdx} row={row} rowNum={rowIdx + 1} colCount={activeSheet.columns.length} />
+                            <SheetRowView
+                                key={rowIdx}
+                                row={row}
+                                rowNum={rowIdx + 1}
+                                colCount={activeSheet.columns.length}
+                                editable={editable}
+                                editingCell={editingCell}
+                                onCellClick={(col) => editable && setEditingCell({ row: rowIdx, col })}
+                                onCellChange={(col, value) => {
+                                    if (onCellEdit) {
+                                        onCellEdit(activeTab, rowIdx, col, value);
+                                    }
+                                    setEditingCell(null);
+                                }}
+                                onCellBlur={() => setEditingCell(null)}
+                            />
                         ))}
                     </tbody>
                 </table>
@@ -113,7 +131,18 @@ export default function ExcelPreview({ data, onExport, exporting }: ExcelPreview
 // ROW RENDERER
 // ============================================================================
 
-function SheetRowView({ row, rowNum, colCount }: { row: SheetRow; rowNum: number; colCount: number }) {
+interface SheetRowViewProps {
+    row: SheetRow;
+    rowNum: number;
+    colCount: number;
+    editable?: boolean;
+    editingCell?: { row: number; col: number } | null;
+    onCellClick?: (col: number) => void;
+    onCellChange?: (col: number, value: string) => void;
+    onCellBlur?: () => void;
+}
+
+function SheetRowView({ row, rowNum, colCount, editable, editingCell, onCellClick, onCellChange, onCellBlur }: SheetRowViewProps) {
     if (row.isSeparator) {
         return (
             <tr className="h-5">
@@ -150,6 +179,8 @@ function SheetRowView({ row, rowNum, colCount }: { row: SheetRow; rowNum: number
         );
     }
 
+    const isEditingThisRow = editingCell?.row === rowNum - 1;
+
     return (
         <tr className={cn(
             "hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors",
@@ -161,27 +192,105 @@ function SheetRowView({ row, rowNum, colCount }: { row: SheetRow; rowNum: number
             </td>
             {Array.from({ length: colCount }).map((_, i) => {
                 const cell = row.cells[i];
+                const isEditingThisCell = isEditingThisRow && editingCell?.col === i;
+
                 if (!cell) {
-                    return <td key={i} className="px-2 py-1 border-r border-b border-border last:border-r-0" />;
+                    return (
+                        <td
+                            key={i}
+                            className={cn(
+                                "px-2 py-1 border-r border-b border-border last:border-r-0",
+                                editable && "cursor-cell"
+                            )}
+                            onClick={() => onCellClick?.(i)}
+                        />
+                    );
                 }
+
                 return (
-                    <td
+                    <EditableCell
                         key={i}
-                        className={cn(
-                            "px-2 py-1 border-r border-b border-border last:border-r-0",
-                            cell.bold && "font-semibold",
-                            cell.header && "font-semibold text-[11px]",
-                            cell.highlight && "bg-yellow-100 dark:bg-yellow-900/30",
-                            cell.align === "right" && "text-right font-mono",
-                            cell.align === "center" && "text-center",
-                        )}
-                        title={cell.formula || undefined}
-                    >
-                        {formatCellValue(cell)}
-                    </td>
+                        cell={cell}
+                        editable={editable && !row.isHeader}
+                        isEditing={isEditingThisCell}
+                        onClick={() => onCellClick?.(i)}
+                        onChange={(value) => onCellChange?.(i, value)}
+                        onBlur={onCellBlur}
+                    />
                 );
             })}
         </tr>
+    );
+}
+
+// ============================================================================
+// EDITABLE CELL
+// ============================================================================
+
+interface EditableCellProps {
+    cell: SheetCell;
+    editable?: boolean;
+    isEditing: boolean;
+    onClick: () => void;
+    onChange: (value: string) => void;
+    onBlur?: () => void;
+}
+
+function EditableCell({ cell, editable, isEditing, onClick, onChange, onBlur }: EditableCellProps) {
+    const [value, setValue] = React.useState(formatCellValue(cell));
+
+    React.useEffect(() => {
+        setValue(formatCellValue(cell));
+    }, [cell]);
+
+    if (isEditing && editable) {
+        return (
+            <td
+                className={cn(
+                    "px-0 py-0 border-r border-b border-border last:border-r-0 bg-white dark:bg-zinc-900"
+                )}
+            >
+                <input
+                    autoFocus
+                    type="text"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onBlur={() => {
+                        onChange(value);
+                        onBlur?.();
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            onChange(value);
+                            onBlur?.();
+                        }
+                        if (e.key === "Escape") {
+                            setValue(formatCellValue(cell));
+                            onBlur?.();
+                        }
+                    }}
+                    className="w-full h-full px-2 py-1 text-xs bg-transparent border-2 border-blue-500 focus:outline-none"
+                />
+            </td>
+        );
+    }
+
+    return (
+        <td
+            onClick={onClick}
+            className={cn(
+                "px-2 py-1 border-r border-b border-border last:border-r-0",
+                cell.bold && "font-semibold",
+                cell.header && "font-semibold text-[11px]",
+                cell.highlight && "bg-yellow-100 dark:bg-yellow-900/30",
+                cell.align === "right" && "text-right font-mono",
+                cell.align === "center" && "text-center",
+                editable && "cursor-cell hover:bg-blue-50/50 dark:hover:bg-blue-900/20"
+            )}
+            title={cell.formula || undefined}
+        >
+            {value}
+        </td>
     );
 }
 
