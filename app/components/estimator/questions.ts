@@ -3,6 +3,8 @@
  *
  * Typeform-style: one question at a time, with dependencies.
  * Answers map directly to ScreenInput + project-level options for the estimator.
+ *
+ * Framework: 4 phases, 7 cost categories (3A-3G), ROM vs Detailed depth.
  */
 
 // ============================================================================
@@ -96,6 +98,61 @@ export const PROJECT_QUESTIONS: Question[] = [
         defaultValue: "budget",
         required: true,
         affectsSheet: "Budget Summary",
+    },
+    {
+        id: "estimateDepth",
+        phase: "project",
+        type: "select",
+        label: "What level of detail?",
+        subtitle: "ROM auto-calculates everything. Detailed unlocks per-category cost overrides.",
+        options: [
+            { value: "rom", label: "ROM / Budget", description: "Quick estimate — ~10 min, auto-calculate from area + complexity" },
+            { value: "detailed", label: "Detailed", description: "Full breakdown — 7 cost categories per display, per-item overrides" },
+        ],
+        defaultValue: "rom",
+        required: true,
+        affectsSheet: "Budget Summary",
+    },
+    {
+        id: "currency",
+        phase: "project",
+        type: "select",
+        label: "Currency?",
+        options: [
+            { value: "USD", label: "USD", description: "US Dollar" },
+            { value: "CAD", label: "CAD", description: "Canadian Dollar" },
+            { value: "EUR", label: "EUR", description: "Euro" },
+            { value: "GBP", label: "GBP", description: "British Pound" },
+        ],
+        defaultValue: "USD",
+        affectsSheet: "Budget Summary",
+    },
+    {
+        id: "isIndoor",
+        phase: "project",
+        type: "yes-no",
+        label: "Indoor installation?",
+        subtitle: "Affects environment ratings and material requirements",
+        defaultValue: true,
+        affectsSheet: "Display Details",
+    },
+    {
+        id: "isNewInstall",
+        phase: "project",
+        type: "yes-no",
+        label: "Is this a new installation?",
+        subtitle: "No = replacement/upgrade of existing displays",
+        defaultValue: true,
+        affectsSheet: "Labor Worksheet",
+    },
+    {
+        id: "isUnion",
+        phase: "project",
+        type: "yes-no",
+        label: "Union labor required?",
+        subtitle: "Union projects typically cost 15-25% more for labor",
+        defaultValue: false,
+        affectsSheet: "Labor Worksheet",
     },
 ];
 
@@ -233,11 +290,51 @@ export const DISPLAY_QUESTIONS: Question[] = [
 
 export const FINANCIAL_QUESTIONS: Question[] = [
     {
+        id: "marginTier",
+        phase: "financial",
+        type: "select",
+        label: "Margin tier?",
+        subtitle: "Budget = lower margins for early-stage. Proposal = full margins for client-facing.",
+        options: [
+            { value: "budget", label: "Budget Tier", description: "LED: 15%, Services: 20% — for internal ROM estimates" },
+            { value: "proposal", label: "Proposal Tier", description: "LED: 38%, Services: 20% — for client-facing quotes" },
+        ],
+        defaultValue: "budget",
+        required: true,
+        affectsSheet: "Margin Analysis",
+    },
+    {
+        id: "ledMargin",
+        phase: "financial",
+        type: "number",
+        label: "LED hardware margin?",
+        subtitle: "Margin on LED panels and hardware. Budget: 15%, Proposal: 38%.",
+        defaultValue: 15,
+        unit: "%",
+        min: 5,
+        max: 60,
+        step: 1,
+        affectsSheet: "Margin Analysis",
+    },
+    {
+        id: "servicesMargin",
+        phase: "financial",
+        type: "number",
+        label: "Services margin?",
+        subtitle: "Margin on labor, install, PM, engineering. Standard: 20%.",
+        defaultValue: 20,
+        unit: "%",
+        min: 5,
+        max: 60,
+        step: 1,
+        affectsSheet: "Margin Analysis",
+    },
+    {
         id: "defaultMargin",
         phase: "financial",
         type: "number",
-        label: "Default margin?",
-        subtitle: "Applied across all line items. Divisor model: Sell = Cost / (1 - margin)",
+        label: "Overall blended margin?",
+        subtitle: "Fallback if you prefer a single margin. Divisor model: Sell = Cost / (1 - margin).",
         defaultValue: 30,
         unit: "%",
         min: 5,
@@ -296,10 +393,18 @@ export interface EstimatorAnswers {
     projectName: string;
     location: string;
     docType: "budget" | "proposal" | "loi";
+    estimateDepth: "rom" | "detailed";
+    currency: "USD" | "CAD" | "EUR" | "GBP";
+    isIndoor: boolean;
+    isNewInstall: boolean;
+    isUnion: boolean;
     // Displays (array of per-display answers)
     displays: DisplayAnswers[];
-    // Financial
-    defaultMargin: number;
+    // Financial — tiered margins
+    marginTier: "budget" | "proposal";
+    ledMargin: number;       // LED hardware margin (separate from services)
+    servicesMargin: number;  // Services/labor margin
+    defaultMargin: number;   // Blended fallback
     bondRate: number;
     salesTaxRate: number;
     costPerSqFtOverride: number;
@@ -324,7 +429,15 @@ export function getDefaultAnswers(): EstimatorAnswers {
         projectName: "",
         location: "",
         docType: "budget",
+        estimateDepth: "rom",
+        currency: "USD",
+        isIndoor: true,
+        isNewInstall: true,
+        isUnion: false,
         displays: [],
+        marginTier: "budget",
+        ledMargin: 15,
+        servicesMargin: 20,
         defaultMargin: 30,
         bondRate: 1.5,
         salesTaxRate: 9.5,

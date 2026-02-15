@@ -154,10 +154,22 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
     const shippingCost = estimatedWeightLbs * 0.5; // ~$0.50/lb shipping estimate
     const demolitionCost = d.isReplacement ? 5000 : 0;
 
-    const totalCost = hardware + structureCost + installCost + electricalCost + pmCost + engineeringCost + shippingCost + demolitionCost;
+    // Union labor multiplier (15% uplift on labor-related costs)
+    const unionMult = answers.isUnion ? 1.15 : 1.0;
+    const adjInstallCost = installCost * unionMult;
+    const adjStructureCost = structureCost * unionMult;
+    const adjElectricalCost = electricalCost * unionMult;
 
-    const marginPct = (answers.defaultMargin || 30) / 100;
-    const sellPrice = totalCost / (1 - marginPct);
+    const totalCost = hardware + adjStructureCost + adjInstallCost + adjElectricalCost + pmCost + engineeringCost + shippingCost + demolitionCost;
+
+    // Tiered margins: separate LED hardware vs services margins
+    const ledMarginPct = (answers.ledMargin || answers.defaultMargin || 30) / 100;
+    const svcMarginPct = (answers.servicesMargin || answers.defaultMargin || 30) / 100;
+    const serviceCost = adjStructureCost + adjInstallCost + adjElectricalCost + pmCost + engineeringCost + shippingCost + demolitionCost;
+    const hardwareSell = hardware / (1 - ledMarginPct);
+    const servicesSell = serviceCost / (1 - svcMarginPct);
+    const sellPrice = hardwareSell + servicesSell;
+    const marginPct = totalCost > 0 ? 1 - (totalCost / sellPrice) : 0;
 
     const bondRate = (answers.bondRate || 1.5) / 100;
     const bondCost = sellPrice * bondRate;
@@ -179,9 +191,9 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
         costPerSqFt,
         hardwareCost: hardware,
         spareParts,
-        structureCost,
-        installCost,
-        electricalCost,
+        structureCost: adjStructureCost,
+        installCost: adjInstallCost,
+        electricalCost: adjElectricalCost,
         pmCost,
         engineeringCost,
         shippingCost,
