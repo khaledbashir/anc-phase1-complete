@@ -10,7 +10,7 @@
 
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
-import { FileSpreadsheet, Download } from "lucide-react";
+import { FileSpreadsheet, Download, Plus } from "lucide-react";
 import type { ExcelPreviewData, SheetTab, SheetRow, SheetCell } from "./EstimatorBridge";
 
 interface ExcelPreviewProps {
@@ -19,9 +19,10 @@ interface ExcelPreviewProps {
     exporting?: boolean;
     editable?: boolean;
     onCellEdit?: (sheetIndex: number, rowIndex: number, colIndex: number, newValue: string) => void;
+    onAddSheet?: () => void;
 }
 
-export default function ExcelPreview({ data, onExport, exporting, editable = false, onCellEdit }: ExcelPreviewProps) {
+export default function ExcelPreview({ data, onExport, exporting, editable = false, onCellEdit, onAddSheet }: ExcelPreviewProps) {
     const [activeTab, setActiveTab] = useState(0);
     const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
 
@@ -122,6 +123,18 @@ export default function ExcelPreview({ data, onExport, exporting, editable = fal
                         {sheet.name}
                     </button>
                 ))}
+                {onAddSheet && (
+                    <button
+                        onClick={() => {
+                            onAddSheet();
+                            setActiveTab(data.sheets.length);
+                        }}
+                        className="px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
+                        title="Add worksheet"
+                    >
+                        <Plus className="w-3.5 h-3.5" />
+                    </button>
+                )}
             </div>
         </div>
     );

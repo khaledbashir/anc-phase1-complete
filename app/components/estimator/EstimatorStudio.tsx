@@ -14,65 +14,78 @@ import { FileSpreadsheet, ArrowLeft, Download } from "lucide-react";
 import Link from "next/link";
 import QuestionFlow from "./QuestionFlow";
 import ExcelPreview from "./ExcelPreview";
-import { buildPreviewSheets, type ExcelPreviewData } from "./EstimatorBridge";
+import { buildPreviewSheets, type ExcelPreviewData, type SheetTab } from "./EstimatorBridge";
 import { getDefaultAnswers, type EstimatorAnswers } from "./questions";
+import { exportEstimatorExcel } from "./exportEstimatorExcel";
+
+const SHEET_COLORS = ["#6366F1", "#EC4899", "#14B8A6", "#F59E0B", "#8B5CF6", "#EF4444"];
 
 export default function EstimatorStudio() {
     const [answers, setAnswers] = useState<EstimatorAnswers>(getDefaultAnswers());
     const [exporting, setExporting] = useState(false);
+    // Cell overrides: key = "sheetIdx-rowIdx-colIdx", value = edited value
+    const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>({});
+    // User-added custom sheets
+    const [customSheets, setCustomSheets] = useState<SheetTab[]>([]);
 
     // Build preview data reactively from answers
-    const previewData: ExcelPreviewData = useMemo(() => {
+    const basePreviewData: ExcelPreviewData = useMemo(() => {
         return buildPreviewSheets(answers);
     }, [answers]);
+
+    // Merge computed data + custom sheets + cell overrides
+    const previewData: ExcelPreviewData = useMemo(() => {
+        const allSheets = [...basePreviewData.sheets, ...customSheets];
+
+        // Deep clone and apply overrides
+        const sheets = allSheets.map((sheet, si) => ({
+            ...sheet,
+            rows: sheet.rows.map((row, ri) => ({
+                ...row,
+                cells: row.cells.map((cell, ci) => {
+                    const key = `${si}-${ri}-${ci}`;
+                    if (key in cellOverrides) {
+                        const raw = cellOverrides[key];
+                        const numVal = typeof raw === "string" ? parseFloat(raw) : raw;
+                        const isNum = !isNaN(numVal as number) && raw !== "";
+                        return { ...cell, value: isNum ? numVal : raw };
+                    }
+                    return cell;
+                }),
+            })),
+        }));
+
+        return { ...basePreviewData, sheets };
+    }, [basePreviewData, customSheets, cellOverrides]);
 
     const handleChange = useCallback((next: EstimatorAnswers) => {
         setAnswers(next);
     }, []);
 
+    const handleCellEdit = useCallback((sheetIndex: number, rowIndex: number, colIndex: number, newValue: string) => {
+        const key = `${sheetIndex}-${rowIndex}-${colIndex}`;
+        setCellOverrides(prev => ({ ...prev, [key]: newValue }));
+    }, []);
+
+    const handleAddSheet = useCallback(() => {
+        const idx = customSheets.length;
+        const color = SHEET_COLORS[idx % SHEET_COLORS.length];
+        const newSheet: SheetTab = {
+            name: `Sheet ${basePreviewData.sheets.length + idx + 1}`,
+            color,
+            columns: ["A", "B", "C", "D", "E"],
+            rows: Array.from({ length: 20 }, () => ({
+                cells: Array.from({ length: 5 }, () => ({ value: "" })),
+            })),
+        };
+        setCustomSheets(prev => [...prev, newSheet]);
+    }, [customSheets.length, basePreviewData.sheets.length]);
+
     const handleExport = useCallback(async () => {
-        if (answers.displays.length === 0) return;
+        if (previewData.sheets.length === 0) return;
         setExporting(true);
         try {
-            // Build ScreenInput array for the server-side Excel generator
-            const screens = answers.displays.map((d) => ({
-                name: d.displayName || "Unnamed Display",
-                widthFt: d.widthFt,
-                heightFt: d.heightFt,
-                pitchMm: parseFloat(d.pixelPitch) || 4,
-                costPerSqFt: answers.costPerSqFtOverride > 0 ? answers.costPerSqFtOverride : undefined,
-                desiredMargin: (answers.defaultMargin || 30) / 100,
-                serviceType: d.serviceType,
-                isReplacement: d.isReplacement,
-                useExistingStructure: d.useExistingStructure,
-                includeSpareParts: d.includeSpareParts,
-                quantity: 1,
-            }));
-
-            const payload = {
-                details: {
-                    proposalId: answers.projectName || "Estimate",
-                    proposalDate: new Date().toLocaleDateString(),
-                    status: "DRAFT",
-                    screens,
-                },
-                receiver: {
-                    name: answers.clientName || "Client",
-                },
-            };
-
-            const res = await fetch("/api/proposals/export?format=xlsx", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
-
-            if (!res.ok) {
-                const errText = await res.text();
-                throw new Error(`Export failed: ${errText}`);
-            }
-
-            const blob = await res.blob();
+            const blob = await exportEstimatorExcel(previewData);
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = url;
@@ -87,7 +100,7 @@ export default function EstimatorStudio() {
         } finally {
             setExporting(false);
         }
-    }, [answers, previewData.fileName]);
+    }, [previewData]);
 
     const handleComplete = useCallback(() => {
         // Questions finished — nothing extra to do, user sees the complete state
@@ -152,6 +165,9 @@ export default function EstimatorStudio() {
                         data={previewData}
                         onExport={handleExport}
                         exporting={exporting}
+                        editable={true}
+                        onCellEdit={handleCellEdit}
+                        onAddSheet={handleAddSheet}
                     />
                 </section>
             </main>

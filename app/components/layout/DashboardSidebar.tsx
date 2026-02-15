@@ -39,7 +39,7 @@ const toolsMenuItems = [
 
 const settingsMenuItems = [
     { icon: UserCircle, label: "Profile", href: "/settings/profile", allowedRoles: null },
-    { icon: Bell, label: "Notifications", href: "/settings/notifications", allowedRoles: null },
+    { icon: Bell, label: "Notifications", href: "/settings/notifications", soon: true, allowedRoles: null },
     { icon: Users, label: "Users", href: "/admin/users", allowedRoles: ["ADMIN"] as UserRole[] },
 ];
 
@@ -372,17 +372,19 @@ export default function DashboardSidebar() {
                                         return (
                                             <Link
                                                 key={item.href}
-                                                href={item.href}
-                                                onClick={() => setIsSettingsOpen(false)}
+                                                href={item.soon ? "#" : item.href}
+                                                onClick={() => !item.soon && setIsSettingsOpen(false)}
                                                 className={cn(
                                                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                                                     isActive
                                                         ? "bg-primary/10 text-primary"
-                                                        : "text-foreground hover:bg-accent"
+                                                        : "text-foreground hover:bg-accent",
+                                                    item.soon && "pointer-events-none opacity-40"
                                                 )}
                                             >
                                                 <item.icon className="w-5 h-5" />
                                                 <span className="text-sm font-medium">{item.label}</span>
+                                                {item.soon && <span className="text-[10px] uppercase tracking-wider text-muted-foreground ml-auto">Soon</span>}
                                             </Link>
                                         );
                                     })}

@@ -280,5 +280,9 @@ export function getRoleInfo(role: UserRole): {
       color: "orange",
     },
   };
-  return info[role];
+  return info[role] || {
+    label: role || "Unknown",
+    description: "Unrecognized role",
+    color: "gray",
+  };
 }
