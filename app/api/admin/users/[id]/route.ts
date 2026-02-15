@@ -10,7 +10,7 @@ import type { UserRole } from "@/lib/rbac";
  */
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -25,7 +25,7 @@ export async function PATCH(
       );
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const { role } = body as { role: UserRole };
 
@@ -78,7 +78,8 @@ export async function PATCH(
 
     return NextResponse.json({ user: updatedUser });
   } catch (error: any) {
-    console.error(`[PATCH /api/admin/users/${params.id}] Error:`, error);
+    const { id } = await params;
+    console.error(`[PATCH /api/admin/users/${id}] Error:`, error);
 
     if (error.code === "P2025") {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
