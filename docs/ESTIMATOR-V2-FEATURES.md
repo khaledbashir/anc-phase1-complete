@@ -1,11 +1,7 @@
-# 🔄 AI MAINTENANCE SIGNAL: This document is the SINGLE SOURCE OF TRUTH for Estimator V2 features. ANY agent modifying estimator files MUST update this document with: current status, file paths, commit hashes, integration points, and known issues. If you touch an estimator feature and don't update this doc, the change is incomplete.
-
----
-
 # Estimator V2 — Feature Registry
 
-**Branch:** `phase2/product-database`  
-**Last Updated:** 2026-02-15  
+**Branch:** `phase2/product-database`
+**Last Updated:** 2026-02-15
 **Total Features:** 11 (5 shipped earlier, 6 shipped in Phases 7-9)
 
 ---
@@ -19,16 +15,56 @@
 | 3 | EstimatorBridge (calc engine) | ✅ Shipped | Pre-7 | — | `EstimatorBridge.ts` |
 | 4 | Excel Preview / Export | ✅ Shipped | Pre-7 | — | `ExcelPreview.tsx` |
 | 5 | Product Matcher | ✅ Shipped | Pre-7 | — | `services/catalog/productMatcher.ts` |
-| 6 | **Smart Assembly Bundler** | ✅ Shipped | 7 | — | *Built by other agent* |
+| 6 | **Smart Assembly Bundler** | ✅ Shipped | 7 | `9a0a8fe5` | See §6 below |
 | 7 | **Price-to-Spec Reverse Engineer** | ✅ Shipped | 7 | `505093d7` | See §7 below |
-| 8 | **Revision Radar (Delta Scanner)** | ✅ Shipped | 8 | — | *Built by other agent* |
+| 8 | **Revision Radar (Delta Scanner)** | ✅ Shipped | 8 | See below | See §8 below |
 | 9 | **Liability Hunter** | ✅ Shipped | 8 | `505093d7` | See §9 below |
-| 10 | **Visual Cut-Sheet Automator** | ✅ Shipped | 9 | — | *Built by other agent* |
+| 10 | **Visual Cut-Sheet Automator** | ✅ Shipped | 9 | See below | See §10 below |
 | 11 | **Vendor RFQ Bot** | ✅ Shipped | 9 | `505093d7` | See §11 below |
 
 ---
 
 ## Phase 7 Features
+
+### §6 — Smart Assembly Bundler
+
+**Purpose:** Auto-suggests hidden/forgotten line items based on system type. When someone adds a scoreboard, the system suggests: video processor, receiving cards, fiber converter, spare modules, mounting brackets, cable kits.
+
+**Files:**
+| File | Path | Lines | Role |
+|------|------|-------|------|
+| Service | `services/estimator/bundleRules.ts` | ~388 | 22-rule bundle engine with types |
+| UI Panel | `app/components/estimator/BundlePanel.tsx` | ~208 | Toggle UI per display |
+
+**Integrated Into (modified existing files):**
+| File | Change |
+|------|--------|
+| `app/components/estimator/questions.ts` | Added `excludedBundleItems: string[]` to `DisplayAnswers` |
+| `app/components/estimator/EstimatorBridge.ts` | Added `bundleCost`/`bundleItems` to `ScreenCalc`, bundle calculation in `calculateDisplay()`, `buildBundleSheet()`, updated services cost |
+| `app/components/estimator/EstimatorStudio.tsx` | Added Bundle button (orange), BundlePanel overlay, toggle handler |
+
+**22 Bundle Rules (5 Categories):**
+
+| Category | Rules |
+|----------|-------|
+| Signal | Video Processor ($12K), Receiving Cards ($85/4-cab), Sending Card ($450), Signal Cable Kit ($15), Fiber Media Converter ($1,200), Backup Processor ($12K) |
+| Electrical | PDU ($850), Power Cables ($8), Surge Protector ($350), UPS Battery ($2,500) |
+| Structural | Mounting Brackets ($25×2/cab), Rigging Hardware ($3,500), Weatherproof Enclosure ($12/sqft) |
+| Accessory | Spare Receiving Cards (2%), Spare Power Supplies (2%), Calibration Kit ($800), Content Mgmt License ($2,400) |
+| Service | Commissioning ($2/sqft), Demo/Disposal ($3,500), Training ($1,500), As-Built Docs ($2,000) |
+
+**Key Types:**
+- `BundleItem` — id, name, category, unitCost, quantity, totalCost, reason, trigger
+- `BundleInput` — display config fields + excludedIds for user toggles
+- `BundleResult` — items[], totalCost, byCategory
+
+**Integration Points:**
+- Modifies: `EstimatorBridge.ts` (bundleCost in ScreenCalc, services cost), `questions.ts` (excludedBundleItems)
+- Bundle costs auto-included in totalCost and serviceCost
+- Users toggle items on/off via BundlePanel checkboxes
+- Excluded items persist in `DisplayAnswers.excludedBundleItems`
+
+---
 
 ### §7 — Price-to-Spec Reverse Engineer
 
@@ -59,10 +95,6 @@ Response: {
   query: ReverseQuery
 }
 ```
-
-**Key Types:**
-- `ReverseQuery` — input parameters
-- `FeasibleOption` — product + layout + pricing + fitScore + rank
 
 **Business Logic:**
 - Queries `ManufacturerProduct` table (Prisma) filtered by environment
@@ -96,26 +128,12 @@ interface ReverseEngineerPanelProps {
 **Integration Points:**
 - Reads from: `ManufacturerProduct` (Prisma), `@/lib/prisma` singleton
 - Feeds into: Parent estimator via `onSelectProduct` callback
-- Does NOT modify: `EstimatorBridge.ts`, `questions.ts`, `QuestionFlow.tsx`
+- Wired into EstimatorStudio.tsx via "Budget" button (teal) — commit `df727b79`
 
 **Known Limitations:**
 - Services estimate is ROM (35% of hardware) — not per-line-item
 - Tax rate defaults to 9.5%, not location-aware yet
 - No hardcoded fallback catalog if DB is empty (returns empty array)
-
----
-
-### §6 — Smart Assembly Bundler
-
-**Purpose:** Auto-suggests hidden/forgotten line items based on system type. When someone adds a scoreboard, the system suggests: video processor, receiving cards, fiber converter, spare modules, mounting brackets, cable kits.
-
-**Files:** *Built by parallel agent — update paths when available*
-
-**Integration Points:**
-- Modifies: `EstimatorBridge.ts` (adds bundling logic)
-- New service in `services/` directory
-
-**Status:** ✅ Shipped by other agent. **TODO: Update file paths and commit hash when confirmed.**
 
 ---
 
@@ -177,18 +195,10 @@ Response: { result: ScanResult }
 
 **PDF Extraction:** Uses `unpdf` (primary) with `pdf-parse` fallback — same pattern as `app/api/vendor/parse/route.ts`.
 
-**UI Panel Props:**
-```typescript
-interface LiabilityPanelProps {
-  open: boolean;
-  onClose: () => void;
-}
-```
-
 **Integration Points:**
 - Pure standalone — no DB dependency, no external API calls
 - Deterministic regex scanning (no AI)
-- Does NOT modify: `services/sow/sowGenerator.ts`, `services/sow/sowTemplates.ts`
+- Wired into EstimatorStudio.tsx via "Risk" button (rose) — commit `df727b79`
 
 **Known Limitations:**
 - Regex-based, not semantic — can miss paraphrased clauses
@@ -201,14 +211,43 @@ interface LiabilityPanelProps {
 
 **Purpose:** Upload two versions of a cost analysis Excel (original + addendum). System diffs them section-by-section, highlights changes, and quantifies dollar impact.
 
-**Files:** *Built by parallel agent — update paths when available*
+**Files:**
+| File | Path | Lines | Role |
+|------|------|-------|------|
+| Service | `services/revision/deltaScanner.ts` | ~290 | Section-level diff engine |
+| API | `app/api/revision/compare/route.ts` | ~55 | `POST /api/revision/compare` (multipart) |
+| UI Panel | `app/components/estimator/RevisionRadarPanel.tsx` | ~370 | Upload + results panel |
+
+**API Contract:**
+```
+POST /api/revision/compare
+Content-Type: multipart/form-data
+Fields: "original" (Excel file) + "revised" (Excel file)
+Response: { result: DeltaResult }
+```
+
+**Key Types:**
+- `DeltaRow` — per-row comparison (label, oldValue, newValue, delta, pctChange, changeType)
+- `DeltaSection` — per-section comparison (sectionName, oldTotal, newTotal, rows[], changeType)
+- `DeltaResult` — full comparison (sections[], grandTotals, summary counts)
+
+**Business Logic:**
+- Parses both workbooks via `findMarginAnalysisSheet()` (same as Mirror Mode)
+- Finds column headers (selling price/amount), then parses into sections
+- Section matching: normalized label comparison (case-insensitive, alphanumeric)
+- Row matching: same normalization within sections
+- Change types: added, removed, changed, unchanged
+- Grand total delta with percentage change
+- Summary: total sections, changed/added/removed counts, total row changes
+
+**UI Panel:**
+1. **Upload Step** — drag/drop boxes for Original (blue) and Revised (amber), Compare button
+2. **Results View** — Summary banner (old/new/delta grand totals), expandable sections with per-row color-coded diffs (green = savings, red = increase, amber = changed)
 
 **Integration Points:**
-- New service in `services/revision/`
-- New API in `app/api/revision/`
-- New UI panel
-
-**Status:** ✅ Shipped by other agent. **TODO: Update file paths and commit hash when confirmed.**
+- Pure standalone — no DB, no AI
+- Uses `@/lib/sheetDetection` (shared with Mirror Mode parser)
+- Wired into EstimatorStudio via "Delta" button (amber)
 
 ---
 
@@ -254,41 +293,10 @@ Response: { rfq: RfqDocument }
 - `RfqLineItem` — per-display line (name, dims, area, pitch, environment, preferred product)
 - `RfqDocument` — full email (subject, recipient, body text, line items, metadata)
 
-**Email Template Structure:**
-1. Subject line: `RFQ: {projectName} - LED Display Systems`
-2. Greeting + intro paragraph
-3. Project header (name, client, location)
-4. Display requirements table (per display: dims, pitch, environment, service access, preferred model)
-5. Spare parts line (2% modules)
-6. Special requirements (if any)
-7. Requested deliverables (unit pricing, total, cabinet specs, power, lead time, warranty)
-8. ANC address block (2 Manhattanville Road, Suite 402, Purchase, NY 10577)
-9. Contact info (if provided)
-10. Sign-off
-
-**UI Panel — 3-Step Wizard:**
-1. **Select Manufacturers** — checkboxes for LG, Yaham, Absen, Unilumin + custom text input
-2. **Optional Details** — delivery timeline, contact name/email, special requirements textarea, display summary
-3. **Preview** — tabbed view per manufacturer, copy to clipboard, download as .txt, generate another
-
-**UI Panel Props:**
-```typescript
-interface RfqPanelProps {
-  open: boolean;
-  onClose: () => void;
-  answers: {
-    clientName: string;
-    projectName: string;
-    location: string;
-    displays: DisplayInput[];
-  };
-}
-```
-
 **Integration Points:**
 - Pure standalone — no DB dependency, no AI calls
 - Pre-fills from parent estimator's current `answers` object
-- Does NOT modify: `EstimatorBridge.ts`, `EstimatorStudio.tsx`, `generateProposalPdfService.ts`
+- Wired into EstimatorStudio.tsx via "RFQ" button (cyan) — commit `df727b79`
 
 **Known Limitations:**
 - Plain text output only (no HTML email or PDF)
@@ -302,14 +310,43 @@ interface RfqPanelProps {
 
 **Purpose:** Auto-generates per-display spec sheets showing product specs, layout diagram, power/weight/resolution stats, and installation notes. One-click export for submittal packages.
 
-**Files:** *Built by parallel agent — update paths when available*
+**Files:**
+| File | Path | Lines | Role |
+|------|------|-------|------|
+| Service | `services/cutsheet/cutSheetGenerator.ts` | ~300 | Cut sheet data builder + text export |
+| API | `app/api/cutsheet/generate/route.ts` | ~40 | `POST /api/cutsheet/generate` |
+| UI Panel | `app/components/estimator/CutSheetPanel.tsx` | ~280 | Generate + preview + download panel |
+
+**API Contract:**
+```
+POST /api/cutsheet/generate
+Body: { projectName, clientName, location, displays: DisplayInput[] }
+Response: { cutSheet: CutSheetDocument, textSheets: string[] }
+```
+
+**Key Types:**
+- `CutSheetDisplay` — full spec sheet data for one display (dims, resolution, power, weight, install notes)
+- `CutSheetDocument` — project-level container (metadata + displays[] + notes[])
+- `DisplayInput` — input from EstimatorBridge (includes ScreenCalc and CabinetLayout data)
+
+**Cut Sheet Sections:**
+1. Display Specifications (type, environment, product, pitch, brightness)
+2. Dimensions (requested vs actual, resolution)
+3. Cabinet Layout (grid, cabinet size, total count)
+4. Electrical (max/typical power, heat load BTU, amps @ 120V/208V)
+5. Structural (weight lbs/kg, weight/sqft, complexity, data run, lift type)
+6. Notes (auto-generated based on display configuration)
+7. ANC address block
+
+**UI Panel — 2 Steps:**
+1. **Pre-generate** — display summary cards, "Generate Cut Sheets" button
+2. **Generated** — tabbed view per display, monospace text preview, Copy/Download/Download All
 
 **Integration Points:**
-- New service in `services/cutsheet/`
-- New API in `app/api/cutsheet/`
-- May interact with `generateProposalPdfService.ts`
-
-**Status:** ✅ Shipped by other agent. **TODO: Update file paths and commit hash when confirmed.**
+- Uses ScreenCalc + CabinetLayout from EstimatorBridge for accurate data
+- Fallback estimates for power/weight when no product selected
+- Auto-generated notes based on environment (outdoor IP65, replacement demo, complex install)
+- Wired into EstimatorStudio via "Cuts" button (indigo)
 
 ---
 
@@ -317,35 +354,36 @@ interface RfqPanelProps {
 
 ### Shared Patterns
 All Phase 7-9 panels follow the same UI pattern:
-- **Slide-out panel** fixed to right side, full height, max-w-lg
-- **Backdrop** with `bg-black/20` click-to-close
+- **Overlay panel** inside EstimatorStudio's right section, absolute positioned with backdrop blur
 - **Header** with icon + title + X close button
-- **Design system**: French Blue `#0A52EF`, near-black `#1C1C1C`, borders `#E8E8E8`, muted `#878787`
-- **Inputs**: Drafting-line style (bottom border only, blue on focus)
-- **Buttons**: Primary = `bg-[#1C1C1C] text-white`, hover = opacity change
+- **Design system**: French Blue `#0A52EF`, near-black `#1C1C1C`
+- **EstimatorStudio header buttons**: Each tool has a colored icon button
 
 ### Prisma Usage
 - All DB-dependent features use `import { prisma } from "@/lib/prisma"` (singleton)
 - NOT `new PrismaClient()` per-file
 
 ### DO NOT MODIFY (Parallel Work Guards)
-These files are owned by the core estimator and must not be modified by feature panels:
-- `app/components/estimator/EstimatorBridge.ts`
-- `app/components/estimator/EstimatorStudio.tsx`
+These files are owned by the core estimator and should not be modified by standalone feature panels:
+- `app/components/estimator/EstimatorBridge.ts` (except for bundler integration which was planned)
+- `app/components/estimator/EstimatorStudio.tsx` (integration wiring is done)
 - `app/components/estimator/questions.ts`
 - `app/components/estimator/QuestionFlow.tsx`
 - `app/components/estimator/ExcelPreview.tsx`
 
 ---
 
-## Pending Integration Work
+## Completed Integration Work
 
-- [ ] Wire `ReverseEngineerPanel` into `EstimatorStudio.tsx` (button to open panel)
-- [ ] Wire `LiabilityPanel` into estimator or project page
-- [ ] Wire `RfqPanel` into estimator (pass current `answers`)
-- [ ] Update §6, §8, §10 with file paths from other agent's work
-- [ ] Add E2E tests for all 3 API endpoints
-- [ ] Add product catalog data (waiting on Matt) — reverse engineer currently returns empty if DB has no products
+- [x] Wire `BundlePanel` into `EstimatorStudio.tsx` — commit `9a0a8fe5`
+- [x] Wire `ReverseEngineerPanel` into `EstimatorStudio.tsx` (Budget button, teal) — commit `df727b79`
+- [x] Wire `LiabilityPanel` into `EstimatorStudio.tsx` (Risk button, rose) — commit `df727b79`
+- [x] Wire `RfqPanel` into `EstimatorStudio.tsx` (RFQ button, cyan) — commit `df727b79`
+
+## Remaining Work
+
+- [ ] Add E2E tests for API endpoints
+- [ ] Add product catalog data (waiting on Matt) — reverse engineer returns empty if DB has no products
 
 ---
 
@@ -353,7 +391,9 @@ These files are owned by the core estimator and must not be modified by feature 
 
 | Date | Commit | Description |
 |------|--------|-------------|
+| 2026-02-15 | `9a0a8fe5` | Phase 7: Smart Assembly Bundler (5 files, 767 insertions) |
 | 2026-02-15 | `505093d7` | Phase 7+8+9: Reverse Engineer + Liability Hunter + Vendor RFQ Bot (9 files, 2365 lines) |
+| 2026-02-15 | `df727b79` | Integration: Wire Reverse Engineer, Liability, RFQ panels into EstimatorStudio |
 
 ---
 

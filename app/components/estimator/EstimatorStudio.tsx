@@ -10,7 +10,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
-import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes, Search, Shield, Send } from "lucide-react";
+import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes, Search, Shield, Send, GitCompare, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QuestionFlow from "./QuestionFlow";
@@ -23,6 +23,8 @@ import BundlePanel from "./BundlePanel";
 import ReverseEngineerPanel from "./ReverseEngineerPanel";
 import LiabilityPanel from "./LiabilityPanel";
 import RfqPanel from "./RfqPanel";
+import RevisionRadarPanel from "./RevisionRadarPanel";
+import CutSheetPanel from "./CutSheetPanel";
 import type { VendorExtractedSpec } from "@/services/vendor/vendorParser";
 import { useProductSpecs } from "@/hooks/useProductSpecs";
 import { exportEstimatorExcel } from "./exportEstimatorExcel";
@@ -55,6 +57,8 @@ export default function EstimatorStudio({
     const [reverseOpen, setReverseOpen] = useState(false);
     const [liabilityOpen, setLiabilityOpen] = useState(false);
     const [rfqOpen, setRfqOpen] = useState(false);
+    const [revisionOpen, setRevisionOpen] = useState(false);
+    const [cutSheetOpen, setCutSheetOpen] = useState(false);
     // Cell overrides: key = "sheetIdx-rowIdx-colIdx", value = edited value
     const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>(initialCellOverrides || {});
     // User-added custom sheets
@@ -387,6 +391,30 @@ export default function EstimatorStudio({
                         Risk
                     </button>
                     <button
+                        onClick={() => setRevisionOpen((v) => !v)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                            revisionOpen
+                                ? "bg-amber-600 text-white"
+                                : "border border-border text-muted-foreground hover:bg-muted"
+                        }`}
+                        title="Compare two Excel revisions"
+                    >
+                        <GitCompare className="w-3 h-3" />
+                        Delta
+                    </button>
+                    <button
+                        onClick={() => setCutSheetOpen((v) => !v)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                            cutSheetOpen
+                                ? "bg-indigo-600 text-white"
+                                : "border border-border text-muted-foreground hover:bg-muted"
+                        }`}
+                        title="Generate display cut sheets"
+                    >
+                        <FileText className="w-3 h-3" />
+                        Cuts
+                    </button>
+                    <button
                         onClick={() => setCopilotOpen((v) => !v)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                             copilotOpen
@@ -401,16 +429,18 @@ export default function EstimatorStudio({
                 </div>
             </header>
 
-            {/* Split screen */}
-            <main className="flex-1 min-h-0 overflow-hidden grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                {/* Left: Questions */}
-                <section className="relative min-w-0 min-h-0 flex flex-col overflow-hidden bg-background border-r border-border">
-                    <QuestionFlow
-                        answers={answers}
-                        onChange={handleChange}
-                        onComplete={handleComplete}
-                    />
-                </section>
+            {/* Split screen — when Lux is open, hide questions and go full width */}
+            <main className={`flex-1 min-h-0 overflow-hidden grid ${copilotOpen ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'}`}>
+                {/* Left: Questions (hidden when Lux is open) */}
+                {!copilotOpen && (
+                    <section className="relative min-w-0 min-h-0 flex flex-col overflow-hidden bg-background border-r border-border">
+                        <QuestionFlow
+                            answers={answers}
+                            onChange={handleChange}
+                            onComplete={handleComplete}
+                        />
+                    </section>
+                )}
 
                 {/* Right: Excel Preview + Copilot overlay */}
                 <section className="relative min-w-0 min-h-0 bg-zinc-100 dark:bg-zinc-950 overflow-hidden flex flex-col p-3">
@@ -478,6 +508,26 @@ export default function EstimatorStudio({
                                 open={rfqOpen}
                                 onClose={() => setRfqOpen(false)}
                                 answers={answers}
+                            />
+                        </div>
+                    )}
+                    {/* Revision Radar panel overlay */}
+                    {revisionOpen && (
+                        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm rounded-lg border border-border shadow-lg overflow-hidden">
+                            <RevisionRadarPanel
+                                open={revisionOpen}
+                                onClose={() => setRevisionOpen(false)}
+                            />
+                        </div>
+                    )}
+                    {/* Cut-Sheet panel overlay */}
+                    {cutSheetOpen && (
+                        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm rounded-lg border border-border shadow-lg overflow-hidden">
+                            <CutSheetPanel
+                                open={cutSheetOpen}
+                                onClose={() => setCutSheetOpen(false)}
+                                answers={answers}
+                                calcs={calcs}
                             />
                         </div>
                     )}
