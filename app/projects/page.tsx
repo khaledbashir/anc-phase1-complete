@@ -119,8 +119,8 @@ export default function ProjectsPage() {
     const summary = useMemo(() => {
         const projectCount = projects.length;
         const estimateCount = projects.filter((project: any) => project.calculationMode === "ESTIMATE").length;
-        const mirrorCount = projects.filter((project) => project.mirrorMode && (project as any).calculationMode !== "ESTIMATE").length;
-        const intelligenceCount = projectCount - mirrorCount - estimateCount;
+        const mirrorCount = projects.filter((project: any) => project.calculationMode === "MIRROR").length;
+        const intelligenceCount = projects.filter((project: any) => project.calculationMode === "INTELLIGENCE").length;
         const totalPipeline = projects.reduce((sum, project) => sum + (project.totalAmount || 0), 0);
         const formattedPipeline = formatCurrency(totalPipeline, "USD");
         const filterLabel = statusFilter === "all"
