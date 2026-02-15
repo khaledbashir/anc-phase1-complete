@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
     Search,
     Upload,
@@ -56,6 +57,7 @@ export default function ProductCatalogAdmin() {
     const [products, setProducts] = useState<Product[]>([]);
     const [manufacturers, setManufacturers] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+    const { confirm, alert: showAlert } = useConfirm();
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState<any>(null);
 
@@ -134,7 +136,8 @@ export default function ProductCatalogAdmin() {
     // ========================================================================
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Deactivate this product?")) return;
+        const ok = await confirm({ title: "Deactivate Product", description: "Deactivate this product? It will no longer appear in the catalog.", confirmLabel: "Deactivate", variant: "destructive" });
+        if (!ok) return;
         try {
             await fetch(`/api/products/${id}`, { method: "DELETE" });
             fetchProducts();
@@ -208,10 +211,10 @@ export default function ProductCatalogAdmin() {
                 fetchProducts();
             } else {
                 const data = await res.json();
-                alert(data.error || "Failed to add product");
+                void showAlert({ title: "Add Failed", description: data.error || "Failed to add product" });
             }
         } catch (err) {
-            alert("Failed to add product");
+            void showAlert({ title: "Add Failed", description: "Failed to add product" });
         }
     };
 

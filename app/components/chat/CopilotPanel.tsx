@@ -25,8 +25,6 @@ import { executeActions, executeScreenActions } from "@/services/chat/formFillBr
 import type { FormFillContext, ScreenAction } from "@/services/chat/formFillBridge";
 import { getScreenContext } from "@/services/chat/screenContext";
 import type { ScreenContext } from "@/services/chat/screenContext";
-import { captureScreen } from "@/services/chat/screenshotService";
-import { askKimiWithVision } from "@/services/chat/kimiVisionService";
 import { routeMessage } from "@/services/chat/copilotRouter";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
@@ -756,35 +754,6 @@ export default function CopilotPanel({
         [applyActionFields, applyStructuredAction]
     );
 
-    const handleKimiSend = async (text: string): Promise<string> => {
-        try {
-            const screenshot = await captureScreen();
-            const screenCtx = formFillContext ? getScreenContext(formFillContext, currentStep) : undefined;
-            const fieldValues = screenCtx?.fieldValues;
-
-            const kimiResponse = await askKimiWithVision(text, screenshot, conversationHistory, fieldValues);
-
-            if (kimiResponse.actions.length > 0 && formFillContext) {
-                const result = executeScreenActions(formFillContext, kimiResponse.actions as ScreenAction[]);
-                if (result.downloadPdf) {
-                    setTimeout(() => {
-                        const exportBtn = document.querySelector('[data-copilot-export]') as HTMLButtonElement;
-                        if (exportBtn) exportBtn.click();
-                    }, 1000);
-                }
-                if (result.navigateStep !== undefined && onNavigateStep) {
-                    onNavigateStep(result.navigateStep);
-                }
-            }
-
-            setConversationHistory((prev) => [...prev, { role: "user", content: text }, { role: "assistant", content: kimiResponse.reply }]);
-            return kimiResponse.reply;
-        } catch (err: any) {
-            console.error("[Copilot] Kimi vision error:", err);
-            return `Vision error: ${err?.message || String(err)}`;
-        }
-    };
-
     const handleAnythingLLMSend = async (
         text: string,
         recentMessages: Array<{ role: "user" | "assistant"; content: string }>
@@ -960,9 +929,7 @@ export default function CopilotPanel({
             const brain = formFillContext ? routeMessage(text) : "anythingllm";
             let response: string;
 
-            if (brain === "kimi" && formFillContext) {
-                response = await handleKimiSend(text);
-            } else if (formFillContext && conversationStage !== ConversationStage.DONE) {
+            if (formFillContext && conversationStage !== ConversationStage.DONE) {
                 const llmHistory = nextAfterUser
                     .filter((m) => m.role === "user" || m.role === "assistant")
                     .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));

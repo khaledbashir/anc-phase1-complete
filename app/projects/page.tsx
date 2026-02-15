@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useConfirm } from "@/hooks/useConfirm";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -79,6 +80,7 @@ function generateInsights(projects: ProjectCardData[]): string[] {
 
 export default function ProjectsPage() {
     const { data: session } = useSession();
+    const { alert: showAlert } = useConfirm();
     const [projects, setProjects] = useState<ProjectCardData[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -228,7 +230,7 @@ export default function ProjectsPage() {
             setProjects((current) => current.filter((project) => project.id !== id));
         } catch (error) {
             console.error("Error deleting project:", error);
-            alert("Failed to delete project. Please try again.");
+            void showAlert({ title: "Delete Failed", description: "Failed to delete project. Please try again." });
         }
     }, []);
 

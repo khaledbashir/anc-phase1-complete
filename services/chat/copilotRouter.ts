@@ -1,14 +1,13 @@
 /**
  * Copilot Router — Decides which brain handles each message.
  *
- * KIMI (vision brain): Sees the screen, executes field changes, handles UI commands.
- *   → Fast, free (Puter.js), client-side, vision-capable.
+ * LOCAL: Fast client-side responses for UI commands, field changes, calculations.
  *
  * ANYTHINGLLM (knowledge brain): Database queries, product lookups, RAG, web search.
  *   → Server-side, has access to embedded documents and project workspace.
  */
 
-export type CopilotBrain = "kimi" | "anythingllm";
+export type CopilotBrain = "local" | "anythingllm";
 
 // Keywords/phrases that need AnythingLLM (database, RAG, deep knowledge)
 const ANYTHINGLLM_TRIGGERS = [
@@ -54,6 +53,6 @@ export function routeMessage(userMessage: string): CopilotBrain {
         }
     }
 
-    // Everything else goes to Kimi (screen-aware, action-capable)
-    return "kimi";
+    // Everything else handled locally (intent parsing, calculations)
+    return "local";
 }

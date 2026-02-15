@@ -17,6 +17,7 @@ import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { ProposalContextProvider } from "@/contexts/ProposalContext";
 import { ChargesContextProvider } from "@/contexts/ChargesContext";
+import { ConfirmProvider } from "@/hooks/useConfirm";
 
 // Types
 import { ProposalType } from "@/types";
@@ -93,7 +94,9 @@ const Providers = ({ children }: ProvidersProps) => {
         <TranslationProvider>
           <FormProvider {...form}>
             <ProposalContextProvider>
-              <ChargesContextProvider>{children}</ChargesContextProvider>
+              <ChargesContextProvider>
+                <ConfirmProvider>{children}</ConfirmProvider>
+              </ChargesContextProvider>
             </ProposalContextProvider>
           </FormProvider>
         </TranslationProvider>

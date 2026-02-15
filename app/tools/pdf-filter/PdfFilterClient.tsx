@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
+import { useConfirm } from "@/hooks/useConfirm";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
@@ -62,6 +63,7 @@ export default function PdfFilterClient() {
   const [customKeywords, setCustomKeywords] = useState<string[]>([]);
   const [customInput, setCustomInput] = useState("");
   const [showCustom, setShowCustom] = useState(false);
+  const { alert: showAlert } = useConfirm();
   const [expandedPreset, setExpandedPreset] = useState<string | null>(null);
   const [progress, setProgress] = useState<ExtractionProgress | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -184,7 +186,7 @@ export default function PdfFilterClient() {
       setActiveTab("text");
     } catch (err) {
       console.error("PDF analysis failed:", err);
-      alert(`PDF analysis failed: ${err instanceof Error ? err.message : String(err)}`);
+      void showAlert({ title: "Analysis Failed", description: err instanceof Error ? err.message : String(err) });
     } finally {
       setIsAnalyzing(false);
       setProgress(null);
@@ -329,7 +331,7 @@ export default function PdfFilterClient() {
     } catch (err) {
       if (controller.signal.aborted) return;
       console.error("Drawing analysis failed:", err);
-      alert(`Drawing analysis failed: ${err instanceof Error ? err.message : String(err)}`);
+      void showAlert({ title: "Drawing Analysis Failed", description: err instanceof Error ? err.message : String(err) });
     } finally {
       if (!controller.signal.aborted) {
         setIsAnalyzingDrawings(false);
@@ -414,7 +416,7 @@ export default function PdfFilterClient() {
       keepIndices = [...new Set(keepIndices)].sort((a, b) => a - b);
 
       if (keepIndices.length === 0) {
-        alert("No pages selected for export.");
+        void showAlert({ title: "No Pages Selected", description: "Select at least one page to export." });
         return;
       }
 
@@ -424,7 +426,7 @@ export default function PdfFilterClient() {
       downloadPdf(pdfBytes, `${originalName}_${suffix}.pdf`);
     } catch (err) {
       console.error("Export failed:", err);
-      alert(`Export failed: ${err instanceof Error ? err.message : String(err)}`);
+      void showAlert({ title: "Export Failed", description: err instanceof Error ? err.message : String(err) });
     } finally {
       setIsExporting(false);
     }

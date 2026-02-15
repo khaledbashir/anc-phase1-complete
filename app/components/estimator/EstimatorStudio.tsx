@@ -10,6 +10,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
+import { useConfirm } from "@/hooks/useConfirm";
 import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes, Search, Shield, Send, GitCompare, FileText } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -74,6 +75,7 @@ export default function EstimatorStudio({
         customSheets,
         rates,
     });
+    const { confirm, alert: showAlert } = useConfirm();
 
     // Fetch product specs for cabinet layout calculations
     const productIds = useMemo(() =>
@@ -158,7 +160,7 @@ export default function EstimatorStudio({
             URL.revokeObjectURL(url);
         } catch (err) {
             console.error("Export error:", err);
-            alert(`Export failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+            void showAlert({ title: "Export Failed", description: err instanceof Error ? err.message : "Unknown error" });
         } finally {
             setExporting(false);
         }
@@ -209,7 +211,8 @@ export default function EstimatorStudio({
 
     const handleConvert = useCallback(async () => {
         if (!projectId || converting) return;
-        if (!confirm("Convert this estimate to a full Intelligence Mode proposal? This will create screens from your displays.")) return;
+        const ok = await confirm({ title: "Convert to Proposal", description: "Convert this estimate to a full Intelligence Mode proposal? This will create screens from your displays.", confirmLabel: "Convert", variant: "default" });
+        if (!ok) return;
         setConverting(true);
         try {
             const res = await fetch("/api/estimator/convert", {
@@ -224,7 +227,7 @@ export default function EstimatorStudio({
             const data = await res.json();
             router.push(`/projects/${data.projectId}`);
         } catch (err) {
-            alert(`Conversion failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+            void showAlert({ title: "Conversion Failed", description: err instanceof Error ? err.message : "Unknown error" });
         } finally {
             setConverting(false);
         }
@@ -246,7 +249,7 @@ export default function EstimatorStudio({
             const data = await res.json();
             router.push(`/estimator/${data.projectId}`);
         } catch (err) {
-            alert(`Duplicate failed: ${err instanceof Error ? err.message : "Unknown error"}`);
+            void showAlert({ title: "Duplicate Failed", description: err instanceof Error ? err.message : "Unknown error" });
         } finally {
             setDuplicating(false);
         }

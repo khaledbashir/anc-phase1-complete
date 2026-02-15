@@ -2,7 +2,7 @@
 
 **Branch:** `phase2/product-database`
 **Last Updated:** 2026-02-15
-**Total Features:** 14 (5 shipped earlier, 6 shipped in Phases 7-9, 1 infrastructure, 2 shipped in Phase 10)
+**Total Features:** 17 (5 shipped earlier, 6 shipped in Phases 7-9, 1 infrastructure, 2 shipped in Phase 10, 3 shipped in Phase 11-12)
 
 ---
 
@@ -24,6 +24,9 @@
 | 12 | **Kreuzberg OCR Integration** | ✅ Shipped | Infra | `8cb142d6` | See §12 below |
 | 13 | **Frankenstein Excel Normalizer** | ✅ Shipped | 10 | `deda528b` | See §13 below |
 | 14 | **Metric Mirror (Imperial/Metric Bridge)** | ✅ Shipped | 10 | `8cb142d6` | See §14 below |
+| 15 | **Modern Dialog System** | ✅ Shipped | 12 | See below | See §15 below |
+| 16 | **Toolbar Descriptions** | ✅ Shipped | 11 | `953725a1` | See §16 below |
+| 17 | **Liability Scanner Fix** | ✅ Shipped | 12 | `dc7efa11` | See §17 below |
 
 ---
 
@@ -533,6 +536,11 @@ These files are owned by the core estimator and should not be modified by standa
 - [ ] Run ImportProfile migration on production DB (`prisma migrate deploy` or manual SQL)
 - [ ] Add rounding mode toggle (ceil/floor) to Metric Mirror for hard architectural constraints
 - [ ] Add imperial formatting to PDF proposal output (use `feetToFeetInches()` for actual dims)
+- [x] Modern Dialog System — replace all native window.confirm/alert with Radix AlertDialog
+- [x] Toolbar Descriptions — rich hover cards for all 8 estimator toolbar buttons
+- [x] Liability Scanner Fix — scoring logic for conditional checks + severity-aware icons
+- [x] Lux Copilot — proper grid layout (pushes content) + remark-gfm for markdown tables
+- [x] Kimi/Puter removal — EstimatorCopilot cleaned of all Puter/Kimi references
 
 ---
 
@@ -549,6 +557,9 @@ These files are owned by the core estimator and should not be modified by standa
 | 2026-02-15 | `deda528b` | Phase 10: Frankenstein Excel Normalizer — Map Once, Remember Forever (10 files, 1203 insertions) |
 | 2026-02-15 | `8cb142d6` | Phase 10: Metric Mirror — Imperial/Metric snap-to-grid bridge (3 files, 477 insertions) |
 | 2026-02-15 | `953725a1` | Phase 11: RFQ Bot V2 — rich preview, RFQ numbering, parallel generation, DB manufacturers (5 files, 281 insertions) |
+| 2026-02-15 | `dc7efa11` | Phase 12: Liability Scanner fix — conditional scoring + severity icons |
+| 2026-02-15 | `faed2e74` | Phase 12: Lux Copilot — grid layout + remark-gfm markdown rendering |
+| 2026-02-15 | TBD | Phase 12: Modern Dialog System — replace 28 native dialogs across 8 files |
 
 ---
 

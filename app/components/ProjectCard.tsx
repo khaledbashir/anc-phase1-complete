@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useConfirm } from "@/hooks/useConfirm";
 import { useRouter } from "next/navigation";
 import {
     ArrowUpRight,
@@ -101,6 +102,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
     const isEstimate = project.calculationMode === "ESTIMATE";
 
     const [isExporting, setIsExporting] = useState(false);
+    const { confirm, alert: showAlert } = useConfirm();
     const [isStatusUpdating, setIsStatusUpdating] = useState(false);
     const [statusError, setStatusError] = useState<string | null>(null);
 
@@ -116,14 +118,14 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
             if (!res.ok) {
                 const errorText = await res.text();
                 console.error("PDF export failed:", errorText);
-                alert("PDF export failed. Please try opening the project and exporting from there.");
+                void showAlert({ title: "Export Failed", description: "PDF export failed. Please try opening the project and exporting from there." });
                 return;
             }
 
             const contentType = res.headers.get("content-type");
             if (!contentType?.includes("application/pdf")) {
                 console.error("Response is not a PDF:", contentType);
-                alert("PDF export failed — unexpected response format.");
+                void showAlert({ title: "Export Failed", description: "PDF export failed — unexpected response format." });
                 return;
             }
 
@@ -131,7 +133,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
 
             if (blob.size === 0) {
                 console.error("PDF blob is empty");
-                alert("PDF export failed — generated PDF is empty.");
+                void showAlert({ title: "Export Failed", description: "PDF export failed — generated PDF is empty." });
                 return;
             }
 
@@ -145,7 +147,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
             URL.revokeObjectURL(url);
         } catch (err) {
             console.error("Quick PDF export failed:", err);
-            alert("PDF export failed. Please try again or export from the project page.");
+            void showAlert({ title: "Export Failed", description: "PDF export failed. Please try again or export from the project page." });
         } finally {
             setIsExporting(false);
         }
@@ -229,7 +231,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm("Delete this project?")) onDelete(project.id);
+                                confirm({ title: "Delete Project", description: "Are you sure you want to delete this project? This cannot be undone.", confirmLabel: "Delete", variant: "destructive" }).then((ok) => { if (ok) onDelete(project.id); });
                             }}
                             className="p-1 text-muted-foreground hover:text-destructive"
                             title="Delete"
@@ -295,7 +297,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (confirm("Delete this project?")) onDelete(project.id);
+                                confirm({ title: "Delete Project", description: "Are you sure you want to delete this project? This cannot be undone.", confirmLabel: "Delete", variant: "destructive" }).then((ok) => { if (ok) onDelete(project.id); });
                             }}
                             className="p-1 text-muted-foreground hover:text-destructive"
                             title="Delete"

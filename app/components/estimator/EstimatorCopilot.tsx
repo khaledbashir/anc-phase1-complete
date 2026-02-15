@@ -6,7 +6,7 @@
  * Lightweight alternative to CopilotPanel, purpose-built for estimator.
  * - Parses estimator-specific intents (add display, set margins, etc.)
  * - Executes intents by updating EstimatorAnswers state
- * - Falls back to Kimi vision for general questions
+ * - Falls back to local response builder for general questions
  * - Same Lux branding as main copilot
  */
 
@@ -30,9 +30,6 @@ import {
     parseEstimatorIntent,
     executeEstimatorIntent,
 } from "@/services/chat/estimatorIntents";
-import { routeMessage } from "@/services/chat/copilotRouter";
-import { captureScreen } from "@/services/chat/screenshotService";
-import { askKimiWithVision } from "@/services/chat/kimiVisionService";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 // ============================================================================
@@ -219,26 +216,8 @@ export default function EstimatorCopilot({
                 return;
             }
 
-            // 3. Fall back to Kimi vision for general questions
-            const brain = routeMessage(text);
-            let response: string;
-
-            if (brain === "kimi") {
-                try {
-                    const screenshot = await captureScreen();
-                    const history = messages
-                        .filter((m) => m.role === "user" || m.role === "assistant")
-                        .slice(-10)
-                        .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
-                    const kimiResult = await askKimiWithVision(text, screenshot, history);
-                    response = kimiResult.reply;
-                } catch {
-                    response = buildLocalResponse(text, answersRef.current, calcsRef.current);
-                }
-            } else {
-                // For knowledge queries without AnythingLLM connection, use local response
-                response = buildLocalResponse(text, answersRef.current, calcsRef.current);
-            }
+            // 3. Fall back to local response builder for general questions
+            const response = buildLocalResponse(text, answersRef.current, calcsRef.current);
 
             const assistantMsg: ChatMessage = {
                 id: newId(),

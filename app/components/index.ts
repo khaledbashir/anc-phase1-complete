@@ -106,9 +106,6 @@ import ProposalLayout from "./templates/proposal-pdf/ProposalLayout";
 // Email templates
 import SendPdfEmail from "./templates/email/SendPdfEmail";
 
-// Vision
-import { KimiVision } from "./reusables/KimiVision";
-
 export {
    BaseNavbar,
    BaseFooter,
@@ -165,5 +162,4 @@ export {
    RiskBadgeGroup,
    RiskCard,
    TextEditorPanel,
-   KimiVision,
 };

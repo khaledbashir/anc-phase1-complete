@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
 	Plus,
 	Pencil,
@@ -93,6 +94,7 @@ function useInlineEdit(initialValue: string, onSave: (val: string) => Promise<vo
 
 // ─── Main Component ─────────────────────────────────────────────────
 export function PricingLogicTreeEditor() {
+	const { alert: showAlert } = useConfirm();
 	const [categories, setCategories] = useState<Category[]>([]);
 	const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
 	const [nodes, setNodes] = useState<Node[]>([]);
@@ -163,7 +165,7 @@ export function PricingLogicTreeEditor() {
 			});
 			if (!res.ok) {
 				const err = await res.json();
-				alert(err.error || "Failed to create category");
+				void showAlert({ title: "Create Failed", description: err.error || "Failed to create category" });
 				return;
 			}
 			setNewCatName("");

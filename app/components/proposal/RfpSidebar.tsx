@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useConfirm } from "@/hooks/useConfirm";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { BaseButton } from "@/app/components";
 import { Send, Sparkles, MessageSquare, Info, History, X, AlertCircle, Upload, FileText, Loader2, Trash2, Eye, HelpCircle } from "lucide-react";
@@ -35,6 +36,7 @@ const citationLabel = (path: string): string => {
 type SidebarTab = "chat" | "gap-fill";
 
 const RfpSidebar = () => {
+    const { confirm: confirmDialog } = useConfirm();
     const { aiWorkspaceSlug, aiMessages, aiLoading, executeAiCommand, uploadRfpDocument, reExtractRfp, rfpDocumentUrl, rfpDocuments, deleteRfpDocument, aiCitations, aiFields, verifiedFields } = useProposalContext();
     const { watch } = useFormContext();
     const proposalId = watch("details.proposalId");
@@ -328,9 +330,8 @@ const RfpSidebar = () => {
                                 <button
                                     onClick={async (e) => {
                                         e.preventDefault();
-                                        if (confirm("Delete this RFP document?")) {
-                                            await deleteRfpDocument(doc.id);
-                                        }
+                                        const ok = await confirmDialog({ title: "Delete Document", description: "Delete this RFP document? This cannot be undone.", confirmLabel: "Delete", variant: "destructive" });
+                                        if (ok) await deleteRfpDocument(doc.id);
                                     }}
                                     className="hidden group-hover:flex items-center justify-center w-5 h-5 rounded hover:bg-accent text-muted-foreground hover:text-red-400 transition-colors shrink-0"
                                     title="Delete from Vault"

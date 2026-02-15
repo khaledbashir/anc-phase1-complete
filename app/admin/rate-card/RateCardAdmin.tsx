@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useConfirm } from "@/hooks/useConfirm";
 import {
     Upload,
     Plus,
@@ -108,6 +109,7 @@ export default function RateCardAdmin() {
 
     // Add form
     const [showAddForm, setShowAddForm] = useState(false);
+    const { confirm, alert: showAlert } = useConfirm();
     const [newEntry, setNewEntry] = useState({
         category: "margin",
         key: "",
@@ -194,36 +196,37 @@ export default function RateCardAdmin() {
             });
             if (!res.ok) {
                 const err = await res.json();
-                alert(`Save failed: ${err.error}`);
+                void showAlert({ title: "Save Failed", description: err.error });
                 return;
             }
             setEditingId(null);
             setEditData({});
             fetchEntries();
         } catch (err) {
-            alert(`Save failed: ${err}`);
+            void showAlert({ title: "Save Failed", description: String(err) });
         }
     };
 
     const handleDelete = async (id: string, label: string) => {
-        if (!confirm(`Delete "${label}"? This cannot be undone.`)) return;
+        const ok = await confirm({ title: "Delete Entry", description: `Delete "${label}"? This cannot be undone.`, confirmLabel: "Delete", variant: "destructive" });
+        if (!ok) return;
         try {
             const res = await fetch(`/api/rate-card?id=${id}`, { method: "DELETE" });
             if (!res.ok) {
                 const err = await res.json();
-                alert(`Delete failed: ${err.error}`);
+                void showAlert({ title: "Delete Failed", description: err.error });
                 return;
             }
             fetchEntries();
         } catch (err) {
-            alert(`Delete failed: ${err}`);
+            void showAlert({ title: "Delete Failed", description: String(err) });
         }
     };
 
     const handleAdd = async () => {
         const value = parseFloat(newEntry.value);
         if (!Number.isFinite(value)) {
-            alert("Value must be a valid number");
+            void showAlert({ title: "Invalid Value", description: "Value must be a valid number" });
             return;
         }
         try {
@@ -234,14 +237,14 @@ export default function RateCardAdmin() {
             });
             if (!res.ok) {
                 const err = await res.json();
-                alert(`Create failed: ${err.error}`);
+                void showAlert({ title: "Create Failed", description: err.error });
                 return;
             }
             setShowAddForm(false);
             setNewEntry({ category: "margin", key: "", label: "", value: "", unit: "pct", provenance: "", confidence: "estimated" });
             fetchEntries();
         } catch (err) {
-            alert(`Create failed: ${err}`);
+            void showAlert({ title: "Create Failed", description: String(err) });
         }
     };
 
