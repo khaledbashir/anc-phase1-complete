@@ -16,8 +16,6 @@ import {
     Package,
     Calculator,
     X,
-    PanelLeftOpen,
-    PanelLeftClose,
     UserCircle,
     Bell,
     Lock,
@@ -101,40 +99,31 @@ export default function DashboardSidebar() {
         <>
             <aside className="h-screen w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-4 z-50 transition-colors duration-300 sticky top-0">
                 {/* Minimal Logo */}
-                <div className="mb-6">
-                    <Link href="/projects" className="flex items-center justify-center">
-                        <div className="w-10 h-10 flex items-center justify-center relative">
-                            <Image
-                                src="/ANC_Logo_2023_blue.png"
-                                alt="ANC"
-                                width={40}
-                                height={40}
-                                className="w-full h-auto object-contain dark:hidden"
-                            />
-                            <Image
-                                src="/ANC_Logo_2023_white.png"
-                                alt="ANC"
-                                width={40}
-                                height={40}
-                                className="w-full h-auto object-contain hidden dark:block"
-                            />
-                        </div>
-                    </Link>
-                </div>
-
                 <button
                     onClick={() => setIsNavExpanded((prev) => !prev)}
-                    className="group relative p-2.5 rounded bg-secondary/60 text-foreground hover:bg-secondary transition-all duration-200 mb-4"
-                    aria-label={isNavExpanded ? "Collapse navigation" : "Expand navigation"}
+                    className="mb-6 flex items-center justify-center cursor-pointer"
+                    aria-label="Toggle navigation"
                 >
-                    {isNavExpanded ? <PanelLeftClose className="w-5 h-5" /> : <PanelLeftOpen className="w-5 h-5" />}
-                    <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
-                        {isNavExpanded ? "Collapse" : "Expand"}
+                    <div className="w-10 h-10 flex items-center justify-center relative">
+                        <Image
+                            src="/ANC_Logo_2023_blue.png"
+                            alt="ANC"
+                            width={40}
+                            height={40}
+                            className="w-full h-auto object-contain dark:hidden"
+                        />
+                        <Image
+                            src="/ANC_Logo_2023_white.png"
+                            alt="ANC"
+                            width={40}
+                            height={40}
+                            className="w-full h-auto object-contain hidden dark:block"
+                        />
                     </div>
                 </button>
 
                 {/* Main Nav */}
-                <nav className="flex flex-col gap-2 overflow-y-auto">
+                <nav className="flex flex-col gap-2 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {/* Primary Navigation */}
                     {mainMenuItems.map((item) => {
                         const isActive = pathname === item.href;
