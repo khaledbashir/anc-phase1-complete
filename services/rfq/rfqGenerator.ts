@@ -67,8 +67,8 @@ export interface CalcInput {
     pixelsH?: number;
     areaSqFt?: number;
     cabinetLayout?: {
-        cols: number;
-        rows: number;
+        columnsCount: number;
+        rowsCount: number;
         totalCabinets: number;
     } | null;
 }

@@ -25,6 +25,7 @@ import LiabilityPanel from "./LiabilityPanel";
 import RfqPanel from "./RfqPanel";
 import RevisionRadarPanel from "./RevisionRadarPanel";
 import CutSheetPanel from "./CutSheetPanel";
+import ToolDescription from "./ToolDescription";
 import type { VendorExtractedSpec } from "@/services/vendor/vendorParser";
 import { useProductSpecs } from "@/hooks/useProductSpecs";
 import { exportEstimatorExcel } from "./exportEstimatorExcel";
@@ -330,102 +331,150 @@ export default function EstimatorStudio({
                             </button>
                         </>
                     )}
-                    <button
-                        onClick={() => setBundleOpen((v) => !v)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
-                            bundleOpen
-                                ? "bg-orange-600 text-white"
-                                : "border border-border text-muted-foreground hover:bg-muted"
-                        }`}
-                        title="Smart Assembly Bundle"
+                    <ToolDescription
+                        label="Smart Assembly Bundle"
+                        description="Auto-suggests hidden line items you might forget: video processors, receiving cards, spare modules, mounting brackets, cable kits, and more."
+                        whenToUse="After adding displays. Review before exporting to catch missing accessories."
+                        benefit="Catches $5K-$30K in commonly forgotten line items per project."
                     >
-                        <Boxes className="w-3 h-3" />
-                        Bundle
-                    </button>
-                    <button
-                        onClick={() => setReverseOpen((v) => !v)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
-                            reverseOpen
-                                ? "bg-teal-600 text-white"
-                                : "border border-border text-muted-foreground hover:bg-muted"
-                        }`}
-                        title="Price-to-Spec: find products that fit your budget"
+                        <button
+                            onClick={() => setBundleOpen((v) => !v)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                                bundleOpen
+                                    ? "bg-orange-600 text-white"
+                                    : "border border-border text-muted-foreground hover:bg-muted"
+                            }`}
+                        >
+                            <Boxes className="w-3 h-3" />
+                            Bundle
+                        </button>
+                    </ToolDescription>
+                    <ToolDescription
+                        label="Price-to-Spec Reverse Engineer"
+                        description="Enter a target budget and display size. The system searches the product catalog and shows which LED products fit within that budget, with full cost breakdowns."
+                        whenToUse="When the client says 'I have $200K for a scoreboard' and you need to find what's possible."
+                        benefit="Instantly answers 'what can I get for $X?' instead of manual trial-and-error."
                     >
-                        <Search className="w-3 h-3" />
-                        Budget
-                    </button>
-                    <button
-                        onClick={() => setVendorOpen((v) => !v)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
-                            vendorOpen
-                                ? "bg-purple-600 text-white"
-                                : "border border-border text-muted-foreground hover:bg-muted"
-                        }`}
-                        title="Parse vendor spec sheet"
+                        <button
+                            onClick={() => setReverseOpen((v) => !v)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                                reverseOpen
+                                    ? "bg-teal-600 text-white"
+                                    : "border border-border text-muted-foreground hover:bg-muted"
+                            }`}
+                        >
+                            <Search className="w-3 h-3" />
+                            Budget
+                        </button>
+                    </ToolDescription>
+                    <ToolDescription
+                        label="Vendor Spec Drop Zone"
+                        description="Drop a manufacturer's PDF spec sheet and the system extracts cabinet dimensions, weight, power, pixel pitch, and other specs automatically."
+                        whenToUse="When you receive a new product spec sheet from LG, Yaham, Absen, etc. and need to get the numbers into the estimate."
+                        benefit="Eliminates manual data entry from spec sheets — seconds instead of minutes."
                     >
-                        <Package className="w-3 h-3" />
-                        Vendor
-                    </button>
-                    <button
-                        onClick={() => setRfqOpen((v) => !v)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
-                            rfqOpen
-                                ? "bg-cyan-600 text-white"
-                                : "border border-border text-muted-foreground hover:bg-muted"
-                        }`}
-                        title="Generate vendor RFQ"
+                        <button
+                            onClick={() => setVendorOpen((v) => !v)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                                vendorOpen
+                                    ? "bg-purple-600 text-white"
+                                    : "border border-border text-muted-foreground hover:bg-muted"
+                            }`}
+                        >
+                            <Package className="w-3 h-3" />
+                            Vendor
+                        </button>
+                    </ToolDescription>
+                    <ToolDescription
+                        label="Vendor RFQ Generator"
+                        description="Auto-generates a professional Request for Quote email to LED manufacturers with your display specs, quantities, and ANC standard terms."
+                        whenToUse="After finalizing display specs. Generate one RFQ per manufacturer to get pricing."
+                        benefit="Professional RFQ in 10 seconds instead of writing emails from scratch."
                     >
-                        <Send className="w-3 h-3" />
-                        RFQ
-                    </button>
-                    <button
-                        onClick={() => setLiabilityOpen((v) => !v)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
-                            liabilityOpen
-                                ? "bg-rose-600 text-white"
-                                : "border border-border text-muted-foreground hover:bg-muted"
-                        }`}
-                        title="Scan SOW/RFP for liability gaps"
+                        <button
+                            onClick={() => setRfqOpen((v) => !v)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                                rfqOpen
+                                    ? "bg-cyan-600 text-white"
+                                    : "border border-border text-muted-foreground hover:bg-muted"
+                            }`}
+                        >
+                            <Send className="w-3 h-3" />
+                            RFQ
+                        </button>
+                    </ToolDescription>
+                    <ToolDescription
+                        label="Liability Hunter (SOW Scanner)"
+                        description="Upload a SOW, RFP, or contract. The system scans it against a 20-point checklist of required clauses: payment terms, liability caps, change orders, force majeure, warranty, and more."
+                        whenToUse="Before signing any contract or SOW. Upload the document to find missing protections."
+                        benefit="Catches liability gaps that could cost $50K+ in unprotected exposure."
                     >
-                        <Shield className="w-3 h-3" />
-                        Risk
-                    </button>
-                    <button
-                        onClick={() => setRevisionOpen((v) => !v)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
-                            revisionOpen
-                                ? "bg-amber-600 text-white"
-                                : "border border-border text-muted-foreground hover:bg-muted"
-                        }`}
-                        title="Compare two Excel revisions"
+                        <button
+                            onClick={() => setLiabilityOpen((v) => !v)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                                liabilityOpen
+                                    ? "bg-rose-600 text-white"
+                                    : "border border-border text-muted-foreground hover:bg-muted"
+                            }`}
+                        >
+                            <Shield className="w-3 h-3" />
+                            Risk
+                        </button>
+                    </ToolDescription>
+                    <ToolDescription
+                        label="Revision Radar (Delta Scanner)"
+                        description="Upload an original and revised cost analysis Excel. The system diffs them section-by-section, highlights every change, and shows the dollar impact."
+                        whenToUse="When a client sends an addendum or revised scope. See exactly what changed and by how much."
+                        benefit="Spot hidden cost changes in seconds instead of line-by-line comparison."
                     >
-                        <GitCompare className="w-3 h-3" />
-                        Delta
-                    </button>
-                    <button
-                        onClick={() => setCutSheetOpen((v) => !v)}
-                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
-                            cutSheetOpen
-                                ? "bg-indigo-600 text-white"
-                                : "border border-border text-muted-foreground hover:bg-muted"
-                        }`}
-                        title="Generate display cut sheets"
+                        <button
+                            onClick={() => setRevisionOpen((v) => !v)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                                revisionOpen
+                                    ? "bg-amber-600 text-white"
+                                    : "border border-border text-muted-foreground hover:bg-muted"
+                            }`}
+                        >
+                            <GitCompare className="w-3 h-3" />
+                            Delta
+                        </button>
+                    </ToolDescription>
+                    <ToolDescription
+                        label="Visual Cut-Sheet Automator"
+                        description="Generates per-display spec sheets with product specs, cabinet layout, power/weight/resolution stats, and installation notes. Ready for submittal packages."
+                        whenToUse="Before submitting a proposal. Generate cut sheets for each display to include in the package."
+                        benefit="One-click submittal-ready spec sheets instead of manual formatting."
                     >
-                        <FileText className="w-3 h-3" />
-                        Cuts
-                    </button>
-                    <button
-                        onClick={() => setCopilotOpen((v) => !v)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                            copilotOpen
-                                ? "bg-[#0055B3] text-white"
-                                : "border border-border text-muted-foreground hover:bg-muted"
-                        }`}
-                        title="Toggle Lux copilot"
+                        <button
+                            onClick={() => setCutSheetOpen((v) => !v)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                                cutSheetOpen
+                                    ? "bg-indigo-600 text-white"
+                                    : "border border-border text-muted-foreground hover:bg-muted"
+                            }`}
+                        >
+                            <FileText className="w-3 h-3" />
+                            Cuts
+                        </button>
+                    </ToolDescription>
+                    <ToolDescription
+                        label="Lux AI Copilot"
+                        description="Chat with Lux about your estimate. Ask questions like 'What's the cost breakdown for Display 1?' or 'How can I reduce the total by 15%?' Lux sees your full estimate in real time."
+                        whenToUse="Anytime you need help understanding costs, exploring alternatives, or explaining numbers to a client."
+                        benefit="AI assistant that understands your exact estimate — no copy-pasting needed."
                     >
-                        <MessageSquare className="w-3 h-3" />
-                        Lux
-                    </button>
+                        <button
+                            onClick={() => setCopilotOpen((v) => !v)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                                copilotOpen
+                                    ? "bg-[#0055B3] text-white"
+                                    : "border border-border text-muted-foreground hover:bg-muted"
+                            }`}
+                        >
+                            <MessageSquare className="w-3 h-3" />
+                            Lux
+                        </button>
+                    </ToolDescription>
                 </div>
             </header>
 
@@ -509,6 +558,8 @@ export default function EstimatorStudio({
                                 open={rfqOpen}
                                 onClose={() => setRfqOpen(false)}
                                 answers={answers}
+                                calcs={calcs}
+                                productSpecs={productSpecs}
                             />
                         </div>
                     )}

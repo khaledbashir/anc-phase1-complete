@@ -18,6 +18,7 @@ import {
     FileText,
 } from "lucide-react";
 import type { RfqDocument, RfqLineItem } from "@/services/rfq/rfqGenerator";
+import type { ScreenCalc, ProductSpec } from "@/app/components/estimator/EstimatorBridge";
 
 // ============================================================================
 // TYPES
@@ -33,20 +34,7 @@ interface DisplayInput {
     serviceType: string;
     isReplacement: boolean;
     installComplexity?: string;
-}
-
-interface CalcData {
-    pixelsW?: number;
-    pixelsH?: number;
-    areaSqFt?: number;
-    cabinetLayout?: { cols: number; rows: number; totalCabinets: number } | null;
-}
-
-interface ProductSpec {
-    maxNits?: number;
-    ipRating?: string;
-    refreshRate?: number;
-    environment?: string;
+    productId?: string;
 }
 
 interface RfqPanelProps {
@@ -59,7 +47,7 @@ interface RfqPanelProps {
         displays: DisplayInput[];
     };
     /** ScreenCalc[] from EstimatorBridge — enriches RFQ with resolution, area */
-    calcs?: CalcData[];
+    calcs?: ScreenCalc[];
     /** Product specs keyed by productId */
     productSpecs?: Record<string, ProductSpec>;
 }
@@ -124,20 +112,6 @@ export default function RfqPanel({ open, onClose, answers, calcs, productSpecs }
 
     // Build enriched answers with calc + product data
     const buildEnrichedAnswers = useCallback(() => {
-        const products = answers.displays.map((d) => {
-            if (!d.productName || !productSpecs) return null;
-            // Try to find by iterating all specs
-            const match = Object.values(productSpecs).find(
-                (p: any) => p?.displayName === d.productName || p?.modelNumber === d.productName
-            );
-            return match ? {
-                maxNits: (match as any).maxNits,
-                ipRating: (match as any).ipRating,
-                refreshRate: (match as any).refreshRate,
-                environment: (match as any).environment,
-            } : null;
-        });
-
         return {
             ...answers,
             calcs: calcs?.map((c) => ({
@@ -146,9 +120,12 @@ export default function RfqPanel({ open, onClose, answers, calcs, productSpecs }
                 areaSqFt: c.areaSqFt,
                 cabinetLayout: c.cabinetLayout,
             })),
-            products,
+            // ProductSpec from EstimatorBridge has cabinet/power data, not display-level
+            // specs like maxNits/ipRating. Pass null for now — these can be enriched
+            // later when ManufacturerProduct data is wired directly.
+            products: answers.displays.map(() => null),
         };
-    }, [answers, calcs, productSpecs]);
+    }, [answers, calcs]);
 
     const handleGenerate = useCallback(async () => {
         if (selectedManufacturers.size === 0) {
