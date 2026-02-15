@@ -14,6 +14,7 @@ datasource db {
 enum CalculationMode {
   MIRROR
   INTELLIGENCE
+  ESTIMATE
 }
 
 enum VerificationStatus {
@@ -208,6 +209,14 @@ model Proposal {
   // P69: Copilot Chat History
   chatHistory            Json?               // Array of { id, role, content, timestamp } messages
   chatConversations      Json?               // Array of past conversations { id, title, messages, createdAt }
+
+  // Estimator V2: ROM/Detailed estimation mode
+  estimatorAnswers       Json?               // Full EstimatorAnswers (project setup + financial)
+  estimatorDisplays      Json?               // Array of DisplayAnswers with cost breakdowns
+  estimatorDepth         String?             // "rom" | "detailed"
+  estimatorCellOverrides Json?               // Cell override map for ExcelPreview edits
+  estimatorCustomSheets  Json?               // User-added custom worksheet tabs
+  estimatorRateSnapshot  Json?               // Rate card values snapshot at creation time
 
   // NEW: Manual overrides and versions
   manualOverrides       ManualOverride[]

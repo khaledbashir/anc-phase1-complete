@@ -8,7 +8,7 @@ export interface CreateWorkspaceRequest {
   userEmail: string;
   createInitialProposal?: boolean;
   clientName?: string;
-  calculationMode?: "MIRROR" | "STRATEGIC";
+  calculationMode?: "MIRROR" | "STRATEGIC" | "ESTIMATE";
   excelData?: {
     screens?: any[];
     receiverName?: string;
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
           clientName: clientNameForLogo,
           clientLogo, // Store found logo here too
           status: "DRAFT",
-          calculationMode: body.calculationMode === "MIRROR" ? "MIRROR" : "INTELLIGENCE",
+          calculationMode: body.calculationMode === "MIRROR" ? "MIRROR" : body.calculationMode === "ESTIMATE" ? "ESTIMATE" : "INTELLIGENCE",
           internalAudit: body.excelData?.internalAudit ? JSON.stringify(body.excelData.internalAudit) : undefined,
           clientSummary: body.excelData?.clientSummary ? JSON.stringify(body.excelData.clientSummary) : undefined,
           pricingDocument: body.excelData?.pricingDocument || undefined,

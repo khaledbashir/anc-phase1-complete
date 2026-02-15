@@ -20,13 +20,25 @@ import { exportEstimatorExcel } from "./exportEstimatorExcel";
 
 const SHEET_COLORS = ["#6366F1", "#EC4899", "#14B8A6", "#F59E0B", "#8B5CF6", "#EF4444"];
 
-export default function EstimatorStudio() {
-    const [answers, setAnswers] = useState<EstimatorAnswers>(getDefaultAnswers());
+interface EstimatorStudioProps {
+    projectId?: string;
+    initialAnswers?: EstimatorAnswers;
+    initialCellOverrides?: Record<string, string | number>;
+    initialCustomSheets?: SheetTab[];
+}
+
+export default function EstimatorStudio({
+    projectId,
+    initialAnswers,
+    initialCellOverrides,
+    initialCustomSheets,
+}: EstimatorStudioProps = {}) {
+    const [answers, setAnswers] = useState<EstimatorAnswers>(initialAnswers || getDefaultAnswers());
     const [exporting, setExporting] = useState(false);
     // Cell overrides: key = "sheetIdx-rowIdx-colIdx", value = edited value
-    const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>({});
+    const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>(initialCellOverrides || {});
     // User-added custom sheets
-    const [customSheets, setCustomSheets] = useState<SheetTab[]>([]);
+    const [customSheets, setCustomSheets] = useState<SheetTab[]>(initialCustomSheets || []);
 
     // Build preview data reactively from answers
     const basePreviewData: ExcelPreviewData = useMemo(() => {

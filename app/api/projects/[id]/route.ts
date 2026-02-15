@@ -134,6 +134,13 @@ export async function PATCH(
             priceOverrides,       // Mirror Mode: line item price overrides
             chatHistory,          // Copilot active conversation
             chatConversations,    // Copilot archived conversations
+            // Estimator fields (ESTIMATE mode)
+            estimatorAnswers,
+            estimatorDisplays,
+            estimatorDepth,
+            estimatorCellOverrides,
+            estimatorCustomSheets,
+            estimatorRateSnapshot,
         } = body;
 
         // Map address from receiverData (nested) or flat fields
@@ -238,6 +245,13 @@ export async function PATCH(
         if (priceOverrides !== undefined) updateData.priceOverrides = priceOverrides;
         if (chatHistory !== undefined) updateData.chatHistory = chatHistory;
         if (chatConversations !== undefined) updateData.chatConversations = chatConversations;
+        // Estimator fields
+        if (estimatorAnswers !== undefined) updateData.estimatorAnswers = estimatorAnswers;
+        if (estimatorDisplays !== undefined) updateData.estimatorDisplays = estimatorDisplays;
+        if (estimatorDepth !== undefined) updateData.estimatorDepth = estimatorDepth;
+        if (estimatorCellOverrides !== undefined) updateData.estimatorCellOverrides = estimatorCellOverrides;
+        if (estimatorCustomSheets !== undefined) updateData.estimatorCustomSheets = estimatorCustomSheets;
+        if (estimatorRateSnapshot !== undefined) updateData.estimatorRateSnapshot = estimatorRateSnapshot;
 
         const project = await prisma.$transaction(async (tx) => {
             // Handle snapshot creation if requested

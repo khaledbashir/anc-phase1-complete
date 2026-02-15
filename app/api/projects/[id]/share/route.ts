@@ -166,7 +166,7 @@ export async function POST(
                 proposalNumber: project.id.substring(0, 8).toUpperCase(),
                 subTotal: clientSummary?.sellPrice || 0,
                 mirrorMode: clientSummary?.mirrorMode || false,
-                calculationMode: project.calculationMode,
+                calculationMode: project.calculationMode as any,
                 venue: (project as any).venue || clientSummary?.venue || "Generic",
                 // SECURITY: Strictly nullify internal financial logic
                 bondRateOverride: Number(project.bondRateOverride) || undefined,

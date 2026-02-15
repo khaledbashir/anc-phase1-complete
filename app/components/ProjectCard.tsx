@@ -21,6 +21,7 @@ export interface ProjectCardData {
     venue: string | null;
     documentMode: "BUDGET" | "PROPOSAL" | "LOI";
     mirrorMode: boolean;
+    calculationMode: string;
     currency: string;
     sectionCount: number;
     hasExcel: boolean;
@@ -96,6 +97,8 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
 
     const venue = project.venue || project.clientCity || null;
     const totalDisplay = project.totalAmount === 0 && !project.hasExcel ? "—" : formatCurrency(project.totalAmount, project.currency || "USD");
+    const projectUrl = project.calculationMode === "ESTIMATE" ? `/estimator/${project.id}` : `/projects/${project.id}`;
+    const isEstimate = project.calculationMode === "ESTIMATE";
 
     const [isExporting, setIsExporting] = useState(false);
     const [isStatusUpdating, setIsStatusUpdating] = useState(false);
@@ -164,7 +167,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
     if (viewMode === "list") {
         return (
             <div
-                onClick={() => router.push(`/projects/${project.id}`)}
+                onClick={() => router.push(projectUrl)}
                 className="group flex items-center gap-3 px-3 py-2 border-b border-white/5 cursor-pointer hover:bg-muted/50 transition-colors"
             >
                 {/* Name */}
@@ -175,7 +178,11 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
 
                 {/* Type */}
                 <div className="hidden sm:block w-20 text-[11px] text-muted-foreground shrink-0">
-                    {project.documentMode === "LOI" ? "LOI" : project.documentMode.charAt(0) + project.documentMode.slice(1).toLowerCase()}
+                    {isEstimate ? (
+                        <span className="inline-flex items-center gap-1 text-emerald-500 font-medium">Estimate</span>
+                    ) : (
+                        project.documentMode === "LOI" ? "LOI" : project.documentMode.charAt(0) + project.documentMode.slice(1).toLowerCase()
+                    )}
                 </div>
 
                 {/* Status select */}
@@ -245,7 +252,7 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
     /* ─── GRID CARD ─── */
     return (
         <div
-            onClick={() => router.push(`/projects/${project.id}`)}
+            onClick={() => router.push(projectUrl)}
             className="group relative bg-card border border-border overflow-hidden cursor-pointer rounded flex flex-col"
         >
             <div className="p-3 flex flex-col gap-2 flex-1">
@@ -261,7 +268,11 @@ export default function ProjectCard({ project, onStatusChange, onBriefMe, onDele
                 {/* Row 2: Meta chips */}
                 <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                     <span>{status.label}</span>
-                    <span>{project.documentMode === "LOI" ? "LOI" : project.documentMode.charAt(0) + project.documentMode.slice(1).toLowerCase()}</span>
+                    {isEstimate ? (
+                        <span className="text-emerald-500 font-medium">Estimate</span>
+                    ) : (
+                        <span>{project.documentMode === "LOI" ? "LOI" : project.documentMode.charAt(0) + project.documentMode.slice(1).toLowerCase()}</span>
+                    )}
                     {project.screenCount > 0 && <span>{project.screenCount} screens</span>}
                 </div>
             </div>

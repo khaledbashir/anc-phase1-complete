@@ -84,6 +84,7 @@ export async function GET(req: NextRequest) {
                     venue: true,
                     documentMode: true,
                     mirrorMode: true,
+                    calculationMode: true,
                     pricingDocument: true,
                     clientLogo: true,
                     versions: {
@@ -128,6 +129,7 @@ export async function GET(req: NextRequest) {
                 venue: project.venue || null,
                 documentMode: project.documentMode || "BUDGET",
                 mirrorMode: project.mirrorMode ?? true,
+                calculationMode: project.calculationMode || "MIRROR",
                 totalAmount,
                 currency: pricingDocument?.currency || "USD",
                 sectionCount,

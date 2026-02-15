@@ -115,8 +115,9 @@ export default function ProjectsPage() {
 
     const summary = useMemo(() => {
         const projectCount = projects.length;
-        const mirrorCount = projects.filter((project) => project.mirrorMode).length;
-        const intelligenceCount = projectCount - mirrorCount;
+        const estimateCount = projects.filter((project: any) => project.calculationMode === "ESTIMATE").length;
+        const mirrorCount = projects.filter((project) => project.mirrorMode && (project as any).calculationMode !== "ESTIMATE").length;
+        const intelligenceCount = projectCount - mirrorCount - estimateCount;
         const totalPipeline = projects.reduce((sum, project) => sum + (project.totalAmount || 0), 0);
         const formattedPipeline = formatCurrency(totalPipeline, "USD");
         const filterLabel = statusFilter === "all"
@@ -131,6 +132,7 @@ export default function ProjectsPage() {
             projectCount,
             mirrorCount,
             intelligenceCount,
+            estimateCount,
             totalPipeline,
             formattedPipeline,
             filterLabel,
@@ -378,6 +380,10 @@ export default function ProjectsPage() {
                                     <div>
                                         <span className="text-lg font-medium text-foreground tabular-nums">{summary.intelligenceCount}</span>
                                         <span className="text-[10px] text-muted-foreground ml-1.5">Intelligence</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-lg font-medium text-emerald-500 tabular-nums">{summary.estimateCount}</span>
+                                        <span className="text-[10px] text-muted-foreground ml-1.5">Estimates</span>
                                     </div>
                                     <div>
                                         <span className="text-lg font-medium text-foreground tabular-nums">{summary.formattedPipeline}</span>
