@@ -94,6 +94,8 @@ const defaultProposalContext = {
     excelSourceData: null as any,
     verificationManifest: null as VerificationManifest | null,
     verificationExceptions: [] as VerificationException[],
+    columnMapperNeeded: false,
+    applyManualPricingDocument: (doc: any) => { },
     loadExcelPreview: (file: File) => Promise.resolve(),
     savedProposals: [] as ProposalType[],
     pdfUrl: null as string | null,
@@ -270,6 +272,7 @@ export const ProposalContextProvider = ({
     const [excelPreview, setExcelPreview] = useState<ExcelPreview | null>(null);
     const [excelValidationOk, setExcelValidationOk] = useState<boolean>(false);
     const [importedExcelFile, setImportedExcelFile] = useState<File | null>(null);
+    const [columnMapperNeeded, setColumnMapperNeeded] = useState(false);
     const [excelSourceData, setExcelSourceData] = useState<any | null>(null);
     const [excelDiagnostics, setExcelDiagnostics] = useState<{
         warnings: string[];
@@ -3580,7 +3583,14 @@ export const ProposalContextProvider = ({
         } catch (err) {
             console.error("Excel import error:", err);
             const message = err instanceof Error ? err.message : String(err);
-            showError("Excel import failed", message);
+            // If we have the Excel preview loaded, offer the Column Mapper instead of just an error
+            if (excelPreview && excelPreview.sheets?.length > 0) {
+                console.log("[EXCEL IMPORT] Parser failed — activating Column Mapper fallback");
+                setColumnMapperNeeded(true);
+                showError("Standard parser couldn't read this file", "Use the Column Mapper below to manually map columns.");
+            } else {
+                showError("Excel import failed", message);
+            }
         } finally {
             setExcelImportLoading(false);
             setTimeout(() => {
@@ -3588,6 +3598,50 @@ export const ProposalContextProvider = ({
             }, 500);
         }
     };
+
+    // ========================================================================
+    // COLUMN MAPPER — Apply manually-mapped PricingDocument from ColumnMapper UI
+    // ========================================================================
+    const applyManualPricingDocument = useCallback((doc: any) => {
+        if (!doc) return;
+        console.log("[COLUMN MAPPER] Applying manual PricingDocument:", {
+            tables: doc.tables?.length,
+            documentTotal: doc.documentTotal,
+        });
+
+        // Set pricing document into form (same path as standard parser)
+        setValue("details.pricingDocument", doc, { shouldDirty: true });
+        setValue("details.pricingMode", "MIRROR", { shouldDirty: true });
+        setValue("details.showExhibitA", false, { shouldDirty: true });
+
+        // Set validation report
+        setValue("details.parserValidationReport", {
+            status: "PASS",
+            strict: false,
+            errors: [],
+            warnings: ["Imported via Column Mapper (non-standard format)"],
+            evidence: {
+                marginSheetDetected: doc.sourceSheet || null,
+                headerRowIndex: null,
+                sectionCount: doc.tables?.length || 0,
+                respMatrixSheetCandidates: [],
+                respMatrixSheetUsed: null,
+                respMatrixCategoryCount: 0,
+            },
+        }, { shouldDirty: true });
+
+        // Update diagnostics
+        setExcelDiagnostics({
+            warnings: ["Imported via Column Mapper — verify pricing data carefully"],
+            errors: [],
+            totalOk: doc.documentTotal > 0,
+        });
+
+        setColumnMapperNeeded(false);
+
+        // Auto-save
+        saveDraft().catch((e) => console.error("[COLUMN MAPPER] Auto-save error:", e));
+    }, [setValue, saveDraft]);
 
     return (
         <ProposalContext.Provider
@@ -3605,6 +3659,8 @@ export const ProposalContextProvider = ({
                 excelSourceData,
                 verificationManifest,
                 verificationExceptions,
+                columnMapperNeeded,
+                applyManualPricingDocument,
                 loadExcelPreview,
                 savedProposals,
                 pdfUrl,
