@@ -4,6 +4,7 @@ export const maxDuration = 10;
 
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { healthCheck as kreuzbergHealth } from "@/services/kreuzberg/kreuzbergClient";
 import path from "path";
 import fs from "fs";
 
@@ -40,12 +41,23 @@ export async function GET() {
     database = "disconnected";
   }
 
+  let kreuzberg: { status: string; version?: string } = { status: "unreachable" };
+  try {
+    const kHealth = await withTimeout(kreuzbergHealth(), 5000);
+    kreuzberg = kHealth.ok
+      ? { status: "connected", version: kHealth.version }
+      : { status: "unreachable" };
+  } catch {
+    kreuzberg = { status: "unreachable" };
+  }
+
   const healthy = database === "connected";
   const body = {
     status: healthy ? "healthy" : "degraded",
     liveness: "ok",
     readiness: healthy ? "ready" : "degraded",
     database,
+    kreuzberg,
     version,
     uptime: uptimeSeconds,
     uptimeHours: Math.round((uptimeSeconds / 3600) * 100) / 100,
