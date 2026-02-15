@@ -27,4 +27,6 @@ WHERE "documentConfig" IS NOT NULL
 SQL
 
 # Start the application
+# Increase max HTTP header size to prevent 431 errors from accumulated auth cookies
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-http-header-size=32768"
 exec npm start

@@ -18,6 +18,7 @@ import { buildPreviewSheets, type ExcelPreviewData, type SheetTab } from "./Esti
 import { getDefaultAnswers, type EstimatorAnswers } from "./questions";
 import { exportEstimatorExcel } from "./exportEstimatorExcel";
 import { useRateCard } from "@/hooks/useRateCard";
+import { useEstimatorAutoSave } from "@/hooks/useEstimatorAutoSave";
 
 const SHEET_COLORS = ["#6366F1", "#EC4899", "#14B8A6", "#F59E0B", "#8B5CF6", "#EF4444"];
 
@@ -42,6 +43,14 @@ export default function EstimatorStudio({
     const [customSheets, setCustomSheets] = useState<SheetTab[]>(initialCustomSheets || []);
     // Rate card from DB (replaces hardcoded constants)
     const { rates, loading: ratesLoading } = useRateCard();
+    // Auto-save to DB when projectId is provided
+    const { status: saveStatus } = useEstimatorAutoSave({
+        projectId,
+        answers,
+        cellOverrides,
+        customSheets,
+        rates,
+    });
 
     // Build preview data reactively from answers + rate card
     const basePreviewData: ExcelPreviewData = useMemo(() => {
@@ -150,6 +159,18 @@ export default function EstimatorStudio({
                             <Loader2 className="w-3 h-3 animate-spin" />
                             Loading rates...
                         </span>
+                    )}
+                    {projectId && saveStatus === "saving" && (
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Saving...
+                        </span>
+                    )}
+                    {projectId && saveStatus === "saved" && (
+                        <span className="text-[10px] text-emerald-500">Saved</span>
+                    )}
+                    {projectId && saveStatus === "error" && (
+                        <span className="text-[10px] text-destructive">Save failed</span>
                     )}
                     {answers.displays.length > 0 && (
                         <>
