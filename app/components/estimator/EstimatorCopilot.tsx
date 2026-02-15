@@ -22,6 +22,7 @@ import {
     MicOff,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/utils";
 import type { EstimatorAnswers } from "./questions";
 import type { ScreenCalc } from "./EstimatorBridge";
@@ -270,8 +271,7 @@ export default function EstimatorCopilot({
 
     return (
         <div
-            className="absolute right-0 top-0 z-40 flex h-full flex-col border-l border-zinc-200 bg-white shadow-xl"
-            style={{ width: "clamp(340px, 28vw, 420px)" }}
+            className="flex h-full w-full flex-col bg-white"
         >
             {/* Header bar */}
             <div className="h-1 w-full bg-gradient-to-r from-[#0055B3] to-[#2E87E5]" />
@@ -335,8 +335,45 @@ export default function EstimatorCopilot({
                                         {isUser ? (
                                             <p className="whitespace-pre-wrap">{msg.content}</p>
                                         ) : (
-                                            <div className="prose prose-sm max-w-none prose-zinc prose-p:my-1 prose-li:my-0 prose-ul:my-1 prose-ol:my-1 prose-headings:my-1.5 prose-headings:text-zinc-900 prose-strong:text-zinc-900 prose-table:text-[10px] [&_th]:px-1.5 [&_td]:px-1.5 [&_th]:py-0.5 [&_td]:py-0.5 [&_table]:my-1 [&_th]:text-left [&_th]:border-b [&_th]:border-zinc-300 [&_td]:border-b [&_td]:border-zinc-200">
-                                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                            <div className="copilot-markdown text-[11px] leading-relaxed break-words overflow-hidden">
+                                                <ReactMarkdown
+                                                    remarkPlugins={[remarkGfm]}
+                                                    components={{
+                                                        p: ({ children }) => <p className="my-1 text-zinc-900">{children}</p>,
+                                                        strong: ({ children }) => <strong className="font-semibold text-zinc-900">{children}</strong>,
+                                                        em: ({ children }) => <em className="italic">{children}</em>,
+                                                        h1: ({ children }) => <h3 className="text-xs font-bold text-zinc-900 mt-2 mb-1">{children}</h3>,
+                                                        h2: ({ children }) => <h4 className="text-[11px] font-bold text-zinc-900 mt-2 mb-1">{children}</h4>,
+                                                        h3: ({ children }) => <h5 className="text-[11px] font-semibold text-zinc-900 mt-1.5 mb-0.5">{children}</h5>,
+                                                        ul: ({ children }) => <ul className="my-1 ml-3 list-disc space-y-0.5 text-zinc-700">{children}</ul>,
+                                                        ol: ({ children }) => <ol className="my-1 ml-3 list-decimal space-y-0.5 text-zinc-700">{children}</ol>,
+                                                        li: ({ children }) => <li className="text-[11px] leading-relaxed">{children}</li>,
+                                                        code: ({ className, children, ...props }) => {
+                                                            const isBlock = className?.includes("language-");
+                                                            if (isBlock) {
+                                                                return (
+                                                                    <pre className="my-1.5 rounded bg-zinc-800 text-zinc-100 px-2 py-1.5 text-[10px] leading-snug overflow-x-auto">
+                                                                        <code className={className} {...props}>{children}</code>
+                                                                    </pre>
+                                                                );
+                                                            }
+                                                            return <code className="rounded bg-zinc-200 px-1 py-0.5 text-[10px] font-mono text-zinc-800" {...props}>{children}</code>;
+                                                        },
+                                                        pre: ({ children }) => <>{children}</>,
+                                                        table: ({ children }) => (
+                                                            <div className="my-1.5 overflow-x-auto rounded border border-zinc-200">
+                                                                <table className="w-full text-[10px] border-collapse">{children}</table>
+                                                            </div>
+                                                        ),
+                                                        thead: ({ children }) => <thead className="bg-zinc-100">{children}</thead>,
+                                                        th: ({ children }) => <th className="px-2 py-1 text-left font-semibold text-zinc-700 border-b border-zinc-200 whitespace-nowrap">{children}</th>,
+                                                        td: ({ children }) => <td className="px-2 py-1 text-zinc-600 border-b border-zinc-100 whitespace-nowrap">{children}</td>,
+                                                        tr: ({ children }) => <tr className="hover:bg-zinc-50">{children}</tr>,
+                                                        blockquote: ({ children }) => <blockquote className="my-1 border-l-2 border-[#0055B3] pl-2 text-zinc-600 italic">{children}</blockquote>,
+                                                        hr: () => <hr className="my-2 border-zinc-200" />,
+                                                        a: ({ href, children }) => <a href={href} target="_blank" rel="noopener noreferrer" className="text-[#0055B3] underline hover:text-[#004494]">{children}</a>,
+                                                    }}
+                                                >{msg.content}</ReactMarkdown>
                                             </div>
                                         )}
                                     </div>

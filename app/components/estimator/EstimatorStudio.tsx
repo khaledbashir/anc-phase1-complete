@@ -478,10 +478,14 @@ export default function EstimatorStudio({
                 </div>
             </header>
 
-            {/* Split screen — when Lux is open, hide questions and go full width */}
-            <main className={`flex-1 min-h-0 overflow-hidden grid ${copilotOpen ? 'grid-cols-1' : 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'}`}>
-                {/* Left: Questions (hidden when Lux is open) */}
-                {!copilotOpen && (
+            {/* Split screen — responsive grid: Questions | Excel | Copilot */}
+            <main className={`flex-1 min-h-0 overflow-hidden grid ${
+                copilotOpen
+                    ? 'grid-cols-[minmax(0,1fr)_minmax(320px,380px)]'
+                    : 'grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'
+            }`}>
+                {/* Left: Questions (hidden when Lux is open) OR Excel Preview */}
+                {!copilotOpen ? (
                     <section className="relative min-w-0 min-h-0 flex flex-col overflow-hidden bg-background border-r border-border">
                         <QuestionFlow
                             answers={answers}
@@ -490,9 +494,9 @@ export default function EstimatorStudio({
                             productSpecs={productSpecs}
                         />
                     </section>
-                )}
+                ) : null}
 
-                {/* Right: Excel Preview + Copilot overlay */}
+                {/* Center/Right: Excel Preview */}
                 <section className="relative min-w-0 min-h-0 bg-zinc-100 dark:bg-zinc-950 overflow-hidden flex flex-col p-3">
                     <ExcelPreview
                         data={previewData}
@@ -501,13 +505,6 @@ export default function EstimatorStudio({
                         editable={true}
                         onCellEdit={handleCellEdit}
                         onAddSheet={handleAddSheet}
-                    />
-                    <EstimatorCopilot
-                        answers={answers}
-                        calcs={calcs}
-                        onUpdateAnswers={handleChange}
-                        isOpen={copilotOpen}
-                        onClose={() => setCopilotOpen(false)}
                     />
                     {/* Bundle panel overlay */}
                     {bundleOpen && (
@@ -584,6 +581,19 @@ export default function EstimatorStudio({
                         </div>
                     )}
                 </section>
+
+                {/* Right: Copilot panel as proper grid column (pushes layout) */}
+                {copilotOpen && (
+                    <section className="min-w-0 min-h-0 overflow-hidden border-l border-border">
+                        <EstimatorCopilot
+                            answers={answers}
+                            calcs={calcs}
+                            onUpdateAnswers={handleChange}
+                            isOpen={copilotOpen}
+                            onClose={() => setCopilotOpen(false)}
+                        />
+                    </section>
+                )}
             </main>
         </div>
     );
