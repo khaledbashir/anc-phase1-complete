@@ -88,6 +88,136 @@ function rc(rates: RateCard | undefined, key: string, fallback: number): number 
 }
 
 // ============================================================================
+// CABINET TETRIS — Module-based layout math
+// ============================================================================
+
+export interface CabinetLayout {
+    /** Product used for layout (null = no product selected) */
+    productName: string | null;
+    /** Cabinet dimensions in mm */
+    cabinetWidthMm: number;
+    cabinetHeightMm: number;
+    /** Cabinet grid */
+    columnsCount: number;
+    rowsCount: number;
+    totalCabinets: number;
+    /** Actual display size (after snapping to cabinet grid) */
+    actualWidthFt: number;
+    actualHeightFt: number;
+    actualAreaSqFt: number;
+    /** Delta from requested */
+    deltaWidthFt: number;
+    deltaHeightFt: number;
+    deltaWidthInches: number;
+    deltaHeightInches: number;
+    /** Weight & power from product specs */
+    weightPerCabinetKg: number;
+    totalWeightKg: number;
+    totalWeightLbs: number;
+    maxPowerPerCabinet: number;
+    totalMaxPowerW: number;
+    typicalPowerPerCabinet: number;
+    totalTypicalPowerW: number;
+    /** Heat load calculated from power */
+    heatLoadBtu: number;
+    /** Resolution from actual cabinet grid */
+    pixelsPerCabinetW: number;
+    pixelsPerCabinetH: number;
+    actualResolutionW: number;
+    actualResolutionH: number;
+}
+
+/** Product spec data passed from client fetch */
+export interface ProductSpec {
+    cabinetWidthMm: number;
+    cabinetHeightMm: number;
+    weightKgPerCabinet: number;
+    maxPowerWattsPerCab: number;
+    typicalPowerWattsPerCab?: number;
+    pixelPitch: number;
+    /** Module dimensions for finer granularity (optional) */
+    moduleWidthMm?: number;
+    moduleHeightMm?: number;
+}
+
+export function calculateCabinetLayout(
+    requestedWidthFt: number,
+    requestedHeightFt: number,
+    product: ProductSpec | null,
+    productName?: string,
+): CabinetLayout | null {
+    if (!product || !product.cabinetWidthMm || !product.cabinetHeightMm) return null;
+
+    const reqWidthMm = requestedWidthFt * 304.8;
+    const reqHeightMm = requestedHeightFt * 304.8;
+
+    // Use module dimensions if available for finer granularity (Eric's request),
+    // otherwise fall back to cabinet dimensions
+    const unitW = product.moduleWidthMm || product.cabinetWidthMm;
+    const unitH = product.moduleHeightMm || product.cabinetHeightMm;
+    const usingModules = !!(product.moduleWidthMm && product.moduleHeightMm);
+
+    // Snap to nearest whole unit count (round to closest, minimum 1)
+    const cols = Math.max(1, Math.round(reqWidthMm / unitW));
+    const rows = Math.max(1, Math.round(reqHeightMm / unitH));
+    const total = cols * rows;
+
+    // Calculate modules per cabinet for weight/power conversion
+    const modsPerCabW = usingModules ? Math.round(product.cabinetWidthMm / unitW) : 1;
+    const modsPerCabH = usingModules ? Math.round(product.cabinetHeightMm / unitH) : 1;
+    const modsPerCab = modsPerCabW * modsPerCabH;
+    // Weight/power per unit (module or cabinet)
+    const weightPerUnit = usingModules ? product.weightKgPerCabinet / modsPerCab : product.weightKgPerCabinet;
+    const maxPowerPerUnit = usingModules ? product.maxPowerWattsPerCab / modsPerCab : product.maxPowerWattsPerCab;
+
+    const actualWidthMm = cols * unitW;
+    const actualHeightMm = rows * unitH;
+    const actualWidthFt = actualWidthMm / 304.8;
+    const actualHeightFt = actualHeightMm / 304.8;
+
+    const deltaWFt = actualWidthFt - requestedWidthFt;
+    const deltaHFt = actualHeightFt - requestedHeightFt;
+
+    // Pixels per unit from pitch
+    const pitch = product.pixelPitch || 4;
+    const pxPerCabW = Math.round(unitW / pitch);
+    const pxPerCabH = Math.round(unitH / pitch);
+
+    const typPowerPerUnit = usingModules
+        ? ((product.typicalPowerWattsPerCab ?? product.maxPowerWattsPerCab * 0.6) / modsPerCab)
+        : (product.typicalPowerWattsPerCab ?? product.maxPowerWattsPerCab * 0.6);
+    const totalMaxW = total * maxPowerPerUnit;
+
+    return {
+        productName: productName || null,
+        cabinetWidthMm: unitW,  // Shows module dims when using modules
+        cabinetHeightMm: unitH,
+        columnsCount: cols,
+        rowsCount: rows,
+        totalCabinets: total,   // "cabinets" = modules when using module-level
+        actualWidthFt: Math.round(actualWidthFt * 10000) / 10000,
+        actualHeightFt: Math.round(actualHeightFt * 10000) / 10000,
+        actualAreaSqFt: Math.round(actualWidthFt * actualHeightFt * 100) / 100,
+        deltaWidthFt: Math.round(deltaWFt * 10000) / 10000,
+        deltaHeightFt: Math.round(deltaHFt * 10000) / 10000,
+        deltaWidthInches: Math.round(deltaWFt * 12 * 100) / 100,
+        deltaHeightInches: Math.round(deltaHFt * 12 * 100) / 100,
+        weightPerCabinetKg: Math.round(weightPerUnit * 100) / 100,
+        totalWeightKg: Math.round(total * weightPerUnit * 100) / 100,
+        totalWeightLbs: Math.round(total * weightPerUnit * 2.20462 * 100) / 100,
+        maxPowerPerCabinet: Math.round(maxPowerPerUnit),
+        totalMaxPowerW: Math.round(totalMaxW),
+        typicalPowerPerCabinet: Math.round(typPowerPerUnit),
+        totalTypicalPowerW: Math.round(total * typPowerPerUnit),
+        heatLoadBtu: Math.round(totalMaxW * 3.412), // 1W ≈ 3.412 BTU/hr
+        pixelsPerCabinetW: pxPerCabW,
+        pixelsPerCabinetH: pxPerCabH,
+        actualResolutionW: cols * pxPerCabW,
+        actualResolutionH: rows * pxPerCabH,
+    };
+}
+
+// ============================================================================
 // CALCULATION ENGINE (client-side, mirrors server estimator)
 // ============================================================================
 
@@ -120,9 +250,11 @@ export interface ScreenCalc {
     finalTotal: number;
     /** If targetPrice > 0, this is the reverse-calculated margin needed */
     profitShieldMargin?: number;
+    /** Cabinet layout if product selected with cabinet dimensions */
+    cabinetLayout?: CabinetLayout | null;
 }
 
-export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, rates?: RateCard): ScreenCalc {
+export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, rates?: RateCard, productSpec?: ProductSpec | null): ScreenCalc {
     const w = d.widthFt || 0;
     const h = d.heightFt || 0;
     const area = w * h;
@@ -247,6 +379,9 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
         salesTaxCost,
         finalTotal,
         profitShieldMargin,
+        cabinetLayout: productSpec
+            ? calculateCabinetLayout(w, h, productSpec, d.productName)
+            : null,
     };
 }
 
@@ -271,6 +406,12 @@ export function buildPreviewSheets(answers: EstimatorAnswers, rates?: RateCard):
         buildLaborWorksheet(answers, calcs),
         buildMarginAnalysis(answers, calcs),
     ];
+
+    // Add Cabinet Layout sheet if any display has cabinet data
+    const hasCabinets = calcs.some((c) => c.cabinetLayout);
+    if (hasCabinets) {
+        sheets.splice(3, 0, buildCabinetLayout(answers, calcs));
+    }
 
     sheets[0].active = true;
     return { fileName, sheets };
@@ -595,6 +736,151 @@ function buildLaborWorksheet(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
         name: "Labor Worksheet",
         color: "#28A745",
         columns: ["DISPLAY", "STRUCTURAL", "INSTALL", "ELECTRICAL", "EQUIP/DATA", "PM / ENG", "SHIPPING", "TOTAL"],
+        rows,
+    };
+}
+
+// --- Cabinet Layout (Tetris) ---
+function buildCabinetLayout(answers: EstimatorAnswers, calcs: ScreenCalc[]): SheetTab {
+    const rows: SheetRow[] = [];
+
+    rows.push({
+        cells: [{ value: "CABINET LAYOUT — MODULE TETRIS", bold: true, header: true, span: 8, align: "center" }],
+        isHeader: true,
+    });
+    rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+    for (let i = 0; i < calcs.length; i++) {
+        const c = calcs[i];
+        const cab = c.cabinetLayout;
+        if (!cab) continue;
+
+        // Section header
+        rows.push({
+            cells: [{ value: `${c.name}  (${cab.productName || "Product"})`, bold: true, header: true, span: 8 }],
+            isHeader: true,
+        });
+
+        // Requested vs Actual
+        rows.push({
+            cells: [
+                { value: "", bold: true, header: true },
+                { value: "REQUESTED", bold: true, header: true, align: "center" },
+                { value: "ACTUAL", bold: true, header: true, align: "center" },
+                { value: "DELTA", bold: true, header: true, align: "center" },
+                { value: "", span: 4 },
+            ],
+            isHeader: true,
+        });
+        const wDeltaStr = cab.deltaWidthInches >= 0 ? `+${cab.deltaWidthInches}"` : `${cab.deltaWidthInches}"`;
+        const hDeltaStr = cab.deltaHeightInches >= 0 ? `+${cab.deltaHeightInches}"` : `${cab.deltaHeightInches}"`;
+        rows.push({
+            cells: [
+                { value: "Width", bold: true },
+                { value: `${c.widthFt.toFixed(2)} ft`, align: "center" },
+                { value: `${cab.actualWidthFt.toFixed(4)} ft`, align: "center" },
+                { value: wDeltaStr, align: "center", highlight: Math.abs(cab.deltaWidthInches) > 2 },
+                { value: "" }, { value: "" }, { value: "" }, { value: "" },
+            ],
+        });
+        rows.push({
+            cells: [
+                { value: "Height", bold: true },
+                { value: `${c.heightFt.toFixed(2)} ft`, align: "center" },
+                { value: `${cab.actualHeightFt.toFixed(4)} ft`, align: "center" },
+                { value: hDeltaStr, align: "center", highlight: Math.abs(cab.deltaHeightInches) > 2 },
+                { value: "" }, { value: "" }, { value: "" }, { value: "" },
+            ],
+        });
+        rows.push({
+            cells: [
+                { value: "Area", bold: true },
+                { value: `${c.areaSqFt.toFixed(1)} sqft`, align: "center" },
+                { value: `${cab.actualAreaSqFt.toFixed(1)} sqft`, align: "center" },
+                { value: "" }, { value: "" }, { value: "" }, { value: "" }, { value: "" },
+            ],
+        });
+
+        rows.push({ cells: [{ value: "" }], isSeparator: true });
+
+        // Cabinet grid
+        rows.push({
+            cells: [
+                { value: "CABINET GRID", bold: true, header: true, span: 4 },
+                { value: "SPECS", bold: true, header: true, span: 4 },
+            ],
+            isHeader: true,
+        });
+        rows.push({
+            cells: [
+                { value: "Cabinet Size", bold: true },
+                { value: `${cab.cabinetWidthMm} × ${cab.cabinetHeightMm} mm` },
+                { value: "" }, { value: "" },
+                { value: "Resolution", bold: true },
+                { value: `${cab.actualResolutionW} × ${cab.actualResolutionH}` },
+                { value: "" }, { value: "" },
+            ],
+        });
+        rows.push({
+            cells: [
+                { value: "Layout", bold: true },
+                { value: `${cab.columnsCount} cols × ${cab.rowsCount} rows` },
+                { value: "" }, { value: "" },
+                { value: "Weight", bold: true },
+                { value: `${cab.totalWeightLbs.toLocaleString()} lbs (${cab.totalWeightKg.toLocaleString()} kg)` },
+                { value: "" }, { value: "" },
+            ],
+        });
+        rows.push({
+            cells: [
+                { value: "Total Cabinets", bold: true },
+                { value: cab.totalCabinets, bold: true, highlight: true },
+                { value: "" }, { value: "" },
+                { value: "Max Power", bold: true },
+                { value: `${cab.totalMaxPowerW.toLocaleString()} W` },
+                { value: "" }, { value: "" },
+            ],
+        });
+        rows.push({
+            cells: [
+                { value: "" }, { value: "" }, { value: "" }, { value: "" },
+                { value: "Typical Power", bold: true },
+                { value: `${cab.totalTypicalPowerW.toLocaleString()} W` },
+                { value: "" }, { value: "" },
+            ],
+        });
+        rows.push({
+            cells: [
+                { value: "" }, { value: "" }, { value: "" }, { value: "" },
+                { value: "Heat Load", bold: true },
+                { value: `${cab.heatLoadBtu.toLocaleString()} BTU/hr` },
+                { value: "" }, { value: "" },
+            ],
+        });
+
+        // Delta warning
+        if (Math.abs(cab.deltaWidthInches) > 2 || Math.abs(cab.deltaHeightInches) > 2) {
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+            rows.push({
+                cells: [{
+                    value: `⚠ Note: Actual screen is ${wDeltaStr} W × ${hDeltaStr} H vs architectural drawings due to module dimensions.`,
+                    bold: true,
+                    highlight: true,
+                    span: 8,
+                }],
+            });
+        }
+
+        if (i < calcs.length - 1) {
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+        }
+    }
+
+    return {
+        name: "Cabinet Layout",
+        color: "#8B5CF6",
+        columns: ["", "A", "B", "C", "", "D", "E", "F"],
         rows,
     };
 }

@@ -10,14 +10,17 @@
  */
 
 import React, { useState, useCallback, useMemo } from "react";
-import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft } from "lucide-react";
+import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QuestionFlow from "./QuestionFlow";
 import ExcelPreview from "./ExcelPreview";
 import EstimatorCopilot from "./EstimatorCopilot";
-import { buildPreviewSheets, calculateDisplay, type ExcelPreviewData, type SheetTab } from "./EstimatorBridge";
-import { getDefaultAnswers, type EstimatorAnswers } from "./questions";
+import { buildPreviewSheets, calculateDisplay, type ExcelPreviewData, type SheetTab, type ProductSpec } from "./EstimatorBridge";
+import { getDefaultAnswers, type EstimatorAnswers, type DisplayAnswers } from "./questions";
+import VendorDropZone from "./VendorDropZone";
+import type { VendorExtractedSpec } from "@/services/vendor/vendorParser";
+import { useProductSpecs } from "@/hooks/useProductSpecs";
 import { exportEstimatorExcel } from "./exportEstimatorExcel";
 import { useRateCard } from "@/hooks/useRateCard";
 import { useEstimatorAutoSave } from "@/hooks/useEstimatorAutoSave";
@@ -43,6 +46,7 @@ export default function EstimatorStudio({
     const [copilotOpen, setCopilotOpen] = useState(false);
     const [converting, setConverting] = useState(false);
     const [duplicating, setDuplicating] = useState(false);
+    const [vendorOpen, setVendorOpen] = useState(false);
     // Cell overrides: key = "sheetIdx-rowIdx-colIdx", value = edited value
     const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>(initialCellOverrides || {});
     // User-added custom sheets
@@ -58,10 +62,20 @@ export default function EstimatorStudio({
         rates,
     });
 
+    // Fetch product specs for cabinet layout calculations
+    const productIds = useMemo(() =>
+        answers.displays.map((d) => d.productId).filter(Boolean),
+        [answers.displays]
+    );
+    const { specs: productSpecs } = useProductSpecs(productIds);
+
     // Calculate per-display cost breakdowns (used by copilot for query responses)
     const calcs = useMemo(() => {
-        return answers.displays.map((d) => calculateDisplay(d, answers, rates ?? undefined));
-    }, [answers, rates]);
+        return answers.displays.map((d) => {
+            const spec = d.productId ? productSpecs[d.productId] : null;
+            return calculateDisplay(d, answers, rates ?? undefined, spec);
+        });
+    }, [answers, rates, productSpecs]);
 
     // Build preview data reactively from answers + rate card
     const basePreviewData: ExcelPreviewData = useMemo(() => {
@@ -140,6 +154,20 @@ export default function EstimatorStudio({
     const handleComplete = useCallback(() => {
         // Questions finished — nothing extra to do, user sees the complete state
     }, []);
+
+    // Active display index for vendor panel (use first display or 0)
+    const activeDisplayIndex = Math.max(0, answers.displays.length - 1);
+
+    const handleVendorApply = useCallback((fields: Partial<DisplayAnswers>, vendorSpec: VendorExtractedSpec) => {
+        const next = { ...answers };
+        const idx = activeDisplayIndex;
+        if (idx >= 0 && idx < next.displays.length) {
+            next.displays = [...next.displays];
+            next.displays[idx] = { ...next.displays[idx], ...fields };
+        }
+        setAnswers(next);
+        setVendorOpen(false);
+    }, [answers, activeDisplayIndex]);
 
     const handleConvert = useCallback(async () => {
         if (!projectId || converting) return;
@@ -266,6 +294,18 @@ export default function EstimatorStudio({
                         </>
                     )}
                     <button
+                        onClick={() => setVendorOpen((v) => !v)}
+                        className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                            vendorOpen
+                                ? "bg-purple-600 text-white"
+                                : "border border-border text-muted-foreground hover:bg-muted"
+                        }`}
+                        title="Parse vendor spec sheet"
+                    >
+                        <Package className="w-3 h-3" />
+                        Vendor
+                    </button>
+                    <button
                         onClick={() => setCopilotOpen((v) => !v)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
                             copilotOpen
@@ -308,6 +348,17 @@ export default function EstimatorStudio({
                         isOpen={copilotOpen}
                         onClose={() => setCopilotOpen(false)}
                     />
+                    {/* Vendor spec panel overlay */}
+                    {vendorOpen && (
+                        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm rounded-lg border border-border shadow-lg">
+                            <VendorDropZone
+                                displayIndex={activeDisplayIndex}
+                                currentDisplay={answers.displays[activeDisplayIndex] || { widthFt: 0, heightFt: 0 } as any}
+                                onApplySpecs={handleVendorApply}
+                                onClose={() => setVendorOpen(false)}
+                            />
+                        </div>
+                    )}
                 </section>
             </main>
         </div>
