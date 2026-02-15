@@ -381,7 +381,7 @@ const Step1Ingestion = () => {
                                         </div>
                                         <TabsContent value="excel" className="m-0 h-full data-[state=inactive]:hidden">
                                             <div className="h-[620px] max-h-[72vh] min-h-[400px] overflow-hidden flex flex-col">
-                                                <ExcelGridViewer editable={true} />
+                                                <ExcelGridViewer />
                                             </div>
                                         </TabsContent>
                                         <TabsContent value="activity" className="m-0 h-full data-[state=inactive]:hidden">
