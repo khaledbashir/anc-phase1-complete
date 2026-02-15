@@ -13,7 +13,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2, Building2, Monitor, DollarSign, Sparkles } from "lucide-react";
 import {
     PROJECT_QUESTIONS,
     DISPLAY_QUESTIONS,
@@ -212,20 +212,14 @@ export default function QuestionFlow({ answers, onChange, onComplete }: Question
 
     return (
         <div ref={containerRef} className="h-full flex flex-col">
-            {/* Progress bar */}
-            <div className="shrink-0 px-6 pt-4">
-                <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                        {phase === "project" ? "Project Info" : phase === "display" ? `Display ${displayIndex + 1} of ${Math.max(answers.displays.length, 1)}` : "Financial"}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground">{Math.round(progress)}%</span>
-                </div>
-                <div className="h-1 bg-border rounded-full overflow-hidden">
-                    <div
-                        className="h-full bg-[#0A52EF] rounded-full transition-all duration-500 ease-out"
-                        style={{ width: `${progress}%` }}
-                    />
-                </div>
+            {/* Stage indicator */}
+            <div className="shrink-0 px-6 pt-4 pb-2">
+                <StageIndicator
+                    phase={phase}
+                    displayIndex={displayIndex}
+                    displayCount={Math.max(answers.displays.length, 1)}
+                    progress={progress}
+                />
             </div>
 
             {/* Question area */}
@@ -313,6 +307,81 @@ export default function QuestionFlow({ answers, onChange, onComplete }: Question
                     Skip
                     <ChevronDown className="w-3.5 h-3.5" />
                 </button>
+            </div>
+        </div>
+    );
+}
+
+// ============================================================================
+// STAGE INDICATOR — Visual phase stepper
+// ============================================================================
+
+const STAGES = [
+    { key: "project", label: "Project", icon: Building2 },
+    { key: "display", label: "Displays", icon: Monitor },
+    { key: "financial", label: "Financial", icon: DollarSign },
+    { key: "complete", label: "Done", icon: Sparkles },
+] as const;
+
+function StageIndicator({
+    phase,
+    displayIndex,
+    displayCount,
+    progress,
+}: {
+    phase: string;
+    displayIndex: number;
+    displayCount: number;
+    progress: number;
+}) {
+    const currentIdx = STAGES.findIndex((s) => s.key === phase);
+
+    return (
+        <div className="space-y-3">
+            {/* Stage pills */}
+            <div className="flex items-center gap-1">
+                {STAGES.map((stage, i) => {
+                    const isActive = stage.key === phase;
+                    const isDone = i < currentIdx;
+                    const Icon = stage.icon;
+
+                    return (
+                        <React.Fragment key={stage.key}>
+                            {i > 0 && (
+                                <div className={cn(
+                                    "flex-1 h-0.5 rounded-full transition-all duration-500",
+                                    isDone ? "bg-[#0A52EF]" : isActive ? "bg-[#0A52EF]/30" : "bg-border"
+                                )} />
+                            )}
+                            <div className={cn(
+                                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[11px] font-medium transition-all duration-300 whitespace-nowrap",
+                                isActive && "bg-[#0A52EF] text-white shadow-sm shadow-[#0A52EF]/25",
+                                isDone && "bg-[#0A52EF]/10 text-[#0A52EF]",
+                                !isActive && !isDone && "text-muted-foreground/50"
+                            )}>
+                                {isDone ? (
+                                    <Check className="w-3 h-3" />
+                                ) : (
+                                    <Icon className="w-3 h-3" />
+                                )}
+                                <span className="hidden sm:inline">{stage.label}</span>
+                                {isActive && phase === "display" && (
+                                    <span className="text-[9px] opacity-80">
+                                        {displayIndex + 1}/{displayCount}
+                                    </span>
+                                )}
+                            </div>
+                        </React.Fragment>
+                    );
+                })}
+            </div>
+
+            {/* Thin progress bar */}
+            <div className="h-0.5 bg-border rounded-full overflow-hidden">
+                <div
+                    className="h-full bg-[#0A52EF] rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${progress}%` }}
+                />
             </div>
         </div>
     );

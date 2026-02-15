@@ -356,6 +356,67 @@ export const DISPLAY_QUESTIONS: Question[] = [
         affectsSheet: "Labor Worksheet",
     },
     {
+        id: "steelScope",
+        phase: "display",
+        type: "select",
+        label: "Structural steel scope?",
+        subtitle: "What level of steel work is needed for this display?",
+        options: [
+            { value: "existing", label: "Use Existing", description: "Mount to existing structure — minimal steel" },
+            { value: "secondary", label: "Secondary Steel Only", description: "New mounting frame, existing primary structure" },
+            { value: "full", label: "Full Steel Build", description: "New primary + secondary steel structure" },
+        ],
+        defaultValue: "full",
+        showIf: (answers) => !answers.useExistingStructure,
+        required: true,
+        affectsSheet: "Labor Worksheet",
+    },
+    {
+        id: "liftType",
+        phase: "display",
+        type: "select",
+        label: "Lift / crane equipment?",
+        subtitle: "What equipment is needed for installation access?",
+        options: [
+            { value: "none", label: "None / Ground Level", description: "No lift needed — walk-up access" },
+            { value: "scissor", label: "Scissor Lift", description: "Standard lift — ~$500/week rental" },
+            { value: "boom", label: "Boom Lift", description: "Extended reach — ~$1,500/week rental" },
+            { value: "crane", label: "Crane", description: "Heavy lift — ~$5,000+/day" },
+        ],
+        defaultValue: "scissor",
+        required: true,
+        affectsSheet: "Labor Worksheet",
+    },
+    {
+        id: "powerDistance",
+        phase: "display",
+        type: "select",
+        label: "How far is the power source?",
+        subtitle: "Distance from nearest electrical panel to display location",
+        options: [
+            { value: "near", label: "< 10 ft", description: "Adjacent panel — minimal conduit run" },
+            { value: "medium", label: "10 – 50 ft", description: "Same room — standard conduit run" },
+            { value: "far", label: "> 50 ft / New Run", description: "Remote panel — new circuit run required" },
+        ],
+        defaultValue: "near",
+        required: true,
+        affectsSheet: "Labor Worksheet",
+    },
+    {
+        id: "dataRunDistance",
+        phase: "display",
+        type: "select",
+        label: "Data run distance?",
+        subtitle: "Length of data cabling from control room to display",
+        options: [
+            { value: "copper", label: "< 300 ft (Copper)", description: "Standard Cat6 — low cost" },
+            { value: "fiber", label: "> 300 ft (Fiber)", description: "Fiber optic conversion — adds ~$3,000" },
+        ],
+        defaultValue: "copper",
+        required: true,
+        affectsSheet: "Labor Worksheet",
+    },
+    {
         id: "includeSpareParts",
         phase: "display",
         type: "yes-no",
@@ -470,6 +531,34 @@ export const FINANCIAL_QUESTIONS: Question[] = [
         step: 5,
         affectsSheet: "Display Details",
     },
+    {
+        id: "pmComplexity",
+        phase: "financial",
+        type: "select",
+        label: "Project management complexity?",
+        subtitle: "Affects PM and engineering fee multipliers",
+        options: [
+            { value: "standard", label: "Standard", description: "Single venue, straightforward install — 1× base fee" },
+            { value: "complex", label: "Complex", description: "Multi-phase, tight schedule, coordination heavy — 2× base fee" },
+            { value: "major", label: "Major", description: "Multi-venue, long duration, full-time PM — 3× base fee" },
+        ],
+        defaultValue: "standard",
+        required: true,
+        affectsSheet: "Labor Worksheet",
+    },
+    {
+        id: "targetPrice",
+        phase: "financial",
+        type: "number",
+        label: "Target sell price?",
+        subtitle: "Profit Shield — enter the client's budget and we'll reverse-calculate the required margin. Leave at 0 to skip.",
+        defaultValue: 0,
+        unit: "$",
+        min: 0,
+        max: 50000000,
+        step: 1000,
+        affectsSheet: "Margin Analysis",
+    },
 ];
 
 // ============================================================================
@@ -497,6 +586,8 @@ export interface EstimatorAnswers {
     bondRate: number;
     salesTaxRate: number;
     costPerSqFtOverride: number;
+    pmComplexity: string;    // "standard" | "complex" | "major"
+    targetPrice: number;     // Profit Shield — 0 = not set, >0 = reverse-calc margin
 }
 
 export interface DisplayAnswers {
@@ -513,6 +604,11 @@ export interface DisplayAnswers {
     isReplacement: boolean;
     useExistingStructure: boolean;
     includeSpareParts: boolean;
+    // Phase 2 additions — structural / logistics
+    steelScope: string;        // "existing" | "secondary" | "full"
+    liftType: string;          // "none" | "scissor" | "boom" | "crane"
+    powerDistance: string;      // "near" | "medium" | "far"
+    dataRunDistance: string;    // "copper" | "fiber"
 }
 
 export function getDefaultAnswers(): EstimatorAnswers {
@@ -534,6 +630,8 @@ export function getDefaultAnswers(): EstimatorAnswers {
         bondRate: 1.5,
         salesTaxRate: 9.5,
         costPerSqFtOverride: 0,
+        pmComplexity: "standard",
+        targetPrice: 0,
     };
 }
 
@@ -552,6 +650,10 @@ export function getDefaultDisplayAnswers(): DisplayAnswers {
         isReplacement: false,
         useExistingStructure: false,
         includeSpareParts: true,
+        steelScope: "full",
+        liftType: "scissor",
+        powerDistance: "near",
+        dataRunDistance: "copper",
     };
 }
 

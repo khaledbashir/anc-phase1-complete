@@ -106,6 +106,8 @@ export interface ScreenCalc {
     structureCost: number;
     installCost: number;
     electricalCost: number;
+    equipmentCost: number;
+    dataCablingCost: number;
     pmCost: number;
     engineeringCost: number;
     shippingCost: number;
@@ -116,6 +118,8 @@ export interface ScreenCalc {
     bondCost: number;
     salesTaxCost: number;
     finalTotal: number;
+    /** If targetPrice > 0, this is the reverse-calculated margin needed */
+    profitShieldMargin?: number;
 }
 
 export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, rates?: RateCard): ScreenCalc {
@@ -138,8 +142,14 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
     const spareParts = d.includeSpareParts ? hardwareBase * sparePartsPct : 0;
     const hardware = hardwareBase + spareParts;
 
-    const structPct = STRUCTURE_PCT[d.serviceType] || 0.20;
-    const structureCost = d.useExistingStructure ? hardware * 0.05 : hardware * structPct;
+    // Steel scope: existing = 5%, secondary = 12%, full = service-type based (20% or 10%)
+    const steelScope = d.steelScope || "full";
+    const structPct = d.useExistingStructure
+        ? 0.05
+        : steelScope === "existing" ? 0.05
+        : steelScope === "secondary" ? 0.12
+        : (STRUCTURE_PCT[d.serviceType] || 0.20);
+    const structureCost = hardware * structPct;
 
     // Weight estimate: ~45 lbs/m² average, area in sqft → m² = area * 0.0929
     const estimatedWeightLbs = area * 0.0929 * 45;
@@ -147,10 +157,29 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
     const ledInstallRate = rc(rates, `install.led_panel.${d.installComplexity}`, LED_INSTALL_RATES[d.installComplexity] || 105);
 
     const installCost = (estimatedWeightLbs * steelRate) + (area * ledInstallRate);
-    const electricalCost = area * rc(rates, "electrical.materials_per_sqft", 125);
-    const complexMult = (d.installComplexity === "complex" || d.installComplexity === "heavy") ? rc(rates, "other.complex_modifier", 2) : 1;
-    const pmCost = rc(rates, "other.pm_base_fee", 5882.35) * complexMult;
-    const engineeringCost = rc(rates, "other.eng_base_fee", 4705.88) * complexMult;
+
+    // Electrical: base rate + power distance multiplier
+    const elecBase = area * rc(rates, "electrical.materials_per_sqft", 125);
+    const powerMult = (d.powerDistance || "near") === "near" ? 1.0
+        : (d.powerDistance === "medium" ? 1.3 : 1.8);
+    const electricalCost = elecBase * powerMult;
+
+    // Equipment rental (lift/crane)
+    const liftType = d.liftType || "scissor";
+    const equipmentCost = liftType === "none" ? 0
+        : liftType === "scissor" ? rc(rates, "equipment.scissor_lift", 500)
+        : liftType === "boom" ? rc(rates, "equipment.boom_lift", 1500)
+        : rc(rates, "equipment.crane", 5000); // crane
+
+    // Data cabling: copper is standard, fiber adds flat cost
+    const dataCablingCost = (d.dataRunDistance || "copper") === "fiber"
+        ? rc(rates, "equipment.fiber_conversion", 3000) : 0;
+
+    // PM complexity: standard=1×, complex=2×, major=3×
+    const pmComplexity = answers.pmComplexity || "standard";
+    const pmMult = pmComplexity === "standard" ? 1 : pmComplexity === "complex" ? 2 : 3;
+    const pmCost = rc(rates, "other.pm_base_fee", 5882.35) * pmMult;
+    const engineeringCost = rc(rates, "other.eng_base_fee", 4705.88) * pmMult;
     const shippingCost = estimatedWeightLbs * 0.5; // ~$0.50/lb shipping estimate
     const demolitionCost = d.isReplacement ? 5000 : 0;
 
@@ -160,12 +189,14 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
     const adjStructureCost = structureCost * unionMult;
     const adjElectricalCost = electricalCost * unionMult;
 
-    const totalCost = hardware + adjStructureCost + adjInstallCost + adjElectricalCost + pmCost + engineeringCost + shippingCost + demolitionCost;
+    const totalCost = hardware + adjStructureCost + adjInstallCost + adjElectricalCost
+        + equipmentCost + dataCablingCost + pmCost + engineeringCost + shippingCost + demolitionCost;
 
     // Tiered margins: separate LED hardware vs services margins
     const ledMarginPct = (answers.ledMargin || answers.defaultMargin || 30) / 100;
     const svcMarginPct = (answers.servicesMargin || answers.defaultMargin || 30) / 100;
-    const serviceCost = adjStructureCost + adjInstallCost + adjElectricalCost + pmCost + engineeringCost + shippingCost + demolitionCost;
+    const serviceCost = adjStructureCost + adjInstallCost + adjElectricalCost
+        + equipmentCost + dataCablingCost + pmCost + engineeringCost + shippingCost + demolitionCost;
     const hardwareSell = hardware / (1 - ledMarginPct);
     const servicesSell = serviceCost / (1 - svcMarginPct);
     const sellPrice = hardwareSell + servicesSell;
@@ -178,6 +209,15 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
     const salesTaxCost = (sellPrice + bondCost) * taxRate;
 
     const finalTotal = sellPrice + bondCost + salesTaxCost;
+
+    // Profit Shield: reverse-calc what margin would be needed to hit target price
+    let profitShieldMargin: number | undefined;
+    if (answers.targetPrice > 0 && totalCost > 0) {
+        // targetPrice = totalCost / (1 - margin) + bond + tax  ← solve for margin
+        // Simplified: margin = 1 - (totalCost / (targetPrice / (1 + bondRate) / (1 + taxRate)))
+        const preTaxBond = answers.targetPrice / (1 + taxRate) / (1 + bondRate);
+        profitShieldMargin = preTaxBond > 0 ? (1 - (totalCost / preTaxBond)) * 100 : 0;
+    }
 
     return {
         name: d.displayName || "Unnamed Display",
@@ -194,6 +234,8 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
         structureCost: adjStructureCost,
         installCost: adjInstallCost,
         electricalCost: adjElectricalCost,
+        equipmentCost,
+        dataCablingCost,
         pmCost,
         engineeringCost,
         shippingCost,
@@ -204,6 +246,7 @@ export function calculateDisplay(d: DisplayAnswers, answers: EstimatorAnswers, r
         bondCost,
         salesTaxCost,
         finalTotal,
+        profitShieldMargin,
     };
 }
 
@@ -281,6 +324,8 @@ function buildProjectInfo(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sheet
         ["Bond Rate", `${answers.bondRate || 1.5}%`],
         ["Sales Tax Rate", `${answers.salesTaxRate || 9.5}%`],
         ["Cost/sqft Override", answers.costPerSqFtOverride > 0 ? `$${answers.costPerSqFtOverride}` : "None (catalog pricing)"],
+        ["PM Complexity", (answers.pmComplexity || "standard").charAt(0).toUpperCase() + (answers.pmComplexity || "standard").slice(1)],
+        ["Target Price (Profit Shield)", answers.targetPrice > 0 ? fmt(answers.targetPrice) : "Not set"],
     ];
 
     for (const [label, value] of financialRows) {
@@ -374,7 +419,7 @@ function buildBudgetSummary(answers: EstimatorAnswers, calcs: ScreenCalc[]): She
             cells: [{ value: "2.0 SERVICES", bold: true }, { value: "Labor, PM & Eng" }, { value: "" }, { value: "" }, { value: "" }, { value: "" }],
         });
         for (const c of calcs) {
-            const svcCost = c.installCost + c.structureCost + c.electricalCost + c.pmCost + c.engineeringCost + c.shippingCost + c.demolitionCost;
+            const svcCost = c.installCost + c.structureCost + c.electricalCost + c.equipmentCost + c.dataCablingCost + c.pmCost + c.engineeringCost + c.shippingCost + c.demolitionCost;
             rows.push({
                 cells: [
                     { value: "" },
@@ -492,6 +537,7 @@ function buildLaborWorksheet(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
             { value: "STRUCTURAL", bold: true, header: true, align: "right" },
             { value: "INSTALL", bold: true, header: true, align: "right" },
             { value: "ELECTRICAL", bold: true, header: true, align: "right" },
+            { value: "EQUIP/DATA", bold: true, header: true, align: "right" },
             { value: "PM / ENG", bold: true, header: true, align: "right" },
             { value: "SHIPPING", bold: true, header: true, align: "right" },
             { value: "TOTAL", bold: true, header: true, align: "right" },
@@ -500,15 +546,17 @@ function buildLaborWorksheet(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
     });
 
     if (calcs.length === 0) {
-        rows.push({ cells: [{ value: "No displays configured yet", span: 7, align: "center" }] });
+        rows.push({ cells: [{ value: "No displays configured yet", span: 8, align: "center" }] });
     } else {
-        let totalStruct = 0, totalInstall = 0, totalElec = 0, totalPm = 0, totalShip = 0, totalAll = 0;
+        let totalStruct = 0, totalInstall = 0, totalElec = 0, totalEquip = 0, totalPm = 0, totalShip = 0, totalAll = 0;
 
         for (const c of calcs) {
-            const lineTotal = c.structureCost + c.installCost + c.electricalCost + c.pmCost + c.engineeringCost + c.shippingCost + c.demolitionCost;
+            const equipData = c.equipmentCost + c.dataCablingCost;
+            const lineTotal = c.structureCost + c.installCost + c.electricalCost + equipData + c.pmCost + c.engineeringCost + c.shippingCost + c.demolitionCost;
             totalStruct += c.structureCost;
             totalInstall += c.installCost;
             totalElec += c.electricalCost;
+            totalEquip += equipData;
             totalPm += c.pmCost + c.engineeringCost;
             totalShip += c.shippingCost;
             totalAll += lineTotal;
@@ -519,6 +567,7 @@ function buildLaborWorksheet(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
                     { value: c.structureCost, currency: true, align: "right" },
                     { value: c.installCost, currency: true, align: "right" },
                     { value: c.electricalCost, currency: true, align: "right" },
+                    { value: equipData, currency: true, align: "right" },
                     { value: c.pmCost + c.engineeringCost, currency: true, align: "right" },
                     { value: c.shippingCost, currency: true, align: "right" },
                     { value: lineTotal, currency: true, align: "right", bold: true },
@@ -533,6 +582,7 @@ function buildLaborWorksheet(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
                 { value: totalStruct, currency: true, align: "right", bold: true },
                 { value: totalInstall, currency: true, align: "right", bold: true },
                 { value: totalElec, currency: true, align: "right", bold: true },
+                { value: totalEquip, currency: true, align: "right", bold: true },
                 { value: totalPm, currency: true, align: "right", bold: true },
                 { value: totalShip, currency: true, align: "right", bold: true },
                 { value: totalAll, currency: true, align: "right", bold: true },
@@ -544,7 +594,7 @@ function buildLaborWorksheet(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
     return {
         name: "Labor Worksheet",
         color: "#28A745",
-        columns: ["DISPLAY", "STRUCTURAL", "INSTALL", "ELECTRICAL", "PM / ENG", "SHIPPING", "TOTAL"],
+        columns: ["DISPLAY", "STRUCTURAL", "INSTALL", "ELECTRICAL", "EQUIP/DATA", "PM / ENG", "SHIPPING", "TOTAL"],
         rows,
     };
 }
@@ -603,6 +653,35 @@ function buildMarginAnalysis(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
             ],
             isTotal: true,
         });
+
+        // Profit Shield analysis
+        if (calcs[0]?.profitShieldMargin != null) {
+            rows.push({ cells: [{ value: "" }], isSeparator: true });
+            rows.push({
+                cells: [{ value: "PROFIT SHIELD ANALYSIS", bold: true, header: true, span: 6 }],
+                isHeader: true,
+            });
+            rows.push({
+                cells: [
+                    { value: "Target Price", bold: true },
+                    { value: "" },
+                    { value: "" },
+                    { value: "" },
+                    { value: "" },
+                    { value: answers.targetPrice, currency: true, align: "right", highlight: true },
+                ],
+            });
+            rows.push({
+                cells: [
+                    { value: "Required Blended Margin", bold: true },
+                    { value: "" },
+                    { value: `${calcs[0].profitShieldMargin.toFixed(1)}%` },
+                    { value: "" },
+                    { value: "" },
+                    { value: calcs[0].profitShieldMargin >= 10 ? "VIABLE" : "WARNING: LOW MARGIN", bold: true, highlight: calcs[0].profitShieldMargin < 10 },
+                ],
+            });
+        }
     }
 
     return {
