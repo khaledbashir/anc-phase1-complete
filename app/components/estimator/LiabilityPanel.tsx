@@ -53,12 +53,20 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_ORDER = ["financial", "legal", "scope", "timeline", "warranty"];
 
-function StatusIcon({ status }: { status: LiabilityCheck["status"] }) {
+function StatusIcon({ status, severity }: { status: LiabilityCheck["status"]; severity: LiabilityCheck["severity"] }) {
     if (status === "found")
         return <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0" />;
-    if (status === "flagged")
+    if (status === "flagged") {
+        if (severity === "critical")
+            return <XCircle className="h-4 w-4 text-red-500 shrink-0" />;
         return <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />;
-    return <XCircle className="h-4 w-4 text-red-500 shrink-0" />;
+    }
+    // missing
+    if (severity === "critical")
+        return <XCircle className="h-4 w-4 text-red-500 shrink-0" />;
+    if (severity === "warning")
+        return <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />;
+    return <AlertTriangle className="h-4 w-4 text-[#878787] shrink-0" />;
 }
 
 function RiskBadge({ score }: { score: number }) {
@@ -320,6 +328,12 @@ export default function LiabilityPanel({ open, onClose }: LiabilityPanelProps) {
 
                                 <RiskBadge score={result.riskScore} />
 
+                                {result.riskScore >= 80 && result.passed <= 5 && (
+                                    <div className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
+                                        Very high risk score may indicate this is not a SOW/contract document. This scanner is designed for scope-of-work, RFP, and contract documents.
+                                    </div>
+                                )}
+
                                 <div className="flex gap-4 text-xs">
                                     <span className="text-emerald-600 font-medium">
                                         {result.passed} passed
@@ -359,6 +373,9 @@ export default function LiabilityPanel({ open, onClose }: LiabilityPanelProps) {
                                                         <StatusIcon
                                                             status={
                                                                 check.status
+                                                            }
+                                                            severity={
+                                                                check.severity
                                                             }
                                                         />
                                                         <span className="text-sm text-[#1C1C1C] flex-1">

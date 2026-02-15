@@ -397,7 +397,8 @@ export function scanForLiabilities(text: string, documentName: string): ScanResu
                 recommendation = def.missingRecommendation;
             }
         } else {
-            // conditional
+            // conditional — only flag if the pattern IS found AND the condition triggers
+            // If the pattern is NOT found, that's neutral (not a risk)
             if (matched && def.conditionalFlag) {
                 const result = def.conditionalFlag(normalizedText);
                 if (result) {
@@ -407,12 +408,13 @@ export function scanForLiabilities(text: string, documentName: string): ScanResu
                     status = "found";
                     recommendation = def.foundRecommendation;
                 }
-            } else if (!matched) {
-                status = "missing";
-                recommendation = def.missingRecommendation;
-            } else {
+            } else if (matched) {
                 status = "found";
                 recommendation = def.foundRecommendation;
+            } else {
+                // Not found = no issue for conditional checks (absence is neutral/favorable)
+                status = "found";
+                recommendation = def.missingRecommendation;
             }
         }
 
