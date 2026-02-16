@@ -118,6 +118,7 @@ export default function PerformanceReportViewer({ report }: Props) {
   const router = useRouter();
   const printRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = React.useState(false);
+  const [downloading, setDownloading] = React.useState(false);
 
   const data = report.reportData;
   if (!data) {
@@ -128,8 +129,33 @@ export default function PerformanceReportViewer({ report }: Props) {
     );
   }
 
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPdf = async () => {
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/performance/reports/${report.id}/pdf`);
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(`PDF generation failed: ${res.status} — ${errText}`);
+      }
+      const blob = await res.blob();
+      if (blob.size === 0) throw new Error("Empty PDF returned");
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const safeSponsor = data.sponsor.name.replace(/[^a-zA-Z0-9]/g, "_");
+      const safeVenue = data.venue.name.split(" ").map(w => w[0]).join("").toUpperCase();
+      const dateStr = new Date(report.generatedAt).toISOString().slice(0, 10);
+      a.download = `ANC_Proof_of_Performance_${safeSponsor}_${safeVenue}_${dateStr}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("PDF download error:", err);
+      alert(err instanceof Error ? err.message : "PDF download failed");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleCopyLink = () => {
@@ -166,11 +192,16 @@ export default function PerformanceReportViewer({ report }: Props) {
               </button>
             )}
             <button
-              onClick={handlePrint}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-blue text-white text-sm font-medium hover:opacity-90 transition-opacity"
+              onClick={handleDownloadPdf}
+              disabled={downloading}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-blue text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              <Download className="w-3.5 h-3.5" />
-              Print / PDF
+              {downloading ? (
+                <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="32" strokeLinecap="round"/></svg>
+              ) : (
+                <Download className="w-3.5 h-3.5" />
+              )}
+              {downloading ? "Generating PDF…" : "Download PDF"}
             </button>
           </div>
         </div>

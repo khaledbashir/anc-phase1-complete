@@ -130,6 +130,8 @@ export default function PerformanceDashboard({ initialVenues, initialSponsors, i
       if (!res.ok) throw new Error("Generation failed");
       const data = await res.json();
       setReports((prev) => [data.report, ...prev]);
+      // Navigate to the report viewer
+      router.push(`/admin/performance/report/${data.report.id}`);
     } catch (err) {
       console.error(err);
     } finally {

@@ -83,9 +83,8 @@ export function useVenueState(): VenueState {
   }, []);
 
   // Cascade activation: outside → in, 100ms stagger
-  const CASCADE_ORDER = ["marquee", "vomitory", "concourse", "ribbon-north", "ribbon-south", "fascia", "scoreboard"];
-
   const cascadeAll = useCallback(() => {
+    const CASCADE_ORDER = ["marquee", "vomitory", "concourse", "ribbon-north", "ribbon-south", "fascia", "scoreboard"];
     // Clear previous cascade
     cascadeTimers.current.forEach(clearTimeout);
     cascadeTimers.current = [];
