@@ -136,7 +136,8 @@ export async function POST(req: Request) {
       })),
     };
 
-    const shareHash = "pop-" + Buffer.from(`${venueId}-${sponsorId}-${Date.now()}`).toString("base64url").slice(0, 20);
+    const { randomBytes } = await import("crypto");
+    const shareHash = "pop-" + randomBytes(12).toString("base64url");
     const title = `${sponsor.name} — ${venue.name} — ${fromLabel} to ${toLabel}`;
 
     const report = await prisma.performanceReport.create({
