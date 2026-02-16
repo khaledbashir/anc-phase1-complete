@@ -28,15 +28,15 @@ enum VerificationStatus {
 
 // REQ-114: Proposal Lifecycle State Machine (Section 4.14 & 9.2)
 enum ProposalStatus {
-  DRAFT                 // Editable, not yet submitted
-  PENDING_VERIFICATION  // Submitted for internal extraction check
-  AUDIT                 // Mathematical & financial review
-  APPROVED              // Ready for client signature / Exported
-  SHARED                // Share link generated/active
-  SIGNED                // Client signed - IMMUTABLE
-  CLOSED                // Fully executed - IMMUTABLE
-  ARCHIVED              // Historical record
-  CANCELLED             // Voided
+  DRAFT // Editable, not yet submitted
+  PENDING_VERIFICATION // Submitted for internal extraction check
+  AUDIT // Mathematical & financial review
+  APPROVED // Ready for client signature / Exported
+  SHARED // Share link generated/active
+  SIGNED // Client signed - IMMUTABLE
+  CLOSED // Fully executed - IMMUTABLE
+  ARCHIVED // Historical record
+  CANCELLED // Voided
 }
 
 enum DocumentMode {
@@ -53,7 +53,7 @@ enum ChangeRequestStatus {
 model Workspace {
   id              String     @id @default(cuid())
   name            String
-  clientLogo      String?    // New field for brand thumbnail
+  clientLogo      String? // New field for brand thumbnail
   aiWorkspaceSlug String?
   proposals       Proposal[]
   users           User[]
@@ -61,25 +61,25 @@ model Workspace {
 
 // REQ-120: User Roles & Permissions (PRD Section 2, Table 2)
 enum UserRole {
-  ADMIN           // Full access
-  ESTIMATOR       // Core proposal creation/editing
-  PRODUCT_EXPERT  // Technical spec validation
-  PROPOSAL_LEAD   // Review and approval authority
-  FINANCE         // Cost/margin auditing
-  OUTSIDER        // Subcontractor - RESTRICTED financial access
-  VIEWER          // Read-only (Client or internal stakeholder)
+  ADMIN // Full access
+  ESTIMATOR // Core proposal creation/editing
+  PRODUCT_EXPERT // Technical spec validation
+  PROPOSAL_LEAD // Review and approval authority
+  FINANCE // Cost/margin auditing
+  OUTSIDER // Subcontractor - RESTRICTED financial access
+  VIEWER // Read-only (Client or internal stakeholder)
 }
 
 // NextAuth.js (Auth.js v5) + app user: id, name, email, emailVerified, image required by adapter
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
+  id            String     @id @default(cuid())
+  email         String     @unique
   name          String?
   emailVerified DateTime?
   image         String?
-  passwordHash  String?   // For Credentials provider (bcrypt)
-  role          UserRole  @default(VIEWER)  // App/workspace role
-  authRole      String    @default("user") // RBAC: "user" | "admin" (NextAuth/simple)
+  passwordHash  String? // For Credentials provider (bcrypt)
+  role          UserRole   @default(VIEWER) // App/workspace role
+  authRole      String     @default("user") // RBAC: "user" | "admin" (NextAuth/simple)
   workspaceId   String?
   workspace     Workspace? @relation(fields: [workspaceId], references: [id])
   accounts      Account[]
@@ -101,6 +101,7 @@ model Account {
   id_token          String? @db.Text
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([provider, providerAccountId])
 }
 
@@ -116,220 +117,221 @@ model VerificationToken {
   identifier String
   token      String
   expires    DateTime
+
   @@unique([identifier, token])
 }
 
 model Proposal {
-  id                    String              @id @default(cuid())
+  id                   String          @id @default(cuid())
   workspaceId          String
   clientName           String
-  clientLogo           String?             // New field for brand thumbnail
+  clientLogo           String? // New field for brand thumbnail
   clientAddress        String?
   clientCity           String?
   clientZip            String?
   venue                String?
-  documentMode         DocumentMode        @default(BUDGET)
+  documentMode         DocumentMode    @default(BUDGET)
   documentConfig       Json?
   quoteItems           Json?
   paymentTerms         String?
   additionalNotes      String?
-  signatureBlockText   String?             // Bug #4: Persisted signature block text for LOI
-  loiHeaderText        String?             // LOI opening legal paragraph (Prompt 10)
-  purchaserLegalName   String?             // Prompt 42: Purchaser legal entity name for LOI (defaults to clientName)
-  customProposalNotes  String?             // Bug #5: Persisted custom proposal notes
-  tableHeaderOverrides Json?               // Mirror Mode: section header renames (Record<tableId, name>)
-  descriptionOverrides Json?               // Mirror Mode: line item description edits (Record<tableId:idx, text>)
-  priceOverrides       Json?               // Mirror Mode: line item price edits (Record<tableId:idx, number>)
-  status               ProposalStatus      @default(DRAFT)
-  calculationMode      CalculationMode     @default(INTELLIGENCE)
+  signatureBlockText   String? // Bug #4: Persisted signature block text for LOI
+  loiHeaderText        String? // LOI opening legal paragraph (Prompt 10)
+  purchaserLegalName   String? // Prompt 42: Purchaser legal entity name for LOI (defaults to clientName)
+  customProposalNotes  String? // Bug #5: Persisted custom proposal notes
+  tableHeaderOverrides Json? // Mirror Mode: section header renames (Record<tableId, name>)
+  descriptionOverrides Json? // Mirror Mode: line item description edits (Record<tableId:idx, text>)
+  priceOverrides       Json? // Mirror Mode: line item price edits (Record<tableId:idx, number>)
+  status               ProposalStatus  @default(DRAFT)
+  calculationMode      CalculationMode @default(INTELLIGENCE)
   internalAudit        String?
   clientSummary        String?
   aiThreadId           String?
   aiWorkspaceSlug      String?
-  taxRateOverride      Decimal?            // Changed from Float to Decimal for money
-  bondRateOverride     Decimal?            // Changed from Float to Decimal for money
-  shareHash            String?             @unique
-  shareExpiresAt       DateTime?                          // Default 30 days
-  sharePasswordHash    String?                            // Optional password protection
-  
+  taxRateOverride      Decimal? // Changed from Float to Decimal for money
+  bondRateOverride     Decimal? // Changed from Float to Decimal for money
+  shareHash            String?         @unique
+  shareExpiresAt       DateTime? // Default 30 days
+  sharePasswordHash    String? // Optional password protection
+
   // REQ-86: Thornton Tomasetti Structural Steel Tonnage
-  structuralTonnage    Decimal?            // New steel columns/beams tonnage (e.g., 17 tons)
-  reinforcingTonnage   Decimal?            // Reinforcing steel tonnage (e.g., 17 tons)
-  
+  structuralTonnage  Decimal? // New steel columns/beams tonnage (e.g., 17 tons)
+  reinforcingTonnage Decimal? // Reinforcing steel tonnage (e.g., 17 tons)
+
   // RFP Pipeline: source tracking + async embedding status
-  source               String?             // "rfp_filter" | "excel_import" | "manual" | null
-  embeddingStatus      String?             // "pending" | "embedding" | "extracting" | "complete" | "failed"
+  source          String? // "rfp_filter" | "excel_import" | "manual" | null
+  embeddingStatus String? // "pending" | "embedding" | "extracting" | "complete" | "failed"
 
   // REQ-114: Immutability & Lifecycle (Section 4.14 & 9.2)
-  isLocked             Boolean             @default(false)  // True when SIGNED/CLOSED
-  lockedAt             DateTime?                            // Timestamp of lock
-  documentHash         String?                              // SHA-256 hash at signing
-  parentProposalId     String?                              // If cloned from signed version
-  versionNumber        Int                 @default(1)      // v1, v2, etc.
+  isLocked         Boolean   @default(false) // True when SIGNED/CLOSED
+  lockedAt         DateTime? // Timestamp of lock
+  documentHash     String? // SHA-256 hash at signing
+  parentProposalId String? // If cloned from signed version
+  versionNumber    Int       @default(1) // v1, v2, etc.
 
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @default(now()) @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
   // NEW: Verification fields
-  verificationManifest   Json?
-  reconciliationReport   Json?
-  verificationStatus     VerificationStatus @default(PENDING)
+  verificationManifest Json?
+  reconciliationReport Json?
+  verificationStatus   VerificationStatus @default(PENDING)
   // REQ-126: AI Verification State Persistence (Blue Glow tracking)
   // Stores which fields were auto-filled by AI and which have been human-verified
-  aiFilledFields         String[]            // Array of field paths filled by AI ["pitchMm", "brightness", etc.]
-  verifiedFields         Json?               // Object of { [fieldPath]: { verifiedBy, verifiedAt } }
-  
-  lastVerifiedBy         String?
-  lastVerifiedAt         DateTime?           // Forensic audit of the most recent verification event
-  
+  aiFilledFields       String[] // Array of field paths filled by AI ["pitchMm", "brightness", etc.]
+  verifiedFields       Json? // Object of { [fieldPath]: { verifiedBy, verifiedAt } }
+
+  lastVerifiedBy String?
+  lastVerifiedAt DateTime? // Forensic audit of the most recent verification event
+
   // Excel Import: Pricing Document & Margin Analysis persistence
-  pricingDocument        Json?               // Full PricingDocument from Excel Mirror Mode
-  marginAnalysis         Json?               // Margin analysis tables (non-LED items: structural, electrical, PM)
-  parserValidationReport Json?               // Strict parser validation report for reproducible audit/debug
-  sourceWorkbookHash     String?             // SHA-256 hash of uploaded workbook bytes
-  parserStrictVersion    String?             // Strict parser contract version used at import time
-  pricingMode            String?             // "MIRROR" | "STANDARD"
-  mirrorMode             Boolean?            // true = Upload Excel → PDF, false = Build Quote from Scratch
-  masterTableIndex       Int?                // Index into pricingDocument.tables for "Project Grand Total" section
-  specsDisplayMode       String?             // "condensed" | "extended" for Exhibit A table rendering
-  includeResponsibilityMatrix Boolean?       // Mirror/LOI toggle for responsibility matrix section
-  responsibilityMatrix   Json?               // Responsibility matrix payload when manually edited/overridden
-  respMatrixFormatOverride String?           // "auto" | "short" | "long" | "hybrid"
-  
+  pricingDocument             Json? // Full PricingDocument from Excel Mirror Mode
+  marginAnalysis              Json? // Margin analysis tables (non-LED items: structural, electrical, PM)
+  parserValidationReport      Json? // Strict parser validation report for reproducible audit/debug
+  sourceWorkbookHash          String? // SHA-256 hash of uploaded workbook bytes
+  parserStrictVersion         String? // Strict parser contract version used at import time
+  pricingMode                 String? // "MIRROR" | "STANDARD"
+  mirrorMode                  Boolean? // true = Upload Excel → PDF, false = Build Quote from Scratch
+  masterTableIndex            Int? // Index into pricingDocument.tables for "Project Grand Total" section
+  specsDisplayMode            String? // "condensed" | "extended" for Exhibit A table rendering
+  includeResponsibilityMatrix Boolean? // Mirror/LOI toggle for responsibility matrix section
+  responsibilityMatrix        Json? // Responsibility matrix payload when manually edited/overridden
+  respMatrixFormatOverride    String? // "auto" | "short" | "long" | "hybrid"
+
   // REQ-WVU: Contractual Handover specific fields
-  insuranceRateOverride  Decimal?            // Separate from Performance Bond
-  overheadRate           Decimal?            @default(0.10) // Change Order Overhead %
-  profitRate             Decimal?            @default(0.05) // Change Order Profit %
-  signerName             String?             // For consistent auto-population in Exhibits
-  signerTitle            String?             // For consistent auto-population in Exhibits
+  insuranceRateOverride Decimal? // Separate from Performance Bond
+  overheadRate          Decimal? @default(0.10) // Change Order Overhead %
+  profitRate            Decimal? @default(0.05) // Change Order Profit %
+  signerName            String? // For consistent auto-population in Exhibits
+  signerTitle           String? // For consistent auto-population in Exhibits
 
   // Intelligence Brief (Prompt 37)
-  intelligenceBrief      Json?               // Cached "Brief Me" AI-generated project intelligence
+  intelligenceBrief Json? // Cached "Brief Me" AI-generated project intelligence
 
   // P69: Copilot Chat History
-  chatHistory            Json?               // Array of { id, role, content, timestamp } messages
-  chatConversations      Json?               // Array of past conversations { id, title, messages, createdAt }
+  chatHistory       Json? // Array of { id, role, content, timestamp } messages
+  chatConversations Json? // Array of past conversations { id, title, messages, createdAt }
 
   // Estimator V2: ROM/Detailed estimation mode
-  estimatorAnswers       Json?               // Full EstimatorAnswers (project setup + financial)
-  estimatorDisplays      Json?               // Array of DisplayAnswers with cost breakdowns
-  estimatorDepth         String?             // "rom" | "detailed"
-  estimatorCellOverrides Json?               // Cell override map for ExcelPreview edits
-  estimatorCustomSheets  Json?               // User-added custom worksheet tabs
-  estimatorRateSnapshot  Json?               // Rate card values snapshot at creation time
+  estimatorAnswers       Json? // Full EstimatorAnswers (project setup + financial)
+  estimatorDisplays      Json? // Array of DisplayAnswers with cost breakdowns
+  estimatorDepth         String? // "rom" | "detailed"
+  estimatorCellOverrides Json? // Cell override map for ExcelPreview edits
+  estimatorCustomSheets  Json? // User-added custom worksheet tabs
+  estimatorRateSnapshot  Json? // Rate card values snapshot at creation time
 
   // NEW: Manual overrides and versions
-  manualOverrides       ManualOverride[]
-  proposalVersions      ProposalVersion[]
-  signatureAuditTrail   SignatureAuditTrail[]
-  comments              Comment[]
-  activityLogs          ActivityLog[]
-  changeRequests        ChangeRequest[]
-  
+  manualOverrides     ManualOverride[]
+  proposalVersions    ProposalVersion[]
+  signatureAuditTrail SignatureAuditTrail[]
+  comments            Comment[]
+  activityLogs        ActivityLog[]
+  changeRequests      ChangeRequest[]
+
   // Existing relations
-  versions             BidVersion[]
-  workspace            Workspace           @relation(fields: [workspaceId], references: [id])
-  screens              ScreenConfig[]
-  snapshots            ProposalSnapshot[]
-  rfpDocuments         RfpDocument[]
+  versions     BidVersion[]
+  workspace    Workspace          @relation(fields: [workspaceId], references: [id])
+  screens      ScreenConfig[]
+  snapshots    ProposalSnapshot[]
+  rfpDocuments RfpDocument[]
 }
 
 // NEW: Manual Override model
 model ManualOverride {
-  id              String   @id @default(cuid())
-  proposalId      String
-  proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
   // What was overridden
-  entityType      String   // "screen", "charge", "proposalTotal"
-  entityId        String   // screen ID or "proposal"
-  field           String   // "unitCost", "subtotal", "finalTotal"
-  
+  entityType String // "screen", "charge", "proposalTotal"
+  entityId   String // screen ID or "proposal"
+  field      String // "unitCost", "subtotal", "finalTotal"
+
   // Override details (Decimal for money - never Float)
-  originalValue   Decimal  // Use Decimal type for money
-  overrideValue   Decimal  // Use Decimal type for money
-  reason          String   // "Client discount", "Executive adjustment"
-  approver        String   // Who approved
-  
+  originalValue Decimal // Use Decimal type for money
+  overrideValue Decimal // Use Decimal type for money
+  reason        String // "Client discount", "Executive adjustment"
+  approver      String // Who approved
+
   // Audit trail
-  createdBy       String   // User ID
-  createdAt       DateTime @default(now())
-  
+  createdBy String // User ID
+  createdAt DateTime @default(now())
+
   @@index([proposalId])
 }
 
 // NEW: Proposal Version model (immutable snapshots)
 model ProposalVersion {
-  id              String   @id @default(cuid())
-  proposalId      String
-  proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
   // Immutable snapshot
-  versionNumber   Int
-  manifest        Json     // VerificationManifest snapshot
-  auditData       Json     // InternalAudit snapshot
-  pdfUrl          String?
-  uglySheetUrl    String?
-  
+  versionNumber Int
+  manifest      Json // VerificationManifest snapshot
+  auditData     Json // InternalAudit snapshot
+  pdfUrl        String?
+  uglySheetUrl  String?
+
   // Version metadata
-  createdAt       DateTime @default(now())
-  createdBy       String
-  changeReason    String   // "Initial import", "Manual edit", "Auto-fix"
-  
+  createdAt    DateTime @default(now())
+  createdBy    String
+  changeReason String // "Initial import", "Manual edit", "Auto-fix"
+
   @@index([proposalId])
 }
 
 model RfpDocument {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   name       String
   url        String
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
   proposalId String?
   proposal   Proposal? @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 }
 
 model ProposalSnapshot {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   proposalId   String
-  shareHash    String   @unique
-  snapshotData String   // JSON string of the proposal state at time of share
-  expiresAt    DateTime?                          // Default 30 days
-  passwordHash String?                            // Optional password protection
-  createdAt    DateTime @default(now())
-  proposal     Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  shareHash    String    @unique
+  snapshotData String // JSON string of the proposal state at time of share
+  expiresAt    DateTime? // Default 30 days
+  passwordHash String? // Optional password protection
+  createdAt    DateTime  @default(now())
+  proposal     Proposal  @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 }
 
 model BidVersion {
   id                String   @id @default(cuid())
   proposalId        String
   versionNumber     Int
-  taxRate           Decimal?  // Changed from Float to Decimal for money
-  bondRate          Decimal?  // Changed from Float to Decimal for money
-  margin            Decimal?  // Changed from Float to Decimal for money
-  totalSellingPrice Decimal?  // Changed from Float to Decimal for money
+  taxRate           Decimal? // Changed from Float to Decimal for money
+  bondRate          Decimal? // Changed from Float to Decimal for money
+  margin            Decimal? // Changed from Float to Decimal for money
+  totalSellingPrice Decimal? // Changed from Float to Decimal for money
   createdAt         DateTime @default(now())
   proposal          Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 }
 
 model ScreenConfig {
-  id                      String                @id @default(cuid())
-  proposalId              String
-  name                    String
-  externalName            String?
-  customDisplayName       String?               // PDF override name (user-editable, takes priority over externalName)
-  group                   String?               // Excel Margin Analysis section header (key for screenNameMap)
-  pixelPitch              Float
-  width                   Float
-  height                  Float
-  brightness              Float?                // Nits (e.g., 6000)
-  hiddenFromSpecs         Boolean               @default(false) // Hide this screen from Exhibit A specs
-  quantity                Int?                  @default(1)
-  serviceType             String?               // "Front/Rear" | "Top"
-  formFactor              String?               // "Straight" | "Curved"
-  manufacturerProductId   String?               // Phase 2: linked product from spec query
-  manufacturerProduct     ManufacturerProduct?  @relation(fields: [manufacturerProductId], references: [id])
-  lineItems               CostLineItem[]
-  proposal                Proposal              @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  id                    String               @id @default(cuid())
+  proposalId            String
+  name                  String
+  externalName          String?
+  customDisplayName     String? // PDF override name (user-editable, takes priority over externalName)
+  group                 String? // Excel Margin Analysis section header (key for screenNameMap)
+  pixelPitch            Float
+  width                 Float
+  height                Float
+  brightness            Float? // Nits (e.g., 6000)
+  hiddenFromSpecs       Boolean              @default(false) // Hide this screen from Exhibit A specs
+  quantity              Int?                 @default(1)
+  serviceType           String? // "Front/Rear" | "Top"
+  formFactor            String? // "Straight" | "Curved"
+  manufacturerProductId String? // Phase 2: linked product from spec query
+  manufacturerProduct   ManufacturerProduct? @relation(fields: [manufacturerProductId], references: [id])
+  lineItems             CostLineItem[]
+  proposal              Proposal             @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 }
 
 model CostLineItem {
@@ -344,17 +346,17 @@ model CostLineItem {
 
 // NEW: Collaboration & History
 model Comment {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   proposalId      String
-  proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  proposal        Proposal  @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   userId          String?
-  authorName      String   // For simple display if user not logged in
+  authorName      String // For simple display if user not logged in
   content         String
-  parentCommentId String?  // For threading
-  parentComment   Comment? @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  parentCommentId String? // For threading
+  parentComment   Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id])
   replies         Comment[] @relation("CommentReplies")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([proposalId])
 }
@@ -373,16 +375,16 @@ model ChangeRequest {
   resolvedBy     String?
 
   // Client Review Annotator fields
-  pinX            Float?
-  pinY            Float?
-  pinNumber       Int?
-  screenshotData  String?    @db.Text
-  audioData       String?    @db.Text
-  audioDuration   Float?
-  transcript      String?    @db.Text
-  aiCategory      String?
-  aiConfidence    Float?
-  sessionId       String?
+  pinX           Float?
+  pinY           Float?
+  pinNumber      Int?
+  screenshotData String? @db.Text
+  audioData      String? @db.Text
+  audioDuration  Float?
+  transcript     String? @db.Text
+  aiCategory     String?
+  aiConfidence   Float?
+  sessionId      String?
 
   @@index([proposalId])
   @@index([shareHash])
@@ -390,43 +392,43 @@ model ChangeRequest {
 }
 
 model ActivityLog {
-  id              String   @id @default(cuid())
-  proposalId      String
-  proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
-  userId          String?
-  actor           String?  // Human-readable name/email for display
-  action          String   // "created", "excel_imported", "pdf_exported", "client_name_updated", "text_edited", "screen_renamed"
-  description     String
-  metadata        Json?    // Store old/new values, filename, etc.
-  createdAt       DateTime @default(now())
+  id          String   @id @default(cuid())
+  proposalId  String
+  proposal    Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  userId      String?
+  actor       String? // Human-readable name/email for display
+  action      String // "created", "excel_imported", "pdf_exported", "client_name_updated", "text_edited", "screen_renamed"
+  description String
+  metadata    Json? // Store old/new values, filename, etc.
+  createdAt   DateTime @default(now())
 
   @@index([proposalId, createdAt])
 }
 
 // REQ-114: E-Signature Audit Trail (Section 9.2)
 model SignatureAuditTrail {
-  id              String   @id @default(cuid())
-  proposalId      String
-  proposal        Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  proposalId String
+  proposal   Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
 
   // Signer Identity
-  signerEmail     String
-  signerName      String
-  signerTitle     String?
-  signerRole      String   // "ANC_REPRESENTATIVE" | "PURCHASER"
+  signerEmail String
+  signerName  String
+  signerTitle String?
+  signerRole  String // "ANC_REPRESENTATIVE" | "PURCHASER"
 
   // Authentication Evidence
-  ipAddress       String
-  userAgent       String?
-  authMethod      String   // "EMAIL_LINK" | "SSO" | "MANUAL"
+  ipAddress  String
+  userAgent  String?
+  authMethod String // "EMAIL_LINK" | "SSO" | "MANUAL"
 
   // Document Integrity
-  documentHash    String   // SHA-256 of proposal JSON at signing moment
-  pdfHash         String?  // SHA-256 of generated PDF
-  auditExcelHash  String?  // SHA-256 of Internal Audit Excel
+  documentHash   String // SHA-256 of proposal JSON at signing moment
+  pdfHash        String? // SHA-256 of generated PDF
+  auditExcelHash String? // SHA-256 of Internal Audit Excel
 
   // Timestamps
-  signedAt        DateTime @default(now())
+  signedAt DateTime @default(now())
 
   @@index([proposalId])
 }
@@ -438,55 +440,55 @@ model SignatureAuditTrail {
 // Structured product catalog — replaces hardcoded LED_MODULES in data/catalogs/led-products.ts
 // Each row = one LED cabinet/module from a manufacturer's product line
 model ManufacturerProduct {
-  id                      String   @id @default(cuid())
-  manufacturer            String   // "LG", "Yaham", "Absen", "Unilumin"
-  productFamily           String   // "GSQA", "LAA", "S3", "A Series"
-  modelNumber             String   @unique
-  displayName             String   // Human-readable: "LG GSQA 3.9mm Indoor"
+  id            String @id @default(cuid())
+  manufacturer  String // "LG", "Yaham", "Absen", "Unilumin"
+  productFamily String // "GSQA", "LAA", "S3", "A Series"
+  modelNumber   String @unique
+  displayName   String // Human-readable: "LG GSQA 3.9mm Indoor"
 
   // Physical specs
-  pixelPitch              Float    // mm (e.g., 3.9, 6.0, 10.0)
-  cabinetWidthMm          Float    // Cabinet width in millimeters
-  cabinetHeightMm         Float    // Cabinet height in millimeters
-  cabinetDepthMm          Float?   // Cabinet depth in millimeters (not always known)
-  weightKgPerCabinet      Float    // Weight per cabinet in kilograms
+  pixelPitch         Float // mm (e.g., 3.9, 6.0, 10.0)
+  cabinetWidthMm     Float // Cabinet width in millimeters
+  cabinetHeightMm    Float // Cabinet height in millimeters
+  cabinetDepthMm     Float? // Cabinet depth in millimeters (not always known)
+  weightKgPerCabinet Float // Weight per cabinet in kilograms
 
   // Optical specs
-  maxNits                 Float    // Maximum brightness (e.g., 7500)
-  typicalNits             Float?   // Typical operating brightness
-  refreshRate             Int?     // Hz (e.g., 3840)
+  maxNits     Float // Maximum brightness (e.g., 7500)
+  typicalNits Float? // Typical operating brightness
+  refreshRate Int? // Hz (e.g., 3840)
 
   // Electrical specs
-  maxPowerWattsPerCab     Float    // Maximum power per cabinet
-  typicalPowerWattsPerCab Float?   // Typical power per cabinet
+  maxPowerWattsPerCab     Float // Maximum power per cabinet
+  typicalPowerWattsPerCab Float? // Typical power per cabinet
 
   // Environmental
-  environment             String   // "indoor", "outdoor", "indoor_outdoor"
-  ipRating                String?  // "IP65", "IP54", etc.
-  operatingTempMin        Float?   // Celsius
-  operatingTempMax        Float?   // Celsius
+  environment      String // "indoor", "outdoor", "indoor_outdoor"
+  ipRating         String? // "IP65", "IP54", etc.
+  operatingTempMin Float? // Celsius
+  operatingTempMax Float? // Celsius
 
   // Service/Install
-  serviceType             String   @default("front") // "front", "rear", "front_rear"
-  supportsHalfModule      Boolean  @default(false)
-  isCurved                Boolean  @default(false)
+  serviceType        String  @default("front") // "front", "rear", "front_rear"
+  supportsHalfModule Boolean @default(false)
+  isCurved           Boolean @default(false)
 
   // Pricing (ANC internal)
-  costPerSqFt             Decimal? // ANC buy cost per sq ft
-  msrpPerSqFt             Decimal? // Manufacturer suggested retail
+  costPerSqFt Decimal? // ANC buy cost per sq ft
+  msrpPerSqFt Decimal? // Manufacturer suggested retail
 
   // Flexible overflow — for Matt's additional parameters we don't know yet
   // e.g. { viewingAngle: 160, contrastRatio: "5000:1", certifications: ["UL", "FCC"] }
-  extendedSpecs           Json?
+  extendedSpecs Json?
 
   // Metadata
-  sourceSpreadsheet       String?  // Which Excel file this was imported from
-  isActive                Boolean  @default(true) // Soft-delete for discontinued products
-  importedAt              DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  sourceSpreadsheet String? // Which Excel file this was imported from
+  isActive          Boolean  @default(true) // Soft-delete for discontinued products
+  importedAt        DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
-  screenConfigs           ScreenConfig[]
+  screenConfigs ScreenConfig[]
 
   @@index([pixelPitch, environment])
   @@index([manufacturer])
@@ -498,22 +500,22 @@ model ManufacturerProduct {
 // ============================================================================
 
 model Manufacturer {
-  id          String          @id @default(cuid())
-  name        String          @unique // "Yaham", "LG", "Absen"
-  website     String?
-  contactName String?
+  id           String          @id @default(cuid())
+  name         String          @unique // "Yaham", "LG", "Absen"
+  website      String?
+  contactName  String?
   contactEmail String?
   contactPhone String?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  series      ProductSeries[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  series       ProductSeries[]
 }
 
 model ProductSeries {
   id             String          @id @default(cuid())
-  name           String          // "HVO", "LSBC", "S3"
+  name           String // "HVO", "LSBC", "S3"
   description    String?
-  environment    String          // "indoor", "outdoor", "indoor_outdoor"
+  environment    String // "indoor", "outdoor", "indoor_outdoor"
   manufacturerId String
   manufacturer   Manufacturer    @relation(fields: [manufacturerId], references: [id], onDelete: Cascade)
   createdAt      DateTime        @default(now())
@@ -525,41 +527,41 @@ model ProductSeries {
 }
 
 model ProductModule {
-  id            String        @id @default(cuid())
-  modelNumber   String        @unique
-  seriesId      String
-  series        ProductSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  id          String        @id @default(cuid())
+  modelNumber String        @unique
+  seriesId    String
+  series      ProductSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   // Physical
-  pixelPitch    Float         // mm
-  moduleWidth   Float         // mm
-  moduleHeight  Float         // mm
-  weight        Float         // kg per module/cabinet
+  pixelPitch   Float // mm
+  moduleWidth  Float // mm
+  moduleHeight Float // mm
+  weight       Float // kg per module/cabinet
 
   // Optical
-  brightness    Int           // nits (max)
+  brightness Int // nits (max)
 
   // Electrical
-  powerMax      Int           // watts per module
-  powerAvg      Int?          // watts per module (typical)
+  powerMax Int // watts per module
+  powerAvg Int? // watts per module (typical)
 
   // Performance
-  refreshRate   Int?          // Hz
+  refreshRate Int? // Hz
 
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([seriesId])
   @@index([pixelPitch])
 }
 
 model Processor {
-  id          String   @id @default(cuid())
-  name        String   // "Novastar VX1000", "Brompton Tessera SX40"
-  maxPixels   Int      // max pixel count (e.g., 6500000)
-  inputs      String   // "4x HDMI 2.0, 2x DP 1.2"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  name      String // "Novastar VX1000", "Brompton Tessera SX40"
+  maxPixels Int // max pixel count (e.g., 6500000)
+  inputs    String // "4x HDMI 2.0, 2x DP 1.2"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // ============================================================================
@@ -568,7 +570,7 @@ model Processor {
 
 model Category {
   id          String         @id @default(cuid())
-  name        String         @unique  // "LED", "Electrical", "Structural", "CMS"
+  name        String         @unique // "LED", "Electrical", "Structural", "CMS"
   description String?
   nodes       DecisionNode[]
   createdAt   DateTime       @default(now())
@@ -576,58 +578,58 @@ model Category {
 }
 
 model DecisionNode {
-  id           String         @id @default(cuid())
-  categoryId   String
-  category     Category       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  parentNodeId String?
-  parent       DecisionNode?  @relation("TreeHierarchy", fields: [parentNodeId], references: [id])
-  children     DecisionNode[]  @relation("TreeHierarchy")
-  question     String         // "Indoor or Outdoor?", "What pixel pitch?"
-  order        Int            // Display order in the tree
-  options      DecisionOption[] @relation("DecisionOptionParent")
+  id            String           @id @default(cuid())
+  categoryId    String
+  category      Category         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  parentNodeId  String?
+  parent        DecisionNode?    @relation("TreeHierarchy", fields: [parentNodeId], references: [id])
+  children      DecisionNode[]   @relation("TreeHierarchy")
+  question      String // "Indoor or Outdoor?", "What pixel pitch?"
+  order         Int // Display order in the tree
+  options       DecisionOption[] @relation("DecisionOptionParent")
   parentOptions DecisionOption[] @relation("DecisionOptionNext")
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   @@index([categoryId])
   @@index([parentNodeId])
 }
 
 model DecisionOption {
-  id          String          @id @default(cuid())
-  nodeId      String
-  node        DecisionNode    @relation("DecisionOptionParent", fields: [nodeId], references: [id], onDelete: Cascade)
-  optionText  String          // "Indoor", "Outdoor", "1.5mm", "3.9mm", "LG", "Yaham"
-  nextNodeId  String?
-  next        DecisionNode?   @relation("DecisionOptionNext", fields: [nextNodeId], references: [id])
-  isFinal     Boolean         @default(false)  // true = leaf node with formula
-  formula     PricingFormula? // ONE pricing formula for final nodes
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id         String          @id @default(cuid())
+  nodeId     String
+  node       DecisionNode    @relation("DecisionOptionParent", fields: [nodeId], references: [id], onDelete: Cascade)
+  optionText String // "Indoor", "Outdoor", "1.5mm", "3.9mm", "LG", "Yaham"
+  nextNodeId String?
+  next       DecisionNode?   @relation("DecisionOptionNext", fields: [nextNodeId], references: [id])
+  isFinal    Boolean         @default(false) // true = leaf node with formula
+  formula    PricingFormula? // ONE pricing formula for final nodes
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 
   @@index([nodeId])
   @@index([isFinal])
 }
 
 model PricingFormula {
-  id        String   @id @default(cuid())
-  optionId  String   @unique
+  id        String         @id @default(cuid())
+  optionId  String         @unique
   option    DecisionOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
-  formula   String   // "base_cost * square_footage + 50"
-  unit      String   // "USD"
+  formula   String // "base_cost * square_footage + 50"
+  unit      String // "USD"
   notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 }
 
 model FormulaVariable {
-  id            String   @id @default(cuid())
-  variableName  String   @unique  // "base_cost", "square_footage", "labor_hours"
-  defaultValue  Decimal?
-  source        String   // "Product catalog", "User input", "Estimator input", "Company policy"
-  notes         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id           String   @id @default(cuid())
+  variableName String   @unique // "base_cost", "square_footage", "labor_hours"
+  defaultValue Decimal?
+  source       String // "Product catalog", "User input", "Estimator input", "Company policy"
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // ============================================================================
@@ -638,34 +640,34 @@ model FormulaVariable {
 // ============================================================================
 
 model RateCardEntry {
-  id            String   @id @default(cuid())
-  category      String   // "margin", "install", "electrical", "bond_tax", "spare_parts", "led_cost", "warranty", "other"
-  key           String   @unique // Machine-readable: "margin.led_hardware", "install.steel_fab.simple"
-  label         String   // Human-readable: "LED Hardware Margin"
-  value         Decimal  // The rate value (0.30 for 30%, 35 for $35/lb, etc.)
-  unit          String   // "pct", "per_lb", "per_sqft", "fixed", "pct_annual"
-  provenance    String?  // Where this came from: "NBCU LED Cost Sheet V=0.3" or "Matt delivery 2026-03-01"
-  confidence    String   @default("extracted") // "extracted", "validated", "official", "estimated"
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id         String   @id @default(cuid())
+  category   String // "margin", "install", "electrical", "bond_tax", "spare_parts", "led_cost", "warranty", "other"
+  key        String   @unique // Machine-readable: "margin.led_hardware", "install.steel_fab.simple"
+  label      String // Human-readable: "LED Hardware Margin"
+  value      Decimal // The rate value (0.30 for 30%, 35 for $35/lb, etc.)
+  unit       String // "pct", "per_lb", "per_sqft", "fixed", "pct_annual"
+  provenance String? // Where this came from: "NBCU LED Cost Sheet V=0.3" or "Matt delivery 2026-03-01"
+  confidence String   @default("extracted") // "extracted", "validated", "official", "estimated"
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  audits        RateCardAudit[]
+  audits RateCardAudit[]
 
   @@index([category])
   @@index([isActive])
 }
 
 model RateCardAudit {
-  id            String   @id @default(cuid())
-  entryId       String
-  entry         RateCardEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  action        String   // "create", "update", "delete", "import"
-  field         String?  // Which field changed: "value", "label", etc. Null for create/delete.
-  oldValue      String?  // Previous value (stringified)
-  newValue      String?  // New value (stringified)
-  changedBy     String?  // User email or "system" or "csv_import"
-  createdAt     DateTime @default(now())
+  id        String        @id @default(cuid())
+  entryId   String
+  entry     RateCardEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  action    String // "create", "update", "delete", "import"
+  field     String? // Which field changed: "value", "label", etc. Null for create/delete.
+  oldValue  String? // Previous value (stringified)
+  newValue  String? // New value (stringified)
+  changedBy String? // User email or "system" or "csv_import"
+  createdAt DateTime      @default(now())
 
   @@index([entryId])
   @@index([createdAt])
@@ -676,28 +678,28 @@ model RateCardAudit {
 // Stores layout fingerprints so non-standard Excel formats auto-import on repeat.
 // ============================================================================
 model ImportProfile {
-  id                String   @id @default(cuid())
-  name              String   // Human label, e.g. "Moody Center Format"
-  fingerprint       String   @unique // SHA-256 of sheet names + first 10 rows content
+  id          String @id @default(cuid())
+  name        String // Human label, e.g. "Moody Center Format"
+  fingerprint String @unique // SHA-256 of sheet names + first 10 rows content
 
   // Anchor strategy: where is the data?
-  targetSheet       String?  // Sheet name (exact) or null = first sheet
-  headerRowIndex    Int      // 0-indexed row where column headers live
-  dataStartRowIndex Int      // 0-indexed row where actual data begins
+  targetSheet       String? // Sheet name (exact) or null = first sheet
+  headerRowIndex    Int // 0-indexed row where column headers live
+  dataStartRowIndex Int // 0-indexed row where actual data begins
 
   // Column mapping: field name → column letter (e.g. {"description":"B","sellingPrice":"F"})
-  columnMapping     Json
+  columnMapping Json
 
   // Data boundary
-  dataEndStrategy   String   @default("blank_row") // "blank_row" | "keyword:<text>" | "row:<n>"
+  dataEndStrategy String @default("blank_row") // "blank_row" | "keyword:<text>" | "row:<n>"
 
   // Metadata
-  createdBy         String?  // User email
-  usageCount        Int      @default(0) // How many times this profile has been auto-matched
-  lastUsedAt        DateTime?
+  createdBy  String? // User email
+  usageCount Int       @default(0) // How many times this profile has been auto-matched
+  lastUsedAt DateTime?
 
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([fingerprint])
 }
@@ -709,52 +711,52 @@ model ImportProfile {
 // ============================================================================
 
 model Venue {
-  id                String            @id @default(cuid())
-  name              String            // "Gainbridge Fieldhouse"
-  client            String            // "Indiana Pacers"
-  city              String
-  state             String
-  address           String?
-  logoUrl           String?
-  timezone          String            @default("America/New_York")
-  sourceProposalId  String?           // Links to the Proposal that created this venue (when activated from pipeline)
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  screens           InstalledScreen[]
-  reports           PerformanceReport[]
+  id               String              @id @default(cuid())
+  name             String // "Gainbridge Fieldhouse"
+  client           String // "Indiana Pacers"
+  city             String
+  state            String
+  address          String?
+  logoUrl          String?
+  timezone         String              @default("America/New_York")
+  sourceProposalId String? // Links to the Proposal that created this venue (when activated from pipeline)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  screens          InstalledScreen[]
+  reports          PerformanceReport[]
 
   @@index([client])
   @@index([sourceProposalId])
 }
 
 model InstalledScreen {
-  id            String   @id @default(cuid())
-  venueId       String
-  venue         Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
-  name          String   // "Main Scoreboard", "Ribbon East"
-  location      String?  // "Center Court", "East Concourse Level 2"
-  manufacturer  String   // "Yaham", "LG"
-  modelNumber   String?
-  pixelPitch    Float    // mm
-  widthFt       Float
-  heightFt      Float
-  installDate   DateTime?
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  playLogs      PlayLog[]
+  id           String    @id @default(cuid())
+  venueId      String
+  venue        Venue     @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name         String // "Main Scoreboard", "Ribbon East"
+  location     String? // "Center Court", "East Concourse Level 2"
+  manufacturer String // "Yaham", "LG"
+  modelNumber  String?
+  pixelPitch   Float // mm
+  widthFt      Float
+  heightFt     Float
+  installDate  DateTime?
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  playLogs     PlayLog[]
 
   @@index([venueId])
 }
 
 model Sponsor {
-  id        String   @id @default(cuid())
-  name      String   @unique // "Coca-Cola", "Budweiser"
+  id        String              @id @default(cuid())
+  name      String              @unique // "Coca-Cola", "Budweiser"
   logoUrl   String?
-  contact   String?  // Primary contact name
-  email     String?  // Primary contact email
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  contact   String? // Primary contact name
+  email     String? // Primary contact email
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
   playLogs  PlayLog[]
   reports   PerformanceReport[]
 }
@@ -765,9 +767,9 @@ model PlayLog {
   screen      InstalledScreen @relation(fields: [screenId], references: [id], onDelete: Cascade)
   sponsorId   String
   sponsor     Sponsor         @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
-  contentName String          // "Coke_15sec_Holiday_2026"
+  contentName String // "Coke_15sec_Holiday_2026"
   playedAt    DateTime
-  durationSec Int             // 15, 30, 60
+  durationSec Int // 15, 30, 60
   verified    Boolean         @default(true)
   source      String          @default("csv_import") // "vsoft_api" | "livesync_import" | "csv_import" | "manual"
   createdAt   DateTime        @default(now())
@@ -783,17 +785,17 @@ model PerformanceReport {
   venue         Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
   sponsorId     String
   sponsor       Sponsor  @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
-  title         String   // "Coca-Cola — Gainbridge Fieldhouse — 2025-26 Season"
+  title         String // "Coca-Cola — Gainbridge Fieldhouse — 2025-26 Season"
   dateFrom      DateTime
   dateTo        DateTime
   totalPlays    Int
-  totalAirtime  Int      // total seconds
-  uptimePct     Float    // 0-100
-  compliancePct Float    // 0-100
-  impressions   Int?     // estimated based on venue traffic
+  totalAirtime  Int // total seconds
+  uptimePct     Float // 0-100
+  compliancePct Float // 0-100
+  impressions   Int? // estimated based on venue traffic
   screenCount   Int
   shareHash     String?  @unique // for public sponsor link
-  reportData    Json?    // full computed report data (screen breakdown, play log sample, etc.)
+  reportData    Json? // full computed report data (screen breakdown, play log sample, etc.)
   generatedAt   DateTime @default(now())
 
   @@index([venueId])
