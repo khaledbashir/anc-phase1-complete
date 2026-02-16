@@ -84,7 +84,6 @@ const PdfViewer = () => {
     const [pageNumber, setPageNumber] = useState(1);
     const [compareMode, setCompareMode] = useState(false);
     const [baselineValues, setBaselineValues] = useState<ProposalType | null>(null);
-    const [compareSplitPct, setCompareSplitPct] = useState(50);
     const [showControls, setShowControls] = useState(false);
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const isDraggingRef = useRef(false);
@@ -327,59 +326,52 @@ const PdfViewer = () => {
                                 </div>
                             );
                         }
-                        const renderTemplate = (values: ProposalType) => (
-                            <div
-                                onMouseDown={onMouseDown}
-                                onClick={onPreviewClick}
-                                style={{
-                                    width: `${pageWidthPx}px`,
-                                    transformOrigin: "top left",
-                                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${effectiveScale})`,
-                                    cursor: !exactPdfPreview && zoomPct > 100 ? "grab" : "default",
-                                }}
-                            >
-                                <Template {...values} />
-                            </div>
-                        );
+                        const renderTemplate = (values: ProposalType, scale?: number) => {
+                            const s = scale ?? effectiveScale;
+                            return (
+                                <div
+                                    onMouseDown={onMouseDown}
+                                    onClick={onPreviewClick}
+                                    style={{
+                                        width: `${pageWidthPx}px`,
+                                        transformOrigin: "top left",
+                                        transform: `translate(${pan.x}px, ${pan.y}px) scale(${s})`,
+                                        cursor: !exactPdfPreview && zoomPct > 100 ? "grab" : "default",
+                                    }}
+                                >
+                                    <Template {...values} />
+                                </div>
+                            );
+                        };
                         if (compareMode && baselineValues) {
+                            const halfWidth = Math.max(100, (containerWidth - 24) / 2);
+                            const compareScale = Math.min(1, halfWidth / pageWidthPx) * (zoomPct / 100);
                             return (
                                 <div className="p-2">
-                                    <div className="flex items-center justify-between text-[11px] font-semibold text-muted-foreground mb-2">
-                                        <span>Before (baseline snapshot)</span>
-                                        <span>After (live edits now)</span>
-                                    </div>
-                                    <div className="relative inline-block">
-                                        {renderTemplate(baselineValues)}
-                                        <div
-                                            className="absolute inset-0 pointer-events-none"
-                                            style={{ clipPath: `inset(0 ${100 - compareSplitPct}% 0 0)` }}
-                                        >
-                                            <div
-                                                style={{
-                                                    width: `${pageWidthPx}px`,
-                                                    transformOrigin: "top left",
-                                                    transform: `translate(${pan.x}px, ${pan.y}px) scale(${effectiveScale})`,
-                                                }}
-                                            >
-                                                <Template {...debouncedValues} />
+                                    <div className="flex gap-3">
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-[11px] font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-full bg-rose-400 inline-block" />
+                                                Before (baseline)
+                                            </div>
+                                            <div className="border border-border rounded-lg overflow-hidden bg-white" style={{ height: `${halfWidth * 1.4}px`, overflowY: "auto" }}>
+                                                <div style={{ width: `${pageWidthPx}px`, transformOrigin: "top left", transform: `scale(${compareScale})` }}>
+                                                    <Template {...baselineValues} />
+                                                </div>
                                             </div>
                                         </div>
-                                        <div
-                                            className="absolute top-0 bottom-0 w-0.5 bg-brand-blue pointer-events-none"
-                                            style={{ left: `${compareSplitPct}%` }}
-                                        />
-                                    </div>
-                                    <div className="mt-3 flex items-center gap-3">
-                                        <span className="text-[10px] font-semibold text-muted-foreground">Swipe</span>
-                                        <input
-                                            type="range"
-                                            min={0}
-                                            max={100}
-                                            value={compareSplitPct}
-                                            onChange={(e) => setCompareSplitPct(Number(e.target.value))}
-                                            className="w-full accent-[#0A52EF]"
-                                        />
-                                        <span className="text-[10px] text-muted-foreground tabular-nums w-10 text-right">{compareSplitPct}%</span>
+                                        <div className="w-px bg-border shrink-0" />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="text-[11px] font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                                                After (live)
+                                            </div>
+                                            <div className="border border-border rounded-lg overflow-hidden bg-white" style={{ height: `${halfWidth * 1.4}px`, overflowY: "auto" }}>
+                                                <div style={{ width: `${pageWidthPx}px`, transformOrigin: "top left", transform: `scale(${compareScale})` }}>
+                                                    <Template {...debouncedValues} />
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             );

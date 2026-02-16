@@ -201,6 +201,277 @@ const PRODUCTS: Record<string, ProductType> = {
         },
         environment: "Indoor",
     },
+
+    // =========================================================================
+    // YAHAM NX PRODUCTS — Source: NX Yaham Rate Card - LGEUS Markup 02.16.26 EG.xlsx
+    // Pricing date: 2026/02/04. All specs from manufacturer datasheet.
+    // Two LED package variants exist per pitch (White=high brightness, Black=high contrast).
+    // Catalog uses White (higher brightness) variant as primary.
+    // =========================================================================
+
+    // --- INDOOR (Corona Series + Halo Fascia) ---
+
+    "yaham-c2.5-mip": {
+        id: "yaham-c2.5-mip",
+        name: "Yaham Corona C2.5-MIP Indoor",
+        manufacturer: "Yaham",
+        pitchMm: 2.5,
+        powerDensityWm2: 401.5,
+        weightDensityLbm2: 50.2,
+        avgMaxRatio: 0.40,
+        brightnessNits: 2000,
+        pixelDensityPPF: 14863,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar MIP-A1010WN",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Corona MIP Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 960, heightMm: 960, depthMm: 97, weightKg: 21, maxPowerW: 370 },
+        smallCabinet: null,
+        environment: "Indoor",
+    },
+
+    "yaham-c4": {
+        id: "yaham-c4",
+        name: "Yaham Corona C4 Indoor",
+        manufacturer: "Yaham",
+        pitchMm: 4,
+        powerDensityWm2: 401.5,
+        weightDensityLbm2: 46.6,
+        avgMaxRatio: 0.40,
+        brightnessNits: 2000,
+        pixelDensityPPF: 5806,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar RS-2020MBAR",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Corona Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 960, heightMm: 960, depthMm: 97, weightKg: 19.5, maxPowerW: 370 },
+        smallCabinet: null,
+        environment: "Indoor",
+    },
+
+    "yaham-c6": {
+        id: "yaham-c6",
+        name: "Yaham Corona C6 Indoor",
+        manufacturer: "Yaham",
+        pitchMm: 6,
+        powerDensityWm2: 401.5,
+        weightDensityLbm2: 46.6,
+        avgMaxRatio: 0.40,
+        brightnessNits: 2000,
+        pixelDensityPPF: 2580,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar RS-2020MBAR",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Corona Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 960, heightMm: 960, depthMm: 97, weightKg: 19.5, maxPowerW: 370 },
+        smallCabinet: null,
+        environment: "Indoor",
+    },
+
+    "yaham-c10": {
+        id: "yaham-c10",
+        name: "Yaham Corona C10 Indoor",
+        manufacturer: "Yaham",
+        pitchMm: 10,
+        powerDensityWm2: 401.5,
+        weightDensityLbm2: 46.6,
+        avgMaxRatio: 0.40,
+        brightnessNits: 2000,
+        pixelDensityPPF: 929,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar RS-2020MBAR",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Corona Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 960, heightMm: 960, depthMm: 97, weightKg: 19.5, maxPowerW: 370 },
+        smallCabinet: null,
+        environment: "Indoor",
+    },
+
+    "yaham-h10t-indoor": {
+        id: "yaham-h10t-indoor",
+        name: "Yaham Halo H10T Fascia Indoor",
+        manufacturer: "Yaham",
+        pitchMm: 10,
+        powerDensityWm2: 401.5,
+        weightDensityLbm2: 62.2,
+        avgMaxRatio: 0.40,
+        brightnessNits: 2000,
+        pixelDensityPPF: 929,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar RS-2020MBAR",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Halo Fascia Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 960, heightMm: 960, depthMm: 150.8, weightKg: 26, maxPowerW: 370 },
+        smallCabinet: null,
+        environment: "Indoor",
+    },
+
+    // --- OUTDOOR (Radiance Series + Aura Perimeter + Halo Fascia) ---
+
+    "yaham-r2.5": {
+        id: "yaham-r2.5",
+        name: "Yaham Radiance R2.5-MIP Outdoor",
+        manufacturer: "Yaham",
+        pitchMm: 2.5,
+        powerDensityWm2: 578.7,
+        weightDensityLbm2: 80.8,
+        avgMaxRatio: 0.40,
+        brightnessNits: 3000,
+        pixelDensityPPF: 14863,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar MIP-A1010WN",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Radiance MIP Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 480, heightMm: 540, depthMm: 120, weightKg: 9.5, maxPowerW: 150 },
+        smallCabinet: null,
+        environment: "Outdoor",
+    },
+
+    "yaham-r4": {
+        id: "yaham-r4",
+        name: "Yaham Radiance R4 Outdoor",
+        manufacturer: "Yaham",
+        pitchMm: 3.91,
+        powerDensityWm2: 650,
+        weightDensityLbm2: 68.3,
+        avgMaxRatio: 0.40,
+        brightnessNits: 7000,
+        pixelDensityPPF: 6087,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar FM-Z1921",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Radiance Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 1000, heightMm: 1000, depthMm: 120, weightKg: 31, maxPowerW: 650 },
+        smallCabinet: null,
+        environment: "Outdoor",
+    },
+
+    "yaham-r6": {
+        id: "yaham-r6",
+        name: "Yaham Radiance R6 Outdoor",
+        manufacturer: "Yaham",
+        pitchMm: 5.95,
+        powerDensityWm2: 650,
+        weightDensityLbm2: 65.0,
+        avgMaxRatio: 0.40,
+        brightnessNits: 10000,
+        pixelDensityPPF: 2624,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar RS-2727MWAS",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Radiance Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 1000, heightMm: 1000, depthMm: 120, weightKg: 29.5, maxPowerW: 650 },
+        smallCabinet: null,
+        environment: "Outdoor",
+    },
+
+    "yaham-r8": {
+        id: "yaham-r8",
+        name: "Yaham Radiance R8 Outdoor",
+        manufacturer: "Yaham",
+        pitchMm: 8.33,
+        powerDensityWm2: 650,
+        weightDensityLbm2: 65.0,
+        avgMaxRatio: 0.40,
+        brightnessNits: 10000,
+        pixelDensityPPF: 1339,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar RS-2727MWAS",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Radiance Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 1000, heightMm: 1000, depthMm: 120, weightKg: 29.5, maxPowerW: 650 },
+        smallCabinet: null,
+        environment: "Outdoor",
+    },
+
+    "yaham-r10": {
+        id: "yaham-r10",
+        name: "Yaham Radiance R10 Outdoor",
+        manufacturer: "Yaham",
+        pitchMm: 10,
+        powerDensityWm2: 650,
+        weightDensityLbm2: 65.0,
+        avgMaxRatio: 0.40,
+        brightnessNits: 10000,
+        pixelDensityPPF: 929,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar RS-2727MWAS",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Radiance Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 1000, heightMm: 1000, depthMm: 120, weightKg: 29.5, maxPowerW: 650 },
+        smallCabinet: null,
+        environment: "Outdoor",
+    },
+
+    "yaham-a10": {
+        id: "yaham-a10",
+        name: "Yaham Aura A10 Perimeter",
+        manufacturer: "Yaham",
+        pitchMm: 10,
+        powerDensityWm2: 472.2,
+        weightDensityLbm2: 84.2,
+        avgMaxRatio: 0.40,
+        brightnessNits: 7500,
+        pixelDensityPPF: 929,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar RS-2727MWAS",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Aura Perimeter Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 1600, heightMm: 900, depthMm: 114, weightKg: 55, maxPowerW: 680 },
+        smallCabinet: null,
+        environment: "Outdoor",
+    },
+
+    "yaham-ho10t": {
+        id: "yaham-ho10t",
+        name: "Yaham Halo HO10T Fascia Outdoor",
+        manufacturer: "Yaham",
+        pitchMm: 10,
+        powerDensityWm2: 638.9,
+        weightDensityLbm2: 101.0,
+        avgMaxRatio: 0.40,
+        brightnessNits: 10000,
+        pixelDensityPPF: 929,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar RS-2727MWAS",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Halo Outdoor Fascia Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 800, heightMm: 900, depthMm: 130, weightKg: 33, maxPowerW: 460 },
+        smallCabinet: null,
+        environment: "Outdoor",
+    },
+
+    "yaham-ho6t": {
+        id: "yaham-ho6t",
+        name: "Yaham Halo HO6T Fascia Outdoor",
+        manufacturer: "Yaham",
+        pitchMm: 6.25,
+        powerDensityWm2: 638.9,
+        weightDensityLbm2: 101.0,
+        avgMaxRatio: 0.40,
+        brightnessNits: 10000,
+        pixelDensityPPF: 2378,
+        colorTempK: { nominal: 6500, min: 3200, max: 9300 },
+        diode: "NationStar RS-2727MWAS",
+        processing: "ICN Driver IC",
+        hardware: "Yaham Halo Outdoor Fascia Module",
+        lifespanHours: 100_000,
+        defaultCabinet: { widthMm: 800, heightMm: 900, depthMm: 130, weightKg: 33, maxPowerW: 460 },
+        smallCabinet: null,
+        environment: "Outdoor",
+    },
 };
 
 // ============================================================================
@@ -215,8 +486,19 @@ export function getAllProducts(): ProductType[] {
     return Object.values(PRODUCTS);
 }
 
-export function getProductByPitch(pitchMm: number): ProductType | undefined {
-    return Object.values(PRODUCTS).find(p => p.pitchMm === pitchMm);
+export function getProductByPitch(
+    pitchMm: number,
+    environment?: "Indoor" | "Outdoor" | "Both",
+): ProductType | undefined {
+    return Object.values(PRODUCTS).find(p =>
+        p.pitchMm === pitchMm && (!environment || p.environment === environment),
+    );
+}
+
+export function getProductsByManufacturer(manufacturer: string): ProductType[] {
+    return Object.values(PRODUCTS).filter(
+        p => p.manufacturer.toLowerCase() === manufacturer.toLowerCase(),
+    );
 }
 
 // ============================================================================
@@ -340,15 +622,38 @@ export const ELECTRICAL_MATERIALS_PER_SQFT = 125; // USC Install(Base): =D19*125
 export const SPARE_PARTS_PCT_LCD = 0.05;  // Indiana Fever: =D*0.05 on LCD displays
 export const SPARE_PARTS_PCT_LED = 0.05;  // Default. No LED-specific rate found in formulas.
 
+// --- YAHAM NX PRICING WATERFALL ---
+// Documents the real cost structure from factory to ANC's buy price.
+// Source: NX Yaham Rate Card - LGEUS Markup 02.16.26 EG.xlsx (2026/02/04)
+//
+// Layer 1: Ex-work (factory gate, FOB China)
+// Layer 2: +10% Tariff (US import duty)
+// Layer 3: +5% Shipping (ocean freight to US port)
+// Layer 4: +28% LGEUS Markup (LG distribution margin) ← ANC's buy price
+// Layer 5: +10% Custom Cabinet (non-standard sizing premium, optional)
+
+export const YAHAM_PRICING_LAYERS = {
+    tariffPct: 0.10,
+    shippingPct: 0.05,
+    lgeusMarkupPct: 0.28,
+    customCabinetPct: 0.10,
+} as const;
+
 // --- LED COST PER SQFT (by pitch) ---
-// Only one explicit formula-driven rate found: $430/sqft for 1.2mm ribbon.
-// Other display costs appear to be vendor quotes (flat values, not formula-driven).
+// Yaham rates = LGEUS 28% markup (ANC's actual buy price), landed in US.
+// Legacy rates from Excel formula extraction retained where no Yaham equivalent.
 
 export const LED_COST_PER_SQFT_BY_PITCH: Record<string, number> = {
-    '1.2':  430,   // Indiana Fever: =M*430 (Locker Room Ribbon)
-    '1.875': 0,    // No formula found — vendor quote. NEEDS MATT DATA.
-    '2.5':  335,   // NBCU LED Cost Sheet: $105,120 / 314 sqft = $334.76 (calculated, not formula)
-    '10':   0,     // No formula found. NEEDS MATT DATA.
+    '1.2':   430,    // Indiana Fever: =M*430 (Locker Room Ribbon)
+    '1.875': 0,      // No formula found — vendor quote.
+    '2.5':   251.57, // Yaham C2.5-MIP LGEUS 28% landed. Rate card 02/04/2026.
+    '3.91':  232.53, // Yaham R4 Outdoor LGEUS 28% landed. Rate card 02/04/2026.
+    '4':     178.09, // Yaham C4 Indoor LGEUS 28% landed. Rate card 02/04/2026.
+    '5.95':  260.14, // Yaham R6 Outdoor LGEUS 28% landed. Rate card 02/04/2026.
+    '6':     136.51, // Yaham C6 Indoor LGEUS 28% landed. Rate card 02/04/2026.
+    '6.25':  293.20, // Yaham HO6T Outdoor Fascia LGEUS 28%. Rate card 02/04/2026.
+    '8.33':  194.07, // Yaham R8 Outdoor LGEUS 28% landed. Rate card 02/04/2026.
+    '10':    112.22, // Yaham C10 Indoor LGEUS 28% landed. Rate card 02/04/2026.
 };
 
 // --- WARRANTY ---
@@ -366,9 +671,25 @@ export const COMPLEX_MODIFIER = 1.2;
  * Rounded up to $4,200 to include connector/accessory overhead.
  */
 export const HARDWARE_COST_PER_SQM: Record<string, number> = {
+    // Legacy Nitxeon (Westfield WTC validated)
     '4mm-nitxeon': 4200,
     '10mm-mesh': 2800,
     '2.5mm-mip': 5400,
+    // Yaham NX — LGEUS 28% markup, converted $/sqft → $/m² (×10.7639)
+    // Source: NX Yaham Rate Card - LGEUS Markup 02.16.26 EG.xlsx
+    'yaham-c2.5-mip':    2708,  // $251.57/sqft × 10.7639
+    'yaham-c4':          1917,  // $178.09/sqft × 10.7639
+    'yaham-c6':          1470,  // $136.51/sqft × 10.7639
+    'yaham-c10':         1208,  // $112.22/sqft × 10.7639
+    'yaham-h10t-indoor': 1251,  // $116.25/sqft × 10.7639
+    'yaham-r2.5':        5773,  // $536.25/sqft × 10.7639
+    'yaham-r4':          2503,  // $232.53/sqft × 10.7639
+    'yaham-r6':          2800,  // $260.14/sqft × 10.7639
+    'yaham-r8':          2089,  // $194.07/sqft × 10.7639
+    'yaham-r10':         1666,  // $154.79/sqft × 10.7639
+    'yaham-a10':         2224,  // $206.59/sqft × 10.7639
+    'yaham-ho10t':       1900,  // $176.45/sqft × 10.7639
+    'yaham-ho6t':        3157,  // $293.20/sqft × 10.7639
 };
 
 /** Calculate hardware cost from active area and product ID. */

@@ -90,6 +90,19 @@ During the course of building Phase 1, the team shared a number of pain points a
 | 21 | **Gap Fill Assistant** | After AI extracts data from an uploaded document, walks through missing or uncertain fields one at a time, asking targeted questions until the proposal is complete. |
 | 22 | **Document OCR** | Built-in text extraction for scanned PDFs, DOCX, and 75+ document formats. Even image-only PDFs are processed. |
 
+### Underlying Infrastructure
+
+The capabilities above run on top of a production-grade foundation that isn't visible to end users but is required for any application handling real client data and financial information:
+
+- **Authentication & session management** — secure login, session tokens, and automatic expiry
+- **Role-based access control** — permissions that determine who can view, edit, approve, or share proposals and pricing data
+- **API security layer** — every endpoint is authenticated; internal pricing, margins, and cost data are never exposed to unauthenticated requests
+- **Database architecture** — structured storage for projects, versions, pricing documents, product catalog, rate cards, and audit history
+- **Environment isolation** — separate development and production environments so changes are tested before they reach the team
+- **Modern dialog system** — all user-facing confirmations and alerts use a consistent, branded UI rather than raw browser popups
+
+This is the kind of work that doesn't appear in a feature list but represents a significant portion of the engineering effort. Without it, the features above would be demos on a laptop — not a platform a team can log into and trust with real deal data.
+
 ---
 
 ### Summary

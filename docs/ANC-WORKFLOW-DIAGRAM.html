@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANC Proposal Engine — Workflow Transformation</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --anc-primary: #1A56DB;
+    --anc-primary-light: #3B82F6;
+    --anc-primary-dark: #1E3A5F;
+    --anc-primary-bg: rgba(26,86,219,0.04);
+    --anc-primary-10: rgba(26,86,219,0.08);
+    --anc-primary-20: rgba(26,86,219,0.15);
+    --bg: #F8FAFC;
+    --surface: #FFFFFF;
+    --surface-alt: #F1F5F9;
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+    --border: #E2E8F0;
+    --border-light: #F1F5F9;
+    --green: #059669;
+    --green-bg: #ECFDF5;
+    --green-border: #A7F3D0;
+    --red: #DC2626;
+    --red-bg: #FEF2F2;
+    --red-border: #FECACA;
+    --amber: #D97706;
+    --amber-bg: #FFFBEB;
+    --amber-border: #FDE68A;
+    --purple: #7C3AED;
+    --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 3px solid var(--anc-primary);
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .header-left { display: flex; align-items: center; gap: 20px; }
+  .header-logo { font-size: 44px; font-weight: 800; color: var(--anc-primary); letter-spacing: -2px; text-transform: lowercase; }
+  .header-divider { width: 2px; height: 36px; background: var(--border); }
+  .header-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+  .header-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .header-date { font-size: 11px; color: var(--text-muted); font-family: var(--mono); letter-spacing: 0.5px; }
+
+  /* ── TABS ── */
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 40px;
+    overflow-x: auto;
+    gap: 0;
+  }
+  .tab-btn {
+    padding: 14px 20px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--font);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: var(--text-secondary); }
+  .tab-btn.active {
+    color: var(--anc-primary);
+    font-weight: 700;
+    border-bottom-color: var(--anc-primary);
+  }
+  .tab-icon { font-size: 15px; }
+
+  /* ── CONTENT ── */
+  .content-area { overflow-y: auto; height: calc(100vh - 140px); }
+  .content-inner { padding: 36px 40px; max-width: 1100px; margin: 0 auto; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .intro-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.75;
+    margin-bottom: 32px;
+  }
+
+  /* ── FLOW DIAGRAM ── */
+  .flow-container {
+    display: flex;
+    gap: 32px;
+    margin-bottom: 40px;
+  }
+  .flow-column { flex: 1; }
+  .flow-label {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-align: center;
+    padding: 10px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .flow-label-before { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-border); }
+  .flow-label-after { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+
+  .flow-node {
+    position: relative;
+    padding: 16px 20px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    transition: all 0.2s;
+  }
+  .flow-node:hover { border-color: var(--anc-primary-20); }
+  .flow-node-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+  .flow-node-who { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; }
+  .flow-node-detail { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+  .flow-node-time {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--mono);
+    padding: 2px 8px;
+    border-radius: 8px;
+  }
+  .flow-node.pain-high { border-left: 4px solid var(--red); }
+  .flow-node.pain-high .flow-node-time { background: var(--red-bg); color: var(--red); }
+  .flow-node.pain-mid { border-left: 4px solid var(--amber); }
+  .flow-node.pain-mid .flow-node-time { background: var(--amber-bg); color: var(--amber); }
+  .flow-node.pain-low { border-left: 4px solid var(--green); }
+  .flow-node.pain-low .flow-node-time { background: var(--green-bg); color: var(--green); }
+  .flow-node.automated { border-left: 4px solid var(--anc-primary); }
+  .flow-node.automated .flow-node-time { background: var(--anc-primary-10); color: var(--anc-primary); }
+  .flow-node.ai-node { border-left: 4px solid var(--green); background: var(--green-bg); }
+  .flow-node.ai-node .flow-node-time { background: #D1FAE5; color: var(--green); }
+  .flow-node.human-node { border-left: 4px solid var(--anc-primary); background: var(--anc-primary-bg); }
+
+  .flow-connector {
+    text-align: center;
+    padding: 4px 0;
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1;
+  }
+  .flow-connector-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--red);
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+  }
+
+  .flow-parallel {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .flow-parallel .flow-node { margin-bottom: 0; }
+
+  .flow-fan-label {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--anc-primary);
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    padding: 8px 0;
+  }
+
+  /* ── HANDOFF CARDS ── */
+  .handoff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .handoff-card {
+    padding: 20px 24px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    position: relative;
+    overflow: hidden;
+  }
+  .handoff-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+  .handoff-card.risk-high::before { background: var(--red); }
+  .handoff-card.risk-mid::before { background: var(--amber); }
+  .handoff-num {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+  .handoff-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+  .handoff-from-to { font-size: 12px; color: var(--anc-primary); font-weight: 600; margin-bottom: 8px; }
+  .handoff-risk { font-size: 12px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 10px; }
+  .handoff-fix {
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 600;
+    padding: 8px 12px;
+    background: var(--green-bg);
+    border-radius: 6px;
+    border: 1px solid var(--green-border);
+  }
+
+  /* ── MARGIN PROTECTION ── */
+  .shield-track {
+    position: relative;
+    padding-left: 48px;
+  }
+  .shield-track::before {
+    content: '';
+    position: absolute;
+    left: 22px;
+    top: 20px;
+    bottom: 20px;
+    width: 3px;
+    background: linear-gradient(180deg, var(--green), var(--anc-primary));
+    border-radius: 2px;
+  }
+  .shield-node {
+    position: relative;
+    margin-bottom: 12px;
+    padding: 16px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 16px;
+    align-items: center;
+  }
+  .shield-icon {
+    position: absolute;
+    left: -38px;
+    top: 16px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--green-bg);
+    border: 2px solid var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    z-index: 1;
+  }
+  .shield-title { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+  .shield-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-top: 4px; }
+  .shield-cost {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--red);
+    font-family: var(--mono);
+    white-space: nowrap;
+    text-align: right;
+  }
+  .shield-cost-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: right;
+  }
+
+  /* ── TIME SAVINGS ── */
+  .savings-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 24px;
+    display: grid;
+    grid-template-columns: 200px 1fr 1fr 100px;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+  .savings-row:hover { border-color: var(--anc-primary-20); }
+  .savings-label { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .savings-col-label { font-size: 10px; color: var(--text-muted); margin-bottom: 3px; font-family: var(--mono); letter-spacing: 0.05em; }
+  .savings-before { font-size: 14px; font-weight: 600; color: var(--red); }
+  .savings-after { font-size: 14px; font-weight: 600; color: var(--green); }
+  .savings-pct { text-align: right; font-size: 20px; font-weight: 800; color: var(--anc-primary); }
+
+  .savings-total {
+    margin-top: 16px;
+    padding: 20px 24px;
+    border-radius: 12px;
+    background: var(--anc-primary);
+    color: #fff;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 16px;
+  }
+  .savings-total-label { font-size: 15px; font-weight: 700; }
+  .savings-total-sub { font-size: 12px; opacity: 0.8; margin-top: 4px; }
+  .savings-total-num { font-size: 32px; font-weight: 800; text-align: right; }
+  .savings-total-unit { font-size: 13px; font-weight: 600; text-align: right; opacity: 0.8; }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    padding: 16px 20px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .stat-num { font-size: 28px; font-weight: 800; color: var(--anc-primary); font-family: var(--mono); }
+  .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 4px; }
+
+  /* ── SECTION HEADERS ── */
+  .section-header {
+    margin-bottom: 24px;
+  }
+  .section-title { font-size: 20px; font-weight: 800; color: var(--anc-primary-dark); margin-bottom: 6px; }
+  .section-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+  /* ── CALLOUT ── */
+  .callout {
+    margin-top: 24px;
+    padding: 16px 20px;
+    border-radius: 10px;
+  }
+  .callout-blue { background: #EFF6FF; border: 1px solid #BFDBFE; }
+  .callout-blue .callout-title { color: #1E40AF; }
+  .callout-blue .callout-text { color: #1E3A8A; }
+  .callout-green { background: var(--green-bg); border: 1px solid var(--green-border); }
+  .callout-green .callout-title { color: #166534; }
+  .callout-green .callout-text { color: #15803D; }
+  .callout-red { background: var(--red-bg); border: 1px solid var(--red-border); }
+  .callout-red .callout-title { color: #991B1B; }
+  .callout-red .callout-text { color: #7F1D1D; }
+  .callout-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .callout-text { font-size: 12px; line-height: 1.6; }
+
+  /* ── ELIMINATED LIST ── */
+  .eliminated-list { margin-top: 20px; }
+  .eliminated-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .eliminated-icon { font-size: 18px; }
+  .eliminated-old {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: line-through;
+    flex: 1;
+  }
+  .eliminated-new {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--green);
+  }
+
+  /* ── STAGE DETAIL CARDS ── */
+  .stage-card {
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+    transition: border-color 0.2s;
+  }
+  .stage-card.expanded { border-color: var(--anc-primary-20); }
+  .stage-header {
+    padding: 18px 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.2s;
+  }
+  .stage-header.expanded { background: var(--anc-primary-bg); }
+  .stage-left { display: flex; align-items: center; gap: 14px; }
+  .stage-icon { font-size: 20px; }
+  .stage-num {
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--anc-primary);
+    letter-spacing: 0.08em;
+  }
+  .stage-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .stage-who { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .stage-badges { display: flex; gap: 8px; align-items: center; }
+  .stage-time-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+  .stage-pain-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+  .stage-chevron {
+    font-size: 18px;
+    color: var(--text-muted);
+    transition: transform 0.2s;
+    margin-left: 12px;
+  }
+  .stage-chevron.open { transform: rotate(180deg); }
+  .stage-body {
+    padding: 0 24px 20px;
+    border-top: 1px solid var(--border-light);
+    display: none;
+  }
+  .stage-body.open { display: block; }
+  .stage-section { padding: 16px 0 0; }
+  .stage-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    font-family: var(--mono);
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  .stage-section-label.pain { color: var(--red); }
+  .stage-section-label.auto { color: var(--green); }
+  .pain-item {
+    font-size: 12.5px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    padding-left: 20px;
+    position: relative;
+  }
+  .pain-item::before {
+    content: '⚠';
+    position: absolute;
+    left: 0;
+    font-size: 12px;
+  }
+  .auto-item {
+    font-size: 12.5px;
+    color: var(--text-primary);
+    line-height: 1.8;
+    padding-left: 20px;
+    position: relative;
+  }
+  .auto-item::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--green);
+    font-weight: 700;
+    font-size: 13px;
+  }
+
+  /* ── FOOTER ── */
+  .footer-card {
+    margin-top: 32px;
+    padding: 20px 24px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .footer-org { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .footer-addr { font-size: 11px; color: var(--text-muted); }
+  .footer-prepared { font-size: 11px; color: var(--text-muted); text-align: right; }
+
+  @media (max-width: 768px) {
+    .header { padding: 16px 20px; }
+    .tab-bar { padding: 0 20px; }
+    .content-inner { padding: 24px 20px; }
+    .flow-container { flex-direction: column; }
+    .handoff-grid { grid-template-columns: 1fr; }
+    .savings-row { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: 1fr 1fr; }
+    .flow-parallel { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-logo">anc</div>
+    <div class="header-divider"></div>
+    <div>
+      <div class="header-title">Workflow Transformation — Before & After</div>
+      <div class="header-subtitle">How the Proposal Engine changes every step of the deal lifecycle</div>
+    </div>
+  </div>
+  <div class="header-date">Prepared February 2026</div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar" id="tabBar"></div>
+
+<!-- CONTENT -->
+<div class="content-area">
+  <div id="panel-overview" class="tab-panel active"><div class="content-inner" id="overviewContent"></div></div>
+  <div id="panel-stages" class="tab-panel"><div class="content-inner" id="stagesContent"></div></div>
+  <div id="panel-handoffs" class="tab-panel"><div class="content-inner" id="handoffsContent"></div></div>
+  <div id="panel-beforeafter" class="tab-panel"><div class="content-inner" id="beforeafterContent"></div></div>
+  <div id="panel-margin" class="tab-panel"><div class="content-inner" id="marginContent"></div></div>
+  <div id="panel-savings" class="tab-panel"><div class="content-inner" id="savingsContent"></div></div>
+  <div id="panel-pricing" class="tab-panel"><div class="content-inner" id="pricingContent"></div></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════════
+
+const TABS = [
+  { id: "overview", label: "Overview", icon: "🗺" },
+  { id: "stages", label: "7 Stages Deep Dive", icon: "📋" },
+  { id: "handoffs", label: "Handoff Risk Map", icon: "🔗" },
+  { id: "beforeafter", label: "Before & After", icon: "⚡" },
+  { id: "margin", label: "Margin Protection", icon: "🛡" },
+  { id: "savings", label: "Time & Cost Impact", icon: "📊" },
+  { id: "pricing", label: "Rate Card Intel", icon: "💲" },
+];
+
+const STAGES = [
+  {
+    num: "01", icon: "📥", name: "RFP Intake", who: "Sales / Business Development",
+    time: "Day 0", timeColor: "var(--green)", painLevel: "LOW",
+    painColor: "var(--green)", painBg: "var(--green-bg)",
+    pains: [
+      "2,000-page documents — no one reads the whole thing",
+      "LED scope buried in Division 11 (Section 11 06 60)",
+      "Display specs sometimes only on architectural drawings, not in text",
+      "No formal go/no-go decision before investing estimating hours"
+    ],
+    automations: [
+      "AI page scoring with 170+ LED/AV keywords",
+      "Division 11 auto-detection (11 06 60, 11 63 10, Display Schedule, Exhibit G)",
+      "Bid/No-Bid scorecard — Go / Caution / No-Go in minutes",
+      "Drawing analysis via AI vision"
+    ]
+  },
+  {
+    num: "02", icon: "🔍", name: "RFP Analysis & Extraction", who: "Estimating Team",
+    time: "Day 1–3", timeColor: "var(--red)", painLevel: "CRITICAL",
+    painColor: "var(--red)", painBg: "var(--red-bg)",
+    pains: [
+      "4–8 hours per RFP for manual reading and extraction",
+      "Screens on drawings get missed entirely",
+      "Specs scattered across Exhibit G, Form 1a/1b, Display Schedule, drawings",
+      "No confidence scoring — estimator trusts or verifies everything manually",
+      "Addendums change specs — easy to miss updates across versions"
+    ],
+    automations: [
+      "AI screen extraction from text + vision (every display, every spec)",
+      "Confidence scoring per field (0–100%)",
+      "Key point extraction: deadlines, scope, compliance, pricing format",
+      "Red flag detection: unusual terms, tight timelines, ambiguous specs",
+      "Addendum diff tracking across versions"
+    ]
+  },
+  {
+    num: "03", icon: "📦", name: "Product Selection", who: "Estimating / Engineering",
+    time: "Day 3–5", timeColor: "var(--amber)", painLevel: "MEDIUM",
+    painColor: "var(--amber)", painBg: "var(--amber-bg)",
+    pains: [
+      "Manual catalog lookup per screen (7–12 screens per project)",
+      "Cabinet topology math is error-prone (uniform vs. mixed panels)",
+      "Mixed-cabinet layouts with remainder panels need manual solving",
+      "Alternate pricing (upgrade to finer pitch) calculated manually"
+    ],
+    automations: [
+      "Auto product matching by pitch, environment, brightness",
+      "Cabinet topology solver (uniform + mixed, remainder panels)",
+      "Exhibit G auto-calculation (area × density for power/weight)",
+      "Alternate extraction from RFP text (upgrades, deducts, add-ons)"
+    ]
+  },
+  {
+    num: "04", icon: "💰", name: "Estimation & Pricing", who: "Senior Estimators",
+    time: "Day 3–8", timeColor: "var(--red)", painLevel: "HIGH",
+    painColor: "var(--red)", painBg: "var(--red-bg)",
+    pains: [
+      "Data re-entry from extraction notes → pricing spreadsheet (HANDOFF)",
+      "Rate card values scattered across spreadsheets, inconsistent between estimators",
+      "Install complexity tier selection is subjective (simple/standard/complex/heavy)",
+      "Prevailing wage requirement missed = entire margin destroyed",
+      "Warranty escalation (10%/year compound for years 4–10) done manually",
+      "No audit trail — hard to verify how a price was built after the fact"
+    ],
+    automations: [
+      "RFP-to-Estimator pipeline — zero re-entry, specs pre-filled",
+      "Rate card loaded from database with admin UI (single source of truth)",
+      "Prevailing wage auto-detection from contract scanner",
+      "Warranty escalation calculator (10% compound, any duration)",
+      "Audit Excel with full formula transparency"
+    ]
+  },
+  {
+    num: "05", icon: "📄", name: "Proposal Generation", who: "Proposals Director",
+    time: "Day 8–10", timeColor: "var(--amber)", painLevel: "MEDIUM",
+    painColor: "var(--amber)", painBg: "var(--amber-bg)",
+    pains: [
+      "SOW written from scratch or copy-pasted from last project each time",
+      "Schedule built manually — business day math errors common",
+      "Three document types (Budget/Proposal/LOI) share 80% content but managed separately",
+      "PDF output must match ANC brand exactly — manual formatting"
+    ],
+    automations: [
+      "SOW generator with 8 toggleable sections using ANC standard language",
+      "Schedule generator — NTP date → complete Gantt-ready timeline",
+      "Three-mode document toggle (Budget / Proposal / LOI) — one click",
+      "Mirror Mode: Excel → branded PDF, pixel-perfect"
+    ]
+  },
+  {
+    num: "06", icon: "⚖️", name: "Contract Review", who: "Finance / Legal",
+    time: "Post-Submission", timeColor: "var(--red)", painLevel: "HIGH",
+    painColor: "var(--red)", painBg: "var(--red-bg)",
+    pains: [
+      "Legal review happens AFTER bid is submitted — too late to adjust pricing",
+      "20 categories of financial/legal risk buried in boilerplate",
+      "Uncapped LDs, high bonds, missing force majeure discovered too late",
+      "No systematic checklist — depends on who reads the contract"
+    ],
+    automations: [
+      "20-point contract risk scanner runs at INTAKE (before any work begins)",
+      "Risk score (0–100) with pass/warning/critical per check",
+      "Specific recommendations per flagged clause",
+      "Categories: Financial (5), Legal (5), Scope (4), Timeline (3), Warranty (3)"
+    ]
+  },
+  {
+    num: "07", icon: "🏗", name: "Execution & Delivery", who: "Engineering & Installation",
+    time: "Post-Signature", timeColor: "var(--green)", painLevel: "LOW",
+    painColor: "var(--green)", painBg: "var(--green-bg)",
+    pains: [
+      "Schedule built manually for each project — business day counting errors",
+      "Parallel task offsets forgotten (infrastructure starts 2 days after LED install)",
+      "Multi-venue phasing not tracked centrally",
+      "No single view of total deal value across venues"
+    ],
+    automations: [
+      "Auto schedule from NTP date (12 pre-install + 7 per-location install phases)",
+      "Business day calculator (Mon–Fri, validated against real projects)",
+      "Per-location install scaling: small (<10 panels) / medium / large (50+)",
+      "Multi-venue / multi-phase project tracking with roll-up pricing"
+    ]
+  }
+];
+
+const HANDOFFS = [
+  {
+    num: "HANDOFF 1", title: "RFP Forward",
+    from: "Sales / BD", to: "Estimating Team",
+    risk: "RFP forwarded with verbal notes or a brief email. No structured brief. The estimator starts from scratch — re-reading the same document the sales person already skimmed.",
+    fix: "AI extraction produces a structured brief + screen list at upload. No verbal handoff needed.",
+    level: "risk-high"
+  },
+  {
+    num: "HANDOFF 2", title: "Spec Transfer",
+    from: "RFP Reader", to: "Estimator",
+    risk: "Extracted specs typed into a spreadsheet or notes document. Then the estimator re-enters those same specs into the pricing tool. Every field is a chance for transcription error — wrong pixel pitch, wrong dimensions, missed alternates.",
+    fix: "Pipeline pushes extracted specs directly into the estimator. Zero re-entry. Single source of truth.",
+    level: "risk-high"
+  },
+  {
+    num: "HANDOFF 3", title: "Pricing Package",
+    from: "Estimator", to: "Proposals Director",
+    risk: "Completed pricing spreadsheet handed to proposals team for PDF formatting. If the proposals director finds an error, it cycles back to the estimator. Multiple revision rounds common.",
+    fix: "Mirror Mode reads the Excel directly. No repackaging. Changes in Excel instantly reflected in PDF.",
+    level: "risk-mid"
+  },
+  {
+    num: "HANDOFF 4", title: "Legal Review",
+    from: "Proposals Team", to: "Finance / Legal",
+    risk: "Contract terms reviewed AFTER the bid is submitted. By then, pricing is locked. If legal finds uncapped liquidated damages or unusual bond rates, it's too late to adjust the bid.",
+    fix: "Contract risk scanner runs at intake — before any estimating work begins. Risk score visible from day zero.",
+    level: "risk-high"
+  }
+];
+
+const MARGIN_RISKS = [
+  { shield: "🔍", title: "Missed Screen", desc: "Display on drawing but not in text schedule. Never makes it into the bid.", cost: "$50K–$200K", costLabel: "per missed screen" },
+  { shield: "🎯", title: "Wrong Pixel Pitch", desc: "Manual re-entry error: 2.5mm entered as 4mm. Completely different product and price.", cost: "$40K+", costLabel: "cost difference" },
+  { shield: "👷", title: "Prevailing Wage Missed", desc: "Davis-Bacon / union requirement buried in 2,000 pages. Estimator prices at standard rates.", cost: "40–80%", costLabel: "labor cost increase" },
+  { shield: "⚖️", title: "Uncapped Liquidated Damages", desc: "No LD cap in contract. Daily penalties with no ceiling on a delayed project.", cost: "Unlimited", costLabel: "exposure" },
+  { shield: "🏦", title: "Bond Rate Too High", desc: "5%+ bond rate not flagged. ANC standard is 1.5%. Difference goes straight off margin.", cost: "$30K–$75K", costLabel: "on a $1.5M project" },
+  { shield: "📝", title: "Addendum Missed", desc: "Spec change in Addendum #3 not applied. Bid priced on original (wrong) specs.", cost: "Variable", costLabel: "bid priced wrong" },
+  { shield: "🔧", title: "Warranty Underpriced", desc: "10% annual escalation calculated incorrectly over a 10-year agreement.", cost: "$50K–$100K", costLabel: "over 10 years" },
+  { shield: "💵", title: "Retainage Over 10%", desc: "High retainage not flagged. Cash flow impact not priced into the bid.", cost: "Working capital", costLabel: "strain" }
+];
+
+const SAVINGS = [
+  { label: "Bid/No-Bid Decision", before: "2–4 hours (informal)", after: "5 minutes", pct: "~3 hrs" },
+  { label: "RFP Reading & Extraction", before: "4–8 hours", after: "10 min + 30 min review", pct: "~6 hrs" },
+  { label: "Product Selection", before: "2–4 hours", after: "5 min + confirmation", pct: "~3 hrs" },
+  { label: "Data Re-Entry", before: "1–2 hours", after: "0 (pipeline)", pct: "~1.5 hrs" },
+  { label: "Contract Risk Review", before: "2–4 hours (if done)", after: "2 minutes", pct: "~3 hrs" },
+  { label: "SOW Writing", before: "2–3 hours", after: "5 min + editing", pct: "~2.5 hrs" },
+  { label: "Schedule Building", before: "1–2 hours", after: "1 minute", pct: "~1.5 hrs" }
+];
+
+const KEY_NUMBERS = [
+  { num: "170+", label: "Keywords in page scoring" },
+  { num: "20", label: "Contract risk checks" },
+  { num: "5", label: "Bid scorecard dimensions" },
+  { num: "8", label: "SOW template sections" },
+  { num: "12", label: "Pre-install schedule phases" },
+  { num: "7", label: "Per-location install tasks" },
+  { num: "3", label: "Document modes" },
+  { num: "4", label: "Install complexity tiers" },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════════
+
+function renderTabs() {
+  const bar = document.getElementById('tabBar');
+  bar.innerHTML = TABS.map(t =>
+    `<button class="tab-btn${t.id==='overview'?' active':''}" data-tab="${t.id}"><span class="tab-icon">${t.icon}</span>${t.label}</button>`
+  ).join('');
+  bar.addEventListener('click', e => {
+    const btn = e.target.closest('.tab-btn');
+    if (!btn) return;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+}
+
+function renderOverview() {
+  const el = document.getElementById('overviewContent');
+  el.innerHTML = `
+    <p class="intro-text">This document maps ANC's complete deal lifecycle — from the moment an RFP arrives to the moment a signed contract triggers deployment. It identifies every handoff, every pain point, and every place where time is lost or money is left on the table. Then it shows exactly how automation changes each step.</p>
+
+    <div class="stats-bar">
+      ${KEY_NUMBERS.map(s => `<div class="stat-card"><div class="stat-num">${s.num}</div><div class="stat-label">${s.label}</div></div>`).join('')}
+    </div>
+
+    <div class="section-header">
+      <div class="section-title">Deal Lifecycle — End to End</div>
+      <div class="section-desc">Seven stages from opportunity to closeout. Each stage has specific pain points and automation opportunities.</div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px">
+      ${STAGES.map(s => `
+        <div style="flex:1;min-width:120px;padding:14px 16px;border-radius:10px;background:var(--surface);border:1px solid var(--border);text-align:center">
+          <div style="font-size:20px;margin-bottom:6px">${s.icon}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--anc-primary);font-family:var(--mono);letter-spacing:0.08em">${s.num}</div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-top:2px">${s.name}</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px">${s.time}</div>
+          <div style="margin-top:6px"><span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:8px;font-family:var(--mono);color:${s.painColor};background:${s.painBg}">${s.painLevel}</span></div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="callout callout-blue">
+      <div class="callout-title">How to Read This Document</div>
+      <div class="callout-text"><strong>7 Stages Deep Dive</strong> — expand each stage to see current pain points and automation solutions.<br><strong>Handoff Risk Map</strong> — the 4 places where data moves between people (and where errors happen).<br><strong>Before & After</strong> — side-by-side comparison of the current manual flow vs. the automated flow.<br><strong>Margin Protection</strong> — 8 specific financial risks and how each one is caught.<br><strong>Time & Cost Impact</strong> — hours saved per RFP and annual projection.</div>
+    </div>
+
+    <div class="footer-card">
+      <div><div class="footer-org">ANC Sports Enterprises, LLC</div><div class="footer-addr">2 Manhattanville Road, Suite 402, Purchase, NY 10577</div></div>
+      <div class="footer-prepared">Prepared by Ahmad Basheer<br>February 2026</div>
+    </div>`;
+}
+
+function renderStages() {
+  const el = document.getElementById('stagesContent');
+  el.innerHTML = `
+    <p class="intro-text">Each stage of the deal lifecycle expanded with current pain points and the specific automation that addresses each one. Click any stage to expand.</p>
+    ${STAGES.map((s, i) => `
+      <div class="stage-card${i===0?' expanded':''}" id="stage-card-${i}">
+        <div class="stage-header${i===0?' expanded':''}" onclick="toggleStage(${i})">
+          <div class="stage-left">
+            <div class="stage-icon">${s.icon}</div>
+            <div>
+              <div class="stage-num">STAGE ${s.num}</div>
+              <div class="stage-name">${s.name}</div>
+              <div class="stage-who">${s.who}</div>
+            </div>
+          </div>
+          <div class="stage-badges">
+            <span class="stage-time-badge" style="color:${s.timeColor};background:${s.timeColor}15">${s.time}</span>
+            <span class="stage-pain-badge" style="color:${s.painColor};background:${s.painBg}">${s.painLevel} PAIN</span>
+            <span class="stage-chevron${i===0?' open':''}" id="stage-chev-${i}">▾</span>
+          </div>
+        </div>
+        <div class="stage-body${i===0?' open':''}" id="stage-body-${i}">
+          <div class="stage-section">
+            <div class="stage-section-label pain">CURRENT PAIN POINTS</div>
+            ${s.pains.map(p => `<div class="pain-item">${p}</div>`).join('')}
+          </div>
+          <div class="stage-section">
+            <div class="stage-section-label auto">AUTOMATION SOLUTION</div>
+            ${s.automations.map(a => `<div class="auto-item">${a}</div>`).join('')}
+          </div>
+        </div>
+      </div>
+    `).join('')}`;
+}
+
+function toggleStage(i) {
+  const card = document.getElementById('stage-card-' + i);
+  const body = document.getElementById('stage-body-' + i);
+  const header = card.querySelector('.stage-header');
+  const chev = document.getElementById('stage-chev-' + i);
+  const isOpen = body.classList.contains('open');
+  document.querySelectorAll('.stage-body').forEach(b => b.classList.remove('open'));
+  document.querySelectorAll('.stage-card').forEach(c => c.classList.remove('expanded'));
+  document.querySelectorAll('.stage-header').forEach(h => h.classList.remove('expanded'));
+  document.querySelectorAll('.stage-chevron').forEach(c => c.classList.remove('open'));
+  if (!isOpen) { body.classList.add('open'); card.classList.add('expanded'); header.classList.add('expanded'); chev.classList.add('open'); }
+}
+
+function renderHandoffs() {
+  const el = document.getElementById('handoffsContent');
+  el.innerHTML = `
+    <p class="intro-text">Data moves between people at four critical points in the workflow. Every handoff is a risk point — data gets re-entered (errors), context gets lost (verbal notes), time gets wasted (waiting), and things get missed (addendums, spec changes, contract risks).</p>
+    <div class="handoff-grid">
+      ${HANDOFFS.map(h => `
+        <div class="handoff-card ${h.level}">
+          <div class="handoff-num">${h.num}</div>
+          <div class="handoff-title">${h.title}</div>
+          <div class="handoff-from-to">${h.from} → ${h.to}</div>
+          <div class="handoff-risk">${h.risk}</div>
+          <div class="handoff-fix">✓ ${h.fix}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="callout callout-red">
+      <div class="callout-title">The Cost of Handoffs</div>
+      <div class="callout-text">Each handoff adds 1–3 days to the timeline and introduces transcription errors. On a project with 7–12 displays, a single wrong pixel pitch (2.5mm vs 4mm) is a $40K+ cost difference. Multiply by 50+ RFPs per year and the cumulative exposure is significant.</div>
+    </div>`;
+}
+
+function renderBeforeAfter() {
+  const el = document.getElementById('beforeafterContent');
+  el.innerHTML = `
+    <p class="intro-text">Side-by-side comparison of the current manual workflow versus the automated workflow. The left column shows what happens today. The right column shows what changes.</p>
+    <div class="flow-container">
+      <div class="flow-column">
+        <div class="flow-label flow-label-before">CURRENT WORKFLOW (MANUAL)</div>
+
+        <div class="flow-node pain-high">
+          <div class="flow-node-time">Day 0</div>
+          <div class="flow-node-title">📄 RFP Received</div>
+          <div class="flow-node-detail">100–2,500 page PDF arrives via email or Building Connected</div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-node pain-mid">
+          <div class="flow-node-time">Informal</div>
+          <div class="flow-node-title">🤔 Bid / No-Bid?</div>
+          <div class="flow-node-detail">Verbal discussion. No structured scoring. Hours invested before anyone formally decides.</div>
+        </div>
+        <div class="flow-connector">↓ <span class="flow-connector-label">HANDOFF 1</span></div>
+
+        <div class="flow-node pain-high">
+          <div class="flow-node-time">4–8 hrs</div>
+          <div class="flow-node-title">🔍 Manual RFP Reading</div>
+          <div class="flow-node-detail">Scroll through entire document. Find Division 11. Read every drawing. Extract specs by hand.</div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-node pain-high">
+          <div class="flow-node-time">2–4 hrs</div>
+          <div class="flow-node-title">📦 Product Selection</div>
+          <div class="flow-node-detail">Manual catalog search per screen. Cabinet math. Alternate pricing.</div>
+        </div>
+        <div class="flow-connector">↓ <span class="flow-connector-label">HANDOFF 2</span></div>
+
+        <div class="flow-node pain-high">
+          <div class="flow-node-time">1–2 hrs</div>
+          <div class="flow-node-title">⌨️ Re-Enter Into Estimator</div>
+          <div class="flow-node-detail">Same specs typed again into pricing tool. Every field is a chance for error.</div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-node pain-mid">
+          <div class="flow-node-time">2–3 hrs</div>
+          <div class="flow-node-title">💰 Build Pricing</div>
+          <div class="flow-node-detail">Rate card applied. Margins calculated. Bond + tax added. Warranty priced.</div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-node pain-mid">
+          <div class="flow-node-time">2–3 hrs</div>
+          <div class="flow-node-title">✍️ Write SOW + Schedule</div>
+          <div class="flow-node-detail">Copy-paste from last project. Manual business day math. Format PDF.</div>
+        </div>
+        <div class="flow-connector">↓ <span class="flow-connector-label">HANDOFF 3</span></div>
+
+        <div class="flow-node pain-mid">
+          <div class="flow-node-time">1–2 hrs</div>
+          <div class="flow-node-title">📄 Generate Proposal PDF</div>
+          <div class="flow-node-detail">Format, brand, review, revise, re-export.</div>
+        </div>
+        <div class="flow-connector">↓ <span class="flow-connector-label">HANDOFF 4</span></div>
+
+        <div class="flow-node pain-high">
+          <div class="flow-node-time">Post-bid</div>
+          <div class="flow-node-title">⚖️ Legal Review</div>
+          <div class="flow-node-detail">Contract terms reviewed AFTER submission. Too late to adjust pricing.</div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-node pain-low">
+          <div class="flow-node-time">14–27 hrs total</div>
+          <div class="flow-node-title">📤 Submit to Client</div>
+          <div class="flow-node-detail"></div>
+        </div>
+      </div>
+
+      <div class="flow-column">
+        <div class="flow-label flow-label-after">AUTOMATED WORKFLOW</div>
+
+        <div class="flow-node ai-node">
+          <div class="flow-node-time">1 click</div>
+          <div class="flow-node-title">📄 Upload RFP</div>
+          <div class="flow-node-detail">Drop the PDF. Everything else is automatic.</div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-fan-label">PARALLEL AI PROCESSING</div>
+        <div class="flow-parallel">
+          <div class="flow-node ai-node">
+            <div class="flow-node-title">🔍 Extraction</div>
+            <div class="flow-node-detail">Screens, specs, key points, drawings</div>
+          </div>
+          <div class="flow-node ai-node">
+            <div class="flow-node-title">⚖️ Risk Scan</div>
+            <div class="flow-node-detail">20-point checklist, risk score 0–100</div>
+          </div>
+          <div class="flow-node ai-node">
+            <div class="flow-node-title">📊 Bid Score</div>
+            <div class="flow-node-detail">Go / Caution / No-Go</div>
+          </div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-node human-node">
+          <div class="flow-node-time">30 min</div>
+          <div class="flow-node-title">👤 Human Review & Confirm</div>
+          <div class="flow-node-detail">Verify screens. Check confidence scores. Override if needed. The human stays in the loop — but starts at 80%, not 0%.</div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-node automated">
+          <div class="flow-node-time">Auto</div>
+          <div class="flow-node-title">📦 Product Matching</div>
+          <div class="flow-node-detail">Best-fit products ranked. Cabinet count, weight, power, cost — all calculated.</div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-node automated">
+          <div class="flow-node-time">Auto</div>
+          <div class="flow-node-title">💰 Estimator Pre-Filled</div>
+          <div class="flow-node-detail">All screens pushed to estimator. Rate card applied. Prevailing wage detected. Warranty calculated.</div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-node automated">
+          <div class="flow-node-time">Auto</div>
+          <div class="flow-node-title">📄 Proposal Generated</div>
+          <div class="flow-node-detail">SOW from templates. Schedule from NTP date. Budget / Proposal / LOI — one click each.</div>
+        </div>
+        <div class="flow-connector">↓</div>
+
+        <div class="flow-node ai-node">
+          <div class="flow-node-time">~1.5 hrs total</div>
+          <div class="flow-node-title">📊 Excel Exports</div>
+          <div class="flow-node-detail">Display Schedule + Key Points + Red Flags + Audit Workbook + Risk Report</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-header" style="margin-top:16px">
+      <div class="section-title">What's Eliminated</div>
+    </div>
+    <div class="eliminated-list">
+      <div class="eliminated-item">
+        <div class="eliminated-icon">❌</div>
+        <div class="eliminated-old">Handoff 1: Verbal "should we pursue this?" forwarding</div>
+        <div class="eliminated-new">→ Bid/No-Bid scorecard at upload</div>
+      </div>
+      <div class="eliminated-item">
+        <div class="eliminated-icon">❌</div>
+        <div class="eliminated-old">Handoff 2: Manual spec extraction into notes/spreadsheet</div>
+        <div class="eliminated-new">→ AI extraction with confidence scores</div>
+      </div>
+      <div class="eliminated-item">
+        <div class="eliminated-icon">❌</div>
+        <div class="eliminated-old">Handoff 3: Re-entering specs into pricing tool</div>
+        <div class="eliminated-new">→ Pipeline pushes directly to estimator</div>
+      </div>
+      <div class="eliminated-item">
+        <div class="eliminated-icon">❌</div>
+        <div class="eliminated-old">Handoff 4: Post-bid legal review discovering risk too late</div>
+        <div class="eliminated-new">→ Risk scanner runs at intake, day zero</div>
+      </div>
+    </div>`;
+}
+
+function renderMargin() {
+  const el = document.getElementById('marginContent');
+  el.innerHTML = `
+    <p class="intro-text">These are the specific places where money is lost if the process isn't automated. Each risk has a dollar impact and a corresponding automated check that catches it before the bid goes out.</p>
+
+    <div class="shield-track">
+      ${MARGIN_RISKS.map(r => `
+        <div class="shield-node">
+          <div class="shield-icon">${r.shield}</div>
+          <div>
+            <div class="shield-title">${r.title}</div>
+            <div class="shield-desc">${r.desc}</div>
+          </div>
+          <div>
+            <div class="shield-cost">${r.cost}</div>
+            <div class="shield-cost-label">${r.costLabel}</div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="callout callout-red" style="margin-top:24px">
+      <div class="callout-title">Cumulative Exposure</div>
+      <div class="callout-text">On a single $2M project, one uncapped LD clause can cost more than the entire margin. One missed prevailing wage requirement turns a profitable project into a loss. One overlooked screen on a drawing is $50K–$200K that never makes it into the bid. Multiply across 50+ RFPs per year.</div>
+    </div>
+
+    <div class="callout callout-green" style="margin-top:12px">
+      <div class="callout-title">The Protection Chain</div>
+      <div class="callout-text">Every risk above has a corresponding automated check: page scoring catches missed sections, AI extraction catches missed screens, product matching prevents wrong specs, the 20-point scanner catches contract risks, prevailing wage detection prevents labor surprises, warranty calculator prevents underpricing, and the audit trail makes every number traceable. The system doesn't replace judgment — it ensures nothing gets missed before judgment is applied.</div>
+    </div>`;
+}
+
+function renderSavings() {
+  const el = document.getElementById('savingsContent');
+  el.innerHTML = `
+    <p class="intro-text">Time savings per RFP response, measured against the current manual process. These are conservative estimates based on the workflow stages documented in this analysis.</p>
+
+    ${SAVINGS.map(s => `
+      <div class="savings-row">
+        <div class="savings-label">${s.label}</div>
+        <div><div class="savings-col-label">BEFORE</div><div class="savings-before">${s.before}</div></div>
+        <div><div class="savings-col-label">AFTER</div><div class="savings-after">${s.after}</div></div>
+        <div class="savings-pct">${s.pct}</div>
+      </div>
+    `).join('')}
+
+    <div class="savings-total">
+      <div>
+        <div class="savings-total-label">Total Time Saved Per RFP</div>
+        <div class="savings-total-sub">From ~20 hours manual → ~1.5 hours with automation</div>
+      </div>
+      <div>
+        <div class="savings-total-num">~20 hrs</div>
+        <div class="savings-total-unit">saved per RFP</div>
+      </div>
+    </div>
+
+    <div class="savings-total" style="margin-top:12px;background:var(--anc-primary-dark)">
+      <div>
+        <div class="savings-total-label">Annual Impact (50+ RFPs/year)</div>
+        <div class="savings-total-sub">Hours that can be redirected to winning more deals</div>
+      </div>
+      <div>
+        <div class="savings-total-num">~1,000 hrs</div>
+        <div class="savings-total-unit">saved annually</div>
+      </div>
+    </div>
+
+    <div class="callout callout-blue" style="margin-top:24px">
+      <div class="callout-title">Beyond Time Savings</div>
+      <div class="callout-text">The hours saved are the visible metric. The hidden value is in <strong>margin protection</strong> (catching risks before they cost money), <strong>knowledge preservation</strong> (formulas and rates in the system, not in two people's heads), and <strong>capacity expansion</strong> (any team member can generate an accurate budget, not just senior estimators). The system doesn't just make the current team faster — it makes the team's capability independent of who's in the room.</div>
+    </div>
+
+    <div class="footer-card">
+      <div><div class="footer-org">ANC Sports Enterprises, LLC</div><div class="footer-addr">2 Manhattanville Road, Suite 402, Purchase, NY 10577</div></div>
+      <div class="footer-prepared">Prepared by Ahmad Basheer<br>February 2026</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PRICING INTELLIGENCE TAB
+// ═══════════════════════════════════════════════════════════════
+
+const YAHAM_INDOOR = [
+  { model: 'C2.5-MIP', series: 'Corona', pitch: '2.5mm', nits: 2000, exWork: 170.16, tariff: 187.18, shipping: 196.54, lgeus: 251.57, custom: 276.72, cabinet: '960×960×97', ip: 'IP40/IP20' },
+  { model: 'C4', series: 'Corona', pitch: '4mm', nits: 2000, exWork: 120.46, tariff: 132.51, shipping: 139.14, lgeus: 178.09, custom: 195.90, cabinet: '960×960×97', ip: 'IP40/IP20' },
+  { model: 'C6', series: 'Corona', pitch: '6mm', nits: 2000, exWork: 92.34, tariff: 101.57, shipping: 106.65, lgeus: 136.51, custom: 150.16, cabinet: '960×960×97', ip: 'IP40/IP20' },
+  { model: 'C10', series: 'Corona', pitch: '10mm', nits: 2000, exWork: 75.91, tariff: 83.50, shipping: 87.67, lgeus: 112.22, custom: 123.44, cabinet: '960×960×97', ip: 'IP40/IP20' },
+  { model: 'H10T', series: 'Halo Fascia', pitch: '10mm', nits: 2000, exWork: 78.63, tariff: 86.49, shipping: 90.82, lgeus: 116.25, custom: 127.87, cabinet: '960×960×151', ip: 'IP40/IP20' },
+];
+
+const YAHAM_OUTDOOR = [
+  { model: 'R2.5-MIP', series: 'Radiance', pitch: '2.5mm', nits: 3000, exWork: 362.72, tariff: 399.00, shipping: 418.95, lgeus: 536.25, custom: 589.88, cabinet: '480×540×120', ip: 'IP66/IP66' },
+  { model: 'R4', series: 'Radiance', pitch: '3.9mm', nits: 7000, exWork: 157.28, tariff: 173.01, shipping: 181.66, lgeus: 232.53, custom: 255.78, cabinet: '1000×1000×120', ip: 'IP66/IP66' },
+  { model: 'R6', series: 'Radiance', pitch: '5.95mm', nits: 10000, exWork: 175.96, tariff: 193.55, shipping: 203.23, lgeus: 260.14, custom: 286.15, cabinet: '1000×1000×120', ip: 'IP66/IP66' },
+  { model: 'R8', series: 'Radiance', pitch: '8.3mm', nits: 10000, exWork: 131.27, tariff: 144.40, shipping: 151.62, lgeus: 194.07, custom: 213.48, cabinet: '1000×1000×120', ip: 'IP66/IP66' },
+  { model: 'R10', series: 'Radiance', pitch: '10mm', nits: 10000, exWork: 104.70, tariff: 115.17, shipping: 120.93, lgeus: 154.79, custom: 170.27, cabinet: '1000×1000×120', ip: 'IP66/IP66' },
+  { model: 'A10', series: 'Aura Perimeter', pitch: '10mm', nits: 7500, exWork: 139.74, tariff: 153.72, shipping: 161.40, lgeus: 206.59, custom: 227.25, cabinet: '1600×900×114', ip: 'IP66/IP66' },
+  { model: 'HO10T', series: 'Halo Fascia', pitch: '10mm', nits: 10000, exWork: 119.35, tariff: 131.29, shipping: 137.85, lgeus: 176.45, custom: 194.10, cabinet: '800×900×130', ip: 'IP66/IP66' },
+  { model: 'HO6T', series: 'Halo Fascia', pitch: '6.25mm', nits: 10000, exWork: 198.32, tariff: 218.15, shipping: 229.06, lgeus: 293.20, custom: 322.52, cabinet: '800×900×130', ip: 'IP66/IP66' },
+];
+
+function fmt$(n) { return '$' + n.toFixed(2); }
+
+function renderPricingTable(products, title) {
+  return `
+    <h3 style="margin:24px 0 8px;font-size:15px;font-weight:700;color:var(--text-primary)">${title}</h3>
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;font-family:var(--mono)">
+      <thead>
+        <tr style="background:var(--surface-alt);border-bottom:2px solid var(--border)">
+          <th style="padding:8px 10px;text-align:left;font-family:var(--font);font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Model</th>
+          <th style="padding:8px 10px;text-align:left;font-family:var(--font);font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Series</th>
+          <th style="padding:8px 10px;text-align:center;font-family:var(--font);font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Pitch</th>
+          <th style="padding:8px 10px;text-align:center;font-family:var(--font);font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Nits</th>
+          <th style="padding:8px 10px;text-align:right;font-family:var(--font);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Ex-Work</th>
+          <th style="padding:8px 10px;text-align:right;font-family:var(--font);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">+Tariff</th>
+          <th style="padding:8px 10px;text-align:right;font-family:var(--font);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">+Ship</th>
+          <th style="padding:8px 10px;text-align:right;font-family:var(--font);font-size:11px;color:var(--anc-primary);text-transform:uppercase;letter-spacing:0.5px;font-weight:700">LGEUS 28%</th>
+          <th style="padding:8px 10px;text-align:right;font-family:var(--font);font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px">Custom</th>
+          <th style="padding:8px 10px;text-align:center;font-family:var(--font);font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px">Cabinet (mm)</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${products.map((p, i) => `
+          <tr style="border-bottom:1px solid var(--border-light);${i % 2 ? 'background:var(--surface-alt)' : ''}">
+            <td style="padding:6px 10px;font-weight:600;color:var(--text-primary)">${p.model}</td>
+            <td style="padding:6px 10px;color:var(--text-secondary);font-family:var(--font);font-size:12px">${p.series}</td>
+            <td style="padding:6px 10px;text-align:center">${p.pitch}</td>
+            <td style="padding:6px 10px;text-align:center;color:var(--text-secondary)">${p.nits.toLocaleString()}</td>
+            <td style="padding:6px 10px;text-align:right;color:var(--text-muted)">${fmt$(p.exWork)}</td>
+            <td style="padding:6px 10px;text-align:right;color:var(--text-muted)">${fmt$(p.tariff)}</td>
+            <td style="padding:6px 10px;text-align:right;color:var(--text-muted)">${fmt$(p.shipping)}</td>
+            <td style="padding:6px 10px;text-align:right;font-weight:700;color:var(--anc-primary)">${fmt$(p.lgeus)}</td>
+            <td style="padding:6px 10px;text-align:right;color:var(--text-muted)">${fmt$(p.custom)}</td>
+            <td style="padding:6px 10px;text-align:center;color:var(--text-secondary);font-size:11px">${p.cabinet}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+    </div>`;
+}
+
+function renderPricing() {
+  const el = document.getElementById('pricingContent');
+  el.innerHTML = `
+    <p class="intro-text">Real Yaham NX rate card data, extracted and integrated from the manufacturer spec sheet dated February 4, 2026. All prices in <strong>USD per square foot</strong>. The LGEUS 28% column represents ANC's actual acquisition cost through LG distribution.</p>
+
+    <div class="callout callout-blue" style="margin-bottom:20px">
+      <div class="callout-title">Pricing Waterfall — Factory to ANC</div>
+      <div class="callout-text" style="font-family:var(--mono);font-size:13px;line-height:2">
+        <strong>Layer 1:</strong> Ex-work — Factory gate price (FOB China)<br>
+        <strong>Layer 2:</strong> +10% Tariff — US import duty<br>
+        <strong>Layer 3:</strong> +5% Shipping — Ocean freight to US port<br>
+        <strong>Layer 4:</strong> +28% LGEUS Markup — LG distribution margin <span style="color:var(--anc-primary);font-weight:700">← ANC buys here</span><br>
+        <strong>Layer 5:</strong> +10% Custom Cabinet — Non-standard sizing premium (optional)
+      </div>
+    </div>
+
+    ${renderPricingTable(YAHAM_INDOOR, '🏟 Indoor — Corona Series + Halo Fascia')}
+    ${renderPricingTable(YAHAM_OUTDOOR, '☀️ Outdoor — Radiance + Aura + Halo')}
+
+    <div class="callout callout-green" style="margin-top:24px">
+      <div class="callout-title">What This Means for the Estimator</div>
+      <div class="callout-text">This rate card is now loaded into the Product Catalog (13 Yaham products) and the Hardware Cost Engine. When an RFP specifies "4mm indoor" or "10mm outdoor perimeter", the system auto-matches the correct Yaham product and applies the real LGEUS landed cost — no manual rate card lookup needed. The pricing waterfall percentages are also stored, so if tariffs or shipping rates change, a single update propagates to every estimate.</div>
+    </div>
+
+    <div style="margin-top:16px;padding:12px 16px;background:var(--surface-alt);border-radius:4px;border:1px solid var(--border)">
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">Data Source</div>
+      <div style="font-size:13px;color:var(--text-secondary)">NX Yaham Rate Card — LGEUS Markup 02.16.26 EG.xlsx &nbsp;·&nbsp; Pricing date: 2026/02/04 &nbsp;·&nbsp; NationStar LEDs &nbsp;·&nbsp; ICN Driver ICs &nbsp;·&nbsp; 100K hr lifespan</div>
+    </div>
+
+    <div class="footer-card">
+      <div><div class="footer-org">ANC Sports Enterprises, LLC</div><div class="footer-addr">2 Manhattanville Road, Suite 402, Purchase, NY 10577</div></div>
+      <div class="footer-prepared">Prepared by Ahmad Basheer<br>February 2026</div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  renderTabs();
+  renderOverview();
+  renderStages();
+  renderHandoffs();
+  renderBeforeAfter();
+  renderMargin();
+  renderSavings();
+  renderPricing();
+});
+</script>
+</body>
+</html>
