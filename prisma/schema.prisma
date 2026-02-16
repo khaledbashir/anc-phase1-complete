@@ -802,3 +802,19 @@ model PerformanceReport {
   @@index([sponsorId])
   @@index([shareHash])
 }
+
+// ============================================================================
+// DEMO LAB — Feature Voting
+// Persistent votes shared across all users for /demo feature ideas
+// ============================================================================
+
+model FeatureVote {
+  id        String   @id @default(cuid())
+  featureId String // matches DemoFeature.id from featureIdeas.ts
+  direction String // "up" | "down"
+  voterId   String // visitorId (fingerprint or session-based)
+  createdAt DateTime @default(now())
+
+  @@unique([featureId, voterId])
+  @@index([featureId])
+}

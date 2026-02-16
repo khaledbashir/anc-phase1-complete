@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -9,52 +9,75 @@ interface VoteButtonsProps {
   seedVotes: { up: number; down: number };
 }
 
+function getVoterId(): string {
+  const key = "anc-voter-id";
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
 export default function VoteButtons({ featureId, seedVotes }: VoteButtonsProps) {
   const [vote, setVote] = useState<"up" | "down" | null>(null);
   const [counts, setCounts] = useState(seedVotes);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(`demo-vote-${featureId}`);
-    if (saved === "up" || saved === "down") {
-      setVote(saved);
-    }
-    const savedCounts = localStorage.getItem(`demo-vote-counts-${featureId}`);
-    if (savedCounts) {
-      try {
-        setCounts(JSON.parse(savedCounts));
-      } catch {
-        // use seed
-      }
-    }
-  }, [featureId]);
+    const voterId = getVoterId();
+    fetch(`/api/demo/vote?featureId=${featureId}&voterId=${voterId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setCounts({ up: data.up + seedVotes.up, down: data.down + seedVotes.down });
+        setVote(data.myVote || null);
+      })
+      .catch(() => {});
+  }, [featureId, seedVotes.up, seedVotes.down]);
 
-  const handleVote = (direction: "up" | "down") => {
-    let newVote: "up" | "down" | null;
-    let newCounts = { ...counts };
+  const handleVote = useCallback(async (direction: "up" | "down") => {
+    if (loading) return;
+    setLoading(true);
 
+    const newDirection = vote === direction ? null : direction;
+
+    // Optimistic update
+    const prevVote = vote;
+    const prevCounts = { ...counts };
+    const newCounts = { ...counts };
     if (vote === direction) {
-      // un-vote
-      newVote = null;
       newCounts[direction]--;
     } else {
-      if (vote) {
-        // switch vote
-        newCounts[vote]--;
-      }
-      newVote = direction;
+      if (vote) newCounts[vote]--;
       newCounts[direction]++;
     }
-
-    setVote(newVote);
+    setVote(newDirection);
     setCounts(newCounts);
-    localStorage.setItem(`demo-vote-${featureId}`, newVote || "");
-    localStorage.setItem(`demo-vote-counts-${featureId}`, JSON.stringify(newCounts));
-  };
+
+    try {
+      const voterId = getVoterId();
+      const res = await fetch("/api/demo/vote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ featureId, direction: newDirection, voterId }),
+      });
+      if (!res.ok) throw new Error("Vote failed");
+      const data = await res.json();
+      setCounts({ up: data.up + seedVotes.up, down: data.down + seedVotes.down });
+    } catch {
+      // Rollback on error
+      setVote(prevVote);
+      setCounts(prevCounts);
+    } finally {
+      setLoading(false);
+    }
+  }, [featureId, vote, counts, loading, seedVotes.up, seedVotes.down]);
 
   return (
     <div className="flex items-center gap-3">
       <button
         onClick={() => handleVote("up")}
+        disabled={loading}
         className={cn(
           "flex items-center gap-1.5 text-sm transition-all active:scale-90",
           vote === "up" ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
@@ -65,6 +88,7 @@ export default function VoteButtons({ featureId, seedVotes }: VoteButtonsProps) 
       </button>
       <button
         onClick={() => handleVote("down")}
+        disabled={loading}
         className={cn(
           "flex items-center gap-1.5 text-sm transition-all active:scale-90",
           vote === "down" ? "text-destructive font-semibold" : "text-muted-foreground hover:text-foreground"
