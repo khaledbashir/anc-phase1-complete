@@ -66,7 +66,8 @@ export async function GET(req: NextRequest) {
         }
 
         // Fetch projects with essential fields to derive dashboard card data.
-        const [projectsRaw, total] = await Promise.all([
+        // Also fetch ALL proposals (no filter/pagination) for global KPI stats.
+        const [projectsRaw, total, allProposalsForStats] = await Promise.all([
             prisma.proposal.findMany({
                 where,
                 orderBy: { updatedAt: "desc" },
@@ -98,6 +99,18 @@ export async function GET(req: NextRequest) {
                 }
             }),
             prisma.proposal.count({ where }),
+            // Global stats query — all proposals, no filters
+            prisma.proposal.findMany({
+                select: {
+                    calculationMode: true,
+                    pricingDocument: true,
+                    versions: {
+                        orderBy: { createdAt: "desc" },
+                        take: 1,
+                        select: { totalSellingPrice: true }
+                    },
+                }
+            }),
         ]);
 
         let projects = projectsRaw.map((project) => {
@@ -166,11 +179,49 @@ export async function GET(req: NextRequest) {
             projects = projects.filter(p => p.screenCount >= minScreens);
         }
 
+        // Compute global KPI stats from ALL proposals (unfiltered, unpaginated)
+        let statsMirror = 0;
+        let statsIntelligence = 0;
+        let statsEstimate = 0;
+        let statsPipeline = 0;
+
+        for (const p of allProposalsForStats) {
+            const pd = (p.pricingDocument as PricingDocumentLike | null) ?? null;
+            const pdTotal = toFiniteNumber(pd?.documentTotal);
+            const bidTotal = toFiniteNumber(p.versions?.[0]?.totalSellingPrice);
+            const tables = pd?.tables;
+            const tableCount = Array.isArray(tables) ? tables.length : 0;
+
+            // Derive mode same way as individual projects
+            const stored = p.calculationMode;
+            if (stored === "ESTIMATE") {
+                statsEstimate++;
+            } else if (tableCount > 0) {
+                statsMirror++;
+            } else {
+                statsIntelligence++;
+            }
+
+            // Sum pipeline
+            if (pdTotal !== null) {
+                statsPipeline += pdTotal;
+            } else if (bidTotal !== null) {
+                statsPipeline += bidTotal;
+            }
+        }
+
         return NextResponse.json({
             projects,
             total,
             limit,
             offset,
+            stats: {
+                totalProjects: allProposalsForStats.length,
+                mirrorCount: statsMirror,
+                intelligenceCount: statsIntelligence,
+                estimateCount: statsEstimate,
+                totalPipeline: statsPipeline,
+            },
         });
     } catch (error) {
         console.error("GET /api/projects error:", error);

@@ -82,6 +82,13 @@ export default function ProjectsPage() {
     const { data: session } = useSession();
     const { alert: showAlert } = useConfirm();
     const [projects, setProjects] = useState<ProjectCardData[]>([]);
+    const [globalStats, setGlobalStats] = useState<{
+        totalProjects: number;
+        mirrorCount: number;
+        intelligenceCount: number;
+        estimateCount: number;
+        totalPipeline: number;
+    } | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [viewMode, setViewMode] = useState<"grid" | "list">("list");
@@ -104,6 +111,7 @@ export default function ProjectsPage() {
             }
             const data = await response.json();
             setProjects(data.projects || []);
+            if (data.stats) setGlobalStats(data.stats);
         } catch (error) {
             console.error("Error fetching projects:", error);
         } finally {
@@ -117,11 +125,12 @@ export default function ProjectsPage() {
     }, [fetchProjects]);
 
     const summary = useMemo(() => {
-        const projectCount = projects.length;
-        const estimateCount = projects.filter((project: any) => project.calculationMode === "ESTIMATE").length;
-        const mirrorCount = projects.filter((project: any) => project.calculationMode === "MIRROR").length;
-        const intelligenceCount = projects.filter((project: any) => project.calculationMode === "INTELLIGENCE").length;
-        const totalPipeline = projects.reduce((sum, project) => sum + (project.totalAmount || 0), 0);
+        // Use server-side global stats (all projects, no pagination/filter limits)
+        const projectCount = globalStats?.totalProjects ?? projects.length;
+        const estimateCount = globalStats?.estimateCount ?? projects.filter((project: any) => project.calculationMode === "ESTIMATE").length;
+        const mirrorCount = globalStats?.mirrorCount ?? projects.filter((project: any) => project.calculationMode === "MIRROR").length;
+        const intelligenceCount = globalStats?.intelligenceCount ?? projects.filter((project: any) => project.calculationMode === "INTELLIGENCE").length;
+        const totalPipeline = globalStats?.totalPipeline ?? projects.reduce((sum, project) => sum + (project.totalAmount || 0), 0);
         const formattedPipeline = formatCurrency(totalPipeline, "USD");
         const filterLabel = statusFilter === "all"
             ? "All Projects"
@@ -140,7 +149,7 @@ export default function ProjectsPage() {
             formattedPipeline,
             filterLabel,
         };
-    }, [projects, statusFilter]);
+    }, [projects, globalStats, statusFilter]);
 
     // Time-dependent values computed client-side only to avoid hydration mismatch
     const [now, setNow] = useState<number | null>(null);
@@ -149,12 +158,13 @@ export default function ProjectsPage() {
     const insights = useMemo(() => now != null ? generateInsights(projects) : [], [projects, now]);
     const heroGreeting = useMemo(() => {
         const firstName = session?.user?.name?.trim()?.split(/\s+/)?.[0] || null;
-        const totalValue = projects.reduce((sum, project) => sum + (project.totalAmount || 0), 0);
+        const totalProjectCount = globalStats?.totalProjects ?? projects.length;
+        const totalValue = globalStats?.totalPipeline ?? projects.reduce((sum, project) => sum + (project.totalAmount || 0), 0);
 
         // Use a stable greeting on server, real time on client
         if (now == null) {
             const title = firstName ? `Welcome, ${firstName}` : `Welcome`;
-            return { title, line: `${projects.length} projects in the pipeline worth ${formatCompactCurrency(totalValue)}.` };
+            return { title, line: `${totalProjectCount} projects in the pipeline worth ${formatCompactCurrency(totalValue)}.` };
         }
 
         const hour = new Date(now).getHours();
@@ -172,7 +182,7 @@ export default function ProjectsPage() {
         const title = firstName ? `${greeting}, ${firstName}` : greeting;
         const lines: string[] = [];
 
-        lines.push(`${projects.length} projects in the pipeline worth ${formatCompactCurrency(totalValue)}.`);
+        lines.push(`${totalProjectCount} projects in the pipeline worth ${formatCompactCurrency(totalValue)}.`);
 
         if (updatedTodayCount > 0) {
             lines.push(`${updatedTodayCount} proposal${updatedTodayCount > 1 ? "s" : ""} updated today`);
@@ -190,7 +200,7 @@ export default function ProjectsPage() {
             title,
             line: lines.slice(0, 2).join(". ") + (lines.length > 0 ? "." : ""),
         };
-    }, [projects, session?.user?.name, now]);
+    }, [projects, globalStats, session?.user?.name, now]);
 
     const handleStatusChange = useCallback(async (id: string, nextStatus: DashboardStatus) => {
         const response = await fetch(`/api/projects/${id}`, {
