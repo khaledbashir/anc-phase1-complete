@@ -22,6 +22,7 @@ import {
     LogOut,
     BarChart3,
     Sparkles,
+    Columns3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRbac } from "@/hooks/useRbac";
@@ -29,6 +30,7 @@ import type { UserRole } from "@/lib/rbac";
 
 const mainMenuItems = [
     { icon: LayoutGrid, label: "Projects", href: "/projects", allowedRoles: null }, // All roles
+    { icon: Columns3, label: "Pipeline", href: "/pipeline", allowedRoles: null },
     { icon: FileText, label: "Templates", href: "/templates", soon: true, allowedRoles: null },
 ];
 
