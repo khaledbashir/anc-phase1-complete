@@ -6,6 +6,8 @@ const ROUTE_RULES: Array<{
   pattern: RegExp;
   roles: string[]; // allowed roles
 }> = [
+  // Performance — accessible to more roles
+  { pattern: /^\/admin\/performance/, roles: ["ADMIN", "ESTIMATOR", "PROPOSAL_LEAD"] },
   // Admin-only routes
   { pattern: /^\/admin/, roles: ["ADMIN"] },
   { pattern: /^\/api\/admin\//, roles: ["ADMIN"] },
@@ -35,6 +37,8 @@ export default auth((req) => {
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/api/share") ||
     pathname.startsWith("/api/agent-skill") ||
+    pathname.startsWith("/api/performance/seed") ||
+    pathname.startsWith("/share/performance/") ||
     pathname.startsWith("/auth/")
   ) {
     return NextResponse.next();

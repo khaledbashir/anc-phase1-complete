@@ -21,6 +21,7 @@ import {
     Lock,
     LogOut,
     BarChart3,
+    Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRbac } from "@/hooks/useRbac";
@@ -34,6 +35,7 @@ const mainMenuItems = [
 const toolsMenuItems = [
     { icon: SlidersHorizontal, label: "PDF Filter", href: "/tools/pdf-filter", allowedRoles: null }, // All roles
     { icon: Calculator, label: "Estimator", href: "/estimator", allowedRoles: null },
+    { icon: Sparkles, label: "Demo Lab", href: "/demo", allowedRoles: null },
 ];
 
 const settingsMenuItems = [
