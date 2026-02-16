@@ -1,0 +1,14 @@
+manufacturer,product_family,model_number,display_name,pixel_pitch,cabinet_width_mm,cabinet_height_mm,cabinet_depth_mm,weight_kg,max_nits,max_power_watts,environment,ip_rating,cost_per_sqft,service_type
+Yaham,Corona,C2.5-MIP,Yaham Corona C2.5-MIP Indoor,2.5,960,960,97,21,2000,370,indoor,IP40,251.57,front
+Yaham,Corona,C4,Yaham Corona C4 Indoor,4,960,960,97,19.5,2000,370,indoor,IP40,178.09,front
+Yaham,Corona,C6,Yaham Corona C6 Indoor,6,960,960,97,19.5,2000,370,indoor,IP40,136.51,front
+Yaham,Corona,C10,Yaham Corona C10 Indoor,10,960,960,97,19.5,2000,370,indoor,IP40,112.22,front
+Yaham,Halo,H10T,Yaham Halo H10T Fascia Indoor,10,960,960,150.8,26,2000,370,indoor,IP40,116.25,front
+Yaham,Radiance,R2.5-MIP,Yaham Radiance R2.5-MIP Outdoor,2.5,480,540,120,9.5,3000,150,outdoor,IP66,536.25,front
+Yaham,Radiance,R4,Yaham Radiance R4 Outdoor,3.91,1000,1000,120,31,7000,650,outdoor,IP66,232.53,front
+Yaham,Radiance,R6,Yaham Radiance R6 Outdoor,5.95,1000,1000,120,29.5,10000,650,outdoor,IP66,260.14,front
+Yaham,Radiance,R8,Yaham Radiance R8 Outdoor,8.33,1000,1000,120,29.5,10000,650,outdoor,IP66,194.07,front
+Yaham,Radiance,R10,Yaham Radiance R10 Outdoor,10,1000,1000,120,29.5,10000,650,outdoor,IP66,154.79,front
+Yaham,Aura,A10,Yaham Aura A10 Perimeter,10,1600,900,114,55,7500,680,outdoor,IP66,206.59,front
+Yaham,Halo Outdoor,HO10T,Yaham Halo HO10T Fascia Outdoor,10,800,900,130,33,10000,460,outdoor,IP66,176.45,front
+Yaham,Halo Outdoor,HO6T,Yaham Halo HO6T Fascia Outdoor,6.25,800,900,130,33,10000,460,outdoor,IP66,293.20,front

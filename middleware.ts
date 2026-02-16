@@ -8,6 +8,7 @@ const ROUTE_RULES: Array<{
 }> = [
   // Admin-only routes
   { pattern: /^\/admin/, roles: ["ADMIN"] },
+  { pattern: /^\/api\/admin\//, roles: ["ADMIN"] },
   { pattern: /^\/api\/rate-card/, roles: ["ADMIN"] },
   { pattern: /^\/api\/products/, roles: ["ADMIN", "PRODUCT_EXPERT"] },
   { pattern: /^\/api\/pricing-logic/, roles: ["ADMIN"] },

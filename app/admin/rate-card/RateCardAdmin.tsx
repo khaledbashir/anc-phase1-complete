@@ -16,6 +16,7 @@ import {
     History,
     ChevronDown,
     ChevronUp,
+    Database,
 } from "lucide-react";
 
 // ============================================================================
@@ -124,6 +125,10 @@ export default function RateCardAdmin() {
     const [importing, setImporting] = useState(false);
     const [importResult, setImportResult] = useState<any>(null);
     const fileRef = useRef<HTMLInputElement>(null);
+
+    // Seed
+    const [seeding, setSeeding] = useState(false);
+    const [seedResult, setSeedResult] = useState<any>(null);
 
     // Audit trail
     const [showAudit, setShowAudit] = useState(false);
@@ -273,6 +278,35 @@ export default function RateCardAdmin() {
     // EXPORT
     // ========================================================================
 
+    const handleSeed = async () => {
+        const ok = await confirm({
+            title: "Seed Database",
+            description: "This will populate rate card entries and products with validated defaults (including Yaham NX pricing). Existing entries will be updated, not duplicated. Safe to run multiple times.",
+            confirmLabel: "Seed Now",
+        });
+        if (!ok) return;
+        setSeeding(true);
+        setSeedResult(null);
+        try {
+            const res = await fetch("/api/admin/seed", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ target: "all" }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                setSeedResult({ error: data.error || "Seed failed" });
+            } else {
+                setSeedResult(data);
+                fetchEntries();
+            }
+        } catch (err) {
+            setSeedResult({ error: String(err) });
+        } finally {
+            setSeeding(false);
+        }
+    };
+
     const handleExport = () => {
         const headers = ["category", "key", "label", "value", "unit", "provenance", "confidence"];
         const rows = [headers.join(",")];
@@ -385,6 +419,14 @@ export default function RateCardAdmin() {
                         />
                     </label>
                     <button
+                        onClick={handleSeed}
+                        disabled={seeding}
+                        className="flex items-center gap-1.5 text-xs border border-[#0A52EF] text-[#0A52EF] rounded px-3 py-1.5 hover:bg-[#0A52EF]/5 transition-colors disabled:opacity-50"
+                    >
+                        <Database className="w-3 h-3" />
+                        {seeding ? "Seeding..." : "Seed Database"}
+                    </button>
+                    <button
                         onClick={() => setShowAddForm(true)}
                         className="flex items-center gap-1.5 text-xs bg-foreground text-background rounded px-3 py-1.5 hover:opacity-90 transition-opacity"
                     >
@@ -393,6 +435,20 @@ export default function RateCardAdmin() {
                     </button>
                 </div>
             </div>
+
+            {/* Seed result banner */}
+            {seedResult && (
+                <div className={`border rounded px-4 py-3 text-sm ${seedResult.error ? "border-red-200 bg-red-50 text-red-800" : "border-blue-200 bg-blue-50 text-blue-800"}`}>
+                    {seedResult.error ? (
+                        <span>Seed error: {seedResult.error}</span>
+                    ) : (
+                        <span>
+                            {seedResult.message}
+                        </span>
+                    )}
+                    <button onClick={() => setSeedResult(null)} className="ml-3 text-xs underline">dismiss</button>
+                </div>
+            )}
 
             {/* Import result banner */}
             {importResult && (

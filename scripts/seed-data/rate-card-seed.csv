@@ -1,0 +1,43 @@
+category,key,label,value,unit,provenance,confidence
+margin,margin.led_hardware,LED Hardware Margin,0.30,pct,"NBCU LED Cost Sheet: column V=0.3, ALL 9 displays",validated
+margin,margin.services_default,Services Margin (Standard),0.20,pct,"Indiana Fever (6 sheets), USC (1 sheet), NBCU 9C Install",validated
+margin,margin.services_small,Services Margin (Small <100sqft),0.30,pct,"NBCU Ribbon/History/Lounge Install sheets",validated
+margin,margin.livesync,LiveSync / CMS Margin,0.35,pct,"NBCU Margin Analysis rows 44-48",validated
+bond_tax,bond_tax.bond_rate,Bond Rate,0.015,pct,"=W*0.015 — 21 formula hits across ALL 3 costed files",validated
+bond_tax,bond_tax.nyc_tax,NYC Sales Tax,0.08875,pct,"NBCU Margin Analysis",validated
+bond_tax,bond_tax.default_sales_tax,Default Sales Tax,0.095,pct,"estimator.ts legacy default",estimated
+install,install.steel_fab.simple,Steel Fabrication — Simple,25,per_lb,"USC Install(Base): =D19*25",validated
+install,install.steel_fab.standard,Steel Fabrication — Standard,35,per_lb,"Indiana Fever Locker/Gym: =D19*35",validated
+install,install.steel_fab.complex,Steel Fabrication — Complex,55,per_lb,"Indiana Fever HOE: =D19*55",validated
+install,install.steel_fab.heavy,Steel Fabrication — Heavy,75,per_lb,"Indiana Fever Round: =D19*75",validated
+install,install.led_panel.simple,LED Panel Install — Simple,75,per_sqft,"USC Install(Base): =D19*75",validated
+install,install.led_panel.standard,LED Panel Install — Standard,105,per_sqft,"Indiana Fever Locker/TS: =C19*105, =D19*105",validated
+install,install.led_panel.complex,LED Panel Install — Complex,145,per_sqft,"Indiana Fever Round: =D19*145",validated
+install,install.heavy_equipment,Heavy Equipment,30,per_lb,"USC Install(Base): =D19*30",validated
+install,install.pm_gc_travel,PM / GC / Travel,5,per_lb,"USC Install(Base): =D19*5",validated
+electrical,electrical.materials_per_sqft,Electrical Materials (Budget),125,per_sqft,"USC Install(Base): =D19*125. Budget-stage only.",validated
+spare_parts,spare_parts.lcd_pct,Spare Parts % (LCD),0.05,pct,"Indiana Fever: =D*0.05 on LCD displays",validated
+spare_parts,spare_parts.led_pct,Spare Parts % (LED),0.05,pct,"Default. No LED-specific rate found in formulas.",estimated
+led_cost,led_cost.1_2mm,LED Cost/sqft — 1.2mm,430,per_sqft,"Indiana Fever: =M*430 (Locker Room Ribbon)",validated
+led_cost,led_cost.2_5mm,LED Cost/sqft — 2.5mm Indoor,251.57,per_sqft,"Yaham C2.5-MIP LGEUS 28% landed. Rate card 02/04/2026.",validated
+led_cost,led_cost.4mm,LED Cost/sqft — 4mm Indoor,178.09,per_sqft,"Yaham C4 Indoor LGEUS 28% landed. Rate card 02/04/2026.",validated
+led_cost,led_cost.6mm,LED Cost/sqft — 6mm Indoor,136.51,per_sqft,"Yaham C6 Indoor LGEUS 28% landed. Rate card 02/04/2026.",validated
+led_cost,led_cost.10mm,LED Cost/sqft — 10mm Indoor,112.22,per_sqft,"Yaham C10 Indoor LGEUS 28% landed. Rate card 02/04/2026.",validated
+led_cost,led_cost.10mm_fascia_indoor,LED Cost/sqft — 10mm Fascia Indoor,116.25,per_sqft,"Yaham H10T Fascia LGEUS 28%. Rate card 02/04/2026.",validated
+led_cost,led_cost.2_5mm_outdoor,LED Cost/sqft — 2.5mm Outdoor,536.25,per_sqft,"Yaham R2.5-MIP Outdoor LGEUS 28%. Rate card 02/04/2026.",validated
+led_cost,led_cost.4mm_outdoor,LED Cost/sqft — 4mm Outdoor,232.53,per_sqft,"Yaham R4 Outdoor LGEUS 28%. Rate card 02/04/2026.",validated
+led_cost,led_cost.6mm_outdoor,LED Cost/sqft — 6mm Outdoor,260.14,per_sqft,"Yaham R6 Outdoor LGEUS 28%. Rate card 02/04/2026.",validated
+led_cost,led_cost.8mm_outdoor,LED Cost/sqft — 8mm Outdoor,194.07,per_sqft,"Yaham R8 Outdoor LGEUS 28%. Rate card 02/04/2026.",validated
+led_cost,led_cost.10mm_outdoor,LED Cost/sqft — 10mm Outdoor,154.79,per_sqft,"Yaham R10 Outdoor LGEUS 28%. Rate card 02/04/2026.",validated
+led_cost,led_cost.10mm_perimeter,LED Cost/sqft — 10mm Perimeter,206.59,per_sqft,"Yaham A10 Perimeter LGEUS 28%. Rate card 02/04/2026.",validated
+led_cost,led_cost.10mm_fascia_outdoor,LED Cost/sqft — 10mm Fascia Outdoor,176.45,per_sqft,"Yaham HO10T Outdoor Fascia LGEUS 28%. Rate card 02/04/2026.",validated
+led_cost,led_cost.6mm_fascia_outdoor,LED Cost/sqft — 6mm Fascia Outdoor,293.20,per_sqft,"Yaham HO6T Outdoor Fascia LGEUS 28%. Rate card 02/04/2026.",validated
+led_cost,led_cost.tariff_pct,Import Tariff Rate,0.10,pct,"Yaham NX Rate Card pricing waterfall layer 2",validated
+led_cost,led_cost.shipping_pct,Ocean Freight Shipping Rate,0.05,pct,"Yaham NX Rate Card pricing waterfall layer 3",validated
+led_cost,led_cost.lgeus_markup_pct,LGEUS Distribution Markup,0.28,pct,"Yaham NX Rate Card pricing waterfall layer 4 — ANC buy price",validated
+led_cost,led_cost.custom_cabinet_pct,Custom Cabinet Premium,0.10,pct,"Yaham NX Rate Card pricing waterfall layer 5 (optional)",validated
+warranty,warranty.annual_escalation,Annual Warranty Escalation,0.10,pct_annual,"Indiana Fever: =C*1.1 chain (years 4-10)",validated
+other,other.pm_base_fee,PM Base Fee (zone-multiplied),5882.35,fixed,"estlogic.md + productCatalog.ts",extracted
+other,other.eng_base_fee,Engineering Base Fee (zone-multiplied),4705.88,fixed,"estlogic.md + productCatalog.ts",extracted
+other,other.complex_modifier,Complex Zone Modifier,1.2,multiplier,"productCatalog.ts",extracted
+other,other.alt1_upgrade_ratio,Alt-1 Upgrade Ratio,0.07,pct,"productCatalog.ts",extracted

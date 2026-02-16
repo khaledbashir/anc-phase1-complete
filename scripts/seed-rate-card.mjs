@@ -44,9 +44,27 @@ const SEED_DATA = [
   { category: "spare_parts", key: "spare_parts.lcd_pct", label: "Spare Parts % (LCD)", value: 0.05, unit: "pct", provenance: "Indiana Fever: =D*0.05 on LCD displays", confidence: "validated" },
   { category: "spare_parts", key: "spare_parts.led_pct", label: "Spare Parts % (LED)", value: 0.05, unit: "pct", provenance: "Default. No LED-specific rate found in formulas.", confidence: "estimated" },
 
-  // --- LED COST PER SQFT ---
+  // --- LED COST PER SQFT (Legacy + Yaham NX LGEUS 28% Landed) ---
   { category: "led_cost", key: "led_cost.1_2mm", label: "LED Cost/sqft — 1.2mm", value: 430, unit: "per_sqft", provenance: "Indiana Fever: =M*430 (Locker Room Ribbon)", confidence: "validated" },
-  { category: "led_cost", key: "led_cost.2_5mm", label: "LED Cost/sqft — 2.5mm", value: 335, unit: "per_sqft", provenance: "NBCU LED Cost Sheet: $105,120 / 314 sqft (calculated)", confidence: "extracted" },
+  { category: "led_cost", key: "led_cost.2_5mm", label: "LED Cost/sqft — 2.5mm Indoor", value: 251.57, unit: "per_sqft", provenance: "Yaham C2.5-MIP LGEUS 28% landed. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.4mm", label: "LED Cost/sqft — 4mm Indoor", value: 178.09, unit: "per_sqft", provenance: "Yaham C4 Indoor LGEUS 28% landed. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.6mm", label: "LED Cost/sqft — 6mm Indoor", value: 136.51, unit: "per_sqft", provenance: "Yaham C6 Indoor LGEUS 28% landed. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.10mm", label: "LED Cost/sqft — 10mm Indoor", value: 112.22, unit: "per_sqft", provenance: "Yaham C10 Indoor LGEUS 28% landed. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.10mm_fascia_indoor", label: "LED Cost/sqft — 10mm Fascia Indoor", value: 116.25, unit: "per_sqft", provenance: "Yaham H10T Fascia LGEUS 28%. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.2_5mm_outdoor", label: "LED Cost/sqft — 2.5mm Outdoor", value: 536.25, unit: "per_sqft", provenance: "Yaham R2.5-MIP Outdoor LGEUS 28%. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.4mm_outdoor", label: "LED Cost/sqft — 4mm Outdoor", value: 232.53, unit: "per_sqft", provenance: "Yaham R4 Outdoor LGEUS 28%. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.6mm_outdoor", label: "LED Cost/sqft — 6mm Outdoor", value: 260.14, unit: "per_sqft", provenance: "Yaham R6 Outdoor LGEUS 28%. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.8mm_outdoor", label: "LED Cost/sqft — 8mm Outdoor", value: 194.07, unit: "per_sqft", provenance: "Yaham R8 Outdoor LGEUS 28%. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.10mm_outdoor", label: "LED Cost/sqft — 10mm Outdoor", value: 154.79, unit: "per_sqft", provenance: "Yaham R10 Outdoor LGEUS 28%. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.10mm_perimeter", label: "LED Cost/sqft — 10mm Perimeter", value: 206.59, unit: "per_sqft", provenance: "Yaham A10 Perimeter LGEUS 28%. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.10mm_fascia_outdoor", label: "LED Cost/sqft — 10mm Fascia Outdoor", value: 176.45, unit: "per_sqft", provenance: "Yaham HO10T Outdoor Fascia LGEUS 28%. Rate card 02/04/2026.", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.6mm_fascia_outdoor", label: "LED Cost/sqft — 6mm Fascia Outdoor", value: 293.20, unit: "per_sqft", provenance: "Yaham HO6T Outdoor Fascia LGEUS 28%. Rate card 02/04/2026.", confidence: "validated" },
+
+  // --- PRICING WATERFALL (Yaham NX supply chain) ---
+  { category: "led_cost", key: "led_cost.tariff_pct", label: "Import Tariff Rate", value: 0.10, unit: "pct", provenance: "Yaham NX Rate Card pricing waterfall layer 2", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.shipping_pct", label: "Ocean Freight Shipping Rate", value: 0.05, unit: "pct", provenance: "Yaham NX Rate Card pricing waterfall layer 3", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.lgeus_markup_pct", label: "LGEUS Distribution Markup", value: 0.28, unit: "pct", provenance: "Yaham NX Rate Card pricing waterfall layer 4 — ANC buy price", confidence: "validated" },
+  { category: "led_cost", key: "led_cost.custom_cabinet_pct", label: "Custom Cabinet Premium", value: 0.10, unit: "pct", provenance: "Yaham NX Rate Card pricing waterfall layer 5 (optional)", confidence: "validated" },
 
   // --- WARRANTY ---
   { category: "warranty", key: "warranty.annual_escalation", label: "Annual Warranty Escalation", value: 0.10, unit: "pct_annual", provenance: "Indiana Fever: =C*1.1 chain (years 4-10)", confidence: "validated" },
@@ -55,6 +73,7 @@ const SEED_DATA = [
   { category: "other", key: "other.pm_base_fee", label: "PM Base Fee (zone-multiplied)", value: 5882.35, unit: "fixed", provenance: "estlogic.md + productCatalog.ts", confidence: "extracted" },
   { category: "other", key: "other.eng_base_fee", label: "Engineering Base Fee (zone-multiplied)", value: 4705.88, unit: "fixed", provenance: "estlogic.md + productCatalog.ts", confidence: "extracted" },
   { category: "other", key: "other.complex_modifier", label: "Complex Zone Modifier", value: 1.2, unit: "multiplier", provenance: "productCatalog.ts", confidence: "extracted" },
+  { category: "other", key: "other.alt1_upgrade_ratio", label: "Alt-1 Upgrade Ratio", value: 0.07, unit: "pct", provenance: "productCatalog.ts", confidence: "extracted" },
 ];
 
 async function main() {
