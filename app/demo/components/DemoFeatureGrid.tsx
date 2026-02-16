@@ -7,7 +7,7 @@ import type { DemoFeature } from "../data/featureIdeas";
 export default function DemoFeatureGrid({ features }: { features: DemoFeature[] }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-      <AnimatePresence mode="popLayout">
+      <AnimatePresence mode="wait">
         {features.map((feature, i) => (
           <motion.div
             key={feature.id}

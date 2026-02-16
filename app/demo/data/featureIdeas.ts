@@ -1,7 +1,7 @@
 import {
   Building2,
   TrendingUp,
-  Image,
+  ImageIcon,
   Shield,
   FileSearch,
   Globe,
@@ -54,7 +54,7 @@ export const FEATURE_IDEAS: DemoFeature[] = [
       "Drag Coca-Cola or a local bank logo onto the screen in the visualizer. Send the image to the sponsor to secure the ad buy.",
     benefit: "Use Other People's Money — get sponsors to commit before the deal is signed.",
     status: "live",
-    icon: Image,
+    icon: ImageIcon,
     demoHref: "/demo/virtual-venue",
     accentColor: "#F59E0B",
     seedVotes: { up: 9, down: 0 },

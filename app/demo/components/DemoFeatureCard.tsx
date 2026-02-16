@@ -23,10 +23,10 @@ export default function DemoFeatureCard({ feature }: { feature: DemoFeature }) {
             className="w-11 h-11 rounded-lg flex items-center justify-center"
             style={{ background: `${feature.accentColor}15` }}
           >
-            <feature.icon
+            {feature.icon && <feature.icon
               className="w-5 h-5"
               style={{ color: feature.accentColor }}
-            />
+            />}
           </div>
           <StatusBadge status={feature.status} />
         </div>
