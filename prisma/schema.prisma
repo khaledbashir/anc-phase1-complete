@@ -709,20 +709,22 @@ model ImportProfile {
 // ============================================================================
 
 model Venue {
-  id          String            @id @default(cuid())
-  name        String            // "Gainbridge Fieldhouse"
-  client      String            // "Indiana Pacers"
-  city        String
-  state       String
-  address     String?
-  logoUrl     String?
-  timezone    String            @default("America/New_York")
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  screens     InstalledScreen[]
-  reports     PerformanceReport[]
+  id                String            @id @default(cuid())
+  name              String            // "Gainbridge Fieldhouse"
+  client            String            // "Indiana Pacers"
+  city              String
+  state             String
+  address           String?
+  logoUrl           String?
+  timezone          String            @default("America/New_York")
+  sourceProposalId  String?           // Links to the Proposal that created this venue (when activated from pipeline)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  screens           InstalledScreen[]
+  reports           PerformanceReport[]
 
   @@index([client])
+  @@index([sourceProposalId])
 }
 
 model InstalledScreen {

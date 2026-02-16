@@ -86,6 +86,19 @@ function formatDuration(totalSec: number): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+interface EligibleProject {
+  id: string;
+  clientName: string;
+  venue: string | null;
+  city: string | null;
+  status: string;
+  documentMode: string;
+  screenCount: number;
+  screens: { name: string; pixelPitch: number; widthFt: number; heightFt: number }[];
+  alreadyActivated: boolean;
+  updatedAt: string;
+}
+
 export default function PerformanceDashboard({ initialVenues, initialSponsors, initialReports, totalPlayLogs }: Props) {
   const router = useRouter();
   const [venues] = useState(initialVenues);
@@ -93,12 +106,50 @@ export default function PerformanceDashboard({ initialVenues, initialSponsors, i
   const [reports, setReports] = useState(initialReports);
   const [seeding, setSeeding] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [eligibleProjects, setEligibleProjects] = useState<EligibleProject[]>([]);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
 
   // Report generator form
   const [genVenueId, setGenVenueId] = useState("");
   const [genSponsorId, setGenSponsorId] = useState("");
   const [genDateFrom, setGenDateFrom] = useState("2025-10-01");
   const [genDateTo, setGenDateTo] = useState("2026-03-15");
+
+  // Fetch eligible projects on mount
+  React.useEffect(() => {
+    fetch("/api/performance/eligible")
+      .then(r => r.json())
+      .then(d => setEligibleProjects(d.eligible || []))
+      .catch(() => {});
+  }, []);
+
+  const handleActivate = useCallback(async (proposalId: string) => {
+    setActivatingId(proposalId);
+    try {
+      const res = await fetch("/api/performance/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ proposalId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 409) {
+          alert(`Already activated: ${data.error}`);
+        } else {
+          throw new Error(data.error || "Activation failed");
+        }
+        return;
+      }
+      // Mark as activated in local state
+      setEligibleProjects(prev => prev.map(p => p.id === proposalId ? { ...p, alreadyActivated: true } : p));
+      router.refresh();
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Activation failed");
+    } finally {
+      setActivatingId(null);
+    }
+  }, [router]);
 
   const handleSeed = useCallback(async () => {
     setSeeding(true);
@@ -236,6 +287,78 @@ export default function PerformanceDashboard({ initialVenues, initialSponsors, i
           </button>
         </div>
       </div>
+
+      {/* Activate from Pipeline */}
+      {eligibleProjects.length > 0 && (
+        <div className="rounded-xl border border-border bg-card overflow-hidden">
+          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-emerald-500" />
+              Activate from Pipeline
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              {eligibleProjects.filter(p => !p.alreadyActivated).length} projects ready
+            </span>
+          </div>
+          <div className="px-6 py-3 bg-muted/30 border-b border-border">
+            <p className="text-xs text-muted-foreground">
+              These are your signed/approved deals. Activate one to start tracking screen performance and generating sponsor reports.
+            </p>
+          </div>
+          <div className="divide-y divide-border">
+            {eligibleProjects.map((p) => (
+              <div key={p.id} className="px-6 py-4 flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">{p.clientName}</span>
+                    <span className={cn(
+                      "px-1.5 py-0.5 rounded text-[9px] font-bold uppercase",
+                      p.status === "SIGNED" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                      p.status === "APPROVED" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
+                      "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                    )}>{p.status}</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                    {p.venue && <span>{p.venue}</span>}
+                    {p.city && <span>{p.city}</span>}
+                    <span className="flex items-center gap-1">
+                      <Monitor className="w-3 h-3" />{p.screenCount} screens
+                    </span>
+                  </div>
+                  {p.screens.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {p.screens.slice(0, 4).map((s, i) => (
+                        <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted text-[10px] font-medium text-muted-foreground">
+                          {s.name} · {s.pixelPitch}mm · {s.widthFt}×{s.heightFt}ft
+                        </span>
+                      ))}
+                      {p.screens.length > 4 && (
+                        <span className="text-[10px] text-muted-foreground">+{p.screens.length - 4} more</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="shrink-0 ml-4">
+                  {p.alreadyActivated ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                      <CheckCircle className="w-3.5 h-3.5" /> Active
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handleActivate(p.id)}
+                      disabled={activatingId === p.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                    >
+                      {activatingId === p.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                      Activate
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Reports List */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
