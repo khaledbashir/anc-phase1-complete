@@ -20,6 +20,7 @@ import {
     Bell,
     Lock,
     LogOut,
+    BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRbac } from "@/hooks/useRbac";
@@ -60,6 +61,12 @@ const adminMenuItems = [
         href: "/admin/pricing-logic",
         beta: true,
         allowedRoles: ["ADMIN"] as UserRole[],
+    },
+    {
+        icon: BarChart3,
+        label: "Performance",
+        href: "/admin/performance",
+        allowedRoles: ["ADMIN", "ESTIMATOR", "PROPOSAL_LEAD"] as UserRole[],
     },
 ];
 

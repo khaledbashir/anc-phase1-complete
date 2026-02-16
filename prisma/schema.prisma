@@ -701,3 +701,100 @@ model ImportProfile {
 
   @@index([fingerprint])
 }
+
+// ============================================================================
+// PROOF OF PERFORMANCE — Sponsor Ad Verification & Reporting
+// Tracks installed screens at venues, play logs from vSOFT/LiveSync,
+// and generates branded compliance reports for sponsors.
+// ============================================================================
+
+model Venue {
+  id          String            @id @default(cuid())
+  name        String            // "Gainbridge Fieldhouse"
+  client      String            // "Indiana Pacers"
+  city        String
+  state       String
+  address     String?
+  logoUrl     String?
+  timezone    String            @default("America/New_York")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  screens     InstalledScreen[]
+  reports     PerformanceReport[]
+
+  @@index([client])
+}
+
+model InstalledScreen {
+  id            String   @id @default(cuid())
+  venueId       String
+  venue         Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  name          String   // "Main Scoreboard", "Ribbon East"
+  location      String?  // "Center Court", "East Concourse Level 2"
+  manufacturer  String   // "Yaham", "LG"
+  modelNumber   String?
+  pixelPitch    Float    // mm
+  widthFt       Float
+  heightFt      Float
+  installDate   DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  playLogs      PlayLog[]
+
+  @@index([venueId])
+}
+
+model Sponsor {
+  id        String   @id @default(cuid())
+  name      String   @unique // "Coca-Cola", "Budweiser"
+  logoUrl   String?
+  contact   String?  // Primary contact name
+  email     String?  // Primary contact email
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  playLogs  PlayLog[]
+  reports   PerformanceReport[]
+}
+
+model PlayLog {
+  id          String          @id @default(cuid())
+  screenId    String
+  screen      InstalledScreen @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  sponsorId   String
+  sponsor     Sponsor         @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  contentName String          // "Coke_15sec_Holiday_2026"
+  playedAt    DateTime
+  durationSec Int             // 15, 30, 60
+  verified    Boolean         @default(true)
+  source      String          @default("csv_import") // "vsoft_api" | "livesync_import" | "csv_import" | "manual"
+  createdAt   DateTime        @default(now())
+
+  @@index([screenId, playedAt])
+  @@index([sponsorId, playedAt])
+  @@index([playedAt])
+}
+
+model PerformanceReport {
+  id            String   @id @default(cuid())
+  venueId       String
+  venue         Venue    @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  sponsorId     String
+  sponsor       Sponsor  @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  title         String   // "Coca-Cola — Gainbridge Fieldhouse — 2025-26 Season"
+  dateFrom      DateTime
+  dateTo        DateTime
+  totalPlays    Int
+  totalAirtime  Int      // total seconds
+  uptimePct     Float    // 0-100
+  compliancePct Float    // 0-100
+  impressions   Int?     // estimated based on venue traffic
+  screenCount   Int
+  shareHash     String?  @unique // for public sponsor link
+  reportData    Json?    // full computed report data (screen breakdown, play log sample, etc.)
+  generatedAt   DateTime @default(now())
+
+  @@index([venueId])
+  @@index([sponsorId])
+  @@index([shareHash])
+}
