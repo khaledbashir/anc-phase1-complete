@@ -12,7 +12,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useConfirm } from "@/hooks/useConfirm";
 import dynamic from "next/dynamic";
-import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes, Search, Shield, Send, GitCompare, FileText, Box, Sparkles } from "lucide-react";
+import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes, Search, Shield, Send, GitCompare, FileText, Box, Sparkles, Zap } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QuestionFlow from "./QuestionFlow";
@@ -27,6 +27,7 @@ import LiabilityPanel from "./LiabilityPanel";
 import RfqPanel from "./RfqPanel";
 import RevisionRadarPanel from "./RevisionRadarPanel";
 import CutSheetPanel from "./CutSheetPanel";
+import AutoRfpPanel from "./AutoRfpPanel";
 import ToolDescription from "./ToolDescription";
 import type { VendorExtractedSpec } from "@/services/vendor/vendorParser";
 import { useProductSpecs } from "@/hooks/useProductSpecs";
@@ -64,6 +65,7 @@ export default function EstimatorStudio({
     const [rfqOpen, setRfqOpen] = useState(false);
     const [revisionOpen, setRevisionOpen] = useState(false);
     const [cutSheetOpen, setCutSheetOpen] = useState(false);
+    const [autoRfpOpen, setAutoRfpOpen] = useState(false);
     const [venueOpen, setVenueOpen] = useState(false);
     // Cell overrides: key = "sheetIdx-rowIdx-colIdx", value = edited value
     const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>(initialCellOverrides || {});
@@ -237,6 +239,11 @@ export default function EstimatorStudio({
         }
     }, [projectId, converting, router]);
 
+    const handleAutoRfpApply = useCallback((rfpAnswers: EstimatorAnswers) => {
+        setAnswers(rfpAnswers);
+        setAutoRfpOpen(false);
+    }, []);
+
     const handleDuplicate = useCallback(async () => {
         if (!projectId || duplicating) return;
         setDuplicating(true);
@@ -342,6 +349,24 @@ export default function EstimatorStudio({
                             </button>
                         </>
                     )}
+                    <ToolDescription
+                        label="Auto-RFP Response"
+                        description="AI reads the RFP, extracts every screen requirement, matches products from the catalog, and pre-fills the estimator with all displays."
+                        whenToUse="When you have an RFP uploaded to this project's workspace. Click to extract and auto-populate all screens."
+                        benefit="Turns a 2500-page RFP into a populated estimate in 30 seconds."
+                    >
+                        <button
+                            onClick={() => setAutoRfpOpen((v) => !v)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                                autoRfpOpen
+                                    ? "bg-[#0A52EF] text-white"
+                                    : "border border-[#0A52EF]/30 text-[#0A52EF] hover:bg-[#0A52EF]/5"
+                            }`}
+                        >
+                            <Zap className="w-3 h-3" />
+                            Auto-RFP
+                        </button>
+                    </ToolDescription>
                     <ToolDescription
                         label="3D Arena Preview"
                         description="Live 3D visualization of the arena showing which LED zones correspond to your configured displays. Zones light up as you add displays to the estimate."
@@ -606,6 +631,17 @@ export default function EstimatorStudio({
                                 onClose={() => setCutSheetOpen(false)}
                                 answers={answers}
                                 calcs={calcs}
+                            />
+                        </div>
+                    )}
+                    {/* Auto-RFP Response panel overlay */}
+                    {autoRfpOpen && (
+                        <div className="absolute inset-0 z-20 bg-background/95 backdrop-blur-sm rounded-lg border border-border shadow-lg overflow-hidden">
+                            <AutoRfpPanel
+                                open={autoRfpOpen}
+                                onClose={() => setAutoRfpOpen(false)}
+                                projectId={projectId}
+                                onApply={handleAutoRfpApply}
                             />
                         </div>
                     )}
