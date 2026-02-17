@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 
 interface VoteButtonsProps {
   featureId: string;
-  seedVotes: { up: number; down: number };
 }
 
 function getVoterId(): string {
@@ -19,9 +18,9 @@ function getVoterId(): string {
   return id;
 }
 
-export default function VoteButtons({ featureId, seedVotes }: VoteButtonsProps) {
+export default function VoteButtons({ featureId }: VoteButtonsProps) {
   const [vote, setVote] = useState<"up" | "down" | null>(null);
-  const [counts, setCounts] = useState(seedVotes);
+  const [counts, setCounts] = useState({ up: 0, down: 0 });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -29,11 +28,11 @@ export default function VoteButtons({ featureId, seedVotes }: VoteButtonsProps) 
     fetch(`/api/demo/vote?featureId=${featureId}&voterId=${voterId}`)
       .then((r) => r.json())
       .then((data) => {
-        setCounts({ up: data.up + seedVotes.up, down: data.down + seedVotes.down });
+        setCounts({ up: data.up, down: data.down });
         setVote(data.myVote || null);
       })
       .catch(() => {});
-  }, [featureId, seedVotes.up, seedVotes.down]);
+  }, [featureId]);
 
   const handleVote = useCallback(async (direction: "up" | "down") => {
     if (loading) return;
@@ -63,7 +62,7 @@ export default function VoteButtons({ featureId, seedVotes }: VoteButtonsProps) 
       });
       if (!res.ok) throw new Error("Vote failed");
       const data = await res.json();
-      setCounts({ up: data.up + seedVotes.up, down: data.down + seedVotes.down });
+      setCounts({ up: data.up, down: data.down });
     } catch {
       // Rollback on error
       setVote(prevVote);
@@ -71,7 +70,7 @@ export default function VoteButtons({ featureId, seedVotes }: VoteButtonsProps) 
     } finally {
       setLoading(false);
     }
-  }, [featureId, vote, counts, loading, seedVotes.up, seedVotes.down]);
+  }, [featureId, vote, counts, loading]);
 
   return (
     <div className="flex items-center gap-3">
@@ -79,22 +78,22 @@ export default function VoteButtons({ featureId, seedVotes }: VoteButtonsProps) 
         onClick={() => handleVote("up")}
         disabled={loading}
         className={cn(
-          "flex items-center gap-1.5 text-sm transition-all active:scale-90",
-          vote === "up" ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+          "flex items-center gap-1.5 text-xs transition-all active:scale-90",
+          vote === "up" ? "text-[#0A52EF] font-semibold" : "text-muted-foreground hover:text-foreground"
         )}
       >
-        <ThumbsUp className={cn("w-4 h-4", vote === "up" && "fill-primary")} />
+        <ThumbsUp className={cn("w-3.5 h-3.5", vote === "up" && "fill-[#0A52EF]")} />
         <span className="tabular-nums">{counts.up}</span>
       </button>
       <button
         onClick={() => handleVote("down")}
         disabled={loading}
         className={cn(
-          "flex items-center gap-1.5 text-sm transition-all active:scale-90",
-          vote === "down" ? "text-destructive font-semibold" : "text-muted-foreground hover:text-foreground"
+          "flex items-center gap-1.5 text-xs transition-all active:scale-90",
+          vote === "down" ? "text-muted-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
         )}
       >
-        <ThumbsDown className={cn("w-4 h-4", vote === "down" && "fill-destructive")} />
+        <ThumbsDown className={cn("w-3.5 h-3.5", vote === "down" && "fill-muted-foreground")} />
         <span className="tabular-nums">{counts.down}</span>
       </button>
     </div>

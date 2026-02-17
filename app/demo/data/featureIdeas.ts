@@ -17,8 +17,6 @@ export interface DemoFeature {
   status: "concept" | "development" | "live";
   icon: LucideIcon;
   demoHref?: string;
-  accentColor: string;
-  seedVotes: { up: number; down: number };
 }
 
 export const FEATURE_IDEAS: DemoFeature[] = [
@@ -31,8 +29,6 @@ export const FEATURE_IDEAS: DemoFeature[] = [
     status: "live",
     icon: Building2,
     demoHref: "/demo/virtual-venue",
-    accentColor: "#0A52EF",
-    seedVotes: { up: 14, down: 0 },
   },
   {
     id: "roi-calculator",
@@ -43,8 +39,6 @@ export const FEATURE_IDEAS: DemoFeature[] = [
     status: "live",
     icon: TrendingUp,
     demoHref: "/demo/roi-calculator",
-    accentColor: "#10B981",
-    seedVotes: { up: 11, down: 1 },
   },
   {
     id: "multi-vendor-compare",
@@ -54,8 +48,6 @@ export const FEATURE_IDEAS: DemoFeature[] = [
     benefit: "Creates 2-3 option proposals in 10 minutes instead of 2 hours.",
     status: "development",
     icon: Shield,
-    accentColor: "#8B5CF6",
-    seedVotes: { up: 8, down: 2 },
   },
   {
     id: "auto-rfp-response",
@@ -65,8 +57,6 @@ export const FEATURE_IDEAS: DemoFeature[] = [
     benefit: "Saves 20-40 hours per RFP response.",
     status: "development",
     icon: FileSearch,
-    accentColor: "#EC4899",
-    seedVotes: { up: 7, down: 1 },
   },
   {
     id: "client-portal-v2",
@@ -76,8 +66,6 @@ export const FEATURE_IDEAS: DemoFeature[] = [
     benefit: "Every interaction keeps them in ANC's ecosystem. Not Daktronics'. Not Samsung's.",
     status: "concept",
     icon: Globe,
-    accentColor: "#06B6D4",
-    seedVotes: { up: 6, down: 0 },
   },
   {
     id: "predictive-maintenance",
@@ -87,18 +75,14 @@ export const FEATURE_IDEAS: DemoFeature[] = [
     benefit: "Turns maintenance from reactive to proactive. Premium upsell for every install.",
     status: "concept",
     icon: Activity,
-    accentColor: "#EF4444",
-    seedVotes: { up: 4, down: 3 },
   },
   {
     id: "ai-negotiation",
     title: "AI Negotiation Coach",
     description:
       "Before a pricing call, AI analyzes the deal and suggests negotiation strategies based on margin room and competitive intel.",
-    benefit: "Jireh walks into every call with a game plan.",
+    benefit: "Walk into every call with a game plan.",
     status: "concept",
     icon: Brain,
-    accentColor: "#0385DD",
-    seedVotes: { up: 5, down: 2 },
   },
 ];

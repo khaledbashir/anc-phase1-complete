@@ -2,65 +2,52 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import StatusBadge from "./StatusBadge";
 import VoteButtons from "./VoteButtons";
 import type { DemoFeature } from "../data/featureIdeas";
 
 export default function DemoFeatureCard({ feature }: { feature: DemoFeature }) {
   return (
-    <Card className="group relative overflow-hidden border border-border hover:-translate-y-1 hover:shadow-lg transition-all duration-300">
-      {/* Accent strip */}
-      <div
-        className="h-1 w-full"
-        style={{ background: feature.accentColor }}
-      />
-
-      <CardContent className="p-5 space-y-4">
+    <div className="group relative rounded-xl border border-border/60 bg-card hover:-translate-y-0.5 hover:shadow-md transition-all duration-200">
+      <div className="p-5 space-y-4">
         {/* Header: icon + status */}
         <div className="flex items-start justify-between">
-          <div
-            className="w-11 h-11 rounded-lg flex items-center justify-center"
-            style={{ background: `${feature.accentColor}15` }}
-          >
-            {feature.icon && <feature.icon
-              className="w-5 h-5"
-              style={{ color: feature.accentColor }}
-            />}
+          <div className="w-10 h-10 rounded-lg bg-[#0A52EF]/8 flex items-center justify-center">
+            {feature.icon && <feature.icon className="w-5 h-5 text-[#0A52EF]" />}
           </div>
           <StatusBadge status={feature.status} />
         </div>
 
         {/* Title + Description */}
         <div>
-          <h3 className="text-base font-semibold text-foreground mb-1">
+          <h3 className="text-sm font-semibold text-foreground mb-1.5">
             {feature.title}
           </h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">
+          <p className="text-[13px] text-muted-foreground leading-relaxed">
             {feature.description}
           </p>
         </div>
 
         {/* Benefit */}
-        <p className="text-xs text-muted-foreground/80 italic border-l-2 border-border pl-3">
+        <p className="text-xs text-muted-foreground/70 border-l-2 border-[#0A52EF]/20 pl-3 leading-relaxed">
           {feature.benefit}
         </p>
 
         {/* Footer: votes + CTA */}
-        <div className="flex items-center justify-between pt-2 border-t border-border">
-          <VoteButtons featureId={feature.id} seedVotes={feature.seedVotes} />
+        <div className="flex items-center justify-between pt-3 border-t border-border/40">
+          <VoteButtons featureId={feature.id} />
 
           {feature.status === "live" && feature.demoHref && (
             <Link
               href={feature.demoHref}
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0A52EF] hover:text-[#0A52EF]/80 transition-colors"
             >
               Try Demo
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </Link>
           )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
