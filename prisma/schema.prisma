@@ -724,9 +724,49 @@ model Venue {
   updatedAt        DateTime            @updatedAt
   screens          InstalledScreen[]
   reports          PerformanceReport[]
+  photos           VenuePhoto[]
 
   @@index([client])
   @@index([sourceProposalId])
+}
+
+// ============================================================================
+// VENUE VISUALIZER — Photo-based LED screen overlay system
+// Admin uploads venue photos, draws hotspot rectangles where screens go.
+// Viewer renders interactive LED overlays on real photos.
+// ============================================================================
+
+model VenuePhoto {
+  id        String          @id @default(cuid())
+  venueId   String
+  venue     Venue           @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  label     String // "Center Court Overview", "Field Level North"
+  imageUrl  String // "/venues/ravens-center.jpg" or data URL
+  sortOrder Int             @default(0)
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  hotspots  ScreenHotspot[]
+
+  @@index([venueId])
+}
+
+model ScreenHotspot {
+  id           String     @id @default(cuid())
+  photoId      String
+  photo        VenuePhoto @relation(fields: [photoId], references: [id], onDelete: Cascade)
+  zoneType     String // "scoreboard" | "ribbon" | "fascia" | "vomitory" | "concourse" | "marquee" | "courtside"
+  label        String // "Main Scoreboard", "Ribbon East"
+  leftPct      Float // x position as % of image width (0-100)
+  topPct       Float // y position as % of image height (0-100)
+  widthPct     Float // width as % of image width
+  heightPct    Float // height as % of image height
+  cssTransform String? // optional perspective: "perspective(500px) rotateY(-5deg)"
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([photoId])
 }
 
 model InstalledScreen {
