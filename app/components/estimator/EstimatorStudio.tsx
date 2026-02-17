@@ -12,7 +12,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { useConfirm } from "@/hooks/useConfirm";
 import dynamic from "next/dynamic";
-import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes, Search, Shield, Send, GitCompare, FileText, Box } from "lucide-react";
+import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes, Search, Shield, Send, GitCompare, FileText, Box, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QuestionFlow from "./QuestionFlow";
@@ -275,6 +275,10 @@ export default function EstimatorStudio({
                     <FileSpreadsheet className="w-4 h-4 text-[#0A52EF]" />
                     <span className="text-sm font-semibold">
                         {answers.projectName || "New Estimate"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-700">
+                        <Sparkles className="h-3 w-3" />
+                        DEMO FOR PHASE 3
                     </span>
                     {answers.clientName && (
                         <span className="text-xs text-muted-foreground">

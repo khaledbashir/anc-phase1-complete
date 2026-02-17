@@ -14,9 +14,12 @@ import {
   DollarSign,
   BarChart3,
   Loader2,
+  Sparkles,
+  Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -96,6 +99,33 @@ const modeLabels: Record<string, string> = {
   PROPOSAL: "Proposal",
   LOI: "LOI",
 };
+
+const PHASE2_POSSIBILITIES = [
+  {
+    label: "RFP Drawing Analysis",
+    detail: "Scan drawings to identify display locations and schedule-of-displays data.",
+  },
+  {
+    label: "Catalog Auto-Matching",
+    detail: "Map extracted specs to best-fit LED products with ranked options.",
+  },
+  {
+    label: "RFP to Estimator Push",
+    detail: "Send extracted screens directly into estimator with prefilled fields.",
+  },
+  {
+    label: "Addendum Delta Tracking",
+    detail: "Compare revisions and surface scope or cost-impacting changes quickly.",
+  },
+  {
+    label: "SOW + Risk Checks",
+    detail: "Generate SOW drafts and flag liability gaps before submission.",
+  },
+  {
+    label: "Bid Readiness Signals",
+    detail: "Show confidence, missing items, and decision-ready status by opportunity.",
+  },
+];
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -181,7 +211,13 @@ export default function PipelineKanban({ initialCards }: Props) {
       <div className="shrink-0 px-6 py-5 border-b border-border bg-background">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-foreground tracking-tight">Pipeline</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold text-foreground tracking-tight">Pipeline</h1>
+              <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+                <Sparkles className="h-3 w-3" />
+                DEMO FOR PHASE 2
+              </span>
+            </div>
             <p className="text-sm text-muted-foreground mt-0.5">
               {cards.length} projects · {fmtCurrency(totalValue)} total value
             </p>
@@ -197,6 +233,32 @@ export default function PipelineKanban({ initialCards }: Props) {
               );
             })}
           </div>
+        </div>
+
+        <div className="mt-4">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Lightbulb className="h-3.5 w-3.5" />
+            Possibilities in this phase
+          </div>
+          <TooltipProvider>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {PHASE2_POSSIBILITIES.map((item) => (
+                <Tooltip key={item.label}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                    >
+                      {item.label}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                    {item.detail}
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
+          </TooltipProvider>
         </div>
       </div>
 
