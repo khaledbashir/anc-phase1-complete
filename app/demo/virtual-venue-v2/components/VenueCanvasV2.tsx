@@ -138,10 +138,9 @@ function buildScene(scene: THREE.Scene): Omit<SceneRefs, "scene" | "bloomPass"> 
   // ── RAILINGS ──────────────────────────────────────────────────────────────
   const railMat = new THREE.MeshStandardMaterial({ color: 0x222233, metalness: 0.9, roughness: 0.2 });
   [7.5, 13, 18.5].forEach((y, i) => {
-    scene.add(Object.assign(
-      new THREE.Mesh(new THREE.TorusGeometry(21.5 + i * 5, 0.05, 6, 96), railMat),
-      { position: new THREE.Vector3(0, y, 0) }
-    ));
+    const rail = new THREE.Mesh(new THREE.TorusGeometry(21.5 + i * 5, 0.05, 6, 96), railMat);
+    rail.position.set(0, y, 0);
+    scene.add(rail);
   });
 
   // ── LUXURY SUITES ─────────────────────────────────────────────────────────
@@ -258,11 +257,10 @@ function buildScene(scene: THREE.Scene): Omit<SceneRefs, "scene" | "bloomPass"> 
   });
 
   // ── SCORER'S TABLE ────────────────────────────────────────────────────────
-  scene.add(Object.assign(
-    new THREE.Mesh(new THREE.BoxGeometry(8, 0.5, 0.8),
-      new THREE.MeshStandardMaterial({ color: 0x1a1a2a, roughness: 0.6, metalness: 0.3 })),
-    { position: new THREE.Vector3(0, 0.25, -5.5) }
-  ));
+  const table = new THREE.Mesh(new THREE.BoxGeometry(8, 0.5, 0.8),
+    new THREE.MeshStandardMaterial({ color: 0x1a1a2a, roughness: 0.6, metalness: 0.3 }));
+  table.position.set(0, 0.25, -5.5);
+  scene.add(table);
 
   return { ambient, spots, courtMesh, hazeParticles, lightCones };
 }
