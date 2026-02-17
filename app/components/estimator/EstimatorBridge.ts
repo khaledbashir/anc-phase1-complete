@@ -554,13 +554,13 @@ function buildBudgetSummary(answers: EstimatorAnswers, calcs: ScreenCalc[]): She
     const docLabel = answers.docType === "budget" ? "BUDGET ESTIMATE" : answers.docType === "loi" ? "LETTER OF INTENT" : "SALES QUOTATION";
 
     rows.push({
-        cells: [{ value: `ANC ${docLabel} — ${answers.projectName || "PROJECT"}`, bold: true, header: true, span: 6, align: "center" }],
+        cells: [{ value: `ANC ${docLabel} — ${answers.projectName || "PROJECT"}`, bold: true, header: true, span: 8, align: "center" }],
         isHeader: true,
     });
     rows.push({
         cells: [
-            { value: `Client: ${answers.clientName || "—"}`, span: 3 },
-            { value: `Location: ${answers.location || "—"}`, span: 3 },
+            { value: `Client: ${answers.clientName || "—"}`, span: 4 },
+            { value: `Location: ${answers.location || "—"}`, span: 4 },
         ],
     });
     rows.push({ cells: [{ value: "" }], isSeparator: true });
@@ -572,18 +572,22 @@ function buildBudgetSummary(answers: EstimatorAnswers, calcs: ScreenCalc[]): She
             { value: "UNIT", bold: true, header: true, align: "center" },
             { value: "COST", bold: true, header: true, align: "right" },
             { value: "SELLING PRICE", bold: true, header: true, align: "right" },
+            { value: "MARGIN %", bold: true, header: true, align: "center" },
+            { value: "MARGIN $", bold: true, header: true, align: "right" },
         ],
         isHeader: true,
     });
 
     if (calcs.length === 0) {
-        rows.push({ cells: [{ value: "No displays configured yet", span: 6, align: "center" }] });
+        rows.push({ cells: [{ value: "No displays configured yet", span: 8, align: "center" }] });
     } else {
         // LED Hardware
         rows.push({
-            cells: [{ value: "1.0 LED HARDWARE", bold: true }, { value: "" }, { value: "" }, { value: "" }, { value: "" }, { value: "" }],
+            cells: [{ value: "1.0 LED HARDWARE", bold: true }, { value: "" }, { value: "" }, { value: "" }, { value: "" }, { value: "" }, { value: "" }, { value: "" }],
         });
         for (const c of calcs) {
+            const hwSell = c.hardwareCost / (1 - c.marginPct);
+            const hwMarginDollar = hwSell - c.hardwareCost;
             rows.push({
                 cells: [
                     { value: "" },
@@ -591,17 +595,21 @@ function buildBudgetSummary(answers: EstimatorAnswers, calcs: ScreenCalc[]): She
                     { value: 1, align: "center" },
                     { value: "EA", align: "center" },
                     { value: c.hardwareCost, currency: true, align: "right" },
-                    { value: c.hardwareCost / (1 - c.marginPct), currency: true, align: "right" },
+                    { value: hwSell, currency: true, align: "right" },
+                    { value: c.marginPct, percent: true, align: "center" },
+                    { value: hwMarginDollar, currency: true, align: "right" },
                 ],
             });
         }
 
         // Services
         rows.push({
-            cells: [{ value: "2.0 SERVICES", bold: true }, { value: "Labor, PM & Eng" }, { value: "" }, { value: "" }, { value: "" }, { value: "" }],
+            cells: [{ value: "2.0 SERVICES", bold: true }, { value: "Labor, PM & Eng" }, { value: "" }, { value: "" }, { value: "" }, { value: "" }, { value: "" }, { value: "" }],
         });
         for (const c of calcs) {
             const svcCost = c.installCost + c.structureCost + c.electricalCost + c.equipmentCost + c.dataCablingCost + c.pmCost + c.engineeringCost + c.shippingCost + c.demolitionCost + c.bundleCost;
+            const svcSell = svcCost / (1 - c.marginPct);
+            const svcMarginDollar = svcSell - svcCost;
             rows.push({
                 cells: [
                     { value: "" },
@@ -609,7 +617,9 @@ function buildBudgetSummary(answers: EstimatorAnswers, calcs: ScreenCalc[]): She
                     { value: 1, align: "center" },
                     { value: "LS", align: "center" },
                     { value: svcCost, currency: true, align: "right" },
-                    { value: svcCost / (1 - c.marginPct), currency: true, align: "right" },
+                    { value: svcSell, currency: true, align: "right" },
+                    { value: c.marginPct, percent: true, align: "center" },
+                    { value: svcMarginDollar, currency: true, align: "right" },
                 ],
             });
         }
@@ -622,24 +632,29 @@ function buildBudgetSummary(answers: EstimatorAnswers, calcs: ScreenCalc[]): She
         const totalTax = calcs.reduce((s, c) => s + c.salesTaxCost, 0);
         const grandTotal = calcs.reduce((s, c) => s + c.finalTotal, 0);
 
+        const totalMarginPct = totalCost > 0 ? 1 - (totalCost / totalSell) : 0;
+        const totalMarginDollar = totalSell - totalCost;
+
         rows.push({
             cells: [{ value: "SUBTOTAL", bold: true }, { value: "" }, { value: "" }, { value: "" },
                 { value: totalCost, currency: true, align: "right", bold: true },
-                { value: totalSell, currency: true, align: "right", bold: true }],
+                { value: totalSell, currency: true, align: "right", bold: true },
+                { value: totalMarginPct, percent: true, align: "center", bold: true },
+                { value: totalMarginDollar, currency: true, align: "right", bold: true }],
             isTotal: true,
         });
         rows.push({
             cells: [{ value: `BOND (${answers.bondRate || 1.5}%)`, bold: true }, { value: "" }, { value: "" }, { value: "" }, { value: "" },
-                { value: totalBond, currency: true, align: "right" }],
+                { value: totalBond, currency: true, align: "right" }, { value: "" }, { value: "" }],
         });
         rows.push({
             cells: [{ value: `SALES TAX (${answers.salesTaxRate || 9.5}%)`, bold: true }, { value: "" }, { value: "" }, { value: "" }, { value: "" },
-                { value: totalTax, currency: true, align: "right" }],
+                { value: totalTax, currency: true, align: "right" }, { value: "" }, { value: "" }],
         });
         rows.push({ cells: [{ value: "" }], isSeparator: true });
         rows.push({
             cells: [{ value: "PROJECT TOTAL", bold: true }, { value: "" }, { value: "" }, { value: "" }, { value: "" },
-                { value: grandTotal, currency: true, align: "right", bold: true, highlight: true }],
+                { value: grandTotal, currency: true, align: "right", bold: true, highlight: true }, { value: "" }, { value: "" }],
             isTotal: true,
         });
     }
@@ -647,7 +662,7 @@ function buildBudgetSummary(answers: EstimatorAnswers, calcs: ScreenCalc[]): She
     return {
         name: "Budget Summary",
         color: "#0A52EF",
-        columns: ["CATEGORY", "DESCRIPTION", "QTY", "UNIT", "COST", "SELLING PRICE"],
+        columns: ["CATEGORY", "DESCRIPTION", "QTY", "UNIT", "COST", "SELLING PRICE", "MARGIN %", "MARGIN $"],
         rows,
     };
 }
