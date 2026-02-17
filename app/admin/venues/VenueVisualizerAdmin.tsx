@@ -242,12 +242,18 @@ export default function VenueVisualizerAdmin() {
       <div className="w-64 shrink-0 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-foreground">Venues</h2>
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             <button onClick={fetchVenues} className="p-1.5 rounded border border-border hover:bg-accent transition-colors" title="Refresh">
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
             </button>
-            <button onClick={handleSeed} disabled={seeding} className="p-1.5 rounded border border-[#0A52EF] text-[#0A52EF] hover:bg-[#0A52EF]/5 transition-colors" title="Seed demo data">
+            <button
+              onClick={handleSeed}
+              disabled={seeding}
+              className="px-2.5 py-1.5 rounded border border-[#0A52EF] text-[#0A52EF] hover:bg-[#0A52EF]/5 transition-colors text-xs font-medium inline-flex items-center gap-1.5 disabled:opacity-60"
+              title="Seed demo data"
+            >
               <Database className={`w-3.5 h-3.5 ${seeding ? "animate-pulse" : ""}`} />
+              {seeding ? "Seeding..." : "Seed Demo Data"}
             </button>
           </div>
         </div>
@@ -261,7 +267,7 @@ export default function VenueVisualizerAdmin() {
 
         <div className="space-y-1">
           {venues.length === 0 && !loading && (
-            <p className="text-xs text-muted-foreground py-4 text-center">No venues yet. Click seed to add demo data.</p>
+            <p className="text-xs text-muted-foreground py-4 text-center">No venues yet. Click "Seed Demo Data" to add starter venues/photos.</p>
           )}
           {venues.map(venue => (
             <button

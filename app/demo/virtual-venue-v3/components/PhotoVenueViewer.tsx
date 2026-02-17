@@ -117,6 +117,8 @@ function makeLogoCanvas(img: HTMLImageElement, w = 400, h = 200): HTMLCanvasElem
 export default function PhotoVenueViewer() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
   const [selectedPhotoIdx, setSelectedPhotoIdx] = useState(0);
   const [clientName, setClientName] = useState("");
@@ -130,19 +132,41 @@ export default function PhotoVenueViewer() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   // ── Fetch venues ──
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/venue-visualizer/venues");
-        const data = await res.json();
-        setVenues(data.venues || []);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    })();
+  const fetchVenues = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/venue-visualizer/venues");
+      const data = await res.json();
+      setVenues(data.venues || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void fetchVenues();
+  }, [fetchVenues]);
+
+  const handleSeedDemoData = useCallback(async () => {
+    setSeeding(true);
+    setSeedMessage(null);
+    try {
+      const res = await fetch("/api/venue-visualizer/seed", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setSeedMessage(data?.error || "Seed failed");
+      } else {
+        setSeedMessage(data?.message || "Seed completed");
+        await fetchVenues();
+      }
+    } catch (err) {
+      setSeedMessage(String(err));
+    } finally {
+      setSeeding(false);
+    }
+  }, [fetchVenues]);
 
   // Auto-select first venue
   useEffect(() => {
@@ -242,9 +266,21 @@ export default function PhotoVenueViewer() {
           <Monitor className="w-12 h-12 mx-auto text-slate-600" />
           <h2 className="text-lg font-semibold text-white">No venues configured</h2>
           <p className="text-sm text-slate-400">
-            Go to <Link href="/admin/venues" className="text-[#0A52EF] underline">Admin → Venue Visualizer</Link> to
-            seed demo data or upload venue photos with hotspots.
+            Seed demo data now, or go to <Link href="/admin/venues" className="text-[#0A52EF] underline">Admin → Venue Visualizer</Link>
+            {' '}to manage venues and hotspots.
           </p>
+          <div className="pt-2">
+            <button
+              onClick={handleSeedDemoData}
+              disabled={seeding}
+              className="px-4 py-2 rounded-lg bg-[#0A52EF] text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-60"
+            >
+              {seeding ? "Seeding..." : "Seed Demo Data"}
+            </button>
+          </div>
+          {seedMessage && (
+            <p className="text-xs text-slate-300 border border-white/10 rounded px-3 py-2 bg-white/5">{seedMessage}</p>
+          )}
         </div>
       </div>
     );
