@@ -22,6 +22,9 @@ import {
   EyeOff,
   Lightbulb,
   Building,
+  Play,
+  Pause,
+  Maximize2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -55,6 +58,9 @@ interface ControlsHUDProps {
   setVenueTypeId: (id: string) => void;
   beforeAfter: boolean;
   setBeforeAfter: (v: boolean) => void;
+  autoTour: boolean;
+  setAutoTour: (v: boolean) => void;
+  onPresentationMode: () => void;
 }
 
 const TABS: { id: TabId; label: string; icon: any }[] = [
@@ -78,6 +84,8 @@ export default function ControlsHUD({
   sceneMoodId, setSceneMoodId,
   venueTypeId, setVenueTypeId,
   beforeAfter, setBeforeAfter,
+  autoTour, setAutoTour,
+  onPresentationMode,
 }: ControlsHUDProps) {
   const [activeTab, setActiveTab] = useState<TabId>("configure");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -102,6 +110,13 @@ export default function ControlsHUD({
             <h1 className="text-sm font-bold text-white tracking-tight">Virtual Venue Visualizer</h1>
             <p className="text-[10px] text-slate-500 mt-0.5">ANC Sports · Interactive Arena Builder</p>
           </div>
+          <button
+            onClick={onPresentationMode}
+            className="p-2 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] transition-colors"
+            title="Presentation Mode"
+          >
+            <Maximize2 className="w-4 h-4 text-slate-400" />
+          </button>
           <button
             onClick={takeScreenshot}
             className="p-2 rounded-lg bg-[#0A52EF]/20 hover:bg-[#0A52EF]/30 transition-colors"
@@ -309,16 +324,16 @@ export default function ControlsHUD({
             </div>
 
             {/* Camera Presets */}
-            <div className="p-4">
+            <div className="p-4 border-b border-white/[0.04]">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5 block">Camera Angles</label>
               <div className="grid grid-cols-2 gap-1.5">
                 {CAMERA_PRESETS.map(cam => (
                   <button
                     key={cam.id}
-                    onClick={() => setActiveCameraId(cam.id)}
+                    onClick={() => { setActiveCameraId(cam.id); setAutoTour(false); }}
                     className={cn(
                       "flex items-center gap-2 p-2.5 rounded-lg border transition-all text-left",
-                      activeCameraId === cam.id
+                      activeCameraId === cam.id && !autoTour
                         ? "bg-[#0A52EF]/10 border-[#0A52EF]/30 text-[#0A52EF]"
                         : "border-white/[0.04] text-slate-400 hover:bg-white/[0.03] hover:text-slate-300"
                     )}
@@ -329,6 +344,42 @@ export default function ControlsHUD({
                     </div>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Auto Tour + Presentation */}
+            <div className="p-4">
+              <div className="space-y-1.5">
+                <button
+                  onClick={() => setAutoTour(!autoTour)}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left",
+                    autoTour
+                      ? "bg-[#0A52EF]/10 border-[#0A52EF]/30"
+                      : "border-white/[0.04] hover:bg-white/[0.03]"
+                  )}
+                >
+                  {autoTour ? <Pause className="w-4 h-4 text-[#0A52EF]" /> : <Play className="w-4 h-4 text-slate-500" />}
+                  <div className="flex-1">
+                    <span className={cn("text-xs font-medium", autoTour ? "text-[#0A52EF]" : "text-slate-400")}>
+                      {autoTour ? "Auto Tour Running" : "Auto Tour"}
+                    </span>
+                    <p className="text-[9px] text-slate-600">Cycles through all camera angles (6s each)</p>
+                  </div>
+                  <div className={cn("w-7 h-4 rounded-full transition-all relative shrink-0", autoTour ? "bg-[#0A52EF]" : "bg-slate-700")}>
+                    <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all shadow-sm", autoTour ? "left-3.5" : "left-0.5")} />
+                  </div>
+                </button>
+                <button
+                  onClick={onPresentationMode}
+                  className="w-full flex items-center gap-2.5 p-3 rounded-xl border border-white/[0.04] hover:bg-white/[0.03] transition-all text-left"
+                >
+                  <Maximize2 className="w-4 h-4 text-slate-500" />
+                  <div className="flex-1">
+                    <span className="text-xs font-medium text-slate-400">Presentation Mode</span>
+                    <p className="text-[9px] text-slate-600">Full-screen 3D with auto tour (ESC to exit)</p>
+                  </div>
+                </button>
               </div>
             </div>
           </div>
