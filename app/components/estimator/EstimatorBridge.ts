@@ -533,7 +533,7 @@ function buildProjectInfo(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sheet
 
         rows.push({ cells: [{ value: "Total Cost", bold: true }, { value: totalCost, currency: true }] });
         rows.push({ cells: [{ value: "Total Sell Price", bold: true }, { value: totalSell, currency: true }] });
-        rows.push({ cells: [{ value: "Blended Margin", bold: true }, { value: `${blended}%` }] });
+        rows.push({ cells: [{ value: "Blended Margin", bold: true }, { value: `${blended}% (${fmt(totalSell - totalCost)})` }] });
         rows.push({
             cells: [{ value: "Grand Total", bold: true }, { value: grandTotal, currency: true, bold: true, highlight: true }],
             isTotal: true,
@@ -1394,7 +1394,7 @@ function buildMarginAnalysis(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
     const rows: SheetRow[] = [];
 
     rows.push({
-        cells: [{ value: "MARGIN ANALYSIS (MASTER TRUTH)", bold: true, header: true, span: 6, align: "center" }],
+        cells: [{ value: "MARGIN ANALYSIS (MASTER TRUTH)", bold: true, header: true, span: 7, align: "center" }],
         isHeader: true,
     });
     rows.push({ cells: [{ value: "" }], isSeparator: true });
@@ -1403,6 +1403,7 @@ function buildMarginAnalysis(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
             { value: "DISPLAY", bold: true, header: true },
             { value: "TOTAL COST", bold: true, header: true, align: "right" },
             { value: "MARGIN %", bold: true, header: true, align: "center" },
+            { value: "MARGIN $", bold: true, header: true, align: "right" },
             { value: "SELL PRICE", bold: true, header: true, align: "right" },
             { value: "BOND", bold: true, header: true, align: "right" },
             { value: "FINAL TOTAL", bold: true, header: true, align: "right" },
@@ -1411,7 +1412,7 @@ function buildMarginAnalysis(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
     });
 
     if (calcs.length === 0) {
-        rows.push({ cells: [{ value: "No displays configured yet", span: 6, align: "center" }] });
+        rows.push({ cells: [{ value: "No displays configured yet", span: 7, align: "center" }] });
     } else {
         for (const c of calcs) {
             rows.push({
@@ -1419,6 +1420,7 @@ function buildMarginAnalysis(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
                     { value: c.name },
                     { value: c.totalCost, currency: true, align: "right" },
                     { value: c.marginPct, percent: true, align: "center", highlight: true },
+                    { value: c.sellPrice - c.totalCost, currency: true, align: "right" },
                     { value: c.sellPrice, currency: true, align: "right" },
                     { value: c.bondCost, currency: true, align: "right" },
                     { value: c.finalTotal, currency: true, align: "right", bold: true },
@@ -1437,6 +1439,7 @@ function buildMarginAnalysis(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
                 { value: "PROJECT TOTAL", bold: true },
                 { value: totalCost, currency: true, align: "right", bold: true },
                 { value: calcs[0]?.marginPct || 0.30, percent: true, align: "center" },
+                { value: totalSell - totalCost, currency: true, align: "right", bold: true },
                 { value: totalSell, currency: true, align: "right", bold: true },
                 { value: totalBond, currency: true, align: "right", bold: true },
                 { value: grandTotal, currency: true, align: "right", bold: true, highlight: true },
@@ -1448,12 +1451,13 @@ function buildMarginAnalysis(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
         if (calcs[0]?.profitShieldMargin != null) {
             rows.push({ cells: [{ value: "" }], isSeparator: true });
             rows.push({
-                cells: [{ value: "PROFIT SHIELD ANALYSIS", bold: true, header: true, span: 6 }],
+                cells: [{ value: "PROFIT SHIELD ANALYSIS", bold: true, header: true, span: 7 }],
                 isHeader: true,
             });
             rows.push({
                 cells: [
                     { value: "Target Price", bold: true },
+                    { value: "" },
                     { value: "" },
                     { value: "" },
                     { value: "" },
@@ -1468,6 +1472,7 @@ function buildMarginAnalysis(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
                     { value: `${calcs[0].profitShieldMargin.toFixed(1)}%` },
                     { value: "" },
                     { value: "" },
+                    { value: "" },
                     { value: calcs[0].profitShieldMargin >= 10 ? "VIABLE" : "WARNING: LOW MARGIN", bold: true, highlight: calcs[0].profitShieldMargin < 10 },
                 ],
             });
@@ -1477,7 +1482,7 @@ function buildMarginAnalysis(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
     return {
         name: "Margin Analysis",
         color: "#0A52EF",
-        columns: ["DISPLAY", "TOTAL COST", "MARGIN %", "SELL PRICE", "BOND", "FINAL TOTAL"],
+        columns: ["DISPLAY", "TOTAL COST", "MARGIN %", "MARGIN $", "SELL PRICE", "BOND", "FINAL TOTAL"],
         rows,
     };
 }
