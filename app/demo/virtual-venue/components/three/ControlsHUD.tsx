@@ -8,7 +8,7 @@ import {
   RectangleHorizontal,
   Eye,
   Sun,
-  Blend,
+  Contrast,
   Type,
   X,
   ChevronLeft,
@@ -23,8 +23,8 @@ interface ControlsHUDProps {
   setActiveView: (view: ViewMode) => void;
   brightness: number;
   setBrightness: (v: number) => void;
-  multiplyBlend: boolean;
-  setMultiplyBlend: (v: boolean) => void;
+  multiplyContrast: boolean;
+  setMultiplyContrast: (v: boolean) => void;
   clientName: string;
   setClientName: (v: string) => void;
   logoFile: File | null;
@@ -44,8 +44,8 @@ export default function ControlsHUD({
   setActiveView,
   brightness,
   setBrightness,
-  multiplyBlend,
-  setMultiplyBlend,
+  multiplyContrast,
+  setMultiplyContrast,
   clientName,
   setClientName,
   logoFile,
@@ -182,21 +182,21 @@ export default function ControlsHUD({
         />
       </div>
 
-      {/* Multiply Blend Toggle */}
+      {/* Multiply Contrast Toggle */}
       <div className="p-5 border-b border-white/5">
         <button
-          onClick={() => setMultiplyBlend(!multiplyBlend)}
+          onClick={() => setMultiplyContrast(!multiplyContrast)}
           className={cn(
             "w-full flex items-center gap-3 p-3 rounded-xl border transition-all",
-            multiplyBlend
+            multiplyContrast
               ? "bg-green-500/10 border-green-500/30"
               : "bg-slate-800/40 border-white/5"
           )}
         >
-          <Blend className={cn("w-4 h-4", multiplyBlend ? "text-green-400" : "text-slate-500")} />
+          <Contrast className={cn("w-4 h-4", multiplyContrast ? "text-green-400" : "text-slate-500")} />
           <div className="text-left flex-1">
-            <span className={cn("text-xs font-medium", multiplyBlend ? "text-green-400" : "text-slate-400")}>
-              Blend Mode
+            <span className={cn("text-xs font-medium", multiplyContrast ? "text-green-400" : "text-slate-400")}>
+              Contrast Mode
             </span>
             <p className="text-[10px] text-slate-500 mt-0.5">
               Removes white backgrounds from logos
@@ -204,11 +204,11 @@ export default function ControlsHUD({
           </div>
           <div className={cn(
             "w-8 h-4 rounded-full transition-all relative",
-            multiplyBlend ? "bg-green-500" : "bg-slate-600"
+            multiplyContrast ? "bg-green-500" : "bg-slate-600"
           )}>
             <div className={cn(
               "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all",
-              multiplyBlend ? "left-4" : "left-0.5"
+              multiplyContrast ? "left-4" : "left-0.5"
             )} />
           </div>
         </button>

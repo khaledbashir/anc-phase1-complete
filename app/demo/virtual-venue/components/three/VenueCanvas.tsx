@@ -2,7 +2,6 @@
 
 import { Suspense, useState, useEffect, useCallback, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { OrbitControls, Preload } from "@react-three/drei";
 import * as THREE from "three";
 import ArenaScene from "./ArenaScene";
@@ -86,7 +85,7 @@ export default function VenueCanvas() {
           gl={{
             antialias: true,
             toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 0.8,
+            toneMappingExposure: 1.2,
           }}
           camera={{
             fov: 50,
@@ -118,16 +117,6 @@ export default function VenueCanvas() {
               autoRotate={activeView === "all"}
               autoRotateSpeed={0.3}
             />
-
-            {/* Post-processing: bloom/glow for LED screens */}
-            <EffectComposer>
-              <Bloom
-                intensity={0.8}
-                luminanceThreshold={0.6}
-                luminanceSmoothing={0.3}
-                mipmapBlur
-              />
-            </EffectComposer>
 
             <Preload all />
           </Suspense>

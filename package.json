@@ -56,7 +56,6 @@
         "@react-email/tailwind": "^0.0.12",
         "@react-three/drei": "^9.117.3",
         "@react-three/fiber": "^8.17.10",
-        "@react-three/postprocessing": "^2.16.3",
         "@sentry/nextjs": "^10.38.0",
         "@types/jsonwebtoken": "^9.0.10",
         "@types/node": "20.6.2",

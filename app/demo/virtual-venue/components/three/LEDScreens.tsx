@@ -119,7 +119,7 @@ export default function LEDScreens({
     return createTextTexture(clientName, 2048, 256);
   }, [logoTexture, multiplyBlend, clientName]);
 
-  const emissiveIntensity = brightness * 2;
+  const emissiveIntensity = brightness * 3;
 
   return (
     <group ref={groupRef}>
