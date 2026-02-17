@@ -215,3 +215,47 @@ export const CAMERA_PRESETS: CameraPreset[] = [
   { id: "scoreboard", label: "Center Hung", description: "Main scoreboard close-up", pos: [0, 12, 18], target: [0, 14, 0], autoRotate: false },
   { id: "entrance", label: "Venue Entrance", description: "Marquee and exterior signage", pos: [0, 8, 50], target: [0, 6, 38], autoRotate: false },
 ];
+
+// ── Venue Types ──────────────────────────────────────────────────────────────
+export interface VenueType {
+  id: string;
+  name: string;
+  capacity: string;
+  courtColor: number;
+  courtShape: "rect" | "oval";
+  courtW: number;
+  courtH: number;
+  icon: string;
+  description: string;
+}
+
+export const VENUE_TYPES: VenueType[] = [
+  { id: "nba", name: "NBA Arena", capacity: "18,000", courtColor: 0x2a1f0a, courtShape: "rect", courtW: 16, courtH: 9, icon: "🏀", description: "Basketball arena with hardwood court" },
+  { id: "nhl", name: "NHL Arena", capacity: "18,500", courtColor: 0xd0dce8, courtShape: "oval", courtW: 17, courtH: 8, icon: "🏒", description: "Hockey rink with ice surface" },
+  { id: "nfl", name: "NFL Stadium", capacity: "70,000", courtColor: 0x1a3a1a, courtShape: "rect", courtW: 20, courtH: 10, icon: "🏈", description: "Football stadium with turf field" },
+  { id: "concert", name: "Concert Hall", capacity: "12,000", courtColor: 0x0a0a0a, courtShape: "rect", courtW: 12, courtH: 8, icon: "🎤", description: "Multi-purpose entertainment venue" },
+  { id: "mls", name: "MLS Stadium", capacity: "25,000", courtColor: 0x1a3a1a, courtShape: "rect", courtW: 22, courtH: 13, icon: "⚽", description: "Soccer stadium with natural pitch" },
+];
+
+// ── Scene Moods ──────────────────────────────────────────────────────────────
+export interface SceneMood {
+  id: string;
+  name: string;
+  description: string;
+  ambientIntensity: number;
+  spotIntensity: number;
+  fogNear: number;
+  fogFar: number;
+  fogColor: number;
+  exposure: number;
+  screenGlow: number;
+  accentColor: string;
+}
+
+export const SCENE_MOODS: SceneMood[] = [
+  { id: "game-night", name: "Game Night", description: "Dark & dramatic — screens pop", ambientIntensity: 0.2, spotIntensity: 100, fogNear: 30, fogFar: 130, fogColor: 0x030812, exposure: 1.4, screenGlow: 3.5, accentColor: "#0A52EF" },
+  { id: "concert", name: "Concert Mode", description: "Deep purple atmosphere", ambientIntensity: 0.1, spotIntensity: 120, fogNear: 20, fogFar: 100, fogColor: 0x0a0518, exposure: 1.6, screenGlow: 4.5, accentColor: "#9333EA" },
+  { id: "corporate", name: "Corporate Event", description: "Bright & professional", ambientIntensity: 0.6, spotIntensity: 60, fogNear: 50, fogFar: 160, fogColor: 0x0c1020, exposure: 1.8, screenGlow: 2.0, accentColor: "#0A52EF" },
+  { id: "bright", name: "Full Lights", description: "Maximum arena visibility", ambientIntensity: 1.0, spotIntensity: 40, fogNear: 60, fogFar: 200, fogColor: 0x101828, exposure: 2.2, screenGlow: 1.5, accentColor: "#FFFFFF" },
+  { id: "blackout", name: "Blackout", description: "Screens only — maximum impact", ambientIntensity: 0.02, spotIntensity: 15, fogNear: 10, fogFar: 60, fogColor: 0x000005, exposure: 1.0, screenGlow: 5.0, accentColor: "#03B8FF" },
+];

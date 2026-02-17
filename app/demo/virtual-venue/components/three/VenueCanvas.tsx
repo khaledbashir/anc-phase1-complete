@@ -4,8 +4,8 @@ import { useRef, useState, useEffect, useCallback } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import ControlsHUD from "./ControlsHUD";
-import { VENUE_ZONES, CAMERA_PRESETS, SERVICES_MULTIPLIER, DEFAULT_MARGIN } from "../../data/venueZones";
-import type { VenueZone } from "../../data/venueZones";
+import { VENUE_ZONES, CAMERA_PRESETS, SCENE_MOODS, VENUE_TYPES, SERVICES_MULTIPLIER, DEFAULT_MARGIN } from "../../data/venueZones";
+import type { VenueZone, SceneMood, VenueType } from "../../data/venueZones";
 
 // ─── Canvas text texture ────────────────────────────────────────────────────
 function makeTextTexture(text: string, w = 1024, h = 512): THREE.CanvasTexture {
@@ -55,19 +55,29 @@ function makeLogoTexture(img: HTMLImageElement, multiply: boolean, w = 1024, h =
   return tex;
 }
 
+interface SceneRefs {
+  scene: THREE.Scene;
+  ambient: THREE.AmbientLight;
+  spots: THREE.SpotLight[];
+  courtMesh: THREE.Mesh;
+  courtLines: THREE.Group;
+}
+
 // ─── Build the 3D scene ─────────────────────────────────────────────────────
-function buildScene() {
+function buildScene(): SceneRefs {
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0x030812, 30, 130);
 
   // Lights — dramatic arena lighting
-  scene.add(new THREE.AmbientLight(0x0a0a2a, 0.2));
+  const ambient = new THREE.AmbientLight(0x0a0a2a, 0.2);
+  scene.add(ambient);
   const spot1 = new THREE.SpotLight(0x4488ff, 100, 0, 0.6, 0.8);
   spot1.position.set(0, 35, 0); spot1.castShadow = true; scene.add(spot1);
   const spot2 = new THREE.SpotLight(0x0A52EF, 70, 0, 0.5, 0.7);
   spot2.position.set(20, 28, -15); scene.add(spot2);
   const spot3 = new THREE.SpotLight(0x03B8FF, 50, 0, 0.4, 0.9);
   spot3.position.set(-20, 24, 15); scene.add(spot3);
+  const spots = [spot1, spot2, spot3];
   // Rim lights for atmosphere
   [30, -30].forEach(x => {
     const p = new THREE.PointLight(0x0A52EF, 12, 70);
@@ -104,26 +114,27 @@ function buildScene() {
     tier.position.y = y; scene.add(tier);
   });
 
-  // Playing court — basketball court shape
-  const court = new THREE.Mesh(
+  // Playing court
+  const courtMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(16, 9),
     new THREE.MeshStandardMaterial({ color: 0x2a1f0a, roughness: 0.85, metalness: 0.05 })
   );
-  court.rotation.x = -Math.PI / 2; court.position.y = 0.02; scene.add(court);
-  // Court lines
+  courtMesh.rotation.x = -Math.PI / 2; courtMesh.position.y = 0.02; scene.add(courtMesh);
+
+  // Court lines group (so we can swap them per venue type)
+  const courtLines = new THREE.Group();
+  courtLines.name = "court-lines";
   const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
-  // Center circle
   const ccGeo = new THREE.TorusGeometry(1.5, 0.02, 8, 48);
   const cc = new THREE.Mesh(ccGeo, lineMat);
-  cc.rotation.x = -Math.PI / 2; cc.position.y = 0.03; scene.add(cc);
-  // Half court line
+  cc.rotation.x = -Math.PI / 2; cc.position.y = 0.03; courtLines.add(cc);
   const hcl = new THREE.Mesh(new THREE.PlaneGeometry(0.04, 9), lineMat);
-  hcl.rotation.x = -Math.PI / 2; hcl.position.y = 0.03; scene.add(hcl);
-  // Three point arcs (simplified as circles)
+  hcl.rotation.x = -Math.PI / 2; hcl.position.y = 0.03; courtLines.add(hcl);
   [-6, 6].forEach(x => {
     const arc = new THREE.Mesh(new THREE.TorusGeometry(2.5, 0.02, 8, 32), lineMat);
-    arc.rotation.x = -Math.PI / 2; arc.position.set(x, 0.03, 0); scene.add(arc);
+    arc.rotation.x = -Math.PI / 2; arc.position.set(x, 0.03, 0); courtLines.add(arc);
   });
+  scene.add(courtLines);
 
   // Atmosphere particles
   const starGeo = new THREE.BufferGeometry();
@@ -138,7 +149,7 @@ function buildScene() {
   const rig = new THREE.Mesh(new THREE.TorusGeometry(10, 0.15, 6, 48), rigMat);
   rig.position.y = 22; scene.add(rig);
 
-  return { scene };
+  return { scene, ambient, spots, courtMesh, courtLines };
 }
 
 // ─── Build zone-grouped LED screen meshes ───────────────────────────────────
@@ -322,6 +333,7 @@ export default function VenueCanvas() {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const zoneGroupsRef = useRef<Map<string, THREE.Group>>(new Map());
+  const sceneRefsRef = useRef<SceneRefs | null>(null);
   const animIdRef = useRef<number>(0);
 
   const [activeCameraId, setActiveCameraId] = useState("overview");
@@ -332,6 +344,9 @@ export default function VenueCanvas() {
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [activeZoneIds, setActiveZoneIds] = useState<Set<string>>(() => new Set(VENUE_ZONES.map(z => z.id)));
+  const [sceneMoodId, setSceneMoodId] = useState("game-night");
+  const [venueTypeId, setVenueTypeId] = useState("nba");
+  const [beforeAfter, setBeforeAfter] = useState(false);
 
   // Camera lerp targets
   const camTarget = useRef({ pos: new THREE.Vector3(22, 16, 28), look: new THREE.Vector3(0, 6, 0) });
@@ -383,8 +398,10 @@ export default function VenueCanvas() {
     camera.position.set(22, 16, 28);
     cameraRef.current = camera;
 
-    const { scene } = buildScene();
-    sceneRef.current = scene;
+    const sceneRefs = buildScene();
+    sceneRef.current = sceneRefs.scene;
+    sceneRefsRef.current = sceneRefs;
+    const { scene } = sceneRefs;
 
     const tex = makeTextTexture("");
     const zoneGroups = buildZoneGroups(scene, tex);
@@ -431,12 +448,50 @@ export default function VenueCanvas() {
     };
   }, []);
 
-  // Sync zone visibility with 3D
+  // Sync zone visibility with 3D + before/after
   useEffect(() => {
     zoneGroupsRef.current.forEach((group, zoneId) => {
-      group.visible = activeZoneIds.has(zoneId);
+      group.visible = beforeAfter ? false : activeZoneIds.has(zoneId);
     });
-  }, [activeZoneIds]);
+  }, [activeZoneIds, beforeAfter]);
+
+  // Apply scene mood
+  useEffect(() => {
+    const refs = sceneRefsRef.current;
+    const renderer = rendererRef.current;
+    if (!refs || !renderer) return;
+    const mood = SCENE_MOODS.find(m => m.id === sceneMoodId) || SCENE_MOODS[0];
+    refs.ambient.intensity = mood.ambientIntensity;
+    refs.spots.forEach(s => { s.intensity = mood.spotIntensity; });
+    if (refs.scene.fog instanceof THREE.Fog) {
+      refs.scene.fog.near = mood.fogNear;
+      refs.scene.fog.far = mood.fogFar;
+      refs.scene.fog.color.setHex(mood.fogColor);
+    }
+    renderer.toneMappingExposure = mood.exposure;
+    // Update screen glow
+    zoneGroupsRef.current.forEach(group => {
+      group.traverse(child => {
+        if (child instanceof THREE.Mesh && child.material instanceof THREE.MeshStandardMaterial && child.material.emissiveMap) {
+          child.material.emissiveIntensity = mood.screenGlow;
+          child.material.needsUpdate = true;
+        }
+      });
+    });
+  }, [sceneMoodId]);
+
+  // Apply venue type (court color/size)
+  useEffect(() => {
+    const refs = sceneRefsRef.current;
+    if (!refs) return;
+    const vt = VENUE_TYPES.find(v => v.id === venueTypeId) || VENUE_TYPES[0];
+    const courtMat = refs.courtMesh.material as THREE.MeshStandardMaterial;
+    courtMat.color.setHex(vt.courtColor);
+    courtMat.needsUpdate = true;
+    // Resize court geometry
+    refs.courtMesh.geometry.dispose();
+    refs.courtMesh.geometry = new THREE.PlaneGeometry(vt.courtW, vt.courtH);
+  }, [venueTypeId]);
 
   // Update camera
   useEffect(() => {
@@ -513,6 +568,12 @@ export default function VenueCanvas() {
         totalAnnualRevenue={totalAnnualRevenue}
         activeZoneCount={activeZoneData.length}
         takeScreenshot={takeScreenshot}
+        sceneMoodId={sceneMoodId}
+        setSceneMoodId={setSceneMoodId}
+        venueTypeId={venueTypeId}
+        setVenueTypeId={setVenueTypeId}
+        beforeAfter={beforeAfter}
+        setBeforeAfter={setBeforeAfter}
       />
 
       <div ref={containerRef} className="absolute inset-0 pl-[380px]" />

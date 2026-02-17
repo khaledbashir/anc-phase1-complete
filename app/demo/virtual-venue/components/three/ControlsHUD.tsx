@@ -18,11 +18,14 @@ import {
   Package,
   Zap,
   RotateCcw,
-  Info,
+  Eye,
+  EyeOff,
+  Lightbulb,
+  Building,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { VENUE_ZONES, CAMERA_PRESETS, PACKAGE_PRESETS, SERVICES_MULTIPLIER, DEFAULT_MARGIN } from "../../data/venueZones";
+import { VENUE_ZONES, CAMERA_PRESETS, PACKAGE_PRESETS, SCENE_MOODS, VENUE_TYPES, SERVICES_MULTIPLIER, DEFAULT_MARGIN } from "../../data/venueZones";
 
 type TabId = "configure" | "brand" | "value";
 
@@ -46,6 +49,12 @@ interface ControlsHUDProps {
   totalAnnualRevenue: number;
   activeZoneCount: number;
   takeScreenshot: () => void;
+  sceneMoodId: string;
+  setSceneMoodId: (id: string) => void;
+  venueTypeId: string;
+  setVenueTypeId: (id: string) => void;
+  beforeAfter: boolean;
+  setBeforeAfter: (v: boolean) => void;
 }
 
 const TABS: { id: TabId; label: string; icon: any }[] = [
@@ -66,6 +75,9 @@ export default function ControlsHUD({
   activeZoneIds, toggleZone, setZoneSet,
   totalHardware, totalSell, totalAnnualRevenue,
   activeZoneCount, takeScreenshot,
+  sceneMoodId, setSceneMoodId,
+  venueTypeId, setVenueTypeId,
+  beforeAfter, setBeforeAfter,
 }: ControlsHUDProps) {
   const [activeTab, setActiveTab] = useState<TabId>("configure");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -125,6 +137,83 @@ export default function ControlsHUD({
         {/* ═══ CONFIGURE TAB ═══ */}
         {activeTab === "configure" && (
           <div className="space-y-0">
+            {/* Venue Type */}
+            <div className="p-4 border-b border-white/[0.04]">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5 block">Venue Type</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {VENUE_TYPES.map(vt => (
+                  <button
+                    key={vt.id}
+                    onClick={() => setVenueTypeId(vt.id)}
+                    className={cn(
+                      "flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all text-center",
+                      venueTypeId === vt.id
+                        ? "bg-[#0A52EF]/10 border-[#0A52EF]/30"
+                        : "border-white/[0.04] hover:bg-white/[0.03] hover:border-white/10"
+                    )}
+                  >
+                    <span className="text-base">{vt.icon}</span>
+                    <span className={cn("text-[9px] font-semibold", venueTypeId === vt.id ? "text-white" : "text-slate-400")}>{vt.name}</span>
+                    <span className="text-[8px] text-slate-600">{vt.capacity}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Scene Mood */}
+            <div className="p-4 border-b border-white/[0.04]">
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5 flex items-center gap-1.5">
+                <Lightbulb className="w-3 h-3" />
+                Scene Mood
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {SCENE_MOODS.map(mood => (
+                  <button
+                    key={mood.id}
+                    onClick={() => setSceneMoodId(mood.id)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-lg border transition-all text-[10px] font-medium",
+                      sceneMoodId === mood.id
+                        ? "border-white/20 bg-white/[0.08] text-white"
+                        : "border-white/[0.04] text-slate-500 hover:text-slate-300 hover:bg-white/[0.03]"
+                    )}
+                  >
+                    {mood.name}
+                  </button>
+                ))}
+              </div>
+              {(() => {
+                const m = SCENE_MOODS.find(m => m.id === sceneMoodId);
+                return m ? <p className="text-[9px] text-slate-600 mt-2">{m.description}</p> : null;
+              })()}
+            </div>
+
+            {/* Before/After Toggle */}
+            <div className="p-4 border-b border-white/[0.04]">
+              <button
+                onClick={() => setBeforeAfter(!beforeAfter)}
+                className={cn(
+                  "w-full flex items-center gap-3 p-3 rounded-xl border transition-all",
+                  beforeAfter
+                    ? "bg-amber-500/10 border-amber-500/25"
+                    : "bg-white/[0.02] border-white/[0.04]"
+                )}
+              >
+                {beforeAfter ? <EyeOff className="w-4 h-4 text-amber-400" /> : <Eye className="w-4 h-4 text-slate-500" />}
+                <div className="text-left flex-1">
+                  <span className={cn("text-xs font-medium", beforeAfter ? "text-amber-400" : "text-slate-400")}>
+                    {beforeAfter ? "Before: Empty Venue" : "After: ANC Equipped"}
+                  </span>
+                  <p className="text-[10px] text-slate-600 mt-0.5">
+                    {beforeAfter ? "Showing venue without LED screens" : "Toggle to see empty venue comparison"}
+                  </p>
+                </div>
+                <div className={cn("w-8 h-4 rounded-full transition-all relative", beforeAfter ? "bg-amber-500" : "bg-slate-600")}>
+                  <div className={cn("absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all shadow-sm", beforeAfter ? "left-4" : "left-0.5")} />
+                </div>
+              </button>
+            </div>
+
             {/* Package Presets */}
             <div className="p-4 border-b border-white/[0.04]">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5 block">Quick Packages</label>
