@@ -11,7 +11,8 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { useConfirm } from "@/hooks/useConfirm";
-import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes, Search, Shield, Send, GitCompare, FileText } from "lucide-react";
+import dynamic from "next/dynamic";
+import { FileSpreadsheet, ArrowLeft, Download, Loader2, MessageSquare, Copy, ArrowRightLeft, Package, Boxes, Search, Shield, Send, GitCompare, FileText, Box } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QuestionFlow from "./QuestionFlow";
@@ -32,6 +33,8 @@ import { useProductSpecs } from "@/hooks/useProductSpecs";
 import { exportEstimatorExcel } from "./exportEstimatorExcel";
 import { useRateCard } from "@/hooks/useRateCard";
 import { useEstimatorAutoSave } from "@/hooks/useEstimatorAutoSave";
+
+const EstimatorVenuePanel = dynamic(() => import("./EstimatorVenuePanel"), { ssr: false });
 
 const SHEET_COLORS = ["#6366F1", "#EC4899", "#14B8A6", "#F59E0B", "#8B5CF6", "#EF4444"];
 
@@ -61,6 +64,7 @@ export default function EstimatorStudio({
     const [rfqOpen, setRfqOpen] = useState(false);
     const [revisionOpen, setRevisionOpen] = useState(false);
     const [cutSheetOpen, setCutSheetOpen] = useState(false);
+    const [venueOpen, setVenueOpen] = useState(false);
     // Cell overrides: key = "sheetIdx-rowIdx-colIdx", value = edited value
     const [cellOverrides, setCellOverrides] = useState<Record<string, string | number>>(initialCellOverrides || {});
     // User-added custom sheets
@@ -335,6 +339,24 @@ export default function EstimatorStudio({
                         </>
                     )}
                     <ToolDescription
+                        label="3D Arena Preview"
+                        description="Live 3D visualization of the arena showing which LED zones correspond to your configured displays. Zones light up as you add displays to the estimate."
+                        whenToUse="After adding one or more displays. See your proposal come to life in 3D."
+                        benefit="Helps clients visualize the venue and closes deals faster."
+                    >
+                        <button
+                            onClick={() => setVenueOpen((v) => !v)}
+                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+                                venueOpen
+                                    ? "bg-[#0A52EF] text-white"
+                                    : "border border-border text-muted-foreground hover:bg-muted"
+                            }`}
+                        >
+                            <Box className="w-3 h-3" />
+                            3D
+                        </button>
+                    </ToolDescription>
+                    <ToolDescription
                         label="Smart Assembly Bundle"
                         description="Auto-suggests hidden line items you might forget: video processors, receiving cards, spare modules, mounting brackets, cable kits, and more."
                         whenToUse="After adding displays. Review before exporting to catch missing accessories."
@@ -580,6 +602,15 @@ export default function EstimatorStudio({
                                 onClose={() => setCutSheetOpen(false)}
                                 answers={answers}
                                 calcs={calcs}
+                            />
+                        </div>
+                    )}
+                    {/* 3D Arena preview panel overlay */}
+                    {venueOpen && (
+                        <div className="absolute inset-0 z-20 bg-[#030812] rounded-lg border border-border shadow-lg overflow-hidden">
+                            <EstimatorVenuePanel
+                                displays={answers.displays}
+                                onClose={() => setVenueOpen(false)}
                             />
                         </div>
                     )}
