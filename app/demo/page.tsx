@@ -40,7 +40,7 @@ export default function DemoPage() {
             </span>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground mb-2">
-            The Jireh Package
+            Sales Toolkit
           </h1>
           <p className="text-base text-muted-foreground max-w-2xl">
             Revenue-focused tools that help close bigger deals. Vote on what matters most.

@@ -21,7 +21,6 @@ import {
     Lock,
     LogOut,
     BarChart3,
-    Sparkles,
     Kanban,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -37,7 +36,8 @@ const mainMenuItems = [
 const toolsMenuItems = [
     { icon: SlidersHorizontal, label: "PDF Filter", href: "/tools/pdf-filter", allowedRoles: null }, // All roles
     { icon: Calculator, label: "Estimator", href: "/estimator", allowedRoles: null },
-    { icon: Sparkles, label: "Demo Lab", href: "/demo", allowedRoles: null },
+    // Demo Lab hidden from nav — accessible via direct URL /demo
+    // { icon: Sparkles, label: "Demo Lab", href: "/demo", allowedRoles: null },
 ];
 
 const settingsMenuItems = [

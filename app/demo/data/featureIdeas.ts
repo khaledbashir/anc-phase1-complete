@@ -1,7 +1,6 @@
 import {
   Building2,
   TrendingUp,
-  ImageIcon,
   Shield,
   FileSearch,
   Globe,
@@ -27,8 +26,8 @@ export const FEATURE_IDEAS: DemoFeature[] = [
     id: "virtual-venue",
     title: "Virtual Venue Visualizer",
     description:
-      "Toggle LED add-ons live in front of the client. Ribbon boards light up, price updates, the stadium comes alive.",
-    benefit: "Upsell machine — clients can't say no when the stadium looks empty without screens.",
+      "Toggle LED displays and drag sponsor logos onto screens — live pricing, instant mock-ups. The stadium sells itself.",
+    benefit: "Upsell machine + sponsor commitment tool. Clients see the vision, sponsors commit before the deal is signed.",
     status: "live",
     icon: Building2,
     demoHref: "/demo/virtual-venue",
@@ -46,18 +45,6 @@ export const FEATURE_IDEAS: DemoFeature[] = [
     demoHref: "/demo/roi-calculator",
     accentColor: "#10B981",
     seedVotes: { up: 11, down: 1 },
-  },
-  {
-    id: "sponsor-mockup",
-    title: "Sponsor Mock-Up Generator",
-    description:
-      "Drag Coca-Cola or a local bank logo onto the screen in the visualizer. Send the image to the sponsor to secure the ad buy.",
-    benefit: "Use Other People's Money — get sponsors to commit before the deal is signed.",
-    status: "live",
-    icon: ImageIcon,
-    demoHref: "/demo/virtual-venue",
-    accentColor: "#F59E0B",
-    seedVotes: { up: 9, down: 0 },
   },
   {
     id: "multi-vendor-compare",
