@@ -30,6 +30,15 @@ const ROUTE_RULES: Array<{
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
+
+  // Canonicalize malformed paths like //demo/virtual-venue-v2 -> /demo/virtual-venue-v2
+  // to avoid client-side history.replaceState cross-origin parsing issues.
+  const normalizedPath = pathname.replace(/\/{2,}/g, "/");
+  if (normalizedPath !== pathname) {
+    const normalizedUrl = req.nextUrl.clone();
+    normalizedUrl.pathname = normalizedPath;
+    return NextResponse.redirect(normalizedUrl);
+  }
   
   // Public routes — no auth needed
   if (
