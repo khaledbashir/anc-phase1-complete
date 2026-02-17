@@ -20,14 +20,7 @@ const nextConfig = {
                 fs: false,
                 path: false,
             };
-            // Force a single React copy for @react-three/* and all other deps
-            config.resolve.alias = {
-                ...config.resolve.alias,
-                react: path.resolve(__dirname, "node_modules/react"),
-                "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
-                "react/jsx-runtime": path.resolve(__dirname, "node_modules/react/jsx-runtime"),
-                "react/jsx-dev-runtime": path.resolve(__dirname, "node_modules/react/jsx-dev-runtime"),
-            };
+
         }
         return config;
     },
