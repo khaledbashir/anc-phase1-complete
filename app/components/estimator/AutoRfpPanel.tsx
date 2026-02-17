@@ -81,10 +81,49 @@ export default function AutoRfpPanel({ open, onClose, projectId, onApply }: Auto
     const [excludedScreens, setExcludedScreens] = useState<Set<number>>(new Set());
     const [showDetails, setShowDetails] = useState<number | null>(null);
 
+    const [uploading, setUploading] = useState(false);
+    const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+    const [uploadWorkspaceSlug, setUploadWorkspaceSlug] = useState<string | null>(null);
+
     // Input mode: workspace (from proposal) or direct text
-    const [inputMode, setInputMode] = useState<"workspace" | "text">(projectId ? "workspace" : "text");
+    const [inputMode, setInputMode] = useState<"workspace" | "upload" | "text">(projectId ? "upload" : "text");
     const [directText, setDirectText] = useState("");
     const [workspaceSlug, setWorkspaceSlug] = useState("");
+
+    const handleUploadFile = useCallback(async (file: File) => {
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith(".pdf")) {
+            throw new Error("Only PDF files are supported for RFP upload");
+        }
+        if (!projectId) {
+            throw new Error("This estimate is not linked to a saved project yet. Open /estimator (not a draft preview) and try again.");
+        }
+
+        setUploading(true);
+        setUploadedFileName(file.name);
+        setUploadWorkspaceSlug(null);
+
+        const form = new FormData();
+        form.append("file", file);
+        form.append("proposalId", projectId);
+
+        const res = await fetch("/api/rfp/upload", {
+            method: "POST",
+            body: form,
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data?.ok) {
+            throw new Error(data?.error || `Upload failed (${res.status})`);
+        }
+
+        if (!data.workspaceSlug) {
+            throw new Error("Upload succeeded but no workspaceSlug returned. Check AnythingLLM configuration.");
+        }
+
+        setUploadWorkspaceSlug(String(data.workspaceSlug));
+        return String(data.workspaceSlug);
+    }, [projectId]);
 
     const handleExtract = useCallback(async () => {
         setPhase("extracting");
@@ -92,21 +131,7 @@ export default function AutoRfpPanel({ open, onClose, projectId, onApply }: Auto
         setResult(null);
         setExcludedScreens(new Set());
 
-        try {
-            const body: any = {};
-            if (inputMode === "workspace") {
-                if (projectId) {
-                    body.proposalId = projectId;
-                } else if (workspaceSlug) {
-                    body.workspaceSlug = workspaceSlug;
-                } else {
-                    throw new Error("No proposal or workspace specified");
-                }
-            } else {
-                if (!directText.trim()) throw new Error("Paste RFP text to extract from");
-                body.text = directText.trim();
-            }
-
+        const runExtraction = async (body: any) => {
             const res = await fetch("/api/rfp/auto-response", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -125,11 +150,100 @@ export default function AutoRfpPanel({ open, onClose, projectId, onApply }: Auto
 
             setResult(data);
             setPhase("review");
+        };
+
+        try {
+            const body: any = {};
+            if (inputMode === "upload") {
+                // If user uploaded, we prefer the upload-created workspaceSlug.
+                if (uploadWorkspaceSlug) {
+                    body.workspaceSlug = uploadWorkspaceSlug;
+                } else if (projectId) {
+                    body.proposalId = projectId;
+                } else {
+                    throw new Error("No project available for upload mode");
+                }
+            } else if (inputMode === "workspace") {
+                if (projectId) {
+                    body.proposalId = projectId;
+                } else if (workspaceSlug) {
+                    body.workspaceSlug = workspaceSlug;
+                } else {
+                    throw new Error("No proposal or workspace specified");
+                }
+            } else {
+                if (!directText.trim()) throw new Error("Paste RFP text to extract from");
+                body.text = directText.trim();
+            }
+
+            await runExtraction(body);
         } catch (err: any) {
             setError(err.message || "Extraction failed");
             setPhase("error");
         }
-    }, [inputMode, projectId, workspaceSlug, directText]);
+    }, [inputMode, projectId, workspaceSlug, directText, uploadWorkspaceSlug]);
+
+    const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setError(null);
+        const file = e.dataTransfer.files?.[0];
+        if (!file) return;
+        try {
+            setPhase("extracting");
+            const slug = await handleUploadFile(file);
+            await (async () => {
+                const res = await fetch("/api/rfp/auto-response", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ workspaceSlug: slug }),
+                });
+                const data: AutoRfpResponse = await res.json();
+                if (!data.ok || !data.estimatorAnswers) {
+                    throw new Error(data.error || "Extraction returned no results");
+                }
+                if (!data.screens || data.screens.length === 0) {
+                    throw new Error("No screen requirements found in the RFP. The document may not contain LED display specifications.");
+                }
+                setResult(data);
+                setPhase("review");
+            })();
+        } catch (err: any) {
+            setError(err.message || "Upload failed");
+            setPhase("error");
+        } finally {
+            setUploading(false);
+        }
+    }, [handleUploadFile]);
+
+    const handleFilePick = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = "";
+        if (!file) return;
+        try {
+            setPhase("extracting");
+            const slug = await handleUploadFile(file);
+            const res = await fetch("/api/rfp/auto-response", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ workspaceSlug: slug }),
+            });
+            const data: AutoRfpResponse = await res.json();
+            if (!data.ok || !data.estimatorAnswers) {
+                throw new Error(data.error || "Extraction returned no results");
+            }
+            if (!data.screens || data.screens.length === 0) {
+                throw new Error("No screen requirements found in the RFP. The document may not contain LED display specifications.");
+            }
+            setResult(data);
+            setPhase("review");
+        } catch (err: any) {
+            setError(err.message || "Upload failed");
+            setPhase("error");
+        } finally {
+            setUploading(false);
+        }
+    }, [handleUploadFile]);
 
     const handleApply = useCallback(() => {
         if (!result?.estimatorAnswers) return;
@@ -185,6 +299,18 @@ export default function AutoRfpPanel({ open, onClose, projectId, onApply }: Auto
                         <div className="flex gap-1 bg-muted/50 rounded p-0.5">
                             {projectId && (
                                 <button
+                                    onClick={() => setInputMode("upload")}
+                                    className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                                        inputMode === "upload"
+                                            ? "bg-background shadow-sm text-foreground"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    }`}
+                                >
+                                    Upload PDF
+                                </button>
+                            )}
+                            {projectId && (
+                                <button
                                     onClick={() => setInputMode("workspace")}
                                     className={`flex-1 px-3 py-1.5 rounded text-xs font-medium transition-all ${
                                         inputMode === "workspace"
@@ -217,6 +343,34 @@ export default function AutoRfpPanel({ open, onClose, projectId, onApply }: Auto
                                 Paste Text
                             </button>
                         </div>
+
+                        {inputMode === "upload" && (
+                            <div className="space-y-2">
+                                <div
+                                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                    onDrop={handleDrop}
+                                    className="border-2 border-dashed border-border rounded-lg p-6 text-center bg-muted/20 hover:bg-muted/30 transition-colors"
+                                >
+                                    <p className="text-sm font-medium text-foreground">Drag & drop the RFP PDF here</p>
+                                    <p className="text-xs text-muted-foreground mt-1">We upload it, embed it to AnythingLLM, then auto-extract screens.</p>
+                                    <div className="mt-3">
+                                        <label className="inline-flex items-center justify-center px-3 py-2 rounded bg-[#0A52EF] text-white text-xs font-medium cursor-pointer hover:bg-[#0A52EF]/90 transition-colors">
+                                            Choose PDF
+                                            <input type="file" accept="application/pdf" className="hidden" onChange={handleFilePick} />
+                                        </label>
+                                    </div>
+                                    {(uploadedFileName || uploadWorkspaceSlug) && (
+                                        <p className="text-[10px] text-muted-foreground mt-3">
+                                            {uploadedFileName ? `Last upload: ${uploadedFileName}` : ""}
+                                            {uploadWorkspaceSlug ? ` · Workspace: ${uploadWorkspaceSlug}` : ""}
+                                        </p>
+                                    )}
+                                </div>
+                                <p className="text-[10px] text-muted-foreground">
+                                    This attaches to the current estimate project and creates/uses its AnythingLLM workspace.
+                                </p>
+                            </div>
+                        )}
 
                         {inputMode === "workspace" && !projectId && (
                             <div>
@@ -261,11 +415,11 @@ export default function AutoRfpPanel({ open, onClose, projectId, onApply }: Auto
 
                         <button
                             onClick={handleExtract}
-                            disabled={inputMode === "text" && !directText.trim()}
+                            disabled={(inputMode === "text" && !directText.trim()) || uploading}
                             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#0A52EF] text-white rounded text-sm font-medium hover:bg-[#0A52EF]/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            <FileSearch className="w-4 h-4" />
-                            Extract Screen Requirements
+                            {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSearch className="w-4 h-4" />}
+                            {uploading ? "Uploading..." : "Extract Screen Requirements"}
                         </button>
                     </div>
                 )}
