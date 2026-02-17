@@ -42,7 +42,7 @@ const toolsMenuItems = [
 
 const settingsMenuItems = [
     { icon: UserCircle, label: "Profile", href: "/settings/profile", allowedRoles: null },
-    { icon: Bell, label: "Notifications", href: "/settings/notifications", soon: true, allowedRoles: null },
+    { icon: Bell, label: "Notifications", href: "/settings/notifications", soon: true, demoPhase: "3", allowedRoles: null },
     { icon: Users, label: "Users", href: "/admin/users", allowedRoles: ["ADMIN"] as UserRole[] },
 ];
 
@@ -70,6 +70,7 @@ const adminMenuItems = [
         icon: BarChart3,
         label: "Performance",
         href: "/admin/performance",
+        demoPhase: "3",
         allowedRoles: ["ADMIN", "ESTIMATOR", "PROPOSAL_LEAD"] as UserRole[],
     },
 ];
@@ -385,6 +386,11 @@ export default function DashboardSidebar() {
                                                 <item.icon className="w-5 h-5" />
                                                 <span className="text-sm font-medium">{item.label}</span>
                                                 {item.soon && <span className="text-[10px] uppercase tracking-wider text-muted-foreground ml-auto">Soon</span>}
+                                                {item.demoPhase && (
+                                                    <span className="text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400 ml-2">
+                                                        Demo for Phase {item.demoPhase}
+                                                    </span>
+                                                )}
                                             </Link>
                                         );
                                     })}
@@ -417,6 +423,11 @@ export default function DashboardSidebar() {
                                                 >
                                                     <item.icon className="w-5 h-5" />
                                                     <span className="text-sm font-medium flex-1">{item.label}</span>
+                                                    {item.demoPhase && (
+                                                        <span className="text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                                                            Demo for Phase {item.demoPhase}
+                                                        </span>
+                                                    )}
                                                     {item.beta && (
                                                         <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">BETA</span>
                                                     )}

@@ -16,6 +16,7 @@ import {
   MapPin,
   Copy,
   Check,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -225,6 +226,12 @@ export default function PerformanceReportViewer({ report }: Props) {
                 <h1 className="text-2xl font-bold tracking-tight">
                   Proof of Performance
                 </h1>
+                <div className="mt-2">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-indigo-300/40 bg-indigo-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-200">
+                    <Sparkles className="h-3 w-3" />
+                    Demo for Phase 3
+                  </span>
+                </div>
                 <h2 className="text-lg font-light text-white/70 mt-1">
                   Certificate of Advertising Compliance
                 </h2>

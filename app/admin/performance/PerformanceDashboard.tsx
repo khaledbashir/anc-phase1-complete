@@ -17,6 +17,7 @@ import {
   Database,
   CheckCircle,
   Zap,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -200,6 +201,10 @@ export default function PerformanceDashboard({ initialVenues, initialSponsors, i
           <h1 className="text-3xl font-normal text-foreground serif-vault flex items-center gap-3">
             <BarChart3 className="w-8 h-8 text-brand-blue" />
             Proof of Performance
+            <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
+              <Sparkles className="h-3 w-3" />
+              Demo for Phase 3
+            </span>
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-xl">
             Track ad plays across installed screens. Generate branded compliance reports for sponsors.
