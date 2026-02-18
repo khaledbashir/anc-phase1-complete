@@ -34,6 +34,7 @@ import ModeSelector, { type WorkflowMode } from "@/app/components/proposal/form/
 import RfpIngestion from "@/app/components/proposal/form/wizard/RfpIngestion";
 import ColumnMapper from "@/app/components/proposal/form/wizard/ColumnMapper";
 import MappingWizard from "@/app/components/import/MappingWizard";
+import SpecSheetButton from "@/app/components/proposal/form/wizard/SpecSheetButton";
 import { isModeUnselected, isMirrorMode as checkMirrorMode } from "@/lib/modeDetection";
 
 const Step1Ingestion = () => {
@@ -161,6 +162,10 @@ const Step1Ingestion = () => {
                                 <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-background shadow-[0_0_6px_rgba(52,211,153,0.5)]" />
                             )}
                         </button>
+                    )}
+
+                    {excelPreview && importedExcelFile && (
+                        <SpecSheetButton file={importedExcelFile} />
                     )}
 
                     {excelPreview && (

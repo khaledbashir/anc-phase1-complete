@@ -1,0 +1,151 @@
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+import { NextRequest, NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
+import * as xlsx from "xlsx";
+import { parseFormSheet } from "@/services/specsheet/formSheetParser";
+import { renderSpecSheetHtml } from "@/services/specsheet/specSheetRenderer";
+
+function getRequestOrigin(req: NextRequest): string {
+    const xfProto = req.headers.get("x-forwarded-proto");
+    const xfHost = req.headers.get("x-forwarded-host");
+    const host = xfHost || req.headers.get("host");
+    const proto = (xfProto || req.nextUrl.protocol.replace(":", "") || "http").split(",")[0].trim() || "http";
+    if (host) {
+        const cleanHost = host.split(",")[0].trim();
+        return `${proto}://${cleanHost}`;
+    }
+    return req.nextUrl.origin;
+}
+
+export async function POST(req: NextRequest) {
+    let browser: any;
+    let page: any;
+
+    try {
+        const formData = await req.formData();
+        const file = formData.get("file") as File;
+        const overridesRaw = formData.get("overrides") as string | null;
+
+        if (!file) {
+            return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+        }
+
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const workbook = xlsx.read(buffer, { type: "buffer" });
+
+        const result = parseFormSheet(workbook);
+        if (result.displays.length === 0) {
+            return NextResponse.json({
+                error: "No displays found in FORM sheet",
+                warnings: result.warnings,
+                help: [
+                    "Make sure the workbook has a 'Form' tab with display data.",
+                    "The Form tab should have a 'Display Name (Use)' row with one column per display.",
+                ],
+            }, { status: 422 });
+        }
+
+        // Apply manual overrides if provided
+        if (overridesRaw) {
+            try {
+                const overrides = JSON.parse(overridesRaw) as Record<string, Record<string, string>>;
+                for (const d of result.displays) {
+                    const dOverrides = overrides[String(d.index)];
+                    if (dOverrides) {
+                        for (const [key, value] of Object.entries(dOverrides)) {
+                            if (key in d && value !== undefined && value !== null) {
+                                (d as any)[key] = value;
+                            }
+                        }
+                    }
+                }
+            } catch {
+                console.warn("[SPEC SHEET] Failed to parse overrides JSON");
+            }
+        }
+
+        const origin = getRequestOrigin(req).replace(/\/+$/, "");
+        const html = renderSpecSheetHtml(result, origin);
+
+        // Puppeteer PDF generation — same pattern as proposal PDFs
+        const puppeteer = (await import("puppeteer-core")).default;
+        const internalUrl = process.env.BROWSERLESS_INTERNAL_URL || "ws://basheer_browserless:3000";
+        const externalUrl = process.env.BROWSERLESS_URL;
+
+        try {
+            browser = await puppeteer.connect({ browserWSEndpoint: internalUrl });
+        } catch {
+            console.log("[SPEC SHEET] Internal Browserless unavailable, trying external");
+        }
+
+        if (!browser && externalUrl) {
+            try {
+                browser = await puppeteer.connect({ browserWSEndpoint: externalUrl });
+            } catch {
+                console.error("[SPEC SHEET] External Browserless also unavailable");
+            }
+        }
+
+        if (!browser) {
+            const chromium = (await import("@sparticuz/chromium")).default;
+            const execPath = process.env.PUPPETEER_EXECUTABLE_PATH || (await chromium.executablePath());
+            browser = await puppeteer.launch({
+                args: [...chromium.args, "--disable-dev-shm-usage", "--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
+                executablePath: execPath,
+                headless: true,
+            });
+        }
+
+        page = await browser.newPage();
+        await page.setViewport({ width: 794, height: 1122, deviceScaleFactor: 1 });
+        await page.setContent(html, { waitUntil: ["domcontentloaded", "load"], timeout: 30000 });
+
+        try {
+            await page.evaluate(async () => {
+                if ((document as any).fonts?.ready) await (document as any).fonts.ready;
+            });
+        } catch {}
+
+        const pdf: Uint8Array = await page.pdf({
+            width: "8.5in",
+            height: "11in",
+            printBackground: true,
+            displayHeaderFooter: true,
+            headerTemplate: '<div style="font-size:1px;"></div>',
+            footerTemplate: `
+                <div style="font-family: 'Helvetica Neue', Arial, sans-serif; width: 100%; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; padding-top: 4px; box-sizing: border-box;">
+                    <div style="font-size: 7.5px; font-weight: 600; color: #0A52EF; letter-spacing: 0.3px;">www.anc.com</div>
+                    <div style="font-size: 7px; color: #94a3b8;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
+                </div>
+            `,
+            margin: { top: "20px", bottom: "40px", left: "20px", right: "20px" },
+        });
+
+        const projectName = result.projectName || "Spec_Sheets";
+        const safeName = projectName.replace(/[^a-zA-Z0-9_\- ]/g, "").replace(/\s+/g, "_");
+
+        return new NextResponse(new Blob([pdf as any], { type: "application/pdf" }), {
+            headers: {
+                "Content-Type": "application/pdf",
+                "Content-Disposition": `attachment; filename="${safeName}_Spec_Sheets.pdf"`,
+                "Cache-Control": "no-cache",
+            },
+            status: 200,
+        });
+    } catch (error: any) {
+        Sentry.captureException(error, { tags: { area: "specsheet-generation" } });
+        console.error("[SPEC SHEET] Generation error:", error);
+        return NextResponse.json({ error: "Failed to generate spec sheets", message: String(error?.message || error) }, { status: 500 });
+    } finally {
+        if (page) try { await page.close(); } catch {}
+        if (browser) {
+            try {
+                const pages = await browser.pages();
+                await Promise.all(pages.map((p: any) => p.close()));
+                await browser.close();
+            } catch {}
+        }
+    }
+}
