@@ -3,10 +3,11 @@
  *
  * The FORM sheet layout:
  *   Column A = field labels (Manufacturer, Model, Pixel Pitch, etc.)
- *   Columns B..N = one column per display
+ *   Columns B..N = one column per display (up to 50+)
  *
  * This parser auto-detects the display count from the "Display Name (Use)" row,
- * then extracts every known field for each display by row label matching.
+ * scanning ALL non-empty columns (not just contiguous ones), then extracts every
+ * known field for each display by row label matching.
  */
 
 import * as xlsx from "xlsx";
@@ -45,7 +46,7 @@ export interface DisplaySpec {
   shippingMethod: string;
   configRef: string;
   additionalNotes: string;
-  // Manual fields — editable in UI, not from Excel
+  // Manual fields — never in Excel, must be entered by user
   colorTemperatureK: string;
   brightnessAdjustment: string;
   gradationMethod: string;
@@ -55,7 +56,35 @@ export interface DisplaySpec {
   ventilationRequirements: string;
   ledLampModel: string;
   smdLedModel: string;
+  // Derived / calculated — never from Excel
   pixelDensityPerSqFt: number | null;
+}
+
+/**
+ * Fields that are NEVER present in the Excel FORM sheet.
+ * These must be filled manually by the user.
+ * Used by the UI to highlight missing fields yellow.
+ */
+export const MANUAL_ONLY_FIELDS: ReadonlyArray<keyof DisplaySpec> = [
+  "colorTemperatureK",
+  "brightnessAdjustment",
+  "gradationMethod",
+  "tonalGradation",
+  "colorTempAdjustability",
+  "voltageService",
+  "ventilationRequirements",
+  "ledLampModel",
+  "smdLedModel",
+] as const;
+
+/**
+ * Returns a stable grouping key for a display based on manufacturer + model.
+ * Used to group displays so one input fills all displays sharing the same model.
+ */
+export function getModelKey(d: Pick<DisplaySpec, "manufacturer" | "model">): string {
+  const mfr = (d.manufacturer || "Unknown").trim().toLowerCase();
+  const mdl = (d.model || "Unknown").trim().toLowerCase();
+  return `${mfr}|${mdl}`;
 }
 
 export interface FormSheetResult {
@@ -74,36 +103,71 @@ interface FieldRule {
 }
 
 const LABEL_MAP: [RegExp, FieldRule][] = [
-  [/^display\s*name/i, { field: "displayName", type: "string" }],
-  [/^manufacturer/i, { field: "manufacturer", type: "string" }],
-  [/^model/i, { field: "model", type: "string" }],
-  [/^physical\s*pixel\s*pitch/i, { field: "pixelPitch", type: "number" }],
-  [/^virtual\s*pixel\s*pitch/i, { field: "virtualPixelPitch", type: "string" }],
-  [/^panel\s*resolution\s*\(w\)/i, { field: "panelResolutionW", type: "number" }],
-  [/^panel\s*resolution\s*\(h\)/i, { field: "panelResolutionH", type: "number" }],
-  [/^spec\s*width/i, { field: "specWidthFt", type: "number" }],
-  [/^spec\s*height/i, { field: "specHeightFt", type: "number" }],
-  [/^spec\s*resolution\s*\(width\)/i, { field: "specResolutionW", type: "number" }],
-  [/^spec\s*resolution\s*\(height\)/i, { field: "specResolutionH", type: "number" }],
-  [/^total\s*width/i, { field: "actualWidthFt", type: "number" }],
-  [/^total\s*height/i, { field: "actualHeightFt", type: "number" }],
-  [/^total\s*resolution\s*\(width\)/i, { field: "totalResolutionW", type: "number" }],
-  [/^total\s*resolution\s*\(height\)/i, { field: "totalResolutionH", type: "number" }],
-  [/^area\s*per\s*screen/i, { field: "areaSqFt", type: "number" }],
-  [/^number\s*of\s*screens/i, { field: "numberOfScreens", type: "number" }],
-  [/^panel\s*weight\s*per\s*screen/i, { field: "panelWeightLbs", type: "number" }],
-  [/^total\s*panel\s*weight/i, { field: "totalWeightLbs", type: "number" }],
-  [/^max\s*power\s*consumption\s*per\s*screen/i, { field: "maxPowerW", type: "number" }],
-  [/^total\s*max\s*power/i, { field: "maxPowerW", type: "number" }],
-  [/^typical\s*power\s*consumption\s*per\s*screen/i, { field: "typicalPowerW", type: "number" }],
-  [/^total\s*typical\s*power/i, { field: "typicalPowerW", type: "number" }],
-  [/^max\.?\s*brightness/i, { field: "brightnessNits", type: "number" }],
-  [/^indoor\s*\/?\s*outdoor/i, { field: "indoorOutdoor", type: "string" }],
-  [/^standard\s*panel\s*size.*width/i, { field: "panelSizeW_mm", type: "number" }],
-  [/^standard\s*panel\s*size.*height/i, { field: "panelSizeH_mm", type: "number" }],
-  [/^anticipated\s*shipping|^shipping\s*method/i, { field: "shippingMethod", type: "string" }],
-  [/^refer\s*to\s*config/i, { field: "configRef", type: "string" }],
-  [/^additional\s*notes/i, { field: "additionalNotes", type: "string" }],
+  // Display identity
+  [/display\s*name/i,                                          { field: "displayName",      type: "string" }],
+  [/^manufacturer/i,                                           { field: "manufacturer",     type: "string" }],
+  [/^model\b/i,                                                { field: "model",            type: "string" }],
+
+  // Pixel pitch
+  [/physical\s*pixel\s*pitch/i,                                { field: "pixelPitch",       type: "number" }],
+  [/virtual\s*pixel\s*pitch/i,                                 { field: "virtualPixelPitch",type: "string" }],
+
+  // Panel resolution
+  [/panel\s*res(?:olution)?\s*[\(\[]?\s*w(?:idth)?\s*[\)\]]?/i,{ field: "panelResolutionW", type: "number" }],
+  [/panel\s*res(?:olution)?\s*[\(\[]?\s*h(?:eight)?\s*[\)\]]?/i,{ field: "panelResolutionH",type: "number" }],
+
+  // Spec (design) dimensions
+  [/spec(?:ified)?\s*(?:display\s*)?width/i,                   { field: "specWidthFt",      type: "number" }],
+  [/spec(?:ified)?\s*(?:display\s*)?height/i,                  { field: "specHeightFt",     type: "number" }],
+  [/spec(?:ified)?\s*res(?:olution)?\s*[\(\[]?\s*w(?:idth)?\s*[\)\]]?/i, { field: "specResolutionW", type: "number" }],
+  [/spec(?:ified)?\s*res(?:olution)?\s*[\(\[]?\s*h(?:eight)?\s*[\)\]]?/i,{ field: "specResolutionH", type: "number" }],
+
+  // Actual / total physical dimensions
+  [/(?:actual|physical|total)\s*(?:display\s*)?width/i,        { field: "actualWidthFt",    type: "number" }],
+  [/(?:actual|physical|total)\s*(?:display\s*)?height/i,       { field: "actualHeightFt",   type: "number" }],
+
+  // Total resolution (whole display, not per-panel)
+  [/total\s*res(?:olution)?\s*[\(\[]?\s*w(?:idth)?\s*[\)\]]?/i,{ field: "totalResolutionW", type: "number" }],
+  [/total\s*res(?:olution)?\s*[\(\[]?\s*h(?:eight)?\s*[\)\]]?/i,{ field: "totalResolutionH", type: "number" }],
+
+  // Area & screen count
+  [/area\s*per\s*screen/i,                                     { field: "areaSqFt",         type: "number" }],
+  [/number\s*of\s*screens?/i,                                  { field: "numberOfScreens",  type: "number" }],
+  [/qty|quantity/i,                                            { field: "numberOfScreens",  type: "number" }],
+
+  // Weight
+  [/panel\s*weight\s*per\s*screen/i,                           { field: "panelWeightLbs",   type: "number" }],
+  [/(?:total|display)\s*(?:assembly\s*)?weight/i,              { field: "totalWeightLbs",   type: "number" }],
+
+  // Power — max
+  [/max(?:imum)?\s*power\s*(?:consumption\s*)?per\s*screen/i,  { field: "maxPowerW",        type: "number" }],
+  [/total\s*max(?:imum)?\s*power/i,                            { field: "maxPowerW",        type: "number" }],
+  [/max(?:imum)?\s*power\s*(?:consumption)?(?:\s*\(entire|\s*total)?/i, { field: "maxPowerW", type: "number" }],
+
+  // Power — typical
+  [/typical\s*power\s*(?:consumption\s*)?per\s*screen/i,       { field: "typicalPowerW",    type: "number" }],
+  [/total\s*typical\s*power/i,                                 { field: "typicalPowerW",    type: "number" }],
+  [/typical\s*power\s*(?:consumption)?(?:\s*\(entire|\s*total)?/i, { field: "typicalPowerW", type: "number" }],
+
+  // Brightness
+  [/max(?:imum)?\.?\s*brightness/i,                            { field: "brightnessNits",   type: "number" }],
+  [/brightness\s*(?:after\s*calibration|nits|level)?/i,        { field: "brightnessNits",   type: "number" }],
+
+  // Indoor/outdoor
+  [/indoor\s*[\/\\]?\s*outdoor/i,                              { field: "indoorOutdoor",    type: "string" }],
+
+  // Panel physical size
+  [/standard\s*panel\s*size.*width/i,                          { field: "panelSizeW_mm",    type: "number" }],
+  [/standard\s*panel\s*size.*height/i,                         { field: "panelSizeH_mm",    type: "number" }],
+  [/panel\s*size.*[\(\[]?\s*w(?:idth)?\s*[\)\]]?/i,            { field: "panelSizeW_mm",    type: "number" }],
+  [/panel\s*size.*[\(\[]?\s*h(?:eight)?\s*[\)\]]?/i,           { field: "panelSizeH_mm",    type: "number" }],
+
+  // Shipping
+  [/anticipated\s*shipping|shipping\s*method/i,                { field: "shippingMethod",   type: "string" }],
+
+  // Config ref / notes
+  [/refer\s*to\s*config/i,                                     { field: "configRef",        type: "string" }],
+  [/additional\s*notes/i,                                      { field: "additionalNotes",  type: "string" }],
 ];
 
 // ---------------------------------------------------------------------------
@@ -206,11 +270,12 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
     }
   }
 
-  // Find the "Display Name (Use)" row to detect display count
+  // Find the "Display Name (Use)" row to detect display columns
+  // We scan ALL non-empty columns (not just contiguous) to handle 5–50+ displays
   let displayNameRowIdx = -1;
   for (let i = 0; i < data.length; i++) {
     const label = toStr(data[i]?.[0]).toLowerCase();
-    if (label.includes("display name") || label.includes("display name (use)")) {
+    if (label.includes("display name")) {
       displayNameRowIdx = i;
       break;
     }
@@ -220,14 +285,22 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
     return { projectName, displays: [], warnings: ["Could not find 'Display Name' row in Form sheet"] };
   }
 
-  // Count displays — non-empty columns starting from B (index 1)
+  // Collect the column indices of every non-empty cell in the display name row
+  // (columns B onward, i.e. index 1+). This handles sparse layouts and any column count.
   const nameRow = data[displayNameRowIdx];
-  const displayCount = nameRow.slice(1).filter((v: any) => toStr(v).length > 0).length;
-  if (displayCount === 0) {
+  const displayColIndices: number[] = [];
+  for (let col = 1; col < nameRow.length; col++) {
+    if (toStr(nameRow[col]).length > 0) {
+      displayColIndices.push(col);
+    }
+  }
+
+  if (displayColIndices.length === 0) {
     return { projectName, displays: [], warnings: ["No display columns found in Form sheet"] };
   }
 
-  console.log(`[FORM PARSER] Found ${displayCount} displays in "${sheetName}"`);
+  const displayCount = displayColIndices.length;
+  console.log(`[FORM PARSER] Found ${displayCount} displays in "${sheetName}" (cols: ${displayColIndices.join(",")})`);
 
   // Initialize display specs
   const displays: DisplaySpec[] = [];
@@ -236,6 +309,7 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
   }
 
   // Walk every row and extract matching fields
+  // Use displayColIndices so we read the exact columns where displays live
   for (let i = 0; i < data.length; i++) {
     const row = data[i] || [];
     const rawLabel = toStr(row[0]);
@@ -244,7 +318,8 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
     for (const [pattern, rule] of LABEL_MAP) {
       if (pattern.test(rawLabel)) {
         for (let d = 0; d < displayCount; d++) {
-          const raw = resolveValue(row[d + 1]);
+          const colIdx = displayColIndices[d];
+          const raw = resolveValue(row[colIdx]);
           if (rule.type === "number") {
             const num = toNum(raw);
             if (num !== null) {
