@@ -223,6 +223,9 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
 
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogContent className="max-w-2xl max-h-[88vh] overflow-hidden flex flex-col bg-background border border-border p-0">
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Spec Sheet Generator</DialogTitle>
+                    </DialogHeader>
 
                     {/* ── Header ── */}
                     <div className="shrink-0 px-5 pt-5 pb-0 border-b border-border">
