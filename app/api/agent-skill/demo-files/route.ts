@@ -15,30 +15,45 @@ import { readFile } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 
-const FILES: Record<string, { path: string; name: string }> = {
+const FILES: Record<string, { filename: string; name: string }> = {
   "indiana-fever": {
-    path: "specimens/Cost Analysis - Indiana Fever - 2026-01-22 (2).xlsx",
+    filename: "Cost Analysis - Indiana Fever - 2026-01-22 (2).xlsx",
     name: "Cost Analysis - Indiana Fever.xlsx",
   },
   "nbcu": {
-    path: "specimens/Cost Analysis - NBCU 2025 Project - 9C - 10-30-2025.xlsx",
+    filename: "Cost Analysis - NBCU 2025 Project - 9C - 10-30-2025.xlsx",
     name: "Cost Analysis - NBCU 2025 Project.xlsx",
   },
   "usc": {
-    path: "specimens/USC - Williams-Brice Stadium - Additional LED Displays - Cost Analysis (Budget) - DJC & JSR - 2026-02-09 (1).xlsx",
+    filename: "USC - Williams-Brice Stadium - Additional LED Displays - Cost Analysis (Budget) - DJC & JSR - 2026-02-09 (1).xlsx",
     name: "USC Williams-Brice Stadium Cost Analysis.xlsx",
   },
   "atlanta": {
-    path: "specimens/ANC_Atlanta_Pigeons_LED_Displays_LOI_2_9_2026.xlsx",
+    filename: "ANC_Atlanta_Pigeons_LED_Displays_LOI_2_9_2026.xlsx",
     name: "ANC Atlanta Pigeons LOI.xlsx",
   },
 };
+
+// Search these directories for specimen files
+const SEARCH_DIRS = [
+  "/tmp/specimens",
+  path.join(process.cwd(), "specimens"),
+  path.join(process.cwd(), "test-fixtures/pricing"),
+  path.join(process.cwd(), "public/demo"),
+];
+
+function findFile(filename: string): string | null {
+  for (const dir of SEARCH_DIRS) {
+    const fullPath = path.join(dir, filename);
+    if (existsSync(fullPath)) return fullPath;
+  }
+  return null;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const fileKey = searchParams.get("file");
 
-  // No file param = list available files
   if (!fileKey) {
     const origin = request.headers.get("x-forwarded-proto")
       ? `${request.headers.get("x-forwarded-proto")}://${request.headers.get("x-forwarded-host") || request.headers.get("host")}`
@@ -61,11 +76,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const filePath = path.join(process.cwd(), entry.path);
+  const filePath = findFile(entry.filename);
 
-  if (!existsSync(filePath)) {
+  if (!filePath) {
     return NextResponse.json(
-      { error: `File not found on disk: ${entry.name}` },
+      { error: `File not found: ${entry.name}`, searched: SEARCH_DIRS },
       { status: 404 }
     );
   }
