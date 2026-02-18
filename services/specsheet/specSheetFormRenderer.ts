@@ -250,11 +250,11 @@ function renderDisplayForm(
       </td>
     </tr>
 
-    <!-- Entire Display Assembly Weight -->
+    <!-- Entire Display Assembly Weight (×1.25 to account for structure) -->
     <tr>
       <td class="lbl" colspan="2">Entire Display Assembly (ie; total center hung) Weight</td>
       <td class="val num" colspan="2">
-        ${d.panelWeightLbs != null ? esc(fI(d.panelWeightLbs)) : (d.totalWeightLbs != null ? esc(fI(d.totalWeightLbs)) : "")}
+        ${d.panelWeightLbs != null ? esc(fI(Math.round(d.panelWeightLbs * 1.25))) : (d.totalWeightLbs != null ? esc(fI(Math.round(d.totalWeightLbs * 1.25))) : "")}
         ${(d.panelWeightLbs != null || d.totalWeightLbs != null) ? '<span class="u">lbs</span>' : ""}
       </td>
     </tr>

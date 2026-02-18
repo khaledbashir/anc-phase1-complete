@@ -92,7 +92,7 @@ function buildSpecFields(d: DisplaySpec): SpecField[] {
   fields.push({ label: "Power Consumption — Max (entire display)", value: d.maxPowerW != null ? fmtInt(d.maxPowerW) : "—", unit: "W" });
   fields.push({ label: "Normal Power Requirements", value: fmtStr(d.voltageService) });
   fields.push({ label: "Ventilation Requirements", value: fmtStr(d.ventilationRequirements) });
-  fields.push({ label: "Display Assembly Weight", value: d.panelWeightLbs != null ? fmtInt(d.panelWeightLbs) : "—", unit: "lbs" });
+  fields.push({ label: "Display Assembly Weight", value: d.panelWeightLbs != null ? fmtInt(Math.round(d.panelWeightLbs * 1.25)) : "—", unit: "lbs" });
 
   return fields;
 }
