@@ -27,13 +27,25 @@ interface ManualFieldMeta {
 }
 
 const MANUAL_FIELD_META: ManualFieldMeta[] = [
+    // Dimensions — critical for custom displays where FORM may be empty
+    { key: "specHeightFt",            label: "Overall Height (ft)",        placeholder: "e.g. 13.50" },
+    { key: "specWidthFt",             label: "Overall Width (ft)",         placeholder: "e.g. 24.00" },
+    { key: "specResolutionH",         label: "Resolution — Vertical (px)", placeholder: "e.g. 1052" },
+    { key: "specResolutionW",         label: "Resolution — Horizontal (px)", placeholder: "e.g. 1871" },
+    { key: "actualHeightFt",          label: "Physical Height (ft)",       placeholder: "e.g. 13.12" },
+    { key: "actualWidthFt",           label: "Physical Width (ft)",        placeholder: "e.g. 24.61" },
+    // Optical & electrical
+    { key: "brightnessNits",          label: "Brightness (nits)",          placeholder: "e.g. 6000" },
     { key: "colorTemperatureK",       label: "Color Temperature",          placeholder: "e.g. 6500" },
-    { key: "colorTempAdjustability",  label: "Color Temp Adjustability",   placeholder: "e.g. Adjustable" },
+    { key: "colorTempAdjustability",  label: "Color Temp Adjustability",   placeholder: "e.g. Adjustable 3200K-9300K" },
     { key: "brightnessAdjustment",    label: "Brightness Adjustment",      placeholder: "e.g. Adjustable 0–100%" },
     { key: "gradationMethod",         label: "Gradation Method",           placeholder: "e.g. 16-bit" },
     { key: "tonalGradation",          label: "Tonal Gradation",            placeholder: "e.g. 281 trillion colors" },
+    { key: "typicalPowerW",           label: "Power — Avg (Watts)",        placeholder: "e.g. 3500" },
+    { key: "maxPowerW",               label: "Power — Max (Watts)",        placeholder: "e.g. 7000" },
     { key: "voltageService",          label: "Voltage / Service / Phase",  placeholder: "e.g. 120V / 20A / Single Phase" },
     { key: "ventilationRequirements", label: "Ventilation Requirements",   placeholder: "e.g. Passive / Active" },
+    { key: "panelWeightLbs",          label: "Display Weight (lbs)",       placeholder: "e.g. 5000" },
     { key: "ledLampModel",            label: "LED Lamp Die Make & Model",  placeholder: "e.g. Nationstar FC3528" },
     { key: "smdLedModel",             label: "3-in-1 SMD LED Make & Model",placeholder: "e.g. Nationstar FC3528RGB" },
 ];
