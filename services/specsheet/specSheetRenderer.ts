@@ -94,18 +94,6 @@ function buildSpecFields(d: DisplaySpec): SpecField[] {
   fields.push({ label: "Ventilation Requirements", value: fmtStr(d.ventilationRequirements) });
   fields.push({ label: "Display Assembly Weight", value: d.panelWeightLbs != null ? fmtInt(d.panelWeightLbs) : "—", unit: "lbs" });
 
-  fields.push({ label: "INSTALLATION", value: "", section: true });
-
-  fields.push({ label: "Indoor / Outdoor", value: fmtStr(d.indoorOutdoor) });
-  fields.push({ label: "Number of Screens", value: d.numberOfScreens != null ? fmtInt(d.numberOfScreens) : "—" });
-  fields.push({ label: "Active Area per Screen", value: d.areaSqFt != null ? fmt(d.areaSqFt) : "—", unit: "sqft" });
-  fields.push({ label: "Shipping Method", value: fmtStr(d.shippingMethod) });
-
-  if (d.additionalNotes) {
-    fields.push({ label: "NOTES", value: "", section: true });
-    fields.push({ label: "Additional Notes", value: d.additionalNotes });
-  }
-
   return fields;
 }
 
