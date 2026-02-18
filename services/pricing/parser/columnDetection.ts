@@ -33,6 +33,8 @@ export function findColumnHeaders(data: any[][]): ColumnMap | null {
     const sellIdx = cells.findIndex((c) =>
       c === "selling price" ||
       c === "sell price" ||
+      c === "sale price" ||
+      c === "sales price" ||
       c === "revenue" ||
       c === "sell" ||
       c === "price" ||
