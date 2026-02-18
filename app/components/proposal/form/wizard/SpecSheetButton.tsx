@@ -15,6 +15,7 @@ import {
     autoFillAllGroups,
     autoFillToOverrides,
     type GroupAutoFill,
+    type MemoryBank,
 } from "@/services/specsheet/specAutoFill";
 
 // ─── Field metadata ────────────────────────────────────────────────────────────
@@ -165,9 +166,26 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
             setProjectName(data.projectName || "");
             setActiveTab("fill");
 
-            // ── Auto-fill from product catalog ──
+            // ── Recall saved memories from DB, then auto-fill ──
             if (parsedDisplays.length > 0) {
-                const autoFills = autoFillAllGroups(parsedDisplays);
+                let memoryBank: MemoryBank = {};
+                try {
+                    const groups = [...new Map(parsedDisplays.map(d => [
+                        getModelKey(d),
+                        { manufacturer: d.manufacturer, model: d.model, pitchMm: d.pixelPitch },
+                    ])).values()];
+                    const recallRes = await fetch("/api/specsheet/recall", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ groups }),
+                    });
+                    if (recallRes.ok) {
+                        const recallData = await recallRes.json();
+                        memoryBank = recallData.memories || {};
+                    }
+                } catch { /* recall is best-effort */ }
+
+                const autoFills = autoFillAllGroups(parsedDisplays, memoryBank);
                 setAutoFillMeta(autoFills);
                 const preFilledOverrides = autoFillToOverrides(autoFills);
                 setGroupOverrides(preFilledOverrides);
@@ -217,12 +235,37 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+
+            // ── Remember: save field values for future auto-fill ──
+            try {
+                const entries = modelGroups.map((g) => {
+                    const rep = displays.find(d => d.index === g.displayIndices[0]);
+                    const fields: Record<string, string> = {};
+                    for (const f of MANUAL_ONLY_FIELDS) {
+                        const override = (groupOverrides[g.key] as any)?.[f];
+                        const base = rep ? (rep as any)[f] : "";
+                        const val = (override && String(override).trim()) || (base ? String(base).trim() : "");
+                        if (val) fields[f as string] = val;
+                    }
+                    return {
+                        manufacturer: g.manufacturer,
+                        model: g.model,
+                        pitchMm: displays.find(d => d.index === g.displayIndices[0])?.pixelPitch ?? null,
+                        fields,
+                    };
+                });
+                fetch("/api/specsheet/remember", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ entries }),
+                }).catch(() => { /* fire and forget */ });
+            } catch { /* remember is best-effort */ }
         } catch (err: any) {
             setError(err.message || String(err));
         } finally {
             setGenerating(false);
         }
-    }, [file, displays, groupOverrides, projectName]);
+    }, [file, displays, groupOverrides, projectName, modelGroups]);
 
     if (!file) return null;
 
@@ -470,7 +513,7 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
                                                                     />
                                                                     {autoFilled && displayVal === autoFilled.value && (
                                                                         <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-indigo-400/70 font-medium uppercase tracking-wider pointer-events-none">
-                                                                            {autoFilled.source === "catalog" ? "catalog" : "default"}
+                                                                            {autoFilled.source === "memory" ? "saved" : autoFilled.source === "catalog" ? "catalog" : "default"}
                                                                         </span>
                                                                     )}
                                                                 </div>

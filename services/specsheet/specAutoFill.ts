@@ -21,7 +21,10 @@ import { MANUAL_ONLY_FIELDS, getModelKey } from "@/services/specsheet/formSheetP
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-export type AutoFillSource = "catalog" | "default" | "none";
+export type AutoFillSource = "memory" | "catalog" | "default" | "none";
+
+/** DB memory records keyed by modelKey → { fieldKey: fieldValue } */
+export type MemoryBank = Record<string, Record<string, string>>;
 
 export interface AutoFilledField {
     value: string;
@@ -150,73 +153,70 @@ function mapProductToSpecFields(
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 /**
- * Auto-fill spec fields for a single display group (all displays sharing
- * the same manufacturer + model).
+ * Auto-fill spec fields for a single display group.
+ *
+ * Priority: DB memory → catalog match → environment defaults.
+ * DB memory always wins because it contains user-verified values.
  */
-export function autoFillForDisplay(display: DisplaySpec): GroupAutoFill {
+export function autoFillForDisplay(
+    display: DisplaySpec,
+    memoryBank?: MemoryBank,
+): GroupAutoFill {
     const modelKey = getModelKey(display);
     const totalManualFields = MANUAL_ONLY_FIELDS.length;
+    const memory = memoryBank?.[modelKey];
 
-    const match = matchProduct(display);
-
-    if (match) {
-        const env = (display.indoorOutdoor || "").toLowerCase().includes("outdoor")
-            ? "Outdoor" as const
-            : "Indoor" as const;
-
-        const mapped = mapProductToSpecFields(match.product, env);
-        const fields: AutoFillResult = {};
-        let filledCount = 0;
-
-        for (const fieldKey of MANUAL_ONLY_FIELDS) {
-            const existing = (display as any)[fieldKey];
-            if (existing && String(existing).trim()) {
-                // Already has a value from the Excel — don't override
-                continue;
-            }
-            const catalogVal = mapped[fieldKey];
-            if (catalogVal) {
-                fields[fieldKey] = {
-                    value: catalogVal,
-                    source: "catalog",
-                    productName: match.product.name,
-                };
-                filledCount++;
-            }
-        }
-
-        return {
-            modelKey,
-            matchedProduct: match.product.name,
-            matchConfidence: match.confidence,
-            fields,
-            filledCount,
-            totalManualFields,
-        };
-    }
-
-    // No catalog match — use environment defaults
     const env = (display.indoorOutdoor || "").toLowerCase().includes("outdoor")
         ? "Outdoor" as const
         : "Indoor" as const;
+
+    const match = matchProduct(display);
+    const catalogMapped = match
+        ? mapProductToSpecFields(match.product, env)
+        : null;
     const defaults = env === "Outdoor" ? OUTDOOR_DEFAULTS : INDOOR_DEFAULTS;
+
     const fields: AutoFillResult = {};
     let filledCount = 0;
 
     for (const fieldKey of MANUAL_ONLY_FIELDS) {
         const existing = (display as any)[fieldKey];
         if (existing && String(existing).trim()) continue;
-        const defaultVal = defaults[fieldKey];
-        if (defaultVal) {
-            fields[fieldKey] = { value: defaultVal, source: "default" };
+
+        // Priority 1: DB memory (user-verified from previous project)
+        const memVal = memory?.[fieldKey];
+        if (memVal) {
+            fields[fieldKey] = { value: memVal, source: "memory" };
+            filledCount++;
+            continue;
+        }
+
+        // Priority 2: Catalog match
+        const catVal = catalogMapped?.[fieldKey];
+        if (catVal) {
+            fields[fieldKey] = {
+                value: catVal,
+                source: "catalog",
+                productName: match!.product.name,
+            };
+            filledCount++;
+            continue;
+        }
+
+        // Priority 3: Environment defaults
+        const defVal = defaults[fieldKey];
+        if (defVal) {
+            fields[fieldKey] = { value: defVal, source: "default" };
             filledCount++;
         }
     }
 
+    const matchConfidence = match?.confidence ?? (filledCount > 0 ? "fallback" : "none");
+
     return {
         modelKey,
-        matchedProduct: null,
-        matchConfidence: filledCount > 0 ? "fallback" : "none",
+        matchedProduct: match?.product.name ?? null,
+        matchConfidence,
         fields,
         filledCount,
         totalManualFields,
@@ -226,9 +226,12 @@ export function autoFillForDisplay(display: DisplaySpec): GroupAutoFill {
 /**
  * Auto-fill for ALL model groups in a set of displays.
  * Returns a map of modelKey → GroupAutoFill.
+ *
+ * If memoryBank is provided, DB memory values take priority over catalog.
  */
 export function autoFillAllGroups(
     displays: DisplaySpec[],
+    memoryBank?: MemoryBank,
 ): Record<string, GroupAutoFill> {
     const result: Record<string, GroupAutoFill> = {};
     const seen = new Set<string>();
@@ -237,7 +240,7 @@ export function autoFillAllGroups(
         const key = getModelKey(d);
         if (seen.has(key)) continue;
         seen.add(key);
-        result[key] = autoFillForDisplay(d);
+        result[key] = autoFillForDisplay(d, memoryBank);
     }
 
     return result;

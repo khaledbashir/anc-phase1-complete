@@ -848,6 +848,27 @@ model PerformanceReport {
 // Persistent votes shared across all users for /demo feature ideas
 // ============================================================================
 
+// ============================================================================
+// SPEC SHEET — Learn Once, Remember Forever
+// Stores user-entered spec field values keyed by manufacturer+model+pitch.
+// Next time the same product appears in ANY project, auto-fills from memory.
+// ============================================================================
+
+model SpecFieldMemory {
+  id            String   @id @default(cuid())
+  manufacturer  String   // normalized lowercase
+  model         String   // normalized lowercase
+  pitchMm       Float    @default(0) // 0 = applies to all pitches for this mfr+model
+  fieldKey      String   // e.g. "colorTemperatureK", "ledLampModel"
+  fieldValue    String   // the user-entered value
+  source        String   @default("user") // "user" | "admin" | "import"
+  updatedAt     DateTime @updatedAt
+  createdAt     DateTime @default(now())
+
+  @@unique([manufacturer, model, pitchMm, fieldKey])
+  @@index([manufacturer, model])
+}
+
 model FeatureVote {
   id        String   @id @default(cuid())
   featureId String // matches DemoFeature.id from featureIdeas.ts
