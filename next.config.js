@@ -8,6 +8,17 @@ const nextConfig = {
     eslint: { ignoreDuringBuilds: true },
     outputFileTracingRoot: path.join(__dirname),
     serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+    async headers() {
+        return [
+            {
+                source: "/((?!_next/static|_next/image|favicon.ico).*)",
+                headers: [
+                    { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+                    { key: "Pragma", value: "no-cache" },
+                ],
+            },
+        ];
+    },
     webpack: (config, { isServer }) => {
         config.module.rules.push({
             test: /\.map$/,

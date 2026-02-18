@@ -76,6 +76,19 @@ export default async function RootLayout({
         <html lang={locale} suppressHydrationWarning>
             <head suppressHydrationWarning>
                 <script
+                    dangerouslySetInnerHTML={{ __html: `
+                        window.addEventListener('error', function(e) {
+                            if (e.message && (e.message.indexOf('ChunkLoadError') !== -1 || e.message.indexOf('Loading chunk') !== -1 || e.message.indexOf('Failed to fetch dynamically imported module') !== -1)) {
+                                var key = 'anc_chunk_reload';
+                                if (!sessionStorage.getItem(key)) {
+                                    sessionStorage.setItem(key, '1');
+                                    window.location.reload();
+                                }
+                            }
+                        });
+                    `}}
+                />
+                <script
                     type="application/ld+json"
                     id="json-ld"
                     dangerouslySetInnerHTML={{ __html: JSON.stringify(JSONLD) }}
