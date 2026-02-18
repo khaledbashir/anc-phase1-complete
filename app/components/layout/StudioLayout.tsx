@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { FEATURES } from "@/lib/featureFlags";
 import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
-import { LayoutDashboard, MessageSquare, Table, Folder } from "lucide-react";
+import { MessageSquare, Table } from "lucide-react";
 import ModeToggle from "@/app/components/reusables/ModeToggle";
 import { IntelligenceSidebar } from "@/app/components/proposal/IntelligenceSidebar";
 
@@ -61,57 +60,35 @@ export function StudioLayout({
                 {header}
             </header>
 
-            <div className="flex-1 overflow-hidden flex">
-                {/* 
-                    VERTICAL CONTROL STRIP 
-                    This is 'The Rail' - strictly for navigation 
-                */}
-                <aside className="w-16 border-r border-border bg-background/80 backdrop-blur-md flex flex-col z-40">
-                    <div className="p-3 border-b border-border">
-                        <ModeToggle
-                            mode={viewMode === "ai" ? "ai" : "form"}
-                            onChange={(m) => setViewMode(m as ViewMode)}
-                            isCollapsed={true}
-                            showIntelligence={FEATURES.INTELLIGENCE_MODE}
-                        />
-                    </div>
-                    <div className="flex-1 py-4 flex flex-col gap-2">
-                        {navItems.map((item) => {
-                            const Icon = item.icon;
-                            const isActive = viewMode === item.id;
-                            return (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setViewMode(item.id as ViewMode)}
-                                    className={cn(
-                                        "h-10 mx-2 px-3 rounded-lg flex items-center gap-3 transition-all group relative",
-                                        isActive
-                                            ? "bg-brand-blue text-white shadow-lg shadow-brand-blue/20"
-                                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                                    )}
-                                >
-                                    <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-white" : "group-hover:text-brand-blue")} />
-                                    {isActive && (
-                                        <div className="absolute right-0 w-1 h-6 bg-brand-blue rounded-l-full" />
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    <div className="px-2 pb-4">
-                        <Link
-                            href="/projects"
-                            className={cn(
-                                "h-10 px-3 rounded-lg flex items-center gap-3 transition-all group",
-                                "text-muted-foreground hover:text-foreground hover:bg-accent"
-                            )}
-                        >
-                            <Folder className="w-4 h-4 shrink-0 group-hover:text-brand-blue" />
-                        </Link>
-                    </div>
-
-                </aside>
+            <div className="flex-1 overflow-hidden flex flex-col">
+                {/* View switcher tab bar */}
+                <div className="shrink-0 flex items-center gap-1 px-4 py-2 border-b border-border bg-background/80">
+                    <ModeToggle
+                        mode={viewMode === "ai" ? "ai" : "form"}
+                        onChange={(m) => setViewMode(m as ViewMode)}
+                        isCollapsed={false}
+                        showIntelligence={FEATURES.INTELLIGENCE_MODE}
+                    />
+                    {navItems.map((item) => {
+                        const Icon = item.icon;
+                        const isActive = viewMode === item.id;
+                        return (
+                            <button
+                                key={item.id}
+                                onClick={() => setViewMode(item.id as ViewMode)}
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                                    isActive
+                                        ? "bg-brand-blue text-white shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                                )}
+                            >
+                                <Icon className="w-3.5 h-3.5" />
+                                {item.label}
+                            </button>
+                        );
+                    })}
+                </div>
 
                 {/* THE STUDIO GRID (50/50 Split) */}
                 <main className="flex-1 overflow-hidden grid grid-cols-2">
