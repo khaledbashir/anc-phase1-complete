@@ -37,7 +37,7 @@ function esc(s: string): string {
 }
 
 function fN(v: number | null | undefined, dec = 2): string {
-  if (v == null || !Number.isFinite(v)) return "";
+  if (v == null || !Number.isFinite(v) || v === 0) return "";
   return v.toLocaleString("en-US", {
     minimumFractionDigits: dec,
     maximumFractionDigits: dec,
@@ -45,12 +45,16 @@ function fN(v: number | null | undefined, dec = 2): string {
 }
 
 function fI(v: number | null | undefined): string {
-  if (v == null || !Number.isFinite(v)) return "";
+  if (v == null || !Number.isFinite(v) || v === 0) return "";
   return v.toLocaleString("en-US", { maximumFractionDigits: 0 });
 }
 
 function s(v: string | null | undefined): string {
   return v?.trim() || "";
+}
+
+function withUnit(formatted: string, unit: string): string {
+  return formatted ? `${formatted} <span class="u">${unit}</span>` : "";
 }
 
 // ---------------------------------------------------------------------------
@@ -121,13 +125,13 @@ function renderDisplayForm(
     </tr>
     <tr>
       <td class="sub-lbl">Vertical:</td>
-      <td class="val num">${esc(fN(d.specHeightFt))} <span class="u">ft</span></td>
-      <td class="val num">${esc(fI(d.specResolutionH))} <span class="u">pixels</span></td>
+      <td class="val num">${withUnit(esc(fN(d.specHeightFt)), "ft")}</td>
+      <td class="val num">${withUnit(esc(fI(d.specResolutionH)), "pixels")}</td>
     </tr>
     <tr>
       <td class="sub-lbl">Horizontal:</td>
-      <td class="val num">${esc(fN(d.specWidthFt))} <span class="u">ft</span></td>
-      <td class="val num">${esc(fI(d.specResolutionW))} <span class="u">pixels</span></td>
+      <td class="val num">${withUnit(esc(fN(d.specWidthFt)), "ft")}</td>
+      <td class="val num">${withUnit(esc(fI(d.specResolutionW)), "pixels")}</td>
     </tr>
 
     <!-- OEM LED Module -->
@@ -149,11 +153,11 @@ function renderDisplayForm(
         <span class="note">(including cabinet)</span>
       </td>
       <td class="sub-lbl">Vertical:</td>
-      <td class="val num" colspan="2">${esc(fN(d.actualHeightFt))} <span class="u">ft</span></td>
+      <td class="val num" colspan="2">${withUnit(esc(fN(d.actualHeightFt)), "ft")}</td>
     </tr>
     <tr>
       <td class="sub-lbl">Horizontal:</td>
-      <td class="val num" colspan="2">${esc(fN(d.actualWidthFt))} <span class="u">ft</span></td>
+      <td class="val num" colspan="2">${withUnit(esc(fN(d.actualWidthFt)), "ft")}</td>
     </tr>
 
     <!-- SECTION: Physical Pixel Pitch -->
@@ -163,24 +167,24 @@ function renderDisplayForm(
         <span class="note">(not "lines")</span>
       </td>
       <td class="sub-lbl">Vertical/Vertical:</td>
-      <td class="val num" colspan="2">${d.pixelPitch != null ? esc(fN(d.pixelPitch, 1)) : ""} <span class="u">mm</span></td>
+      <td class="val num" colspan="2">${withUnit(d.pixelPitch != null ? esc(fN(d.pixelPitch, 1)) : "", "mm")}</td>
     </tr>
     <tr>
       <td class="sub-lbl">Horizontal/Horizontal:</td>
-      <td class="val num" colspan="2">${d.pixelPitch != null ? esc(fN(d.pixelPitch, 1)) : ""} <span class="u">mm</span></td>
+      <td class="val num" colspan="2">${withUnit(d.pixelPitch != null ? esc(fN(d.pixelPitch, 1)) : "", "mm")}</td>
     </tr>
 
     <!-- Physical Pixel Density -->
     <tr>
       <td class="lbl" colspan="2">Physical Pixel Density <span class="note">(not "lines")</span></td>
-      <td class="val num" colspan="2">${esc(fN(d.pixelDensityPerSqFt, 2))} <span class="u">pixels/sqft</span></td>
+      <td class="val num" colspan="2">${withUnit(esc(fN(d.pixelDensityPerSqFt, 2)), "pixels/sqft")}</td>
     </tr>
 
     <!-- Virtual Pixel Pitch -->
     <tr>
       <td class="lbl" colspan="1">Virtual Pixel Pitch</td>
       <td class="sub-lbl" colspan="1">"claimed" pixel pitch:</td>
-      <td class="val num" colspan="2">${esc(s(d.virtualPixelPitch))} <span class="u">mm</span></td>
+      <td class="val num" colspan="2">${withUnit(esc(s(d.virtualPixelPitch)), "mm")}</td>
     </tr>
 
     <!-- 3-in-1 SMD LED -->
@@ -193,7 +197,7 @@ function renderDisplayForm(
     <tr>
       <td class="lbl" colspan="2">Brightness</td>
       <td class="val num" colspan="1">${esc(fI(d.brightnessNits))}</td>
-      <td class="val" style="text-align:left"><span class="u">nits</span></td>
+      <td class="val" style="text-align:left">${fI(d.brightnessNits) ? '<span class="u">nits</span>' : ""}</td>
     </tr>
 
     <!-- Brightness Level adjustment -->
@@ -218,7 +222,7 @@ function renderDisplayForm(
     <tr>
       <td class="lbl" colspan="2">Color Temperature</td>
       <td class="val num" colspan="1">${esc(s(d.colorTemperatureK))}</td>
-      <td class="val" style="text-align:left"><span class="u">°K</span></td>
+      <td class="val" style="text-align:left">${s(d.colorTemperatureK) ? '<span class="u">°K</span>' : ""}</td>
     </tr>
 
     <!-- Color Temperature adjustability -->
@@ -231,11 +235,11 @@ function renderDisplayForm(
     <tr>
       <td class="lbl sec" rowspan="2">Power Consumption</td>
       <td class="sub-lbl">Avg (entire display):</td>
-      <td class="val num" colspan="2">${esc(fI(d.typicalPowerW))} <span class="u">Watts</span></td>
+      <td class="val num" colspan="2">${withUnit(esc(fI(d.typicalPowerW)), "Watts")}</td>
     </tr>
     <tr>
       <td class="sub-lbl">Max (entire display):</td>
-      <td class="val num" colspan="2">${esc(fI(d.maxPowerW))} <span class="u">Watts</span></td>
+      <td class="val num" colspan="2">${withUnit(esc(fI(d.maxPowerW)), "Watts")}</td>
     </tr>
 
     <!-- Normal Power requirements + Ventilation -->

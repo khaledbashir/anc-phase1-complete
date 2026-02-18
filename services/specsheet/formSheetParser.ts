@@ -129,9 +129,19 @@ const LABEL_MAP: [RegExp, FieldRule][] = [
   [/(?:actual|physical|total)\s*(?:display\s*)?width/i,        { field: "actualWidthFt",    type: "number" }],
   [/(?:actual|physical|total)\s*(?:display\s*)?height/i,       { field: "actualHeightFt",   type: "number" }],
 
+  // Generic width/height (no spec/actual prefix) — fallback to spec dimensions
+  [/^display\s*width/i,                                        { field: "specWidthFt",      type: "number" }],
+  [/^display\s*height/i,                                       { field: "specHeightFt",     type: "number" }],
+  [/^width\s*\(?ft/i,                                          { field: "specWidthFt",      type: "number" }],
+  [/^height\s*\(?ft/i,                                         { field: "specHeightFt",     type: "number" }],
+
   // Total resolution (whole display, not per-panel)
   [/total\s*res(?:olution)?\s*[\(\[]?\s*w(?:idth)?\s*[\)\]]?/i,{ field: "totalResolutionW", type: "number" }],
   [/total\s*res(?:olution)?\s*[\(\[]?\s*h(?:eight)?\s*[\)\]]?/i,{ field: "totalResolutionH", type: "number" }],
+
+  // Generic resolution (no total/spec prefix)
+  [/^res(?:olution)?\s*[\(\[]?\s*w(?:idth)?\s*[\)\]]?/i,       { field: "totalResolutionW", type: "number" }],
+  [/^res(?:olution)?\s*[\(\[]?\s*h(?:eight)?\s*[\)\]]?/i,      { field: "totalResolutionH", type: "number" }],
 
   // Area & screen count
   [/area\s*per\s*screen/i,                                     { field: "areaSqFt",         type: "number" }],
@@ -389,6 +399,24 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
         break;
       }
     }
+  }
+
+  // Cross-fill dimensions: physical (actual) is the more exact number per Natalia.
+  // If physical exists, use it for spec too. If only spec exists, copy to physical.
+  // Same for resolution: totalResolution fills specResolution if missing.
+  for (const d of displays) {
+    // Physical → Spec (physical is preferred / more exact)
+    if (d.actualWidthFt != null && d.specWidthFt == null)   d.specWidthFt = d.actualWidthFt;
+    if (d.actualHeightFt != null && d.specHeightFt == null) d.specHeightFt = d.actualHeightFt;
+    // Spec → Physical (if physical not provided, use spec)
+    if (d.specWidthFt != null && d.actualWidthFt == null)   d.actualWidthFt = d.specWidthFt;
+    if (d.specHeightFt != null && d.actualHeightFt == null) d.actualHeightFt = d.specHeightFt;
+
+    // Resolution cross-fill: total ↔ spec
+    if (d.totalResolutionW != null && d.specResolutionW == null) d.specResolutionW = d.totalResolutionW;
+    if (d.totalResolutionH != null && d.specResolutionH == null) d.specResolutionH = d.totalResolutionH;
+    if (d.specResolutionW != null && d.totalResolutionW == null) d.totalResolutionW = d.specResolutionW;
+    if (d.specResolutionH != null && d.totalResolutionH == null) d.totalResolutionH = d.specResolutionH;
   }
 
   // Calculate derived fields
