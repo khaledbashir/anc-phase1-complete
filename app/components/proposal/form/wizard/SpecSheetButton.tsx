@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo } from "react";
 import {
     FileText, Download, Loader2, Edit3, ChevronDown, ChevronUp,
-    AlertTriangle, CheckCircle2, List, Layers,
+    AlertTriangle, CheckCircle2, List, Layers, Sparkles, Zap,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,11 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { DisplaySpec } from "@/services/specsheet/formSheetParser";
 import { MANUAL_ONLY_FIELDS, getModelKey } from "@/services/specsheet/formSheetParser";
+import {
+    autoFillAllGroups,
+    autoFillToOverrides,
+    type GroupAutoFill,
+} from "@/services/specsheet/specAutoFill";
 
 // ─── Field metadata ────────────────────────────────────────────────────────────
 
@@ -82,6 +87,7 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
     const [expandedDisplay, setExpandedDisplay] = useState<number | null>(null);
     const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
     const [groupOverrides, setGroupOverrides] = useState<ModelGroupOverrides>({});
+    const [autoFillMeta, setAutoFillMeta] = useState<Record<string, GroupAutoFill>>({});
 
     // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -153,14 +159,26 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
                 setDisplays([]);
                 return;
             }
-            setDisplays(data.displays || []);
+            const parsedDisplays: DisplaySpec[] = data.displays || [];
+            setDisplays(parsedDisplays);
             setWarnings(data.warnings || []);
             setProjectName(data.projectName || "");
             setActiveTab("fill");
-            // Auto-expand first group with missing fields
-            if (data.displays?.length > 0) {
-                const firstKey = getModelKey(data.displays[0]);
-                setExpandedGroup(firstKey);
+
+            // ── Auto-fill from product catalog ──
+            if (parsedDisplays.length > 0) {
+                const autoFills = autoFillAllGroups(parsedDisplays);
+                setAutoFillMeta(autoFills);
+                const preFilledOverrides = autoFillToOverrides(autoFills);
+                setGroupOverrides(preFilledOverrides);
+
+                // Auto-expand first group that still has missing fields after auto-fill
+                const firstMissing = Object.values(autoFills).find(
+                    (g) => g.filledCount < g.totalManualFields,
+                );
+                setExpandedGroup(
+                    firstMissing?.modelKey ?? getModelKey(parsedDisplays[0]),
+                );
             }
         } catch (err: any) {
             setError(err.message || String(err));
@@ -318,16 +336,36 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
                         {/* ══ TAB: Fill Missing Fields ══════════════════════════════════════ */}
                         {!loading && displays.length > 0 && activeTab === "fill" && (
                             <>
+                                {/* Auto-fill summary banner */}
+                                {(() => {
+                                    const totalAutoFilled = Object.values(autoFillMeta).reduce((s, g) => s + g.filledCount, 0);
+                                    const catalogMatches = Object.values(autoFillMeta).filter(g => g.matchConfidence === "exact" || g.matchConfidence === "pitch").length;
+                                    if (totalAutoFilled > 0) {
+                                        return (
+                                            <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs">
+                                                <Sparkles className="w-3.5 h-3.5 shrink-0 text-indigo-400" />
+                                                <span>
+                                                    <strong>{totalAutoFilled} field{totalAutoFilled !== 1 ? "s" : ""}</strong> auto-filled
+                                                    {catalogMatches > 0 && <> from <strong>{catalogMatches} catalog match{catalogMatches !== 1 ? "es" : ""}</strong></>}
+                                                    {catalogMatches === 0 && <> using environment defaults</>}
+                                                    . Review and adjust as needed.
+                                                </span>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
+
                                 {totalMissing === 0 ? (
                                     <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
                                         <CheckCircle2 className="w-4 h-4 shrink-0" />
-                                        All manual fields are filled. Ready to generate.
+                                        All fields filled. Ready to generate.
                                     </div>
                                 ) : (
                                     <div className="flex items-start gap-2 px-4 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs">
                                         <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                                         <span>
-                                            <strong>{groupsWithMissing.length} model group{groupsWithMissing.length !== 1 ? "s" : ""}</strong> have missing fields.
+                                            <strong>{groupsWithMissing.length} model group{groupsWithMissing.length !== 1 ? "s" : ""}</strong> still have missing fields.
                                             Fill once — applies to all displays sharing that model.
                                         </span>
                                     </div>
@@ -359,14 +397,23 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
                                                         <Layers className={cn("w-3.5 h-3.5", missingCount > 0 ? "text-amber-400" : "text-emerald-400")} />
                                                     </div>
                                                     <div className="min-w-0">
-                                                        <div className="text-sm font-semibold text-foreground truncate">
+                                                        <div className="text-sm font-semibold text-foreground truncate flex items-center gap-2">
                                                             {g.manufacturer} — {g.model}
+                                                            {autoFillMeta[g.key]?.matchedProduct && (
+                                                                <span className="inline-flex items-center gap-1 text-[9px] font-medium text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded-full">
+                                                                    <Zap className="w-2.5 h-2.5" />
+                                                                    {autoFillMeta[g.key].matchConfidence === "exact" ? "Catalog Match" : "Near Match"}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                         <div className="text-[10px] text-muted-foreground">
                                                             {g.displayIndices.length} display{g.displayIndices.length !== 1 ? "s" : ""}
                                                             {g.displayIndices.length <= 4
                                                                 ? `: ${g.displayNames.join(", ")}`
                                                                 : `: ${g.displayNames.slice(0, 3).join(", ")} +${g.displayIndices.length - 3} more`}
+                                                            {autoFillMeta[g.key]?.matchedProduct && (
+                                                                <span className="ml-1 text-indigo-400/70">→ {autoFillMeta[g.key].matchedProduct}</span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -395,6 +442,7 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
                                                         const baseVal = (rep as any)[mf.key] ?? "";
                                                         const displayVal = currentOverride || baseVal;
                                                         const missing = isMissing(rep, mf.key, groupOverrides);
+                                                        const autoFilled = autoFillMeta[g.key]?.fields?.[mf.key];
 
                                                         return (
                                                             <div key={mf.key} className="flex items-center gap-2">
@@ -405,17 +453,27 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
                                                                     {mf.label}
                                                                     {missing && <span className="ml-1 text-amber-400">*</span>}
                                                                 </label>
-                                                                <Input
-                                                                    value={displayVal}
-                                                                    onChange={(e) => updateGroupField(g.key, mf.key, e.target.value)}
-                                                                    placeholder={mf.placeholder || "—"}
-                                                                    className={cn(
-                                                                        "h-7 text-xs transition-colors",
-                                                                        missing
-                                                                            ? "border-amber-500/50 bg-amber-500/5 placeholder:text-amber-500/40 focus-visible:ring-amber-500/30"
-                                                                            : "",
+                                                                <div className="flex-1 relative">
+                                                                    <Input
+                                                                        value={displayVal}
+                                                                        onChange={(e) => updateGroupField(g.key, mf.key, e.target.value)}
+                                                                        placeholder={mf.placeholder || "—"}
+                                                                        className={cn(
+                                                                            "h-7 text-xs transition-colors",
+                                                                            missing
+                                                                                ? "border-amber-500/50 bg-amber-500/5 placeholder:text-amber-500/40 focus-visible:ring-amber-500/30"
+                                                                                : "",
+                                                                            autoFilled && !missing
+                                                                                ? "border-indigo-500/30 bg-indigo-500/5"
+                                                                                : "",
+                                                                        )}
+                                                                    />
+                                                                    {autoFilled && displayVal === autoFilled.value && (
+                                                                        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-indigo-400/70 font-medium uppercase tracking-wider pointer-events-none">
+                                                                            {autoFilled.source === "catalog" ? "catalog" : "default"}
+                                                                        </span>
                                                                     )}
-                                                                />
+                                                                </div>
                                                             </div>
                                                         );
                                                     })}
