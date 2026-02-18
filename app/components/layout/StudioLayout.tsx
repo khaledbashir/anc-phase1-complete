@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { FEATURES } from "@/lib/featureFlags";
 import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
-import { LayoutDashboard, MessageSquare, Table, PanelLeftClose, PanelLeftOpen, Folder } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Table, Folder } from "lucide-react";
 import ModeToggle from "@/app/components/reusables/ModeToggle";
 import { IntelligenceSidebar } from "@/app/components/proposal/IntelligenceSidebar";
 
@@ -38,7 +38,6 @@ export function StudioLayout({
     showAudit = true,
 }: StudioLayoutProps) {
     const [viewMode, setViewMode] = useState<ViewMode>("form");
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     const [isHealthSidebarVisible, setIsHealthSidebarVisible] = useState(false);
 
     // When Intelligence mode is disabled, stay on form if user was on ai
@@ -67,17 +66,12 @@ export function StudioLayout({
                     VERTICAL CONTROL STRIP 
                     This is 'The Rail' - strictly for navigation 
                 */}
-                <aside
-                    className={cn(
-                        "border-r border-border bg-background/80 backdrop-blur-md flex flex-col transition-all duration-300 z-40",
-                        isSidebarCollapsed ? "w-16" : "w-56"
-                    )}
-                >
+                <aside className="w-16 border-r border-border bg-background/80 backdrop-blur-md flex flex-col z-40">
                     <div className="p-3 border-b border-border">
                         <ModeToggle
                             mode={viewMode === "ai" ? "ai" : "form"}
                             onChange={(m) => setViewMode(m as ViewMode)}
-                            isCollapsed={isSidebarCollapsed}
+                            isCollapsed={true}
                             showIntelligence={FEATURES.INTELLIGENCE_MODE}
                         />
                     </div>
@@ -97,10 +91,7 @@ export function StudioLayout({
                                     )}
                                 >
                                     <Icon className={cn("w-4 h-4 shrink-0", isActive ? "text-white" : "group-hover:text-brand-blue")} />
-                                    {!isSidebarCollapsed && (
-                                        <span className="text-sm font-medium truncate">{item.label}</span>
-                                    )}
-                                    {isActive && isSidebarCollapsed && (
+                                    {isActive && (
                                         <div className="absolute right-0 w-1 h-6 bg-brand-blue rounded-l-full" />
                                     )}
                                 </button>
@@ -117,19 +108,9 @@ export function StudioLayout({
                             )}
                         >
                             <Folder className="w-4 h-4 shrink-0 group-hover:text-brand-blue" />
-                            {!isSidebarCollapsed && (
-                                <span className="text-sm font-medium truncate">Projects</span>
-                            )}
                         </Link>
                     </div>
 
-                    {/* Collapse Toggle */}
-                    <button
-                        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                        className="h-14 border-t border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        {isSidebarCollapsed ? <PanelLeftOpen className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
-                    </button>
                 </aside>
 
                 {/* THE STUDIO GRID (50/50 Split) */}
