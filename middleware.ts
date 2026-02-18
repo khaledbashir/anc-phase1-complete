@@ -44,6 +44,7 @@ export default auth((req) => {
   if (
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/health") ||
+    pathname.startsWith("/api/bot") ||
     pathname.startsWith("/api/share") ||
     pathname.startsWith("/api/agent-skill") ||
     pathname.startsWith("/api/performance/seed") ||

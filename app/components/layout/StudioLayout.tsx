@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { FEATURES } from "@/lib/featureFlags";
 import { BrandSlashes } from "@/app/components/reusables/BrandGraphics";
-import { MessageSquare, Table } from "lucide-react";
+import { LayoutDashboard, MessageSquare, Table } from "lucide-react";
 import ModeToggle from "@/app/components/reusables/ModeToggle";
 import { IntelligenceSidebar } from "@/app/components/proposal/IntelligenceSidebar";
 
