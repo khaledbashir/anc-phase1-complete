@@ -42,6 +42,9 @@ const MANUAL_FIELD_META: ManualFieldMeta[] = [
 
 interface SpecSheetButtonProps {
     file: File | null;
+    venueName?: string;
+    clientName?: string;
+    clientAddress?: string;
 }
 
 type ModelGroupOverrides = Record<string, Partial<Record<keyof DisplaySpec, string>>>;
@@ -76,7 +79,7 @@ function buildApiOverrides(
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
+export default function SpecSheetButton({ file, venueName, clientName, clientAddress }: SpecSheetButtonProps) {
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [generating, setGenerating] = useState(false);
@@ -223,6 +226,11 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
             formData.append("file", file);
             formData.append("overrides", JSON.stringify(overrides));
             formData.append("format", specFormat);
+            const meta: Record<string, string> = {};
+            if (venueName) meta.venueName = venueName;
+            if (clientName) meta.clientName = clientName;
+            if (clientAddress) meta.clientAddress = clientAddress;
+            if (Object.keys(meta).length > 0) formData.append("projectMeta", JSON.stringify(meta));
             const res = await fetch("/api/specsheet/generate", { method: "POST", body: formData });
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));

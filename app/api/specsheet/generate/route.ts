@@ -6,7 +6,7 @@ import * as Sentry from "@sentry/nextjs";
 import * as xlsx from "xlsx";
 import { parseFormSheet } from "@/services/specsheet/formSheetParser";
 import { renderSpecSheetHtml } from "@/services/specsheet/specSheetRenderer";
-import { renderPerformanceStandardsHtml } from "@/services/specsheet/specSheetFormRenderer";
+import { renderPerformanceStandardsHtml, type SpecSheetProjectMeta } from "@/services/specsheet/specSheetFormRenderer";
 
 function getRequestOrigin(req: NextRequest): string {
     const xfProto = req.headers.get("x-forwarded-proto");
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
         const file = formData.get("file") as File;
         const overridesRaw = formData.get("overrides") as string | null;
         const format = (formData.get("format") as string | null) || "rfp-form"; // "rfp-form" | "anc-branded"
+        const projectMetaRaw = formData.get("projectMeta") as string | null;
 
         if (!file) {
             return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -69,9 +70,13 @@ export async function POST(req: NextRequest) {
         }
 
         const origin = getRequestOrigin(req).replace(/\/+$/, "");
+        let projectMeta: SpecSheetProjectMeta | undefined;
+        if (projectMetaRaw) {
+            try { projectMeta = JSON.parse(projectMetaRaw); } catch {}
+        }
         const html = format === "anc-branded"
             ? renderSpecSheetHtml(result, origin)
-            : renderPerformanceStandardsHtml(result, origin);
+            : renderPerformanceStandardsHtml(result, origin, projectMeta);
 
         // Puppeteer PDF generation — same pattern as generateProposalPdfService
         const puppeteer = (await import("puppeteer-core")).default;

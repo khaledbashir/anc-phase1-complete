@@ -13,6 +13,18 @@
 import type { FormSheetResult, DisplaySpec } from "./formSheetParser";
 
 // ---------------------------------------------------------------------------
+// Project metadata — passed from the proposal context
+// ---------------------------------------------------------------------------
+
+export interface SpecSheetProjectMeta {
+  venueName?: string;       // e.g. "Stadium of the Future"
+  clientName?: string;      // e.g. "Jacksonville Jaguars, LLC"
+  clientAddress?: string;   // e.g. "1 EverBank Field Drive, Jacksonville, FL 62202"
+}
+
+const ANC_PROPOSER = "ANC Sports Enterprises, LLC";
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -47,12 +59,18 @@ function s(v: string | null | undefined): string {
 
 function renderDisplayForm(
   d: DisplaySpec,
-  projectName: string,
+  meta: SpecSheetProjectMeta,
   pageIndex: number
 ): string {
   const pb = pageIndex > 0 ? ' style="page-break-before:always;"' : "";
   const displayLabel = s(d.displayName) || `Display ${d.index + 1}`;
   const displayId = s(d.configRef) || `AV-${d.index + 1}`;
+
+  const headerLines: string[] = [];
+  if (meta.venueName) headerLines.push(`<div class="proj-name">${esc(meta.venueName)}</div>`);
+  if (meta.clientName) headerLines.push(`<div class="proj-client">${esc(meta.clientName)}</div>`);
+  if (meta.clientAddress) headerLines.push(`<div class="proj-addr">${esc(meta.clientAddress)}</div>`);
+  if (headerLines.length === 0) headerLines.push(`<div class="proj-name">Project</div>`);
 
   return `
 <div class="form-page"${pb}>
@@ -60,7 +78,7 @@ function renderDisplayForm(
   <!-- Project Header -->
   <div class="proj-header">
     <div class="proj-left">
-      <div class="proj-name">${esc(projectName)}</div>
+      ${headerLines.join("\n      ")}
     </div>
   </div>
 
@@ -87,7 +105,7 @@ function renderDisplayForm(
     <!-- Row: Proposer / Model -->
     <tr>
       <td class="lbl">Proposer:</td>
-      <td class="val">${esc(s(d.manufacturer))}</td>
+      <td class="val">${esc(ANC_PROPOSER)}</td>
       <td class="lbl">Model:</td>
       <td class="val">${esc(s(d.model))}</td>
     </tr>
@@ -257,12 +275,16 @@ function renderDisplayForm(
 
 export function renderPerformanceStandardsHtml(
   result: FormSheetResult,
-  _origin: string
+  _origin: string,
+  meta?: SpecSheetProjectMeta
 ): string {
-  const projectName = result.projectName || "Project";
+  const effectiveMeta: SpecSheetProjectMeta = meta || {};
+  if (!effectiveMeta.venueName && !effectiveMeta.clientName) {
+    effectiveMeta.venueName = result.projectName || "Project";
+  }
 
   const pages = result.displays
-    .map((d, i) => renderDisplayForm(d, projectName, i))
+    .map((d, i) => renderDisplayForm(d, effectiveMeta, i))
     .join("\n");
 
   return `<!DOCTYPE html>
@@ -293,6 +315,15 @@ export function renderPerformanceStandardsHtml(
     .proj-name {
       font-size: 13px;
       font-weight: bold;
+    }
+    .proj-client {
+      font-size: 11px;
+      font-weight: normal;
+    }
+    .proj-addr {
+      font-size: 10px;
+      font-weight: normal;
+      color: #333;
     }
 
     /* --- Form Title --- */
