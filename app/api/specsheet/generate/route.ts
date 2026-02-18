@@ -69,33 +69,48 @@ export async function POST(req: NextRequest) {
         const origin = getRequestOrigin(req).replace(/\/+$/, "");
         const html = renderSpecSheetHtml(result, origin);
 
-        // Puppeteer PDF generation — same pattern as proposal PDFs
+        // Puppeteer PDF generation — same pattern as generateProposalPdfService
         const puppeteer = (await import("puppeteer-core")).default;
         const internalUrl = process.env.BROWSERLESS_INTERNAL_URL || "ws://basheer_browserless:3000";
         const externalUrl = process.env.BROWSERLESS_URL;
+        const ENV = process.env.NODE_ENV;
 
         try {
+            console.log(`[SPEC SHEET] Attempting internal Browserless: ${internalUrl.slice(0, 50)}...`);
             browser = await puppeteer.connect({ browserWSEndpoint: internalUrl });
-        } catch {
-            console.log("[SPEC SHEET] Internal Browserless unavailable, trying external");
+            console.log("[SPEC SHEET] Browserless connected via internal network!");
+        } catch (e) {
+            console.log(`[SPEC SHEET] Internal Browserless unavailable: ${e instanceof Error ? e.message : String(e)}`);
         }
 
         if (!browser && externalUrl) {
             try {
+                console.log(`[SPEC SHEET] Attempting external Browserless: ${externalUrl.slice(0, 50)}...`);
                 browser = await puppeteer.connect({ browserWSEndpoint: externalUrl });
-            } catch {
-                console.error("[SPEC SHEET] External Browserless also unavailable");
+                console.log("[SPEC SHEET] Browserless connected via external URL!");
+            } catch (e) {
+                console.error(`[SPEC SHEET] External Browserless connect failed: ${e instanceof Error ? e.message : String(e)}`);
             }
         }
 
-        if (!browser) {
+        if (!browser && ENV === "production") {
             const chromium = (await import("@sparticuz/chromium")).default;
             const execPath = process.env.PUPPETEER_EXECUTABLE_PATH || (await chromium.executablePath());
             browser = await puppeteer.launch({
-                args: [...chromium.args, "--disable-dev-shm-usage", "--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
+                args: [...chromium.args, "--disable-dev-shm-usage", "--ignore-certificate-errors", "--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
                 executablePath: execPath,
                 headless: true,
             });
+        } else if (!browser) {
+            const puppeteerFull = (await import("puppeteer")).default;
+            browser = await puppeteerFull.launch({
+                args: ["--no-sandbox", "--disable-setuid-sandbox"],
+                headless: true,
+            });
+        }
+
+        if (!browser) {
+            throw new Error("Failed to launch browser — no Browserless connection and no local Chromium available");
         }
 
         page = await browser.newPage();
