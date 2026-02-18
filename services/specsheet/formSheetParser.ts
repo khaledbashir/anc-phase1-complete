@@ -266,10 +266,14 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
   // ── Extract header metadata from top rows ──────────────────────────────────
   // FORM sheets typically have project/venue/client/address in the first ~15 rows.
   // Patterns vary across RFPs, so we use multiple heuristics.
+  // IMPORTANT: Skip metadata rows (summary list, author, created by, etc.)
   let projectName = "";
   let venueName = "";
   let clientName = "";
   let clientAddress = "";
+
+  // Rows that look like metadata/authorship — skip entirely
+  const SKIP_ROW = /\b(summary\s*list|created\s*by|prepared\s*by|author|revision|date|version|page\s+\d|copyright|confidential|draft)\b/i;
 
   const headerRows = Math.min(data.length, 20);
   for (let i = 0; i < headerRows; i++) {
@@ -277,24 +281,27 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
     const colB = toStr(data[i]?.[1]);
     const colALower = colA.toLowerCase();
 
-    // Project / Venue name — "Project:" label in col A, value in col B
-    if (!projectName && colALower.startsWith("project")) {
-      projectName = colB || colA.replace(/^project[:\s]*/i, "").trim();
+    // Skip metadata/authorship rows completely
+    if (SKIP_ROW.test(colA)) continue;
+
+    // Project / Venue name — strict: "Project:" or "Project Name:" label (not "Project Summary List")
+    if (!projectName && /^project\s*(name)?[:\s]/i.test(colA) && !/summary|list|manager|lead|engineer/i.test(colA)) {
+      projectName = colB || colA.replace(/^project\s*(name)?[:\s]*/i, "").trim();
     }
 
-    // Venue name — explicit "Venue:" label or standalone venue-like text
-    if (!venueName && /^venue[:\s]/i.test(colA)) {
-      venueName = colB || colA.replace(/^venue[:\s]*/i, "").trim();
+    // Venue name — explicit "Venue:" or "Stadium:" or "Arena:" label
+    if (!venueName && /^(venue|stadium|arena|facility)[:\s]/i.test(colA)) {
+      venueName = colB || colA.replace(/^(venue|stadium|arena|facility)[:\s]*/i, "").trim();
     }
 
-    // Client name — "Client:" or "Owner:" label, or detect LLC/Inc/Ltd patterns
+    // Client name — "Client:" or "Owner:" or "Team:" label, or detect LLC/Inc/Ltd patterns
     if (!clientName && /^(client|owner|team)[:\s]/i.test(colA)) {
       clientName = colB || colA.replace(/^(client|owner|team)[:\s]*/i, "").trim();
     }
-    if (!clientName && colB && /\b(LLC|Inc\.?|Ltd\.?|Corporation|Corp\.?|Enterprises)\b/i.test(colB)) {
+    if (!clientName && colB && /\b(LLC|Inc\.?|Ltd\.?|Corporation|Corp\.?|Enterprises)\b/i.test(colB) && !SKIP_ROW.test(colB)) {
       clientName = colB;
     }
-    if (!clientName && /\b(LLC|Inc\.?|Ltd\.?|Corporation|Corp\.?|Enterprises)\b/i.test(colA) && !colALower.includes("display")) {
+    if (!clientName && /\b(LLC|Inc\.?|Ltd\.?|Corporation|Corp\.?|Enterprises)\b/i.test(colA) && !colALower.includes("display") && !SKIP_ROW.test(colA)) {
       clientName = colA;
     }
 
@@ -310,8 +317,8 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
     }
   }
 
-  // If no explicit venue found, use project name as venue
-  if (!venueName && projectName) {
+  // If no explicit venue found, use project name as venue (only if it's a real name, not metadata)
+  if (!venueName && projectName && !SKIP_ROW.test(projectName)) {
     venueName = projectName;
   }
 
