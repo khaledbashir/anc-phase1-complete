@@ -70,10 +70,22 @@ export async function POST(req: NextRequest) {
         }
 
         const origin = getRequestOrigin(req).replace(/\/+$/, "");
-        let projectMeta: SpecSheetProjectMeta | undefined;
+
+        // Build project metadata: UI overrides > FORM sheet parsed data
+        let projectMeta: SpecSheetProjectMeta = {
+            venueName: result.venueName || result.projectName || "",
+            clientName: result.clientName || "",
+            clientAddress: result.clientAddress || "",
+        };
         if (projectMetaRaw) {
-            try { projectMeta = JSON.parse(projectMetaRaw); } catch {}
+            try {
+                const uiMeta = JSON.parse(projectMetaRaw) as SpecSheetProjectMeta;
+                if (uiMeta.venueName) projectMeta.venueName = uiMeta.venueName;
+                if (uiMeta.clientName) projectMeta.clientName = uiMeta.clientName;
+                if (uiMeta.clientAddress) projectMeta.clientAddress = uiMeta.clientAddress;
+            } catch {}
         }
+
         const html = format === "anc-branded"
             ? renderSpecSheetHtml(result, origin)
             : renderPerformanceStandardsHtml(result, origin, projectMeta);

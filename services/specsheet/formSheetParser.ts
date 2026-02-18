@@ -89,6 +89,9 @@ export function getModelKey(d: Pick<DisplaySpec, "manufacturer" | "model">): str
 
 export interface FormSheetResult {
   projectName: string;
+  venueName: string;
+  clientName: string;
+  clientAddress: string;
   displays: DisplaySpec[];
   warnings: string[];
 }
@@ -254,21 +257,65 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
   const warnings: string[] = [];
   const sheetName = findFormSheet(workbook);
   if (!sheetName) {
-    return { projectName: "", displays: [], warnings: ["No 'Form' sheet found in workbook"] };
+    return { projectName: "", venueName: "", clientName: "", clientAddress: "", displays: [], warnings: ["No 'Form' sheet found in workbook"] };
   }
 
   const sheet = workbook.Sheets[sheetName];
   const data: any[][] = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: "", raw: false });
 
-  // Detect project name from "Project:" row
+  // ── Extract header metadata from top rows ──────────────────────────────────
+  // FORM sheets typically have project/venue/client/address in the first ~15 rows.
+  // Patterns vary across RFPs, so we use multiple heuristics.
   let projectName = "";
-  for (let i = 0; i < Math.min(data.length, 10); i++) {
-    const label = toStr(data[i]?.[0]).toLowerCase();
-    if (label.startsWith("project")) {
-      projectName = toStr(data[i]?.[1]);
-      break;
+  let venueName = "";
+  let clientName = "";
+  let clientAddress = "";
+
+  const headerRows = Math.min(data.length, 20);
+  for (let i = 0; i < headerRows; i++) {
+    const colA = toStr(data[i]?.[0]);
+    const colB = toStr(data[i]?.[1]);
+    const colALower = colA.toLowerCase();
+
+    // Project / Venue name — "Project:" label in col A, value in col B
+    if (!projectName && colALower.startsWith("project")) {
+      projectName = colB || colA.replace(/^project[:\s]*/i, "").trim();
+    }
+
+    // Venue name — explicit "Venue:" label or standalone venue-like text
+    if (!venueName && /^venue[:\s]/i.test(colA)) {
+      venueName = colB || colA.replace(/^venue[:\s]*/i, "").trim();
+    }
+
+    // Client name — "Client:" or "Owner:" label, or detect LLC/Inc/Ltd patterns
+    if (!clientName && /^(client|owner|team)[:\s]/i.test(colA)) {
+      clientName = colB || colA.replace(/^(client|owner|team)[:\s]*/i, "").trim();
+    }
+    if (!clientName && colB && /\b(LLC|Inc\.?|Ltd\.?|Corporation|Corp\.?|Enterprises)\b/i.test(colB)) {
+      clientName = colB;
+    }
+    if (!clientName && /\b(LLC|Inc\.?|Ltd\.?|Corporation|Corp\.?|Enterprises)\b/i.test(colA) && !colALower.includes("display")) {
+      clientName = colA;
+    }
+
+    // Address — "Address:" label or detect street address pattern
+    if (!clientAddress && /^address[:\s]/i.test(colA)) {
+      clientAddress = colB || colA.replace(/^address[:\s]*/i, "").trim();
+    }
+    if (!clientAddress && /\d+\s+\w+.*\b(drive|dr|street|st|avenue|ave|boulevard|blvd|road|rd|way|lane|ln|place|pl|field)\b/i.test(colA)) {
+      clientAddress = colA;
+    }
+    if (!clientAddress && colB && /\d+\s+\w+.*\b(drive|dr|street|st|avenue|ave|boulevard|blvd|road|rd|way|lane|ln|place|pl|field)\b/i.test(colB)) {
+      clientAddress = colB;
     }
   }
+
+  // If no explicit venue found, use project name as venue
+  if (!venueName && projectName) {
+    venueName = projectName;
+  }
+
+  console.log(`[FORM PARSER] Header: venue="${venueName}" client="${clientName}" addr="${clientAddress}" project="${projectName}"`);
 
   // Find the "Display Name (Use)" row to detect display columns
   // We scan ALL non-empty columns (not just contiguous) to handle 5–50+ displays
@@ -357,5 +404,5 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
   }
 
   console.log(`[FORM PARSER] Extracted ${displays.length} displays, ${warnings.length} warnings`);
-  return { projectName, displays, warnings };
+  return { projectName, venueName, clientName, clientAddress, displays, warnings };
 }

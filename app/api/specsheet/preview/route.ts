@@ -31,6 +31,9 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
             projectName: result.projectName,
+            venueName: result.venueName,
+            clientName: result.clientName,
+            clientAddress: result.clientAddress,
             displays: result.displays,
             warnings: result.warnings,
             displayCount: result.displays.length,
