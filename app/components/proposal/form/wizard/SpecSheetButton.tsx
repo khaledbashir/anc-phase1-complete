@@ -89,6 +89,7 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
     const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
     const [groupOverrides, setGroupOverrides] = useState<ModelGroupOverrides>({});
     const [autoFillMeta, setAutoFillMeta] = useState<Record<string, GroupAutoFill>>({});
+    const [specFormat, setSpecFormat] = useState<"rfp-form" | "anc-branded">("rfp-form");
 
     // ── Derived ────────────────────────────────────────────────────────────────
 
@@ -221,6 +222,7 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
             const formData = new FormData();
             formData.append("file", file);
             formData.append("overrides", JSON.stringify(overrides));
+            formData.append("format", specFormat);
             const res = await fetch("/api/specsheet/generate", { method: "POST", body: formData });
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
@@ -265,7 +267,7 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
         } finally {
             setGenerating(false);
         }
-    }, [file, displays, groupOverrides, projectName, modelGroups]);
+    }, [file, displays, groupOverrides, projectName, modelGroups, specFormat]);
 
     if (!file) return null;
 
@@ -630,11 +632,39 @@ export default function SpecSheetButton({ file }: SpecSheetButtonProps) {
                     {/* ── Footer ── */}
                     {!loading && displays.length > 0 && (
                         <div className="shrink-0 px-5 py-4 border-t border-border flex items-center justify-between gap-4">
-                            <div className="text-xs text-muted-foreground">
-                                {totalMissing > 0
-                                    ? <span className="text-amber-400">{totalMissing} field{totalMissing !== 1 ? "s" : ""} still missing — PDF will show blanks</span>
-                                    : <span className="text-emerald-400">All fields filled • One page per display</span>
-                                }
+                            <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-1 bg-muted/50 rounded-md p-0.5 border border-border/60">
+                                    <button
+                                        type="button"
+                                        onClick={() => setSpecFormat("rfp-form")}
+                                        className={cn(
+                                            "px-2 py-1 rounded text-[10px] font-medium transition-colors",
+                                            specFormat === "rfp-form"
+                                                ? "bg-foreground text-background"
+                                                : "text-muted-foreground hover:text-foreground",
+                                        )}
+                                    >
+                                        RFP Form
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSpecFormat("anc-branded")}
+                                        className={cn(
+                                            "px-2 py-1 rounded text-[10px] font-medium transition-colors",
+                                            specFormat === "anc-branded"
+                                                ? "bg-foreground text-background"
+                                                : "text-muted-foreground hover:text-foreground",
+                                        )}
+                                    >
+                                        ANC Branded
+                                    </button>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                    {totalMissing > 0
+                                        ? <span className="text-amber-400">{totalMissing} field{totalMissing !== 1 ? "s" : ""} still missing — PDF will show blanks</span>
+                                        : <span className="text-emerald-400">All fields filled • One page per display</span>
+                                    }
+                                </div>
                             </div>
                             <Button
                                 onClick={handleGenerate}

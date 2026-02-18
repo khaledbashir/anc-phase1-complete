@@ -6,6 +6,7 @@ import * as Sentry from "@sentry/nextjs";
 import * as xlsx from "xlsx";
 import { parseFormSheet } from "@/services/specsheet/formSheetParser";
 import { renderSpecSheetHtml } from "@/services/specsheet/specSheetRenderer";
+import { renderPerformanceStandardsHtml } from "@/services/specsheet/specSheetFormRenderer";
 
 function getRequestOrigin(req: NextRequest): string {
     const xfProto = req.headers.get("x-forwarded-proto");
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
         const formData = await req.formData();
         const file = formData.get("file") as File;
         const overridesRaw = formData.get("overrides") as string | null;
+        const format = (formData.get("format") as string | null) || "rfp-form"; // "rfp-form" | "anc-branded"
 
         if (!file) {
             return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -67,7 +69,9 @@ export async function POST(req: NextRequest) {
         }
 
         const origin = getRequestOrigin(req).replace(/\/+$/, "");
-        const html = renderSpecSheetHtml(result, origin);
+        const html = format === "anc-branded"
+            ? renderSpecSheetHtml(result, origin)
+            : renderPerformanceStandardsHtml(result, origin);
 
         // Puppeteer PDF generation — same pattern as generateProposalPdfService
         const puppeteer = (await import("puppeteer-core")).default;
@@ -129,13 +133,17 @@ export async function POST(req: NextRequest) {
             printBackground: true,
             displayHeaderFooter: true,
             headerTemplate: '<div style="font-size:1px;"></div>',
-            footerTemplate: `
-                <div style="font-family: 'Helvetica Neue', Arial, sans-serif; width: 100%; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; padding-top: 4px; box-sizing: border-box;">
+            footerTemplate: format === "anc-branded"
+                ? `<div style="font-family: 'Helvetica Neue', Arial, sans-serif; width: 100%; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #e5e7eb; padding-top: 4px; box-sizing: border-box;">
                     <div style="font-size: 7.5px; font-weight: 600; color: #0A52EF; letter-spacing: 0.3px;">www.anc.com</div>
                     <div style="font-size: 7px; color: #94a3b8;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
-                </div>
-            `,
-            margin: { top: "20px", bottom: "40px", left: "20px", right: "20px" },
+                  </div>`
+                : `<div style="font-family: 'Times New Roman', serif; width: 100%; padding: 0 40px; display: flex; justify-content: flex-end;">
+                    <div style="font-size: 7px; color: #666;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>
+                  </div>`,
+            margin: format === "anc-branded"
+                ? { top: "20px", bottom: "40px", left: "20px", right: "20px" }
+                : { top: "0.4in", bottom: "0.5in", left: "0.5in", right: "0.5in" },
         });
 
         const projectName = result.projectName || "Spec_Sheets";
