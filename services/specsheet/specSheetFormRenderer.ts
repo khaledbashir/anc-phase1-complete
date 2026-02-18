@@ -288,6 +288,14 @@ export function renderPerformanceStandardsHtml(
   }
 
   const pages = result.displays
+    .filter((d) => {
+      // Skip placeholder displays where all critical data is zero/null (e.g. Alt configs never filled in FORM)
+      const hasSize = (d.actualWidthFt ?? d.specWidthFt ?? 0) !== 0 || (d.actualHeightFt ?? d.specHeightFt ?? 0) !== 0;
+      const hasResolution = (d.totalResolutionW ?? d.specResolutionW ?? 0) !== 0 || (d.totalResolutionH ?? d.specResolutionH ?? 0) !== 0;
+      const hasWeight = (d.totalWeightLbs ?? d.panelWeightLbs ?? 0) !== 0;
+      const hasPower = (d.maxPowerW ?? d.typicalPowerW ?? 0) !== 0;
+      return hasSize || hasResolution || hasWeight || hasPower;
+    })
     .map((d, i) => renderDisplayForm(d, effectiveMeta, i))
     .join("\n");
 
