@@ -150,7 +150,7 @@ const LABEL_MAP: [RegExp, FieldRule][] = [
 
   // Weight
   [/panel\s*weight\s*per\s*screen/i,                           { field: "panelWeightLbs",   type: "number" }],
-  [/(?:total|display)\s*(?:assembly\s*)?weight/i,              { field: "totalWeightLbs",   type: "number" }],
+  [/(?:total|display)\s*(?:(?:assembly|panel)\s*)?weight/i,     { field: "totalWeightLbs",   type: "number" }],
 
   // Power — max
   [/max(?:imum)?\s*power\s*(?:consumption\s*)?per\s*screen/i,  { field: "maxPowerW",        type: "number" }],
