@@ -346,7 +346,7 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
   }
 
   if (displayNameRowIdx === -1) {
-    return { projectName, displays: [], warnings: ["Could not find 'Display Name' row in Form sheet"] };
+    return { projectName, venueName, clientName, clientAddress, displays: [], warnings: ["Could not find 'Display Name' row in Form sheet"] };
   }
 
   // Collect the column indices of every non-empty cell in the display name row
@@ -360,7 +360,7 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
   }
 
   if (displayColIndices.length === 0) {
-    return { projectName, displays: [], warnings: ["No display columns found in Form sheet"] };
+    return { projectName, venueName, clientName, clientAddress, displays: [], warnings: ["No display columns found in Form sheet"] };
   }
 
   const displayCount = displayColIndices.length;
@@ -401,22 +401,17 @@ export function parseFormSheet(workbook: xlsx.WorkBook): FormSheetResult {
     }
   }
 
-  // Cross-fill dimensions: physical (actual) is the more exact number per Natalia.
-  // If physical exists, use it for spec too. If only spec exists, copy to physical.
-  // Same for resolution: totalResolution fills specResolution if missing.
+  // Cross-fill dimensions: actual/total are the product-accurate values (per Natalia).
+  // Spec values (rows 15-18) are RFP proposed sizes — NEVER copy them into actual/total.
+  // Only direction: actual → spec (fallback so renderer has data if only actual exists).
   for (const d of displays) {
-    // Physical → Spec (physical is preferred / more exact)
+    // Actual → Spec only (product-accurate fills fallback; spec never pollutes actual)
     if (d.actualWidthFt != null && d.specWidthFt == null)   d.specWidthFt = d.actualWidthFt;
     if (d.actualHeightFt != null && d.specHeightFt == null) d.specHeightFt = d.actualHeightFt;
-    // Spec → Physical (if physical not provided, use spec)
-    if (d.specWidthFt != null && d.actualWidthFt == null)   d.actualWidthFt = d.specWidthFt;
-    if (d.specHeightFt != null && d.actualHeightFt == null) d.actualHeightFt = d.specHeightFt;
 
-    // Resolution cross-fill: total ↔ spec
+    // Total Resolution → Spec Resolution only (same reason)
     if (d.totalResolutionW != null && d.specResolutionW == null) d.specResolutionW = d.totalResolutionW;
     if (d.totalResolutionH != null && d.specResolutionH == null) d.specResolutionH = d.totalResolutionH;
-    if (d.specResolutionW != null && d.totalResolutionW == null) d.totalResolutionW = d.specResolutionW;
-    if (d.specResolutionH != null && d.totalResolutionH == null) d.totalResolutionH = d.specResolutionH;
   }
 
   // Calculate derived fields

@@ -125,13 +125,13 @@ function renderDisplayForm(
     </tr>
     <tr>
       <td class="sub-lbl">Vertical:</td>
-      <td class="val num">${withUnit(esc(fN(d.specHeightFt)), "ft")}</td>
-      <td class="val num">${withUnit(esc(fI(d.specResolutionH)), "pixels")}</td>
+      <td class="val num">${withUnit(esc(fN(d.actualHeightFt ?? d.specHeightFt)), "ft")}</td>
+      <td class="val num">${withUnit(esc(fI(d.totalResolutionH ?? d.specResolutionH)), "pixels")}</td>
     </tr>
     <tr>
       <td class="sub-lbl">Horizontal:</td>
-      <td class="val num">${withUnit(esc(fN(d.specWidthFt)), "ft")}</td>
-      <td class="val num">${withUnit(esc(fI(d.specResolutionW)), "pixels")}</td>
+      <td class="val num">${withUnit(esc(fN(d.actualWidthFt ?? d.specWidthFt)), "ft")}</td>
+      <td class="val num">${withUnit(esc(fI(d.totalResolutionW ?? d.specResolutionW)), "pixels")}</td>
     </tr>
 
     <!-- OEM LED Module -->
