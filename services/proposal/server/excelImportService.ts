@@ -75,106 +75,62 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     if (!headers) throw new Error("Could not find header row in LED Sheet");
 
     const headerText = headers.map((h) => (h ?? "").toString().trim().toUpperCase());
-    const isLedCostSheetFormat = headerText.includes("OPTION") && headerText.includes("PITCH") && headerText.includes("OF SCREENS");
-    const nameHeaderIndex = headers.findIndex((h) => {
-        const t = (h ?? "").toString().trim().toUpperCase();
-        return t === "DISPLAY NAME" || t === "DISPLAY";
-    });
+    const isLedCostSheetFormat = headerText.some(t => t === "OPTION") &&
+        headerText.some(t => t === "PITCH" || t.startsWith("PITCH") || t.includes("PITCH")) &&
+        headerText.some(t => t.includes("SCREEN"));
 
-    /**
-     * REQ-126: STRICT HARD-CODED COLUMN MAPPING (Mirror Mode)
-     * 
-     * Per Master Truth mandate, we use FIXED column indices to prevent
-     * mapping drift if Jeremy's master estimator spreadsheets change.
-     * 
-     * ANC Master Excel Column Mapping:
-     * - Column A (0): Display Name
-     * - Column E (4): MM Pitch  
-     * - Column F (5): Height (ft)
-     * - Column G (6): Width (ft)
-     * - Column H (7): Resolution H (pixels)
-     * - Column J (9): Resolution W (pixels)
-     * - Column M (12): Brightness
-     * 
-     * Dynamic detection is DEPRECATED - only used as last resort fallback.
-     */
+    // Header-name detection — primary method. Fixed indices are fallback only.
+    // This prevents silent wrong-data extraction when columns shift position.
+    const findCol = (regex: RegExp) => headers.findIndex(h => regex.test((h ?? "").toString().trim()));
 
-    // REQ-126: STRICT FIXED INDICES (Master Truth)
-    const FIXED_COLUMN_MAP = {
-        name: 0,           // Column A - Display Name
-        pitch: 4,          // Column E - MM Pitch
-        height: 5,         // Column F - Height (ft)
-        width: 6,          // Column G - Width (ft)
-        pixelsH: 7,        // Column H - Resolution H
-        pixelsW: 9,        // Column J - Resolution W
-        brightnessNits: 12, // Column M - Brightness
-        quantity: 11,      // Column L - Quantity (LED Cost Sheet format)
-        serviceType: -1,   // Dynamic detection
-        structuralTonnage: -1, // Dynamic detection
+    const detectedName     = findCol(/^(display\s*name|display|option|screen\s*name)$/i);
+    const detectedPitch    = findCol(/^pitch|mm\s*pitch|pixel\s*pitch/i);
+    const detectedHeight   = findCol(/^h(eight)?\s*(\(ft\))?$|^h$/i);
+    const detectedWidth    = findCol(/^w(idth)?\s*(\(ft\))?$|^w$/i);
+    const detectedPixelsH  = findCol(/res.*h|pixel.*h|^h\s*\(px\)|resolution.*h/i);
+    const detectedPixelsW  = findCol(/res.*w|pixel.*w|^w\s*\(px\)|resolution.*w/i);
+    const detectedQty      = findCol(/^(qty|quantity|#\s*of\s*screens?|no\.?\s*of\s*screens?|of\s*screens?)$/i);
+    const detectedBright   = findCol(/nit|bright/i);
+    const detectedHardware = findCol(/display\s*cost|hardware\s*cost/i);
+    const detectedSell     = findCol(/^(sell\s*price|selling\s*price|total\s*price|led\s*price|price)$/i);
+    const detectedMargin   = findCol(/^(led\s*margin|anc\s*margin|margin)$/i);
+    const detectedBond     = findCol(/bond/i);
+    const detectedFinal    = findCol(/total\s*with\s*bond|final\s*total|grand\s*total/i);
+
+    // Fallback fixed indices (ANC standard layout — used only when header detection fails)
+    const FALLBACK = {
+        name: 0, pitch: 4, height: 5, width: 6,
+        pixelsH: 7, pixelsW: 9, brightnessNits: 12,
+        quantity: isLedCostSheetFormat ? 11 : 2,
+        hardwareCost: isLedCostSheetFormat ? 16 : 16,
+        installCost: 17, otherCost: 18, shippingCost: 19,
+        totalCost: 20, sellPrice: 22, ancMargin: 23, bondCost: 24, finalTotal: 25,
     };
 
-    // Legacy dynamic detection (DEPRECATED - only for edge cases)
-    const findCol = (regex: RegExp) => headers.findIndex(h => regex.test((h ?? "").toString().trim().toUpperCase()));
+    const colIdx: any = {
+        name:             detectedName     >= 0 ? detectedName     : FALLBACK.name,
+        pitch:            detectedPitch    >= 0 ? detectedPitch    : FALLBACK.pitch,
+        height:           detectedHeight   >= 0 ? detectedHeight   : FALLBACK.height,
+        width:            detectedWidth    >= 0 ? detectedWidth    : FALLBACK.width,
+        pixelsH:          detectedPixelsH  >= 0 ? detectedPixelsH  : FALLBACK.pixelsH,
+        pixelsW:          detectedPixelsW  >= 0 ? detectedPixelsW  : FALLBACK.pixelsW,
+        brightness:       detectedBright   >= 0 ? detectedBright   : FALLBACK.brightnessNits,
+        quantity:         detectedQty      >= 0 ? detectedQty      : FALLBACK.quantity,
+        hardwareCost:     detectedHardware >= 0 ? detectedHardware : FALLBACK.hardwareCost,
+        installCost:      FALLBACK.installCost,
+        otherCost:        FALLBACK.otherCost,
+        shippingCost:     FALLBACK.shippingCost,
+        totalCost:        FALLBACK.totalCost,
+        sellPrice:        detectedSell     >= 0 ? detectedSell     : FALLBACK.sellPrice,
+        ancMargin:        detectedMargin   >= 0 ? detectedMargin   : FALLBACK.ancMargin,
+        bondCost:         detectedBond     >= 0 ? detectedBond     : FALLBACK.bondCost,
+        finalTotal:       detectedFinal    >= 0 ? detectedFinal    : FALLBACK.finalTotal,
+        serviceType:      findCol(/service\s*type|access/i),
+        structuralTonnage:findCol(/tonnage|steel\s*tons|tte/i),
+        hdrStatus:        findCol(/hdr/i),
+    };
 
-    const colIdx: any = isLedCostSheetFormat
-        ? {
-            // REQ-126: Use STRICT fixed indices for LED Cost Sheet format
-            name: nameHeaderIndex >= 0 ? nameHeaderIndex : FIXED_COLUMN_MAP.name,
-            quantity: FIXED_COLUMN_MAP.quantity,
-            pitch: FIXED_COLUMN_MAP.pitch,
-            height: FIXED_COLUMN_MAP.height,
-            width: FIXED_COLUMN_MAP.width,
-            pixelsH: FIXED_COLUMN_MAP.pixelsH,
-            pixelsW: FIXED_COLUMN_MAP.pixelsW,
-            brightness: FIXED_COLUMN_MAP.brightnessNits,
-            serviceType: findCol(/SERVICE\s*TYPE|ACCESS/i),
-            structuralTonnage: findCol(/TONNAGE|STEEL\s*TONS|TTE/i),
-            hdrStatus: -1,
-            hardwareCost: headers.findIndex((h) => /DISPLAY\s*COST/i.test((h ?? "").toString())),
-            installCost: -1,
-            otherCost: -1,
-            shippingCost: -1,
-            totalCost: -1,
-            sellPrice: -1,
-            ancMargin: -1,
-            bondCost: -1,
-            finalTotal: -1,
-        }
-        : {
-            // REQ-126: Use STRICT fixed indices for standard format
-            name: nameHeaderIndex >= 0 ? nameHeaderIndex : FIXED_COLUMN_MAP.name,
-            quantity: 2, // Standard format uses column C for quantity
-            pitch: FIXED_COLUMN_MAP.pitch,
-            height: FIXED_COLUMN_MAP.height,
-            width: FIXED_COLUMN_MAP.width,
-            pixelsH: FIXED_COLUMN_MAP.pixelsH,
-            pixelsW: FIXED_COLUMN_MAP.pixelsW,
-            brightness: FIXED_COLUMN_MAP.brightnessNits,
-            serviceType: findCol(/SERVICE\s*TYPE|ACCESS/i),
-            structuralTonnage: findCol(/TONNAGE|STEEL\s*TONS|TTE/i),
-            hdrStatus: -1,
-            hardwareCost: 16,
-            installCost: 17,
-            otherCost: 18,
-            shippingCost: 19,
-            totalCost: 20,
-            sellPrice: 22,
-            ancMargin: 23,
-            bondCost: 24,
-            finalTotal: 25,
-        };
-
-    if (colIdx.hdrStatus === -1) {
-        colIdx.hdrStatus = headers.findIndex((h) => typeof h === "string" && h.toLowerCase().includes("hdr"));
-    }
-    if (colIdx.brightness === -1) {
-        colIdx.brightness = headers.findIndex((h) => typeof h === "string" && /nit|bright/i.test(h));
-    }
-    if (isLedCostSheetFormat) {
-        if (colIdx.quantity === -1) colIdx.quantity = 11;
-        if (colIdx.pitch === -1) colIdx.pitch = 4;
-        if (colIdx.hardwareCost === -1) colIdx.hardwareCost = 16;
-    }
+    console.log(`[EXCEL IMPORT] Column map (header-detected): name=${colIdx.name} pitch=${colIdx.pitch} h=${colIdx.height} w=${colIdx.width} qty=${colIdx.quantity} sell=${colIdx.sellPrice}`);
 
     const marginRows = marginSheet ? parseMarginAnalysisRows(marginData) : [];
     const subTotalRow = marginRows.find((r) => r.name.toLowerCase().includes("sub total") && r.name.toLowerCase().includes("bid form")) || null;
@@ -777,15 +733,9 @@ function groupMarginAnalysisRows(rows: ReturnType<typeof parseMarginAnalysisRows
             result.push(sections[sectionName]);
         }
 
-        // Check for "INCLUDED" status
-        const isIncluded = row.sell === 0 && (
-            String(row.sellRaw).toLowerCase().includes("included") ||
-            // Fallback: If it's a soft cost (not a screen) and $0, assume included if user context suggests it
-            // For now, relying on explicit text or $0 value for non-hardware items might be tricky without more heuristics.
-            // But per user request: "If an item's Selling Price is $0.00 in the Excel AND it's marked as a value-add: Show 'INCLUDED'"
-            // We'll treat $0 as potentially included.
-            row.sell === 0
-        );
+        // Only mark INCLUDED when the Excel cell explicitly says "included" — never infer from $0 alone.
+        const isIncluded = /\bincluded\b/i.test(String(row.sellRaw ?? "")) ||
+            /\bincluded\b/i.test(String(row.name ?? ""));
 
         sections[sectionName].items.push({
             name: row.name,
