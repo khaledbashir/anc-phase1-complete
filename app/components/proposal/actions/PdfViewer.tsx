@@ -111,7 +111,7 @@ const PdfViewer = () => {
         return () => observer.disconnect();
     }, [measureContainer]);
 
-    const scaleFactor = containerWidth > 0 ? containerWidth / pageWidthPx : 1;
+    const scaleFactor = containerWidth > 0 ? Math.min(1, containerWidth / pageWidthPx) : 1;
     const effectiveScale = scaleFactor * (zoomPct / 100);
 
     // Store generatePdf in a ref so it doesn't cause effect re-runs
@@ -333,24 +333,13 @@ const PdfViewer = () => {
                                     onMouseDown={onMouseDown}
                                     onClick={onPreviewClick}
                                     style={{
-                                        width: `${pageWidthPx * s}px`,
-                                        height: 0,
-                                        paddingBottom: `${pageWidthPx * s * 1.294}px`,
-                                        position: "relative",
-                                        overflow: "visible",
-                                        cursor: !exactPdfPreview && zoomPct > 100 ? "grab" : "default",
-                                    }}
-                                >
-                                    <div style={{
-                                        position: "absolute",
-                                        top: 0,
-                                        left: 0,
                                         width: `${pageWidthPx}px`,
                                         transformOrigin: "top left",
                                         transform: `translate(${pan.x}px, ${pan.y}px) scale(${s})`,
-                                    }}>
-                                        <Template {...values} />
-                                    </div>
+                                        cursor: !exactPdfPreview && zoomPct > 100 ? "grab" : "default",
+                                    }}
+                                >
+                                    <Template {...values} />
                                 </div>
                             );
                         };
