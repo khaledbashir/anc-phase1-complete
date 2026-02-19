@@ -126,7 +126,20 @@ export function findTableBoundaries(rows: RawRow[], headerRowLabel?: string): Ta
   // least one regular numeric line item before another header or grand total.
   // This prevents sheet-summary labels (e.g. rebate banners) from creating
   // ghost tables.
+  // Track whether any prior header row had column headers ("Cost", "Selling Price").
+  // If so, subsequent headers WITHOUT column headers are likely misclassified line items.
+  const anyPriorHeaderHasColumnHeaders = rows.some(
+    (r) => !r.isEmpty && r.isHeader && !r.isAlternateHeader && r.hasColumnHeaders
+  );
+
   const isViableSectionStart = (headerIdx: number): boolean => {
+    const headerRow = rows[headerIdx];
+    // If we've seen real section headers with column headers (typical ANC Excel format),
+    // reject header rows that lack column headers — they're likely line items with
+    // missing prices (e.g. "Control System", "Warranty"), not section boundaries.
+    if (anyPriorHeaderHasColumnHeaders && headerRow && !headerRow.hasColumnHeaders) {
+      return false;
+    }
     const scanLimit = Math.min(rows.length - 1, headerIdx + 40);
     for (let j = headerIdx + 1; j <= scanLimit; j++) {
       const candidate = rows[j];

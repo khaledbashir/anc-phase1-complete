@@ -18,6 +18,7 @@ export interface RawRow {
   marginPct: number;
   isEmpty: boolean;
   isHeader: boolean;
+  hasColumnHeaders: boolean;
   isSubtotal: boolean;
   isTax: boolean;
   isBond: boolean;
@@ -136,6 +137,7 @@ export function parseAllRows(
       marginPct,
       isEmpty,
       isHeader,
+      hasColumnHeaders,
       isSubtotal,
       isTax,
       isBond,

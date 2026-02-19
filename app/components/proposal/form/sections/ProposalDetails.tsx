@@ -73,7 +73,7 @@ const MasterTableSelector = () => {
                 value={currentValue}
                 onValueChange={(val) => {
                     const idx = parseInt(val, 10);
-                    setValue("details.masterTableIndex" as any, idx === -1 ? null : idx, { shouldDirty: true });
+                    setValue("details.masterTableIndex" as any, idx, { shouldDirty: true });
                 }}
             >
                 <SelectTrigger className="w-full bg-zinc-950/50 border-zinc-800 text-sm">

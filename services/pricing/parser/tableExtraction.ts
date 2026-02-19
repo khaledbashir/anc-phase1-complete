@@ -33,8 +33,10 @@ export function extractTable(
     const row = rows[i];
     if (!row) continue;
 
-    // Skip header row
-    if (row.isHeader) continue;
+    // Skip the boundary's own header row (the section start).
+    // Other isHeader rows within this boundary were rejected by isViableSectionStart
+    // and should be treated as line items (e.g. "Control System" with no price).
+    if (row.isHeader && i === boundary.startRow) continue;
 
     // Subtotal rows — ALWAYS skip (never become line items)
     if (row.isSubtotal) {
@@ -97,6 +99,14 @@ export function extractTable(
         isIncluded: row.hasIncludedText || effectiveSell === 0,
         sourceRow: row.rowIndex,
       });
+    } else if (row.label && !row.isEmpty && !row.isSubtotal && !row.isTax && !row.isBond && !row.isGrandTotal && !row.isAlternateHeader) {
+      // Text-only rows (e.g. "Control System") with no price data — include as $0 line items
+      items.push({
+        description: row.label,
+        sellingPrice: 0,
+        isIncluded: true,
+        sourceRow: row.rowIndex,
+      });
     }
   }
 
@@ -133,9 +143,11 @@ export function extractTable(
     grandTotal = subtotal + (tax?.amount || 0) + bond;
   }
 
+  const sanitizedName = boundary.name.replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, ' ').trim();
+
   return {
-    id: createTableId(boundary.name, index),
-    name: boundary.name,
+    id: createTableId(sanitizedName, index),
+    name: sanitizedName,
     currency,
     items,
     subtotal,

@@ -950,7 +950,7 @@ export const DOCUMENT_MODES: Record<DocumentMode, {
         includeResponsibilityMatrix: false,
     },
     proposal: {
-        headerText: 'SALES QUOTATION',
+        headerText: 'PROPOSAL',
         includeSignatures: false,
         includePaymentTerms: false,
         includeLegalIntro: false,

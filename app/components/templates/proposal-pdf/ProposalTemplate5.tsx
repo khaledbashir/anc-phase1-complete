@@ -75,11 +75,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const currency: "CAD" | "USD" = pricingDocument?.currency || "USD";
 
     // Prompt 51: Master table index — designates which pricing table is the "Project Grand Total"
-    // Auto-detect: if no explicit masterTableIndex, check if tables[0] is a summary/rollup table
+    // -1 = user explicitly chose "None (no master table)" — NEVER override this.
+    // null/undefined = never set — auto-detect is allowed.
     const rollUpRegex = /\b(total|roll.?up|summary|project\s+grand|grand\s+total|project\s+total|cost\s+summary|pricing\s+summary)\b/i;
     const pricingTables = pricingDocument?.tables || [];
-    let masterTableIndex: number | null = (details as any)?.masterTableIndex ?? null;
-    if (masterTableIndex === null && pricingTables.length > 1 && rollUpRegex.test(pricingTables[0]?.name || "")) {
+    const rawMasterTableIndex = (details as any)?.masterTableIndex;
+    let masterTableIndex: number | null = rawMasterTableIndex === -1 ? null : (rawMasterTableIndex ?? null);
+    if (rawMasterTableIndex == null && masterTableIndex === null && pricingTables.length > 1 && rollUpRegex.test(pricingTables[0]?.name || "")) {
         masterTableIndex = 0;
     }
 

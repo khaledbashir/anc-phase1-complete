@@ -602,6 +602,40 @@ describe("Edge Cases", () => {
     expect(warranty!.sellingPrice).toBe(1200);
   });
 
+  it("text-only rows after sections with column headers stay as line items, not new sections", () => {
+    // Simulates real ANC Excel: section headers have "Cost"/"Selling Price" in cost/sell cells.
+    // "Control System" and "Warranty" are text-only rows (no price) that should NOT create
+    // new sections — they should be captured as $0 line items in the preceding section.
+    const rows: any[][] = [
+      ["", "Cost", "Selling Price"],
+      ["Base Option #1 - Eagles Nest", "Cost", "Selling Price"],  // Real section header with column headers
+      ["LED Display", 100000, 200000],
+      ["Structural Materials", 30000, 50000],
+      ["Control System", "", ""],        // Text-only row — NOT a section header
+      ["Warranty", "", ""],              // Text-only row — NOT a section header
+      ["Grand Total", 130000, 250000],
+    ];
+    const wb = buildMockWorkbook("Margin Analysis", rows);
+    const result = parsePricingTablesWithValidation(wb, "test.xlsx");
+    const doc = result.document!;
+
+    // Should be exactly 1 real section (plus possible synthetic rollup)
+    const realTables = doc.tables.filter(
+      (t) => t.name !== "Project Grand Total"
+    );
+    expect(realTables.length).toBe(1);
+    expect(realTables[0].name).toBe("Base Option #1 - Eagles Nest");
+
+    // Control System and Warranty should be line items, not lost
+    const allItems = realTables[0].items;
+    const control = allItems.find((i) => i.description === "Control System");
+    const warranty = allItems.find((i) => i.description === "Warranty");
+    expect(control).toBeDefined();
+    expect(warranty).toBeDefined();
+    expect(control!.isIncluded).toBe(true);
+    expect(warranty!.isIncluded).toBe(true);
+  });
+
   it("keeps INCLUDED text rows as real line items", () => {
     const rows: any[][] = [
       STD_HEADER,

@@ -104,7 +104,7 @@ const PdfPricingTables = ({
             // In Mirror Mode, use the exact Excel table name (screenNameMap can transform it incorrectly).
             // screenNameMap is only useful in Intelligence Mode where screens have custom display names.
             const resolvedName = mirrorMode ? tableName : (screenNameMap[tableName] || tableName);
-            const label = (override || resolvedName || "Section").toString().trim();
+            const label = (override || resolvedName || "Section").toString().replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, ' ').trim();
             const items = (table?.items || []) as any[];
             // Fix 5: Only include alternates that have actual content (non-empty description AND non-zero price)
             const alternates = ((table?.alternates || []) as any[]).filter((alt: any) => {
