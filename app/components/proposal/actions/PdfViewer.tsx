@@ -333,17 +333,12 @@ const PdfViewer = () => {
                                     onMouseDown={onMouseDown}
                                     onClick={onPreviewClick}
                                     style={{
-                                        width: `${containerWidth}px`,
+                                        width: `${pageWidthPx}px`,
+                                        zoom: s,
                                         cursor: !exactPdfPreview && zoomPct > 100 ? "grab" : "default",
                                     }}
                                 >
-                                    <div style={{
-                                        width: `${pageWidthPx}px`,
-                                        transformOrigin: "top left",
-                                        transform: `translate(${pan.x}px, ${pan.y}px) scale(${s})`,
-                                    }}>
-                                        <Template {...values} />
-                                    </div>
+                                    <Template {...values} />
                                 </div>
                             );
                         };
