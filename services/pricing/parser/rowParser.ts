@@ -14,6 +14,8 @@ export interface RawRow {
   sell: number;
   hasTextData: boolean;
   hasIncludedText: boolean;
+  hasErrorData: boolean;
+  originalTextValue: string;
   margin: number;
   marginPct: number;
   isEmpty: boolean;
@@ -97,8 +99,13 @@ export function parseAllRows(
     const sellRaw = norm(row[columnMap.sell]);
     const hasTextData = /^(excluded|included|n\/a|tbd|see above|see below)$/i.test(costRaw) || /^(excluded|included|n\/a|tbd|see above|see below)$/i.test(sellRaw);
     const hasIncludedText = /^(included)$/i.test(costRaw) || /^(included)$/i.test(sellRaw);
+    const hasErrorData = /^#(value!|ref!|n\/a|div\/0!|name\?|null!)$/i.test(costRaw) || /^#(value!|ref!|n\/a|div\/0!|name\?|null!)$/i.test(sellRaw);
+    // Capture the original text value from the sell column (fallback to cost) for display in PDF
+    const originalTextValue = hasTextData
+      ? (/^(excluded|included|n\/a|tbd|see above|see below)$/i.test(sellRaw) ? String(row[columnMap.sell] ?? "").trim() : String(row[columnMap.cost] ?? "").trim())
+      : "";
     const isEmpty = !label && !Number.isFinite(sell);
-    const hasNumericData = Number.isFinite(cost) || Number.isFinite(sell) || hasTextData;
+    const hasNumericData = Number.isFinite(cost) || Number.isFinite(sell) || hasTextData || hasErrorData;
 
     // Detect row types
     // A row with "alternate" in its label is an alternate header ONLY if it
@@ -133,6 +140,8 @@ export function parseAllRows(
       sell,
       hasTextData,
       hasIncludedText,
+      hasErrorData,
+      originalTextValue,
       margin,
       marginPct,
       isEmpty,

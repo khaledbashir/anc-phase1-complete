@@ -549,7 +549,7 @@ describe("Edge Cases", () => {
     expect(tableWithAlts!.alternates[0].priceDifference).toBe(-800);
   });
 
-  it('handles "N/A" and "INCLUDED" cell values (treated as NaN, item gets isIncluded=true for zero values)', () => {
+  it('handles "N/A" and "INCLUDED" cell values — N/A gets textValue, INCLUDED gets isIncluded', () => {
     const rows: any[][] = [
       STD_HEADER,
       ["Warranty Extension", "N/A", 0],
@@ -562,23 +562,26 @@ describe("Edge Cases", () => {
     const doc = result.document!;
     const allItems = doc.tables.flatMap((t) => t.items);
 
-    // Items with sell=0 should get isIncluded=true
+    // "N/A" in cost column: isIncluded=false, textValue="N/A" (not "INCLUDED")
     const warranty = allItems.find((i) => i.description === "Warranty Extension");
+    expect(warranty).toBeDefined();
+    expect(warranty!.isIncluded).toBe(false);
+    expect(warranty!.textValue).toBe("N/A");
+    expect(warranty!.sellingPrice).toBe(0);
+
+    // "INCLUDED" in cost column: isIncluded=true, textValue="INCLUDED"
     const pm = allItems.find((i) => i.description === "Project Management");
-    if (warranty) {
-      expect(warranty.isIncluded).toBe(true);
-      expect(warranty.sellingPrice).toBe(0);
-    }
-    if (pm) {
-      expect(pm.isIncluded).toBe(true);
-      expect(pm.sellingPrice).toBe(0);
-    }
+    expect(pm).toBeDefined();
+    expect(pm!.isIncluded).toBe(true);
+    expect(pm!.textValue).toBe("INCLUDED");
+    expect(pm!.sellingPrice).toBe(0);
 
     // The real item should be normal
     const panel = allItems.find((i) => i.description === "LED Panel");
     expect(panel).toBeDefined();
     expect(panel!.sellingPrice).toBe(15000);
     expect(panel!.isIncluded).toBe(false);
+    expect(panel!.textValue).toBeUndefined();
   });
 
   it("preserves trailing line items when Selling Price is blank but Cost is present", () => {
@@ -634,6 +637,53 @@ describe("Edge Cases", () => {
     expect(warranty).toBeDefined();
     expect(control!.isIncluded).toBe(true);
     expect(warranty!.isIncluded).toBe(true);
+  });
+
+  it('"Excluded" items get isExcluded=true and textValue, not isIncluded', () => {
+    const rows: any[][] = [
+      STD_HEADER,
+      ["LED Display", 10000, 15000],
+      ["Content Management System", "Excluded", "Excluded"],
+      ["Grand Total", 10000, 15000],
+    ];
+    const wb = buildMockWorkbook("Margin Analysis", rows);
+    const result = parsePricingTablesWithValidation(wb, "test.xlsx");
+    const doc = result.document!;
+    const allItems = doc.tables.flatMap((t) => t.items);
+
+    const cms = allItems.find((i) => i.description === "Content Management System");
+    expect(cms).toBeDefined();
+    expect(cms!.isExcluded).toBe(true);
+    expect(cms!.isIncluded).toBe(false);
+    expect(cms!.textValue).toBe("Excluded");
+    expect(cms!.sellingPrice).toBe(0);
+  });
+
+  it("Excel error strings (#VALUE!, #REF!) do not create ghost section headers", () => {
+    const rows: any[][] = [
+      STD_HEADER,
+      ["LED Display", 10000, 15000],
+      ["CMS Integration", "#VALUE!", "#VALUE!"],
+      ["Warranty", "#REF!", 5000],
+      ["Grand Total", 10000, 20000],
+    ];
+    const wb = buildMockWorkbook("Margin Analysis", rows);
+    const result = parsePricingTablesWithValidation(wb, "test.xlsx");
+    const doc = result.document!;
+
+    // Error rows should NOT create new sections — they should stay as line items
+    const realTables = doc.tables.filter((t) => t.name !== "Project Grand Total");
+    expect(realTables.length).toBe(1);
+
+    const allItems = realTables[0].items;
+    // CMS with #VALUE! in both columns: hasErrorData=true, treated as line item
+    const cms = allItems.find((i) => i.description === "CMS Integration");
+    expect(cms).toBeDefined();
+
+    // Warranty with #REF! in cost but 5000 in sell: normal line item
+    const warranty = allItems.find((i) => i.description === "Warranty");
+    expect(warranty).toBeDefined();
+    expect(warranty!.sellingPrice).toBe(5000);
   });
 
   it("keeps INCLUDED text rows as real line items", () => {

@@ -15,6 +15,12 @@ export interface PricingLineItem {
   /** If true, show "INCLUDED" badge instead of $0.00 */
   isIncluded: boolean;
 
+  /** If true, the original Excel cell said "Excluded" */
+  isExcluded?: boolean;
+
+  /** Original text from Excel cell ("Excluded", "Included", "N/A", "TBD", etc.) — displayed as-is in PDF */
+  textValue?: string;
+
   /** Original row index from Excel (for debugging/auditing) */
   sourceRow?: number;
 }

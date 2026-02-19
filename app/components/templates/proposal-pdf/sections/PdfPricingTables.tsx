@@ -148,7 +148,9 @@ const PdfPricingTables = ({
                                         {itemPrice.description}
                                     </div>
                                     <div className="col-span-4 text-right font-semibold text-[10px] whitespace-nowrap" style={{ color: colors.primaryDark }}>
-                                        {itemPrice.isIncluded
+                                        {itemPrice.textValue
+                                            ? <span style={{ color: colors.text }}>{itemPrice.textValue.toUpperCase()}</span>
+                                            : itemPrice.isIncluded
                                             ? <span style={{ color: colors.text }}>INCLUDED</span>
                                             : formatCurrency(itemPrice.price, currency)}
                                     </div>

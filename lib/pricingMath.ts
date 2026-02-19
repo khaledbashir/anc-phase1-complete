@@ -66,6 +66,10 @@ export interface RenderedLineItem {
     price: number;
     /** True if the item shows "INCLUDED" instead of a dollar amount */
     isIncluded: boolean;
+    /** True if the original Excel cell said "Excluded" */
+    isExcluded?: boolean;
+    /** Original text from Excel cell ("Excluded", "Included", "N/A", "TBD", etc.) */
+    textValue?: string;
     /** Original index in table.items — needed for override key lookups */
     originalIndex: number;
 }
@@ -114,8 +118,9 @@ export function computeTableTotals(
         const roundedPrice = roundToDisplay(rawPrice);
         const description = getEffectiveDescription(descriptionOverrides, table.id, idx, item.description);
 
-        // Filter out $0 rows (e.g. "BOND $0") — but keep explicitly "INCLUDED" items
-        if (!item.isIncluded && Math.abs(roundedPrice) < (1 / DISPLAY_SCALE || 0.01)) {
+        // Filter out $0 rows (e.g. "BOND $0") — but keep explicitly "INCLUDED", "EXCLUDED", or text-value items
+        const hasTextOverride = item.isIncluded || item.isExcluded || !!item.textValue;
+        if (!hasTextOverride && Math.abs(roundedPrice) < (1 / DISPLAY_SCALE || 0.01)) {
             continue;
         }
 
@@ -123,6 +128,8 @@ export function computeTableTotals(
             description,
             price: roundedPrice,
             isIncluded: item.isIncluded,
+            isExcluded: item.isExcluded,
+            textValue: item.textValue,
             originalIndex: idx,
         });
 

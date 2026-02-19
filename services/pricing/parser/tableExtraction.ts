@@ -93,10 +93,17 @@ export function extractTable(
         : Number.isFinite(row.cost)
           ? row.cost
           : 0;
+      // Determine isIncluded: only true when Excel literally says "Included" or
+      // when the row has a real $0 price with no text override
+      const isIncluded = row.hasIncludedText || (effectiveSell === 0 && !row.hasTextData);
+      const isExcluded = /^excluded$/i.test(row.originalTextValue);
+      const textValue = row.originalTextValue || undefined;
       items.push({
         description: row.label,
         sellingPrice: effectiveSell,
-        isIncluded: row.hasIncludedText || effectiveSell === 0,
+        isIncluded,
+        isExcluded,
+        textValue,
         sourceRow: row.rowIndex,
       });
     } else if (row.label && !row.isEmpty && !row.isSubtotal && !row.isTax && !row.isBond && !row.isGrandTotal && !row.isAlternateHeader) {
