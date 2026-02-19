@@ -8,6 +8,9 @@ const nextConfig = {
     eslint: { ignoreDuringBuilds: true },
     outputFileTracingRoot: path.join(__dirname),
     serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+    generateBuildId: async () => {
+        return `build-${Date.now()}`;
+    },
     async headers() {
         return [
             {
