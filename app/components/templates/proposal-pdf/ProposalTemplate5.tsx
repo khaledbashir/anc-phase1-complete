@@ -566,6 +566,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <ScopeOfWorkSection />
                             </div>
                         )}
+                        <PageBreak />
+                        <ContinuationPageHeader />
                         <RespMatrixSOW />
 
                         <div className="px-6">
@@ -634,6 +636,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         )}
 
                         {/* Resp Matrix SOW (if present in Excel) — own page per Natalia */}
+                        <PageBreak />
+                        <ContinuationPageHeader />
                         <RespMatrixSOW />
 
                         <div className="px-6">
@@ -695,6 +699,8 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         </>
                     )}
                     {/* Resp Matrix SOW (if present in Excel) — own page */}
+                    <PageBreak />
+                    <ContinuationPageHeader />
                     <RespMatrixSOW />
 
                     {shouldRenderPaymentTerms && (
