@@ -210,9 +210,10 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
             continue;
         }
 
-        const pitchNum = Number(row[colIdx.pitch]);
-        const heightNum = Number(row[colIdx.height]);
-        const widthNum = Number(row[colIdx.width]);
+        const parseDimension = (v: any): number => Number(String(v ?? "").replace(/[^\d.\-]/g, ""));
+        const pitchNum = parseDimension(row[colIdx.pitch]);
+        const heightNum = parseDimension(row[colIdx.height]);
+        const widthNum = parseDimension(row[colIdx.width]);
 
         if (
             cleanedProjectName !== "" &&

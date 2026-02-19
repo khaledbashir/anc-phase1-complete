@@ -43,10 +43,11 @@ export function findRespMatrixSheetCandidates(workbook: any): string[] {
 
   if (candidates.length === 0) return [];
 
-  // Ignore template/example matrix tabs. These frequently ship in master files
-  // and should never be rendered as project-specific responsibility matrices.
+  // Prefer non-example sheets. Only filter out "Example" tabs if real alternatives exist.
+  // If ALL candidates have "Example" in the name, they are the real project matrices
+  // (just poorly named) — use them rather than returning nothing.
   const nonExample = candidates.filter((name) => !/\bexample\b/i.test(name));
-  return nonExample;
+  return nonExample.length > 0 ? nonExample : candidates;
 }
 
 function findRespMatrixSheet(workbook: any): string | null {

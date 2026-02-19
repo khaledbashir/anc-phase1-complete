@@ -10,7 +10,7 @@ function buildWorkbook(rows: any[][]): XLSX.WorkBook {
 }
 
 describe("Resp Matrix Parser", () => {
-  it("ignores example/template resp matrix sheets", () => {
+  it("uses example-named sheets when they are the only resp matrix sheets (Union Station case)", () => {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([
       ["Project", "Demo"],
@@ -21,9 +21,27 @@ describe("Resp Matrix Parser", () => {
     XLSX.utils.book_append_sheet(wb, ws, "Resp Matrix - ROM Example");
 
     const result = parseRespMatrixDetailed(wb);
-    expect(result.matrix).toBeNull();
-    expect(result.sheetCandidates).toEqual([]);
-    expect(result.usedSheet).toBeNull();
+    expect(result.sheetCandidates).toEqual(["Resp Matrix - ROM Example"]);
+    expect(result.usedSheet).toBe("Resp Matrix - ROM Example");
+    expect(result.matrix).not.toBeNull();
+  });
+
+  it("ignores example-named sheets when a real resp matrix sheet also exists", () => {
+    const wb = XLSX.utils.book_new();
+    const wsExample = XLSX.utils.aoa_to_sheet([["Example data"]]);
+    const wsReal = XLSX.utils.aoa_to_sheet([
+      ["Project", "Demo"],
+      ["Date", "02/18/2026"],
+      ["PHYSICAL INSTALLATION", "ANC", "PURCHASER"],
+      ["Control System", "X", ""],
+      ["Warranty", "X", ""],
+    ]);
+    XLSX.utils.book_append_sheet(wb, wsExample, "Resp Matrix - ROM Example");
+    XLSX.utils.book_append_sheet(wb, wsReal, "Resp Matrix");
+
+    const result = parseRespMatrixDetailed(wb);
+    expect(result.usedSheet).toBe("Resp Matrix");
+    expect(result.matrix).not.toBeNull();
   });
 
   it("returns null when candidate sheet has no valid category headers", () => {
