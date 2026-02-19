@@ -139,30 +139,32 @@ export function computeTableTotals(
         }
     }
 
-    // Step 2: Derive tax rate from ORIGINAL Excel data
-    // Priority: (1) raw rate from parser if > 0, (2) derive from amounts if sane, (3) zero
-    // Never derive a rate > 25% — that indicates a subtotal mismatch, not a real tax rate.
+    // Step 2: Tax — Mirror Mode: use Excel's tax amount directly.
+    // Never recalculate tax from items — Natalia's rule is to trust Excel's numbers exactly.
+    // Only fall back to rate-based calculation when Excel provided no tax amount.
     let tax = 0;
     let taxLabel = "";
     if (table.tax) {
         taxLabel = table.tax.label || "Tax";
-        let rate = 0;
-        if (table.tax.rate > 0 && table.tax.rate <= 1) {
-            // Parser found an explicit rate (e.g. "8.875%") — most reliable
-            rate = table.tax.rate;
-        } else if (typeof table.tax.amount === "number" && table.subtotal > 0) {
-            // Derive rate from amounts — but only if result is sane (0-25%)
-            const derived = table.tax.amount / table.subtotal;
-            rate = (derived > 0 && derived <= 0.25) ? derived : 0;
+        if (typeof table.tax.amount === "number" && table.tax.amount > 0) {
+            // Excel provided the tax amount — use it directly (Mirror Mode)
+            tax = roundToDisplay(table.tax.amount);
+        } else if (table.tax.rate > 0 && table.tax.rate <= 1) {
+            // No amount but rate exists — calculate from rendered subtotal
+            tax = roundToDisplay(subtotal * table.tax.rate);
         }
-        tax = roundToDisplay(subtotal * rate);
     }
 
-    // Step 3: Bond — round to display precision
+    // Step 3: Bond — use Excel's bond amount directly
     const bond = roundToDisplay(table.bond || 0);
 
-    // Step 4: Grand total — plain sum of already-rounded components
-    const grandTotal = subtotal + tax + bond;
+    // Step 4: Grand total — Mirror Mode: always use Excel's grandTotal directly.
+    // Natalia's rule: "whatever is here is what your engine will show" — no recalculation.
+    // Excel's grandTotal was set from the actual total row in the spreadsheet.
+    // Only fall back to calculated when Excel had no grand total row (grandTotal === 0).
+    const grandTotal = (Number.isFinite(table.grandTotal) && table.grandTotal > 0)
+        ? roundToDisplay(table.grandTotal)
+        : (subtotal + tax + bond);
 
     return { items, subtotal, taxLabel, tax, bond, grandTotal };
 }
