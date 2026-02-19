@@ -1,6 +1,6 @@
 import React from "react";
 import { formatCurrency, sanitizeNitsForDisplay, stripDensityAndHDRFromSpecText, formatNumberWithCommas, normalizePitch } from "@/lib/helpers";
-import { computeTableTotals, computeDocumentTotalFromTables } from "@/lib/pricingMath";
+import { computeTableTotals } from "@/lib/pricingMath";
 import type { PricingTable } from "@/types/pricing";
 import type { PdfColors, PdfTemplateSpacing } from "./shared";
 
@@ -96,19 +96,15 @@ const PdfPricingTables = ({
             .map((table: any, origIdx: number) => ({ table, origIdx }))
             .filter(({ origIdx }) => origIdx !== masterTableIndex);
 
-        // Document total: centralized round-then-sum via pricingMath.ts
-        const documentTotal = computeDocumentTotalFromTables(
-            pricingTables as PricingTable[],
-            priceOverrides,
-            descriptionOverrides,
-        );
-
         // Render a single detail table card (reused in both portrait and landscape)
         const renderDetailTable = ({ table, origIdx }: { table: any; origIdx: number }) => {
             const tableName = (table?.name ?? "").toString().trim();
             const tableId = table?.id;
             const override = tableId ? tableHeaderOverrides[tableId] : undefined;
-            const label = (override || screenNameMap[tableName] || (tableName || "Section")).toString().trim();
+            // In Mirror Mode, use the exact Excel table name (screenNameMap can transform it incorrectly).
+            // screenNameMap is only useful in Intelligence Mode where screens have custom display names.
+            const resolvedName = mirrorMode ? tableName : (screenNameMap[tableName] || tableName);
+            const label = (override || resolvedName || "Section").toString().trim();
             const items = (table?.items || []) as any[];
             // Fix 5: Only include alternates that have actual content (non-empty description AND non-zero price)
             const alternates = ((table?.alternates || []) as any[]).filter((alt: any) => {
@@ -241,21 +237,8 @@ const PdfPricingTables = ({
                     detailTables.map((entry) => renderDetailTable(entry))
                 )}
 
-                {/* Document total (when multiple detail tables and no master table) */}
-                {detailTables.length > 1 && masterTableIndex === null && (
-                    <div className="mt-5 break-inside-avoid" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
-                        <div className="rounded-lg border overflow-hidden" style={{ borderColor: colors.primary }}>
-                            <div className="grid grid-cols-12 px-3 py-1" style={{ background: colors.primaryLight }}>
-                                <div className="col-span-8 font-bold text-xs uppercase tracking-wide" style={{ color: colors.primaryDark }}>
-                                    PROJECT GRAND TOTAL{currency === "CAD" ? " (CAD)" : ""}
-                                </div>
-                                <div className="col-span-4 text-right font-bold text-sm" style={{ color: colors.primaryDark }}>
-                                    {formatCurrency(documentTotal, currency)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
+                {/* Document total: only when a master table IS selected (rendered via MasterTableSummary).
+                   When user picks "None (no master table)", no aggregated total — mirrors Excel exactly. */}
             </>
         );
     }

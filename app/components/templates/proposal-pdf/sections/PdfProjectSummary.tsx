@@ -74,7 +74,8 @@ export const MasterTableSummary = ({
     const tableName = (masterTable?.name ?? "").toString().trim();
     const tableId = masterTable?.id;
     const override = tableId ? tableHeaderOverrides[tableId] : undefined;
-    const label = (override ?? screenNameMap[tableName] ?? (tableName || "Project Total")).toString().trim();
+    // Use exact Excel table name (don't let screenNameMap transform it)
+    const label = (override ?? tableName ?? "Project Total").toString().trim();
 
     const rows = (masterTable?.items || masterTable?.rows || []) as any[];
     const masterTotals = computeTableTotals(masterTable as PricingTable, priceOverrides, descriptionOverrides);
