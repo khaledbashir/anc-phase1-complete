@@ -85,11 +85,16 @@ export function extractTable(
       continue;
     }
 
-    if (row.label && Number.isFinite(row.sell)) {
+    if (row.label && (Number.isFinite(row.sell) || Number.isFinite(row.cost) || row.hasTextData)) {
+      const effectiveSell = Number.isFinite(row.sell)
+        ? row.sell
+        : Number.isFinite(row.cost)
+          ? row.cost
+          : 0;
       items.push({
         description: row.label,
-        sellingPrice: row.sell,
-        isIncluded: row.sell === 0,
+        sellingPrice: effectiveSell,
+        isIncluded: row.hasIncludedText || effectiveSell === 0,
         sourceRow: row.rowIndex,
       });
     }

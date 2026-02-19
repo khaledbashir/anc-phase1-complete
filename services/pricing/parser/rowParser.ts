@@ -12,6 +12,8 @@ export interface RawRow {
   labelNorm: string;
   cost: number;
   sell: number;
+  hasTextData: boolean;
+  hasIncludedText: boolean;
   margin: number;
   marginPct: number;
   isEmpty: boolean;
@@ -93,6 +95,7 @@ export function parseAllRows(
     const costRaw = norm(row[columnMap.cost]);
     const sellRaw = norm(row[columnMap.sell]);
     const hasTextData = /^(excluded|included|n\/a|tbd|see above|see below)$/i.test(costRaw) || /^(excluded|included|n\/a|tbd|see above|see below)$/i.test(sellRaw);
+    const hasIncludedText = /^(included)$/i.test(costRaw) || /^(included)$/i.test(sellRaw);
     const isEmpty = !label && !Number.isFinite(sell);
     const hasNumericData = Number.isFinite(cost) || Number.isFinite(sell) || hasTextData;
 
@@ -127,6 +130,8 @@ export function parseAllRows(
       labelNorm,
       cost,
       sell,
+      hasTextData,
+      hasIncludedText,
       margin,
       marginPct,
       isEmpty,

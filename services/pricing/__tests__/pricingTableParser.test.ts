@@ -580,4 +580,48 @@ describe("Edge Cases", () => {
     expect(panel!.sellingPrice).toBe(15000);
     expect(panel!.isIncluded).toBe(false);
   });
+
+  it("preserves trailing line items when Selling Price is blank but Cost is present", () => {
+    const rows: any[][] = [
+      STD_HEADER,
+      ["Main Display", 10000, 15000],
+      ["Control System", 2500, ""],
+      ["Warranty", 1200, ""],
+      ["Grand Total", 13700, 15000],
+    ];
+    const wb = buildMockWorkbook("Margin Analysis", rows);
+    const result = parsePricingTablesWithValidation(wb, "test.xlsx");
+    const doc = result.document!;
+    const allItems = doc.tables.flatMap((t) => t.items);
+
+    const control = allItems.find((i) => i.description === "Control System");
+    const warranty = allItems.find((i) => i.description === "Warranty");
+    expect(control).toBeDefined();
+    expect(warranty).toBeDefined();
+    expect(control!.sellingPrice).toBe(2500);
+    expect(warranty!.sellingPrice).toBe(1200);
+  });
+
+  it("keeps INCLUDED text rows as real line items", () => {
+    const rows: any[][] = [
+      STD_HEADER,
+      ["Main Display", 10000, 15000],
+      ["Control System", "INCLUDED", ""],
+      ["Warranty", "", "INCLUDED"],
+      ["Grand Total", 10000, 15000],
+    ];
+    const wb = buildMockWorkbook("Margin Analysis", rows);
+    const result = parsePricingTablesWithValidation(wb, "test.xlsx");
+    const doc = result.document!;
+    const allItems = doc.tables.flatMap((t) => t.items);
+
+    const control = allItems.find((i) => i.description === "Control System");
+    const warranty = allItems.find((i) => i.description === "Warranty");
+    expect(control).toBeDefined();
+    expect(warranty).toBeDefined();
+    expect(control!.isIncluded).toBe(true);
+    expect(warranty!.isIncluded).toBe(true);
+    expect(control!.sellingPrice).toBe(0);
+    expect(warranty!.sellingPrice).toBe(0);
+  });
 });

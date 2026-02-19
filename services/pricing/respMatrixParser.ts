@@ -43,8 +43,10 @@ export function findRespMatrixSheetCandidates(workbook: any): string[] {
 
   if (candidates.length === 0) return [];
 
+  // Ignore template/example matrix tabs. These frequently ship in master files
+  // and should never be rendered as project-specific responsibility matrices.
   const nonExample = candidates.filter((name) => !/\bexample\b/i.test(name));
-  return nonExample.length ? nonExample : candidates;
+  return nonExample;
 }
 
 function findRespMatrixSheet(workbook: any): string | null {
@@ -186,6 +188,7 @@ export function parseRespMatrixDetailed(workbook: any): RespMatrixParseResult {
   // Parse categories and items
   const categories: RespMatrixCategory[] = [];
   let currentCategory: RespMatrixCategory | null = null;
+  let categoryHeaderCount = 0;
 
   // Scan from row 3 onwards (skip title/date rows)
   for (let i = 2; i < data.length; i++) {
@@ -196,6 +199,7 @@ export function parseRespMatrixDetailed(workbook: any): RespMatrixParseResult {
 
     // Check for category header
     if (isCategoryHeader(row, col.description, col.anc, col.purchaser)) {
+      categoryHeaderCount++;
       // Save previous category
       if (currentCategory && currentCategory.items.length > 0) {
         categories.push(currentCategory);
@@ -243,6 +247,20 @@ export function parseRespMatrixDetailed(workbook: any): RespMatrixParseResult {
   if (categories.length === 0) {
     console.warn("[RESP MATRIX] No categories with items found");
     errors.push("Resp Matrix sheet has no categories with items");
+    return {
+      matrix: null,
+      sheetCandidates,
+      usedSheet: sheetName,
+      errors,
+    };
+  }
+
+  // Guard against template/placeholder sheets that contain stray values but no
+  // real category structure. This prevents false positives where proposals pull
+  // a matrix even when the workbook effectively has none.
+  if (categoryHeaderCount === 0) {
+    console.warn("[RESP MATRIX] No valid category headers found, skipping matrix");
+    errors.push("Resp Matrix sheet has no valid category headers");
     return {
       matrix: null,
       sheetCandidates,
