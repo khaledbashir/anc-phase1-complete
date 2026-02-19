@@ -116,6 +116,7 @@ export function parseAllRows(
     const sellCellNorm = sellRaw;
     const hasColumnHeaders = costCellNorm === "cost" || costCellNorm === "budgeted cost"
       || sellCellNorm === "selling price" || sellCellNorm === "sell price"
+      || sellCellNorm === "sale price" || sellCellNorm === "sales price"
       || sellCellNorm === "revenue" || sellCellNorm === "price";
     const isAlternateAddToCost = /alternate[s]?\s*[-–—]?\s*add\s+to\s+cost/i.test(label);
     const isAlternateDeduct = /alternate[s]?\s*[-–—]?\s*deduct(\s+cost(\s+above)?)?/i.test(label);
@@ -125,8 +126,11 @@ export function parseAllRows(
       && !isAlternateAddToCost
       && !isAlternateDeduct;
     const isSubtotal = isSubtotalRow(labelNorm, hasNumericData);
-    const isTax = labelNorm === "tax" || labelNorm.startsWith("tax ");
-    const isBond = labelNorm === "bond";
+    const isTax = labelNorm === "tax" || labelNorm.startsWith("tax ")
+      || labelNorm === "hst" || labelNorm.startsWith("hst ")
+      || labelNorm === "gst" || labelNorm.startsWith("gst ")
+      || labelNorm === "sales tax" || labelNorm.startsWith("sales tax ");
+    const isBond = labelNorm === "bond" || labelNorm === "bond cost" || labelNorm === "performance bond";
     const isGrandTotal = labelNorm.includes("grand total") || labelNorm.includes("sub total (bid form)") || labelNorm === "total" || labelNorm === "project total";
     const isAlternateHeader = isAlternateAddToCost || isAlternateDeduct || (looksLikeAlternateHeader && !hasColumnHeaders);
     const isAlternateLine = labelNorm.startsWith("alt ") || labelNorm.startsWith("alt-") || labelNorm.includes("alternate");
@@ -171,6 +175,9 @@ export function findHeaderRowIndex(data: any[][], columnMap: ColumnMap): number 
       cells[columnMap.cost] === "cost" ||
       cells[columnMap.cost] === "budgeted cost" ||
       cells[columnMap.sell] === "selling price" ||
+      cells[columnMap.sell] === "sell price" ||
+      cells[columnMap.sell] === "sale price" ||
+      cells[columnMap.sell] === "sales price" ||
       cells[columnMap.sell] === "revenue"
     ) {
       return i;
