@@ -50,9 +50,38 @@ export function findRespMatrixSheetCandidates(workbook: any): string[] {
   return nonExample.length > 0 ? nonExample : candidates;
 }
 
+function countXMarks(workbook: any, sheetName: string): number {
+  const xlsx = require("xlsx");
+  const data: any[][] = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "" });
+  let count = 0;
+  for (const row of data) {
+    for (const cell of row) {
+      if (String(cell ?? "").trim() === "X" || String(cell ?? "").trim() === "x") count++;
+    }
+  }
+  return count;
+}
+
 function findRespMatrixSheet(workbook: any): string | null {
-  const candidates = findRespMatrixSheetCandidates(workbook);
-  return candidates[0] || null;
+  const allCandidates = findRespMatrixSheetCandidates(workbook);
+  if (allCandidates.length === 0) return null;
+  if (allCandidates.length === 1) return allCandidates[0];
+
+  // Check if we're in the example-only fallback case (all candidates have "Example" in name).
+  // In that case, pick the sheet with the most X-marks — ROM Example sheets have generic
+  // assumption text with almost no X-marks; Indoor Wall / Pitch Example sheets have real data.
+  const allAreExample = allCandidates.every((name) => /\bexample\b/i.test(name));
+  if (allAreExample) {
+    let best = allCandidates[0];
+    let bestCount = countXMarks(workbook, best);
+    for (let i = 1; i < allCandidates.length; i++) {
+      const count = countXMarks(workbook, allCandidates[i]);
+      if (count > bestCount) { bestCount = count; best = allCandidates[i]; }
+    }
+    return best;
+  }
+
+  return allCandidates[0];
 }
 
 /**
