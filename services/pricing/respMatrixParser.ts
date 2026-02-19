@@ -62,16 +62,81 @@ function countXMarks(workbook: any, sheetName: string): number {
   return count;
 }
 
+/**
+ * Extract the project name from the top rows of a resp matrix sheet.
+ * Standard ANC format: row 0 = "Project: | <name>", row 1 = "Date: | <date>"
+ */
+function getSheetProjectName(workbook: any, sheetName: string): string {
+  const xlsx = require("xlsx");
+  const data: any[][] = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1, defval: "" });
+  for (let i = 0; i < Math.min(data.length, 5); i++) {
+    const row = data[i] || [];
+    const label = String(row[0] ?? "").trim().toLowerCase();
+    if (label === "project:" || label === "project") {
+      return String(row[1] ?? "").trim().toLowerCase();
+    }
+  }
+  return "";
+}
+
+/**
+ * Extract the project name from the workbook itself.
+ * Checks the Margin Analysis sheet header row label (e.g. "Union Station LED Displays")
+ * and the LED Cost Sheet project name row.
+ */
+function getWorkbookProjectName(workbook: any): string {
+  const xlsx = require("xlsx");
+  // Try Margin Analysis sheet (any variant name)
+  const marginName = (workbook.SheetNames || []).find((s: string) =>
+    /margin\s*analysis/i.test(s)
+  );
+  if (marginName) {
+    const data: any[][] = xlsx.utils.sheet_to_json(workbook.Sheets[marginName], { header: 1, defval: "" });
+    for (let i = 0; i < Math.min(data.length, 10); i++) {
+      const row = data[i] || [];
+      const cell0 = String(row[0] ?? "").trim();
+      const cell0Low = cell0.toLowerCase();
+      // "Project Name: Union Station" or "Project: Union Station"
+      if (/^project\s*(name)?\s*:/i.test(cell0)) {
+        const afterColon = cell0.replace(/^project\s*(name)?\s*:\s*/i, "").trim();
+        if (afterColon.length > 2) return afterColon.toLowerCase();
+      }
+      // Header row label like "Union Station LED Displays" — non-metadata text row
+      if (cell0.length > 3 && !/^(project|date|revised|cost|selling|margin|aia|budget|po|cash|install|travel)/i.test(cell0Low)) {
+        return cell0Low;
+      }
+    }
+  }
+  return "";
+}
+
 function findRespMatrixSheet(workbook: any): string | null {
   const allCandidates = findRespMatrixSheetCandidates(workbook);
   if (allCandidates.length === 0) return null;
   if (allCandidates.length === 1) return allCandidates[0];
 
   // Check if we're in the example-only fallback case (all candidates have "Example" in name).
-  // In that case, pick the sheet with the most X-marks — ROM Example sheets have generic
-  // assumption text with almost no X-marks; Indoor Wall / Pitch Example sheets have real data.
   const allAreExample = allCandidates.every((name) => /\bexample\b/i.test(name));
   if (allAreExample) {
+    // Strategy 1: match by project name in the sheet's top rows.
+    // ANC workbooks often have leftover resp matrix sheets from other projects.
+    // The correct sheet is the one whose "Project:" row matches this workbook's project.
+    const workbookProject = getWorkbookProjectName(workbook);
+    if (workbookProject) {
+      const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const workbookNorm = norm(workbookProject);
+      for (const candidate of allCandidates) {
+        const sheetProject = norm(getSheetProjectName(workbook, candidate));
+        // Fuzzy match: sheet project name is contained in workbook project name or vice versa
+        if (sheetProject && sheetProject.length > 3 &&
+            (workbookNorm.includes(sheetProject) || sheetProject.includes(workbookNorm))) {
+          return candidate;
+        }
+      }
+    }
+
+    // Strategy 2: fall back to most X-marks (most complete data).
+    // This handles cases where no project name match is found.
     let best = allCandidates[0];
     let bestCount = countXMarks(workbook, best);
     for (let i = 1; i < allCandidates.length; i++) {
