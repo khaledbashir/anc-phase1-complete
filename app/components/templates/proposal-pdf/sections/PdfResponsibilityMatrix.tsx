@@ -42,7 +42,7 @@ const PdfResponsibilityMatrix = ({ colors, respMatrix }: PdfResponsibilityMatrix
     return (
         <div data-preview-section="exhibit-a" className="px-6" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
             <SectionHeader title="Exhibit B — Statement of Work" colors={colors} />
-            <div className="border rounded overflow-hidden break-inside-avoid" style={{ borderColor: colors.border, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+            <div className="border rounded overflow-hidden" style={{ borderColor: colors.border }}>
                 {nonEmptyCategories.map((cat, catIdx) => {
                     const sectionType = respMatrix.format === "short"
                         ? "paragraph"
@@ -51,7 +51,7 @@ const PdfResponsibilityMatrix = ({ colors, respMatrix }: PdfResponsibilityMatrix
                             : categorizeSection(cat);
 
                     return (
-                        <div key={catIdx}>
+                        <div key={catIdx} style={{ breakInside: 'avoid', pageBreakInside: 'avoid' }}>
                             {/* Category header — text + thin blue underline */}
                             <div
                                 className="grid grid-cols-12 px-4 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
