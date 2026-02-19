@@ -90,16 +90,19 @@ export function parseAllRows(
     const margin = parseNumber(row[columnMap.margin]);
     const marginPct = parseNumber(row[columnMap.marginPct]);
 
+    const costRaw = norm(row[columnMap.cost]);
+    const sellRaw = norm(row[columnMap.sell]);
+    const hasTextData = /^(excluded|included|n\/a|tbd|see above|see below)$/i.test(costRaw) || /^(excluded|included|n\/a|tbd|see above|see below)$/i.test(sellRaw);
     const isEmpty = !label && !Number.isFinite(sell);
-    const hasNumericData = Number.isFinite(cost) || Number.isFinite(sell);
+    const hasNumericData = Number.isFinite(cost) || Number.isFinite(sell) || hasTextData;
 
     // Detect row types
     // A row with "alternate" in its label is an alternate header ONLY if it
     // matches the "alternates - add to cost" pattern.  Rows like
     // "Alternate - Film Room - 163\" All-In-One Display | Cost | Selling Price"
     // are real section headers that happen to contain the word "alternate".
-    const costCellNorm = norm(row[columnMap.cost]);
-    const sellCellNorm = norm(row[columnMap.sell]);
+    const costCellNorm = costRaw;
+    const sellCellNorm = sellRaw;
     const hasColumnHeaders = costCellNorm === "cost" || costCellNorm === "budgeted cost"
       || sellCellNorm === "selling price" || sellCellNorm === "sell price"
       || sellCellNorm === "revenue" || sellCellNorm === "price";
