@@ -84,9 +84,9 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
     const findCol = (regex: RegExp) => headers.findIndex(h => regex.test((h ?? "").toString().trim()));
 
     const detectedName     = findCol(/^(display\s*name|display|option|screen\s*name)$/i);
-    const detectedPitch    = findCol(/^pitch|mm\s*pitch|pixel\s*pitch/i);
-    const detectedHeight   = findCol(/^h(eight)?\s*(\(ft\))?$|^h$/i);
-    const detectedWidth    = findCol(/^w(idth)?\s*(\(ft\))?$|^w$/i);
+    const detectedPitch    = findCol(/^(mm\s*pitch|pixel\s*pitch|pitch)$/i);
+    const detectedHeight   = findCol(/^(active\s*)?h(eight)?\s*(\(ft\.?\))?$|^h$/i);
+    const detectedWidth    = findCol(/^(active\s*)?w(idth)?\s*(\(ft\.?\))?$|^w$/i);
     const detectedPixelsH  = findCol(/res.*h|pixel.*h|^h\s*\(px\)|resolution.*h/i);
     const detectedPixelsW  = findCol(/res.*w|pixel.*w|^w\s*\(px\)|resolution.*w/i);
     const detectedQty      = findCol(/^(qty|quantity|#\s*of\s*screens?|no\.?\s*of\s*screens?|of\s*screens?)$/i);
@@ -107,8 +107,15 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
         totalCost: 20, sellPrice: 22, ancMargin: 23, bondCost: 24, finalTotal: 25,
     };
 
+    // For name column: if detected at col 1+ check if col 0 actually has data in first data row.
+    // Some files (e.g. NBTEST Audit) have "Display Name" header in col 1 due to merged cells,
+    // but the actual screen names are in col 0.
+    const firstDataRow = ledData[headerRowIndex + 1] || [];
+    const col0HasData = firstDataRow[0] !== undefined && firstDataRow[0] !== null && String(firstDataRow[0]).trim() !== "";
+    const resolvedNameCol = detectedName > 0 && col0HasData ? 0 : (detectedName >= 0 ? detectedName : FALLBACK.name);
+
     const colIdx: any = {
-        name:             detectedName     >= 0 ? detectedName     : FALLBACK.name,
+        name:             resolvedNameCol,
         pitch:            detectedPitch    >= 0 ? detectedPitch    : FALLBACK.pitch,
         height:           detectedHeight   >= 0 ? detectedHeight   : FALLBACK.height,
         width:            detectedWidth    >= 0 ? detectedWidth    : FALLBACK.width,
@@ -627,14 +634,14 @@ function parseMarginAnalysisRows(data: any[][]) {
 
         // Find indices dynamically
         const cIdx = rowText.findIndex(t => t === "cost");
-        const sIdx = rowText.findIndex(t => t === "selling price" || t === "sell price");
+        const sIdx = rowText.findIndex(t => t === "selling price" || t === "sell price" || t === "sale price" || t === "sales price");
 
         if (cIdx !== -1 && sIdx !== -1) {
             headerRow = i;
             costIndex = cIdx;
             sellIndex = sIdx;
-            // Assume label is immediately to the left of cost
-            labelIndex = cIdx - 1;
+            // Label column: first non-empty text column to the left of cost, or col 0
+            labelIndex = cIdx > 0 ? cIdx - 1 : 0;
 
             // Try to find margin columns, otherwise assume relative positions
             const mIdx = rowText.findIndex(t => t === "margin $" || t === "margin amount" || t === "margin");

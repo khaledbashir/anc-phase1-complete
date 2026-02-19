@@ -139,17 +139,22 @@ export function computeTableTotals(
         }
     }
 
-    // Step 2: Derive tax rate from ORIGINAL Excel amounts (rate doesn't change with overrides)
+    // Step 2: Derive tax rate from ORIGINAL Excel data
+    // Priority: (1) raw rate from parser if > 0, (2) derive from amounts if sane, (3) zero
+    // Never derive a rate > 25% — that indicates a subtotal mismatch, not a real tax rate.
     let tax = 0;
     let taxLabel = "";
     if (table.tax) {
         taxLabel = table.tax.label || "Tax";
-        // Use the effective rate derived from amounts if available (handles tax-exempt items correctly)
-        // Otherwise fall back to the raw rate if no amount exists
-        const rate =
-            (typeof table.tax.amount === "number" && table.subtotal > 0)
-                ? table.tax.amount / table.subtotal
-                : (table.tax.rate > 0 ? table.tax.rate : 0);
+        let rate = 0;
+        if (table.tax.rate > 0 && table.tax.rate <= 1) {
+            // Parser found an explicit rate (e.g. "8.875%") — most reliable
+            rate = table.tax.rate;
+        } else if (typeof table.tax.amount === "number" && table.subtotal > 0) {
+            // Derive rate from amounts — but only if result is sane (0-25%)
+            const derived = table.tax.amount / table.subtotal;
+            rate = (derived > 0 && derived <= 0.25) ? derived : 0;
+        }
         tax = roundToDisplay(subtotal * rate);
     }
 
