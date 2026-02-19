@@ -394,6 +394,18 @@ export function buildPricingDocumentFromGrid(
                 continue;
             }
 
+            // Skip TAX and BOND rows — these are captured separately, not line items
+            if (descLower === "tax" || descLower.startsWith("tax ") ||
+                descLower === "bond" || descLower === "hst" || descLower === "gst" ||
+                descLower.startsWith("hst ") || descLower.startsWith("gst ")) {
+                continue;
+            }
+
+            // Skip blank-label rows with numbers — these are subtotal/summary rows
+            if (!desc && price !== 0) {
+                continue;
+            }
+
             items.push({
                 description: desc,
                 sellingPrice: price,
