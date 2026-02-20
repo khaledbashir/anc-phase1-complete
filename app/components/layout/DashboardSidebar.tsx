@@ -22,6 +22,7 @@ import {
     LogOut,
     BarChart3,
     Kanban,
+    MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRbac } from "@/hooks/useRbac";
@@ -34,6 +35,7 @@ const mainMenuItems = [
 ];
 
 const toolsMenuItems = [
+    { icon: MessageSquare, label: "Chat", href: "/chat", allowedRoles: null },
     { icon: SlidersHorizontal, label: "PDF Filter", href: "/tools/pdf-filter", allowedRoles: null }, // All roles
     { icon: Calculator, label: "Estimator", href: "/estimator", allowedRoles: null },
     // Demo Lab hidden from nav — accessible via direct URL /demo
