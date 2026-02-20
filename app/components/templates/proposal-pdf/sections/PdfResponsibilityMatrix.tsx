@@ -82,8 +82,6 @@ const PdfResponsibilityMatrix = ({ colors, respMatrix }: PdfResponsibilityMatrix
                                             style={{
                                                 borderBottom: `1px solid ${colors.borderLight}`,
                                                 background: idx % 2 === 1 ? colors.surface : colors.white,
-                                                pageBreakInside: 'avoid',
-                                                breakInside: 'avoid',
                                             }}
                                         >
                                             <td className="leading-snug" style={{ padding: '2px 12px', color: colors.text }}>{item.description}</td>
@@ -102,8 +100,8 @@ const PdfResponsibilityMatrix = ({ colors, respMatrix }: PdfResponsibilityMatrix
                                             style={{
                                                 borderBottom: `1px solid ${colors.borderLight}`,
                                                 background: idx % 2 === 1 ? colors.surface : colors.white,
-                                                pageBreakInside: 'avoid',
-                                                breakInside: 'avoid',
+                                                pageBreakInside: 'auto',
+                                                breakInside: 'auto',
                                             }}
                                         >
                                             <td colSpan={3} className="leading-snug" style={{ padding: '2px 12px', color: colors.text }}>{item.description}</td>
