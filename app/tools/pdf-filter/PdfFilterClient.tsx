@@ -19,12 +19,12 @@ import {
 } from "@dnd-kit/core";
 import type { PDFDocumentProxy } from "pdfjs-dist";
 import type { PageScore, ClassificationResult } from "./lib/scoring";
-import { classifyAndScorePages, splitByThreshold } from "./lib/scoring";
+import { classifyAndScorePages, splitByThreshold, autoThreshold } from "./lib/scoring";
 import {
   extractPageTexts, renderPageThumbnail, renderPageFull,
   buildFilteredPdf, downloadPdf, type ExtractionProgress,
 } from "./lib/pdf-utils";
-import { KEYWORD_PRESETS, getActiveKeywords } from "./lib/keyword-presets";
+import { KEYWORD_PRESETS, getActiveKeywords, getWeightedKeywords } from "./lib/keyword-presets";
 import {
   DRAWING_CATEGORIES, getDefaultEnabledDrawingCategories,
   VISION_CATEGORY_LABELS,
@@ -114,6 +114,10 @@ export default function PdfFilterClient() {
     () => getActiveKeywords(enabledCategories, customKeywords),
     [enabledCategories, customKeywords]
   );
+  const weightedKeywords = useMemo(
+    () => getWeightedKeywords(enabledCategories, customKeywords),
+    [enabledCategories, customKeywords]
+  );
   const allPresetsEnabled = enabledCategories.size === KEYWORD_PRESETS.length;
   const drawingPageCount = classification?.drawingPages.length ?? 0;
   const costEstimate = estimateCost(drawingPageCount);
@@ -177,10 +181,14 @@ export default function PdfFilterClient() {
       const meta = extractProjectMeta(structuredTexts, 5);
       setExtractedMeta(meta);
 
-      const result = classifyAndScorePages(pageTexts, allKeywords);
+      const result = classifyAndScorePages(pageTexts, allKeywords, weightedKeywords);
       setClassification(result);
 
-      const { keep, discard } = splitByThreshold(result.textPages, textThreshold);
+      // Auto-calculate threshold based on score distribution
+      const smartThreshold = autoThreshold(result.textPages);
+      setTextThreshold(smartThreshold);
+
+      const { keep, discard } = splitByThreshold(result.textPages, smartThreshold);
       setTextTriage({ keep, discard });
       setPhase("triage");
       setActiveTab("text");

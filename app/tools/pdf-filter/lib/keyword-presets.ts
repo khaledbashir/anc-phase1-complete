@@ -2,90 +2,102 @@ export interface KeywordCategory {
   id: string;
   label: string;
   keywords: string[];
+  /** Specificity weight: 3 = LED/AV-specific, 2 = relevant but shared, 1 = generic construction */
+  weight: number;
 }
 
 export const KEYWORD_PRESETS: KeywordCategory[] = [
   {
     id: "display-hardware",
     label: "Display Hardware",
+    weight: 3,
     keywords: [
-      "LED", "L.E.D.", "led display", "LED display", "video board", "video display",
-      "video wall", "scoreboard", "ribbon board", "ribbon display", "fascia",
-      "fascia board", "center hung", "centerhung", "auxiliary board", "auxiliary display",
-      "marquee", "digital signage", "display panel", "display module", "LED module",
-      "LED cabinet", "LED tile",
+      "LED display", "led display", "L.E.D.", "video board", "video display",
+      "video wall", "scoreboard", "ribbon board", "ribbon display", "fascia board",
+      "center hung", "centerhung", "auxiliary board", "auxiliary display",
+      "marquee", "digital signage", "LED module", "LED cabinet", "LED tile",
+      "display schedule", "11 06 60", "11 63 10",
     ],
   },
   {
     id: "display-specs",
     label: "Display Specs",
+    weight: 3,
     keywords: [
-      "pixel pitch", "SMD", "DIP", "brightness", "nits", "candela",
-      "viewing distance", "viewing angle", "refresh rate", "resolution",
-      "grayscale", "color temperature", "contrast ratio", "IP rating", "IP65",
-      "IP54", "weatherproof", "outdoor rated", "indoor rated",
+      "pixel pitch", "SMD", "DIP", "nits", "candela",
+      "viewing distance", "viewing angle", "refresh rate",
+      "grayscale", "color temperature", "contrast ratio", "IP65",
+      "IP54", "outdoor rated", "indoor rated",
     ],
   },
   {
     id: "electrical",
-    label: "Electrical",
+    label: "Electrical (LED-related)",
+    weight: 1,
     keywords: [
-      "electrical", "power distribution", "power supply", "power requirements",
-      "voltage", "amperage", "wattage", "circuit breaker", "transformer", "UPS",
-      "uninterruptible", "generator", "conduit", "junction box", "disconnect",
-      "NEC", "electrical code", "branch circuit", "dedicated circuit",
-      "service entrance", "panel board", "load calculation",
+      "power distribution", "power supply", "power requirements",
+      "circuit breaker", "transformer", "UPS",
+      "uninterruptible", "dedicated circuit",
+      "panel board", "load calculation",
     ],
   },
   {
     id: "structural",
-    label: "Structural",
+    label: "Structural (LED-related)",
+    weight: 1,
     keywords: [
-      "mounting", "rigging", "structural", "structural steel", "steel", "I-beam",
-      "W-beam", "catenary", "guy wire", "dead load", "live load", "wind load",
-      "seismic", "anchor", "concrete anchor", "embed plate", "unistrut", "bracket",
-      "cleat", "hanger", "truss", "canopy", "overhang", "elevation",
+      "mounting", "rigging", "structural steel",
+      "catenary", "dead load", "live load", "wind load",
+      "seismic", "embed plate", "unistrut",
       "structural engineer", "PE stamp",
     ],
   },
   {
     id: "installation",
     label: "Installation",
+    weight: 1,
     keywords: [
-      "installation", "install", "labor", "crew", "lift", "crane", "boom lift",
-      "scissor lift", "scaffolding", "conduit run", "cable tray", "wire pull",
-      "termination", "commissioning", "testing", "alignment", "leveling",
+      "commissioning", "alignment", "leveling",
+      "boom lift", "scissor lift", "crane",
+      "cable tray", "wire pull", "termination",
     ],
   },
   {
     id: "control-data",
     label: "Control / Data",
+    weight: 2,
     keywords: [
-      "control system", "controller", "processor", "video processor", "scaler",
-      "fiber", "fiber optic", "data cable", "Cat6", "Cat5", "HDMI", "DVI", "SDI",
-      "signal", "redundancy", "failover", "network", "switch", "media player",
+      "control system", "video processor", "scaler",
+      "fiber optic", "HDMI", "DVI", "SDI",
+      "redundancy", "failover", "media player",
     ],
   },
   {
     id: "permits",
     label: "Permits / Compliance",
+    weight: 1,
     keywords: [
-      "permit", "permits", "sign code", "building code", "zoning", "variance",
-      "ADA", "egress", "fire code", "fire marshal", "inspection",
-      "stamped drawings", "PE", "professional engineer", "shop drawings", "submittals",
+      "sign code", "stamped drawings",
+      "shop drawings", "submittals",
     ],
   },
   {
     id: "commercial",
-    label: "Commercial / Pricing",
+    label: "Commercial / Scope",
+    weight: 2,
     keywords: [
-      "pricing", "bid", "proposal", "quote", "RFP", "RFQ", "scope of work", "SOW",
-      "specification", "spec", "spec section", "division", "CSI", "alternates",
-      "alternate", "base bid", "add alternate", "deduct alternate", "unit price",
-      "allowance", "contingency", "warranty", "maintenance", "service agreement",
+      "scope of work", "SOW", "spec section",
+      "base bid", "add alternate", "deduct alternate", "unit price",
+      "allowance", "warranty", "service agreement",
+      "Division 11", "division 11",
     ],
   },
 ];
+
+export interface WeightedKeyword {
+  keyword: string;
+  weight: number;
+}
 
 export function getActiveKeywords(
   enabledCategories: Set<string>,
@@ -96,4 +108,25 @@ export function getActiveKeywords(
     .flatMap((cat) => cat.keywords);
 
   return [...presetKeywords, ...customKeywords];
+}
+
+export function getWeightedKeywords(
+  enabledCategories: Set<string>,
+  customKeywords: string[]
+): WeightedKeyword[] {
+  const weighted: WeightedKeyword[] = [];
+
+  for (const cat of KEYWORD_PRESETS) {
+    if (!enabledCategories.has(cat.id)) continue;
+    for (const kw of cat.keywords) {
+      weighted.push({ keyword: kw, weight: cat.weight });
+    }
+  }
+
+  // Custom keywords get weight 3 (user explicitly added them = high signal)
+  for (const kw of customKeywords) {
+    weighted.push({ keyword: kw, weight: 3 });
+  }
+
+  return weighted;
 }

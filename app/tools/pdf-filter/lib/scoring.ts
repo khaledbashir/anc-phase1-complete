@@ -26,6 +26,8 @@ export interface ScoringResult {
   isLikelyScanned: boolean;
 }
 
+import type { WeightedKeyword } from "./keyword-presets";
+
 const TEXT_THRESHOLD_CHARS = 50;
 
 function normalizeText(text: string): string {
@@ -59,6 +61,36 @@ function countKeywordHits(normalizedText: string, normalizedKeywords: string[]):
   return hits;
 }
 
+interface NormalizedWeightedKeyword {
+  normalized: string;
+  weight: number;
+}
+
+function countWeightedHits(
+  normalizedText: string,
+  weightedKeywords: NormalizedWeightedKeyword[]
+): { totalWeight: number; uniqueKeywords: number; hits: number } {
+  let totalWeight = 0;
+  let hits = 0;
+  let uniqueKeywords = 0;
+
+  for (const wk of weightedKeywords) {
+    if (!wk.normalized) continue;
+    let found = false;
+    let startIndex = 0;
+    while (true) {
+      const idx = normalizedText.indexOf(wk.normalized, startIndex);
+      if (idx === -1) break;
+      totalWeight += wk.weight;
+      hits++;
+      if (!found) { uniqueKeywords++; found = true; }
+      startIndex = idx + wk.normalized.length;
+    }
+  }
+
+  return { totalWeight, uniqueKeywords, hits };
+}
+
 function extractSnippet(text: string, keywords: string[], maxLength: number = 120): string {
   const lowerText = text.toLowerCase();
   for (const kw of keywords) {
@@ -78,9 +110,14 @@ function extractSnippet(text: string, keywords: string[], maxLength: number = 12
 
 export function classifyAndScorePages(
   pageTexts: string[],
-  keywords: string[]
+  keywords: string[],
+  weightedKeywords?: WeightedKeyword[]
 ): ClassificationResult {
   const normalizedKeywords = keywords.map(normalizeKeyword).filter(Boolean);
+  const normalizedWeighted: NormalizedWeightedKeyword[] = weightedKeywords
+    ? weightedKeywords.map((wk) => ({ normalized: normalizeKeyword(wk.keyword), weight: wk.weight }))
+    : normalizedKeywords.map((nk) => ({ normalized: nk, weight: 1 }));
+
   const totalPages = pageTexts.length;
   let totalChars = 0;
 
@@ -110,7 +147,7 @@ export function classifyAndScorePages(
       continue;
     }
 
-    if (normalizedKeywords.length === 0) {
+    if (normalizedWeighted.length === 0) {
       textPages.push({
         pageIndex: index,
         pageNumber: index + 1,
@@ -125,18 +162,30 @@ export function classifyAndScorePages(
     }
 
     const normalizedText = normalizeText(text);
-    const keywordHits = countKeywordHits(normalizedText, normalizedKeywords);
+    const { totalWeight, uniqueKeywords, hits } = countWeightedHits(normalizedText, normalizedWeighted);
 
-    const score = keywordHits > 0
-      ? keywordHits / Math.sqrt(Math.max(normalizedText.length, 1))
-      : 0;
+    // Score formula: weighted hits normalized by text length
+    // Require at least 2 unique keyword matches OR a high-weight keyword (weight >= 3)
+    // to avoid noise from single generic hits on long pages
+    let score = 0;
+    if (totalWeight > 0) {
+      const hasHighValueHit = normalizedWeighted.some(
+        (wk) => wk.weight >= 3 && normalizedText.includes(wk.normalized) && wk.normalized.length > 0
+      );
+      if (uniqueKeywords >= 2 || hasHighValueHit) {
+        // Weighted density: totalWeight / sqrt(textLength), boosted by keyword diversity
+        const densityScore = totalWeight / Math.sqrt(Math.max(normalizedText.length, 1));
+        const diversityBonus = Math.min(uniqueKeywords / 3, 2); // up to 2x for diverse matches
+        score = densityScore * (1 + diversityBonus * 0.5);
+      }
+    }
 
     textPages.push({
       pageIndex: index,
       pageNumber: index + 1,
       pageType: "text",
       score,
-      keywordHits,
+      keywordHits: hits,
       textLength,
       textSnippet: extractSnippet(text, keywords),
       hasText: true,
@@ -147,6 +196,35 @@ export function classifyAndScorePages(
   const isLikelyScanned = totalPages > 0 && avgCharsPerPage < 50;
 
   return { textPages, drawingPages, totalChars, totalPages, isLikelyScanned };
+}
+
+/**
+ * Auto-calculate a threshold that separates signal from noise.
+ * Uses percentile-based approach: keep only the top N% of scored pages.
+ * For a 1300-page RFP, we expect ~3-8% to be relevant (40-100 pages).
+ */
+export function autoThreshold(textPages: PageScore[]): number {
+  const scores = textPages.map((p) => p.score).filter((s) => s > 0).sort((a, b) => b - a);
+  if (scores.length === 0) return 0.01;
+
+  // Target: keep at most 10% of scored pages, minimum threshold at 60th percentile of non-zero scores
+  const targetKeepCount = Math.max(10, Math.ceil(scores.length * 0.10));
+  const cutoffScore = scores[Math.min(targetKeepCount - 1, scores.length - 1)];
+
+  // Also compute a gap-based threshold: find the biggest score drop
+  let maxGap = 0;
+  let gapThreshold = cutoffScore;
+  for (let i = 0; i < Math.min(scores.length - 1, targetKeepCount * 2); i++) {
+    const gap = scores[i] - scores[i + 1];
+    const relativeGap = scores[i] > 0 ? gap / scores[i] : 0;
+    if (relativeGap > maxGap && relativeGap > 0.3) {
+      maxGap = relativeGap;
+      gapThreshold = (scores[i] + scores[i + 1]) / 2;
+    }
+  }
+
+  // Use the higher of the two thresholds (more aggressive filtering)
+  return Math.max(cutoffScore, gapThreshold, 0.05);
 }
 
 export function scorePages(
