@@ -97,3 +97,7 @@ anuthingapidoc.md
 
 # Miscellaneous temporary files
 /api
+
+# Local non-code docs/files kept outside source control
+docs/PHASE1_HANDOVER.md
+docs/Toyota Center - Houston Rockets - Technology Scoping - JSR, DC & JB - 2026-01-09 (1).xlsx
