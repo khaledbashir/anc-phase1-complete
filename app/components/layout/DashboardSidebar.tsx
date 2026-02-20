@@ -96,8 +96,8 @@ export default function DashboardSidebar() {
 
     // Helper to check if user can access a nav item
     const canAccess = (allowedRoles: UserRole[] | null): boolean => {
-        if (isLoading || !mounted) return false;
-        if (!allowedRoles) return true; // null = available to all
+        if (!allowedRoles) return true; // null = available to all (no mount/loading guard needed)
+        if (isLoading || !mounted) return false; // role-restricted items wait for client
         return hasRole(allowedRoles);
     };
 
