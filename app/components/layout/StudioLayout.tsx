@@ -91,9 +91,9 @@ export function StudioLayout({
                 </div>
 
                 {/* THE STUDIO GRID (50/50 Split) */}
-                <main className="flex-1 overflow-hidden grid grid-cols-2">
+                <main className="flex-1 overflow-hidden grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                     {/* THE HUB (Left Pane: 50vw) */}
-                    <section className="relative flex flex-col overflow-hidden bg-background/40 border-r border-border anc-slash-bg">
+                    <section className="relative min-w-0 flex flex-col overflow-hidden bg-background/40 border-r border-border anc-slash-bg">
                         {/* Stacked Panels with CSS Visibility Toggle */}
                         <div className="flex-1 flex overflow-hidden">
                             <div className="flex-1 relative overflow-hidden">
@@ -157,8 +157,8 @@ export function StudioLayout({
                     </section>
 
                     {/* THE ANCHOR (Right Pane: 50vw) */}
-                    <section className="relative bg-muted/30 overflow-hidden flex flex-col">
-                        <div className="flex-1 overflow-y-auto p-12 custom-scrollbar flex items-start justify-center">
+                    <section className="relative min-w-0 bg-muted/30 overflow-hidden flex flex-col">
+                        <div className="flex-1 overflow-y-auto p-3 md:p-5 lg:p-8 custom-scrollbar flex items-start justify-center">
                             {/* Brand Signature Slashes in background */}
                             <BrandSlashes
                                 className="absolute -top-20 -right-20 pointer-events-none transition-opacity duration-1000"
@@ -168,7 +168,7 @@ export function StudioLayout({
                                 count={12}
                             />
 
-                            <div className="relative z-10 w-full max-w-[850px]">
+                            <div className="relative z-10 w-full min-w-0">
                                 {pdfContent}
                             </div>
                         </div>
