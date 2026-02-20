@@ -1,11 +1,21 @@
 // generate-margin-analysis — AnythingLLM Custom Agent Skill
-// Generates multi-sheet Excel margin analysis for ANC LED display projects
+// Calls /api/agent-skill/generate-excel to produce a multi-sheet Excel workbook
+// and returns the download link directly to the user.
+// Version: 3.0.0
 
 module.exports.runtime = {
   handler: async function ({ project_data_json }) {
     try {
+      // Validate input
       if (!project_data_json || project_data_json === "{}") {
-        return "Error: No project data provided. The project_data_json parameter must contain the full project data object with project_name and displays array.";
+        return [
+          "ERROR: No project data provided.",
+          "The project_data_json parameter must contain a JSON object with:",
+          '  - project_name: string',
+          '  - displays: array of { name, cost, selling_price, margin_pct }',
+          "",
+          "TASK COMPLETE. Do not retry this tool. Ask the user for the required data."
+        ].join("\n");
       }
 
       let projectData;
@@ -14,54 +24,107 @@ module.exports.runtime = {
           ? JSON.parse(project_data_json)
           : project_data_json;
       } catch (parseErr) {
-        return `Error: Invalid JSON in project_data_json — ${parseErr.message}`;
+        return [
+          `ERROR: Invalid JSON — ${parseErr.message}`,
+          "",
+          "TASK COMPLETE. Do not retry this tool. Fix the JSON and try once more, or ask the user."
+        ].join("\n");
       }
 
       if (!projectData.project_name) {
-        return "Error: project_data_json is missing 'project_name'.";
+        return [
+          "ERROR: Missing 'project_name' in project data.",
+          "",
+          "TASK COMPLETE. Do not retry this tool. Ask the user for the project name."
+        ].join("\n");
       }
 
       if (!projectData.displays || !Array.isArray(projectData.displays) || projectData.displays.length === 0) {
-        return "Error: project_data_json is missing 'displays' array. At least one display group is required.";
+        return [
+          "ERROR: Missing or empty 'displays' array in project data.",
+          "At least one display group is required with: name, cost, selling_price, margin_pct",
+          "",
+          "TASK COMPLETE. Do not retry this tool. Ask the user for display information."
+        ].join("\n");
       }
 
       this.introspect(
-        `Generating margin analysis for "${projectData.project_name}" — ${projectData.displays.length} display group(s)...`
+        `Generating Excel for "${projectData.project_name}" — ${projectData.displays.length} display(s)...`
       );
 
-      const baseUrl = this.runtimeArgs["ANC_API_URL"] || "https://basheer-therag2.prd42b.easypanel.host";
+      const baseUrl = (this.runtimeArgs["ANC_API_URL"] || "https://basheer-therag2.prd42b.easypanel.host").replace(/\/$/, "");
 
-      // The /api/intelligence/generate-excel endpoint is not yet available.
-      // Provide the data summary and guide the user to the web interface.
-      const displaySummary = projectData.displays
-        .map((d) =>
-          `  - ${d.name}: Cost $${(d.cost || 0).toLocaleString()} | Selling $${(d.selling_price || 0).toLocaleString()} (${d.margin_pct || "N/A"}% margin)`
-        )
-        .join("\n");
-
-      let output = `**Margin Analysis Summary — ${projectData.project_name}**\n\n`;
-      output += `**Displays:**\n${displaySummary}\n\n`;
-
-      if (projectData.grand_total_cost || projectData.grand_total_selling) {
-        output += `**Grand Total:**\n`;
-        output += `- Cost: $${(projectData.grand_total_cost || 0).toLocaleString()}\n`;
-        output += `- Selling: $${(projectData.grand_total_selling || 0).toLocaleString()}\n`;
-        output += `- Margin: ${projectData.grand_total_margin_pct || "N/A"}%\n\n`;
+      // Call the generate-excel endpoint (no auth required)
+      let response;
+      try {
+        response = await fetch(`${baseUrl}/api/agent-skill/generate-excel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(projectData)
+        });
+      } catch (fetchErr) {
+        return [
+          `ERROR: Could not reach ANC server at ${baseUrl}.`,
+          `Network error: ${fetchErr.message}`,
+          "",
+          "The server may be down or unreachable.",
+          "TASK COMPLETE. Do not retry this tool. Report this error to the user."
+        ].join("\n");
       }
 
-      output += `**To generate the Excel workbook:**\n`;
-      output += `1. Go to ${baseUrl}/projects\n`;
-      output += `2. Open or create the project\n`;
-      output += `3. Use Intelligence Mode to build the margin analysis\n`;
-      output += `4. Export to Excel from the proposal editor\n\n`;
+      // Check response
+      const contentType = response.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const text = await response.text().catch(() => "");
+        return [
+          `ERROR: Server returned ${response.status} with non-JSON response.`,
+          text ? `Response: ${text.substring(0, 200)}` : "",
+          "",
+          "TASK COMPLETE. Do not retry this tool. Report this error to the user."
+        ].join("\n");
+      }
 
-      output += `Note: Direct Excel generation via API is coming in a future update.`;
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        return [
+          `ERROR: Excel generation failed — ${result.error || "Unknown error"}`,
+          result.details ? `Details: ${result.details}` : "",
+          "",
+          "TASK COMPLETE. Do not retry this tool. Report this error to the user."
+        ].join("\n");
+      }
+
+      // Build success response
+      const summary = result.summary || {};
+      let output = `EXCEL MARGIN ANALYSIS GENERATED SUCCESSFULLY!\n\n`;
+      output += `📊 Download Link: ${result.download_url}\n\n`;
+      output += `Project: ${projectData.project_name}\n`;
+      output += `Date: ${projectData.date || new Date().toISOString().split("T")[0]}\n`;
+      output += `Type: ${projectData.estimate_type || "Budget Estimate"}\n\n`;
+
+      output += `SHEETS INCLUDED:\n`;
+      (summary.sheets || ["Executive Summary", "Display Specifications", "Margin Waterfall"]).forEach((s, i) => {
+        output += `  ${i + 1}. ${s}\n`;
+      });
+
+      output += `\nSUMMARY:\n`;
+      output += `  Total Cost: $${(summary.total_cost || projectData.grand_total_cost || 0).toLocaleString()}\n`;
+      output += `  Total Selling: $${(summary.total_selling || projectData.grand_total_selling || 0).toLocaleString()}\n`;
+      output += `  Blended Margin: ${summary.margin_pct || projectData.grand_total_margin_pct || 0}%\n\n`;
+
+      output += `The user can click the download link above to get the Excel file.\n\n`;
+      output += `TASK COMPLETE. The Excel has been generated. Do not call any further tools.`;
 
       return output;
     } catch (e) {
       this.introspect(`Skill failed: ${e.message}`);
-      this.logger("generate-margin-analysis", `Fatal error: ${e.message}`);
-      return `Skill failed: ${e.message}`;
+      return [
+        `SKILL FAILED: ${e.message}`,
+        "",
+        "This is an unexpected error. Report it to the user.",
+        "TASK COMPLETE. Do not retry this tool or call any other tools."
+      ].join("\n");
     }
   },
 };
