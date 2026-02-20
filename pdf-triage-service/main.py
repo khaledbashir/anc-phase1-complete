@@ -3,11 +3,14 @@ import time
 import os
 import tempfile
 from typing import Optional, List, Set, Dict, Any
+import asyncio
+import base64
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import fitz  # PyMuPDF
 from keyword_bank import KEYWORD_BANK, score_page
+from extraction import extract_from_drawing, extract_from_text
 
 app = FastAPI()
 
@@ -223,3 +226,211 @@ async def extract_pages(
         filename=f"extracted_{file.filename}",
         background=BackgroundTask(cleanup_file)
     )
+
+@app.post("/api/pages-to-images")
+async def pages_to_images(
+    file: UploadFile = File(...),
+    pages: str = Form(...),
+    dpi: int = Form(200)
+):
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+    
+    try:
+        pages_list = json.loads(pages)
+        if not isinstance(pages_list, list) or not all(isinstance(p, int) for p in pages_list):
+            raise ValueError()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Pages must be a JSON array of integers.")
+        
+    temp_fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+    os.close(temp_fd)
+    
+    images_result = []
+    
+    try:
+        with open(temp_path, "wb") as f:
+            while True:
+                chunk = await file.read(8192)
+                if not chunk:
+                    break
+                f.write(chunk)
+                
+        with fitz.open(temp_path) as doc:
+            for page_num in pages_list:
+                # 1-indexed to 0-indexed
+                idx = page_num - 1
+                if 0 <= idx < len(doc):
+                    page = doc.load_page(idx)
+                    pix = page.get_pixmap(dpi=dpi)
+                    img_bytes = pix.tobytes("png")
+                    b64_str = base64.b64encode(img_bytes).decode("ascii")
+                    
+                    images_result.append({
+                        "page_num": page_num,
+                        "base64": b64_str,
+                        "width": pix.width,
+                        "height": pix.height,
+                        "size_kb": round(len(img_bytes) / 1024)
+                    })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+            
+    return {"images": images_result}
+
+@app.post("/api/extract-specs/vision")
+async def extract_specs_vision(payload: Dict[str, Any]):
+    images = payload.get("images", [])
+    project_context = payload.get("project_context", "")
+    
+    if not images:
+        raise HTTPException(status_code=400, detail="Images array is required.")
+        
+    start_time = time.time()
+    screens = await extract_from_drawing(images, project_context)
+    processing_time_ms = int((time.time() - start_time) * 1000)
+    
+    return {
+        "screens": screens,
+        "processing_time_ms": processing_time_ms,
+        "model": "z-ai/glm-4.6v",
+        "pages_processed": len(images)
+    }
+
+@app.post("/api/extract-specs/text")
+async def extract_specs_text(payload: Dict[str, Any]):
+    pages = payload.get("pages", [])
+    project_context = payload.get("project_context", "")
+    
+    if not pages:
+        raise HTTPException(status_code=400, detail="Pages array is required.")
+        
+    start_time = time.time()
+    screens = await extract_from_text(pages, project_context)
+    processing_time_ms = int((time.time() - start_time) * 1000)
+    
+    return {
+        "screens": screens,
+        "processing_time_ms": processing_time_ms,
+        "model": "anything-llm/gemini",
+        "pages_processed": len(pages)
+    }
+
+@app.post("/api/extract-specs")
+async def extract_specs_orchestrator(
+    file: UploadFile = File(...),
+    triage_result: str = Form(...),
+    project_context: str = Form("")
+):
+    try:
+        triage_data = json.loads(triage_result)
+        pages_data = triage_data.get("pages", [])
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid triage_result JSON parsing.")
+        
+    # Isolate relevant pages
+    keep_pages = [p for p in pages_data if p.get("recommended") in ("keep", "maybe", "review")]
+    if not keep_pages:
+        return {
+            "screens": [],
+            "summary": {
+                "total_screens_found": 0,
+                "from_text": 0,
+                "from_drawings": 0,
+                "text_pages_processed": 0,
+                "drawing_pages_processed": 0,
+                "processing_time_ms": 0
+            }
+        }
+        
+    text_page_nums = {p["page_num"] for p in keep_pages if p["classification"] == "text"}
+    drawing_page_nums = {p["page_num"] for p in keep_pages if p["classification"] == "drawing"}
+    
+    start_time = time.time()
+    
+    temp_fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+    os.close(temp_fd)
+    
+    text_payloads = []
+    vision_payloads = []
+    
+    try:
+        with open(temp_path, "wb") as f:
+            while True:
+                chunk = await file.read(8192)
+                if not chunk:
+                    break
+                f.write(chunk)
+                
+        with fitz.open(temp_path) as doc:
+            for page_num in text_page_nums:
+                idx = page_num - 1
+                if 0 <= idx < len(doc):
+                    page = doc.load_page(idx)
+                    text_payloads.append({
+                        "page_num": page_num,
+                        "text": page.get_text()
+                    })
+
+            for page_num in drawing_page_nums:
+                idx = page_num - 1
+                if 0 <= idx < len(doc):
+                    page = doc.load_page(idx)
+                    pix = page.get_pixmap(dpi=200)
+                    b64_str = base64.b64encode(pix.tobytes("png")).decode("ascii")
+                    vision_payloads.append({
+                        "page_num": page_num,
+                        "base64": b64_str
+                    })
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+            
+    # Run text and vision extractions concurrently
+    tasks = []
+    text_task_index = -1
+    vision_task_index = -1
+    
+    if text_payloads:
+        # Pass directly to function instead of doing an HTTP call to self
+        tasks.append(extract_from_text(text_payloads, project_context))
+        text_task_index = len(tasks) - 1
+        
+    if vision_payloads:
+        # Note: GLM-4.6V handles multiple images, but the prompt is better suited 
+        # for identifying specs per image, or we can send them all. We send them all as per the structure above.
+        tasks.append(extract_from_drawing(vision_payloads, project_context))
+        vision_task_index = len(tasks) - 1
+        
+    results = await asyncio.gather(*tasks)
+    
+    all_screens = []
+    text_screens_count = 0
+    drawing_screens_count = 0
+    
+    if text_task_index >= 0:
+        res = results[text_task_index]
+        all_screens.extend(res)
+        text_screens_count = len(res)
+        
+    if vision_task_index >= 0:
+        res = results[vision_task_index]
+        all_screens.extend(res)
+        drawing_screens_count = len(res)
+        
+    processing_time_ms = int((time.time() - start_time) * 1000)
+    
+    return {
+        "screens": all_screens,
+        "summary": {
+            "total_screens_found": len(all_screens),
+            "from_text": text_screens_count,
+            "from_drawings": drawing_screens_count,
+            "text_pages_processed": len(text_payloads),
+            "drawing_pages_processed": len(vision_payloads),
+            "processing_time_ms": processing_time_ms
+        }
+    }
