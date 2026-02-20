@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useProposalContext } from "@/contexts/ProposalContext";
 import { resolveDocumentMode, forceDocumentModeDefaults, type DocumentMode } from "@/lib/documentMode";
+import { EmbeddingStatusBanner } from "@/app/components/proposal/form/wizard/EmbeddingStatusBanner";
 import { SOWGeneratorPanel } from "@/app/components/proposal/SOWGeneratorPanel";
 import {
     Select,
@@ -165,6 +166,11 @@ const Step2Intelligence = () => {
     const screenCount = screens.length;
     const hasData = aiWorkspaceSlug || screenCount > 0;
     const [originalScreenDetails, setOriginalScreenDetails] = useState<Record<string, { displayName: string; brightness: number | string | "" }>>({});
+
+    // RFP Filter: get projectId for embedding status polling
+    const proposalId = useWatch({ name: "details.proposalId" as any, control }) as string | undefined;
+    const source = useWatch({ name: "details.source" as any, control }) as string | undefined;
+    const isFromFilter = source === "rfp_filter";
 
     // Intelligence section collapsed by default
     const [showIntelligence, setShowIntelligence] = useState(false);
@@ -519,6 +525,11 @@ const Step2Intelligence = () => {
     // Screen cards, SOW, doc mode (no master table, no column headers)
     return (
         <div className="h-full flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* RFP Filter: Embedding pipeline status */}
+            {isFromFilter && proposalId && proposalId !== "new" && (
+                <EmbeddingStatusBanner projectId={proposalId} />
+            )}
+
             {/* Collapsible Intelligence Briefing */}
             {hasData && (
                 <div className="border border-border rounded-lg overflow-hidden">
