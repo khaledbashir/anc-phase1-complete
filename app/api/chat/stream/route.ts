@@ -1,18 +1,21 @@
 import { NextRequest } from "next/server";
-import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 
 /**
  * POST /api/chat/stream
  *
- * Standalone streaming chat via AnythingLLM's ancdashboard workspace.
- * No projectId required — this is the general-purpose AI chat.
- * Supports @agent mode for tool calls (Excel generation, etc.)
+ * Direct streaming chat to GLM-5 via Z.AI OpenAI-compatible API.
+ * No AnythingLLM middleman — calls the model directly.
  *
- * Body: { message: string, sessionId?: string }
+ * Body: { message: string, history?: Array<{role, content}>, systemPrompt?: string }
  */
+
+const GLM_BASE = process.env.Z_AI_BASE_URL || process.env.GLM_API_BASE || "https://api.z.ai/api/coding/paas/v4";
+const GLM_KEY = process.env.Z_AI_API_KEY || process.env.GLM_API_KEY || "";
+const GLM_MODEL = process.env.Z_AI_MODEL_NAME || process.env.GLM_MODEL || "glm-5";
+
 export async function POST(req: NextRequest) {
     try {
-        const { message, sessionId } = await req.json();
+        const { message, history, systemPrompt } = await req.json();
 
         if (!message) {
             return new Response(
@@ -21,36 +24,53 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) {
+        if (!GLM_KEY) {
             return new Response(
-                JSON.stringify({ error: "AnythingLLM not configured" }),
+                JSON.stringify({ error: "GLM API key not configured. Set GLM_API_KEY env var." }),
                 { status: 500, headers: { "Content-Type": "application/json" } }
             );
         }
 
-        const workspace = process.env.ANYTHING_LLM_WORKSPACE || "ancdashboard";
-        const streamPath = `${ANYTHING_LLM_BASE_URL}/workspace/${workspace}/stream-chat`;
+        // Build messages array
+        const messages: Array<{ role: string; content: string }> = [];
 
-        console.log(`[Chat/Stream] → ${streamPath} (session: ${sessionId || "default"})`);
+        if (systemPrompt) {
+            messages.push({ role: "system", content: systemPrompt });
+        }
 
-        const upstreamRes = await fetch(streamPath, {
+        // Add conversation history
+        if (history && Array.isArray(history)) {
+            for (const h of history) {
+                if (h.role && h.content) {
+                    messages.push({ role: h.role, content: h.content });
+                }
+            }
+        }
+
+        messages.push({ role: "user", content: message });
+
+        console.log(`[Chat/Stream] GLM-5 direct call, ${messages.length} messages, model: ${GLM_MODEL}`);
+
+        const upstreamRes = await fetch(`${GLM_BASE}/chat/completions`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
+                Authorization: `Bearer ${GLM_KEY}`,
             },
             body: JSON.stringify({
-                message,
-                mode: "chat",
-                sessionId: sessionId || `chat-${Date.now()}`,
+                model: GLM_MODEL,
+                messages,
+                stream: true,
+                temperature: 0.3,
+                max_tokens: 8192,
             }),
         });
 
         if (!upstreamRes.ok) {
             const errorText = await upstreamRes.text();
-            console.error(`[Chat/Stream] AnythingLLM error (${upstreamRes.status}):`, errorText);
+            console.error(`[Chat/Stream] GLM error (${upstreamRes.status}):`, errorText);
             return new Response(
-                JSON.stringify({ error: "AI error", details: errorText }),
+                JSON.stringify({ error: "GLM API error", details: errorText }),
                 { status: upstreamRes.status, headers: { "Content-Type": "application/json" } }
             );
         }
@@ -62,13 +82,12 @@ export async function POST(req: NextRequest) {
             async start(controller) {
                 const reader = upstreamRes.body?.getReader();
                 if (!reader) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", textResponse: "No stream body" })}\n\n`));
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "error", content: "No stream body" })}\n\n`));
                     controller.close();
                     return;
                 }
 
                 let buffer = "";
-                let chunkCount = 0;
 
                 try {
                     while (true) {
@@ -81,38 +100,35 @@ export async function POST(req: NextRequest) {
 
                         for (const line of lines) {
                             const trimmed = line.trim();
-                            if (!trimmed) continue;
+                            if (!trimmed || !trimmed.startsWith("data: ")) continue;
 
-                            let jsonStr = trimmed;
-                            if (trimmed.startsWith("data: ")) {
-                                jsonStr = trimmed.slice(6);
+                            const payload = trimmed.slice(6);
+                            if (payload === "[DONE]") {
+                                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+                                break;
                             }
 
                             try {
-                                const chunk = JSON.parse(jsonStr);
-                                controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-                                chunkCount++;
-                                if (chunk.close) break;
+                                const chunk = JSON.parse(payload);
+                                const delta = chunk.choices?.[0]?.delta;
+                                if (delta) {
+                                    // Forward: content text, reasoning_content for thinking
+                                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+                                        content: delta.content || "",
+                                        reasoning: delta.reasoning_content || "",
+                                    })}\n\n`));
+                                }
                             } catch {
-                                // skip non-JSON lines
+                                // skip malformed chunks
                             }
                         }
                     }
 
-                    if (chunkCount === 0) {
-                        controller.enqueue(
-                            encoder.encode(`data: ${JSON.stringify({
-                                type: "textResponseChunk",
-                                textResponse: "",
-                                close: true,
-                                error: "No response from AI",
-                                sources: [],
-                            })}\n\n`)
-                        );
-                    }
+                    // Final done signal
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
                 } catch (err: any) {
                     controller.enqueue(
-                        encoder.encode(`data: ${JSON.stringify({ type: "error", textResponse: "", error: err?.message, close: true })}\n\n`)
+                        encoder.encode(`data: ${JSON.stringify({ error: err?.message, done: true })}\n\n`)
                     );
                 } finally {
                     reader.releaseLock();
