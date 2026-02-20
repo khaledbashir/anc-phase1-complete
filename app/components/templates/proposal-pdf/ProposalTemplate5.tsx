@@ -566,9 +566,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <ScopeOfWorkSection />
                             </div>
                         )}
-                        <PageBreak />
-                        <ContinuationPageHeader />
-                        <RespMatrixSOW />
+                        {respMatrix && respMatrix.categories.filter(c => c.items?.length > 0).length > 0 && (
+                            <>
+                                <PageBreak />
+                                <ContinuationPageHeader />
+                                <RespMatrixSOW />
+                            </>
+                        )}
 
                         <div className="px-6">
                             <HybridFooter />
@@ -636,9 +640,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         )}
 
                         {/* Resp Matrix SOW (if present in Excel) — own page per Natalia */}
-                        <PageBreak />
-                        <ContinuationPageHeader />
-                        <RespMatrixSOW />
+                        {respMatrix && respMatrix.categories.filter(c => c.items?.length > 0).length > 0 && (
+                            <>
+                                <PageBreak />
+                                <ContinuationPageHeader />
+                                <RespMatrixSOW />
+                            </>
+                        )}
 
                         <div className="px-6">
                             <HybridFooter />
@@ -699,9 +707,13 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         </>
                     )}
                     {/* Resp Matrix SOW (if present in Excel) — own page */}
-                    <PageBreak />
-                    <ContinuationPageHeader />
-                    <RespMatrixSOW />
+                    {respMatrix && respMatrix.categories.filter(c => c.items?.length > 0).length > 0 && (
+                        <>
+                            <PageBreak />
+                            <ContinuationPageHeader />
+                            <RespMatrixSOW />
+                        </>
+                    )}
 
                     {shouldRenderPaymentTerms && (
                         <div className="px-6">
