@@ -29,7 +29,7 @@ interface CreateFromFilterBody {
   extractedText: string;
   /** Kept page indices (0-based) for reference */
   keptPageIndices: number[];
-  /** Drawing analysis results from Kimi K2.5 */
+  /** Drawing analysis results from Gemini 2.0 Flash */
   drawingManifest: DrawingManifestEntry[];
   /** User email from session */
   userEmail: string;
