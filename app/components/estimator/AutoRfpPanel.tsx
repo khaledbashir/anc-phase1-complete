@@ -169,11 +169,62 @@ export default function AutoRfpPanel({ open, onClose, projectId, onApply }: Auto
     const [uploading, setUploading] = useState(false);
     const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
     const [uploadWorkspaceSlug, setUploadWorkspaceSlug] = useState<string | null>(null);
+    const [existingWorkspace, setExistingWorkspace] = useState<string | null>(null);
+    const [checkingWorkspace, setCheckingWorkspace] = useState(false);
 
     // Input mode: workspace (from proposal) or direct text
     const [inputMode, setInputMode] = useState<"workspace" | "upload" | "text">(projectId ? "upload" : "text");
     const [directText, setDirectText] = useState("");
     const [workspaceSlug, setWorkspaceSlug] = useState("");
+
+    // Auto-detect existing AI workspace on mount — if project already has
+    // embedded RFP content (from PDF Filter or prior upload), skip upload
+    // and go straight to extraction.
+    const autoStartedRef = React.useRef(false);
+    useEffect(() => {
+        if (!open || !projectId || autoStartedRef.current) return;
+        autoStartedRef.current = true;
+        setCheckingWorkspace(true);
+
+        fetch(`/api/projects/${projectId}/embedding-status`)
+            .then((r) => r.ok ? r.json() : null)
+            .then((data) => {
+                if (data?.aiWorkspaceSlug && data?.embeddingStatus === "complete") {
+                    setExistingWorkspace(data.aiWorkspaceSlug);
+                    setInputMode("workspace");
+                    // Auto-start extraction — workspace is ready
+                    setPhase("extracting");
+                    setError(null);
+                    setResult(null);
+                    fetch("/api/rfp/auto-response", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ proposalId: projectId }),
+                    })
+                        .then((r) => r.json())
+                        .then((resp: AutoRfpResponse) => {
+                            if (!resp.ok || !resp.estimatorAnswers) {
+                                throw new Error(resp.error || "Extraction returned no results");
+                            }
+                            if (!resp.screens || resp.screens.length === 0) {
+                                throw new Error("No screen requirements found in the RFP.");
+                            }
+                            setResult(resp);
+                            setPhase("review");
+                        })
+                        .catch((err: any) => {
+                            setError(err.message || "Auto-extraction failed");
+                            setPhase("error");
+                        });
+                } else if (data?.aiWorkspaceSlug) {
+                    // Workspace exists but embedding not complete yet
+                    setExistingWorkspace(data.aiWorkspaceSlug);
+                    setInputMode("workspace");
+                }
+            })
+            .catch(() => { /* non-critical */ })
+            .finally(() => setCheckingWorkspace(false));
+    }, [open, projectId]);
 
     const handleUploadFile = useCallback(async (file: File) => {
         if (!file) return;
@@ -373,7 +424,13 @@ export default function AutoRfpPanel({ open, onClose, projectId, onApply }: Auto
             {/* Content */}
             <div className="flex-1 overflow-y-auto">
                 {/* ═══ INPUT PHASE ═══ */}
-                {phase === "input" && (
+                {phase === "input" && checkingWorkspace && (
+                    <div className="p-8 flex flex-col items-center justify-center gap-3 text-center">
+                        <Loader2 className="w-6 h-6 text-[#0A52EF] animate-spin" />
+                        <p className="text-xs text-muted-foreground">Checking for existing RFP data...</p>
+                    </div>
+                )}
+                {phase === "input" && !checkingWorkspace && (
                     <div className="p-4 space-y-4">
                         <p className="text-xs text-muted-foreground">
                             AI reads the RFP, extracts every screen requirement, matches products from the catalog,
@@ -475,7 +532,9 @@ export default function AutoRfpPanel({ open, onClose, projectId, onApply }: Auto
                         {inputMode === "workspace" && projectId && (
                             <div className="bg-[#0A52EF]/5 border border-[#0A52EF]/15 rounded p-3">
                                 <p className="text-xs text-[#0A52EF]">
-                                    Will extract from the RFP documents embedded in this project&apos;s AnythingLLM workspace.
+                                    {existingWorkspace
+                                        ? `RFP content already embedded in workspace "${existingWorkspace}". Click below to extract screen requirements.`
+                                        : "Will extract from the RFP documents embedded in this project\u0027s AnythingLLM workspace."}
                                 </p>
                             </div>
                         )}
