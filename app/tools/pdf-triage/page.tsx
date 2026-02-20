@@ -6,7 +6,10 @@ import SummaryCards from "./_components/SummaryCards";
 import FilterControls, { FilterTab } from "./_components/FilterControls";
 import TriageTable from "./_components/TriageTable";
 import ExportButton from "./_components/ExportButton";
-import { triagePdf, TriageResponse, TriagePage } from "./_lib/triageApi";
+import ExtractButton from "./_components/ExtractButton";
+import ScreenSpecsTable from "./_components/ScreenSpecsTable";
+import ExcelExportButton from "./_components/ExcelExportButton";
+import { triagePdf, extractSpecs, TriageResponse, TriagePage, ExtractionResponse, ScreenSpec } from "./_lib/triageApi";
 import { Loader2, RefreshCcw } from "lucide-react";
 
 export default function PdfTriagePage() {
@@ -20,6 +23,12 @@ export default function PdfTriagePage() {
     const [activeTab, setActiveTab] = useState<FilterTab>("All");
     const [disabledCategories, setDisabledCategories] = useState<Set<string>>(new Set());
     const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
+
+    // Extraction State
+    const [extractionResult, setExtractionResult] = useState<ExtractionResponse | null>(null);
+    const [isExtracting, setIsExtracting] = useState(false);
+    const [projectContext, setProjectContext] = useState("");
+    const [editedScreens, setEditedScreens] = useState<ScreenSpec[]>([]);
 
     // Extract categories available in this document for the filters
     const availableCategories = React.useMemo(() => {
@@ -40,6 +49,9 @@ export default function PdfTriagePage() {
         setSelectedPages(new Set());
         setDisabledCategories(new Set());
         setActiveTab("All");
+        setExtractionResult(null);
+        setEditedScreens([]);
+        setProjectContext("");
 
         try {
             const data = await triagePdf(uploadedFile);
@@ -69,6 +81,9 @@ export default function PdfTriagePage() {
         setSelectedPages(new Set());
         setDisabledCategories(new Set());
         setActiveTab("All");
+        setExtractionResult(null);
+        setEditedScreens([]);
+        setProjectContext("");
     };
 
     const toggleCategory = (category: string) => {
@@ -109,6 +124,26 @@ export default function PdfTriagePage() {
             return { ...prev, pages: updatedPages };
         });
     };
+
+    const handleExtract = async () => {
+        if (!file || !triageData) return;
+        setIsExtracting(true);
+        setTriageError(null);
+
+        try {
+            const result = await extractSpecs(file, triageData, projectContext);
+            setExtractionResult(result);
+            setEditedScreens(result.screens);
+        } catch (err: any) {
+            console.error("Extraction error:", err);
+            setTriageError(err.message || "An unknown error occurred during spec extraction.");
+        } finally {
+            setIsExtracting(false);
+        }
+    };
+
+    // Calculate how many 'keep' pages the user has left selected for the extraction button text
+    const keepPageCount = triageData?.pages.filter(p => selectedPages.has(p.page_num) && (p.recommended === 'keep' || p.recommended === 'maybe')).length || 0;
 
     return (
         <div className="flex-1 min-w-0 bg-background relative min-h-screen pb-24">
@@ -186,6 +221,33 @@ export default function PdfTriagePage() {
                             file={file}
                             selectedPages={selectedPages}
                         />
+
+                        {/* Extraction trigger */}
+                        <div className="mt-12 border-t border-border pt-12">
+                            <ExtractButton
+                                onExtract={handleExtract}
+                                isExtracting={isExtracting}
+                                keepPageCount={keepPageCount}
+                                projectContext={projectContext}
+                                onProjectContextChange={setProjectContext}
+                            />
+                        </div>
+
+                        {/* Extracted Specifications Table */}
+                        {extractionResult && (
+                            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out">
+                                <ScreenSpecsTable
+                                    screens={editedScreens}
+                                    onUpdateScreens={setEditedScreens}
+                                    summary={extractionResult.summary}
+                                />
+
+                                <ExcelExportButton
+                                    screens={editedScreens}
+                                    projectContext={projectContext}
+                                />
+                            </div>
+                        )}
                     </div>
                 )}
             </main>

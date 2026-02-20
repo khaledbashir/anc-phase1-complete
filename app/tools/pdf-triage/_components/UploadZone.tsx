@@ -30,8 +30,8 @@ export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
             setError("Only PDF files are supported.");
             return;
         }
-        if (file.size > 500 * 1024 * 1024) {
-            setError("File is too large. Maximum size is 500MB.");
+        if (file.size > 2000 * 1024 * 1024) {
+            setError("File is too large. Maximum size is 2GB.");
             return;
         }
         onUpload(file);
@@ -62,10 +62,10 @@ export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all ${isLoading
-                        ? "border-muted bg-muted/20 cursor-not-allowed opacity-70"
-                        : isDragging
-                            ? "border-primary bg-primary/5 scale-[1.02]"
-                            : "border-border hover:border-primary/50 hover:bg-muted/50"
+                    ? "border-muted bg-muted/20 cursor-not-allowed opacity-70"
+                    : isDragging
+                        ? "border-primary bg-primary/5 scale-[1.02]"
+                        : "border-border hover:border-primary/50 hover:bg-muted/50"
                     }`}
             >
                 <input
@@ -97,7 +97,7 @@ export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
                             </div>
                             <div className="text-xs text-muted-foreground bg-muted px-3 py-1.5 rounded-full flex items-center gap-2">
                                 <FileIcon className="w-3 h-3" />
-                                Up to 500MB (PDF only)
+                                Up to 2GB (PDF only)
                             </div>
                         </>
                     )}

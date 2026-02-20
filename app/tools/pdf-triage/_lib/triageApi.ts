@@ -72,3 +72,64 @@ export async function healthCheck(): Promise<boolean> {
         return false;
     }
 }
+
+export interface ScreenSpec {
+    source_page: number;
+    source_type: "text" | "drawing";
+    screen_name: string;
+    location: string;
+    size: string;
+    size_width_ft: number | null;
+    size_height_ft: number | null;
+    pixel_pitch_mm: number | null;
+    resolution: string | null;
+    indoor_outdoor: string;
+    quantity: number;
+    mounting_type: string | null;
+    nits_brightness: number | null;
+    special_requirements: string | null;
+    confidence: number;
+    raw_notes: string;
+}
+
+export interface ExtractionResponse {
+    screens: ScreenSpec[];
+    summary: {
+        total_screens_found: number;
+        from_text: number;
+        from_drawings: number;
+        text_pages_processed: number;
+        drawing_pages_processed: number;
+        processing_time_ms: number;
+    };
+}
+
+export async function extractSpecs(
+    file: File,
+    triageResult: TriageResponse,
+    projectContext?: string
+): Promise<ExtractionResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('triage_result', JSON.stringify(triageResult));
+
+    if (projectContext) {
+        formData.append('project_context', projectContext);
+    }
+
+    const res = await fetch(`${TRIAGE_API}/api/extract-specs`, {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!res.ok) {
+        let errDetail = await res.text();
+        try {
+            const js = JSON.parse(errDetail);
+            if (js.detail) errDetail = js.detail;
+        } catch (e) { }
+        throw new Error(`Extraction failed: ${res.status} - ${errDetail}`);
+    }
+
+    return res.json();
+}
