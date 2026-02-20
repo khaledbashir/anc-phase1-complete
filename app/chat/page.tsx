@@ -89,29 +89,41 @@ const mdComponents: Record<string, React.FC<any>> = {
     hr: () => <hr className="border-border my-3" />,
 };
 
-/* ─── Thinking Block Component ──────────────────────── */
+/* ─── Thinking Accordion Component ──────────────────── */
 
-function ThinkingBlock({ thinking, isStreaming }: { thinking: string; isStreaming: boolean }) {
+function ThinkingAccordion({ thinking, isStreaming }: { thinking: string; isStreaming: boolean }) {
     const [expanded, setExpanded] = useState(false);
+    const contentRef = useRef<HTMLDivElement>(null);
 
     if (!thinking) return null;
 
     return (
-        <div className="mb-3">
+        <div className="mb-3 rounded border border-amber-500/20 bg-amber-500/5 overflow-hidden">
             <button
                 onClick={() => setExpanded(!expanded)}
-                className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-2 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
             >
-                <Brain className="w-3.5 h-3.5 text-amber-500" />
-                <span className="font-medium">Thinking</span>
-                {isStreaming && <Loader2 className="w-3 h-3 animate-spin" />}
-                {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                <Brain className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                <span className="font-medium">Reasoning</span>
+                {isStreaming && <Loader2 className="w-3 h-3 animate-spin text-amber-500" />}
+                <span className="ml-auto">
+                    {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                </span>
             </button>
-            {expanded && (
-                <div className="mt-1.5 pl-5 border-l-2 border-amber-500/30 text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap max-h-[300px] overflow-y-auto">
-                    {thinking}
+            <div
+                ref={contentRef}
+                className="transition-all duration-300 ease-in-out overflow-hidden"
+                style={{
+                    maxHeight: expanded ? `${contentRef.current?.scrollHeight ?? 2000}px` : "0px",
+                    opacity: expanded ? 1 : 0,
+                }}
+            >
+                <div className="px-3 pb-3 pt-0 border-t border-amber-500/10">
+                    <div className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap max-h-[400px] overflow-y-auto mt-2">
+                        {thinking}
+                    </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }
@@ -493,7 +505,7 @@ export default function ChatPage() {
                                     <div className={cn("px-4 py-3 rounded", msg.role === "user" ? "bg-foreground text-background" : "bg-accent/50 border border-border")}>
                                         {/* Thinking block */}
                                         {msg.role === "assistant" && msg.thinking && (
-                                            <ThinkingBlock thinking={msg.thinking} isStreaming={isStreaming && msgIdx === messages.length - 1} />
+                                            <ThinkingAccordion thinking={msg.thinking} isStreaming={isStreaming && msgIdx === messages.length - 1} />
                                         )}
 
                                         {/* Content */}
@@ -507,13 +519,7 @@ export default function ChatPage() {
                                             ) : (
                                                 <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.content}</div>
                                             )
-                                        ) : (
-                                            msg.role === "assistant" && !msg.thinking ? (
-                                                <span className="flex items-center gap-2 text-muted-foreground text-sm">
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Thinking...
-                                                </span>
-                                            ) : null
-                                        )}
+                                        ) : null}
 
                                         {/* Action bar — assistant */}
                                         {msg.role === "assistant" && msg.content && !isStreaming && (
@@ -589,9 +595,6 @@ export default function ChatPage() {
                             {isStreaming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                         </button>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
-                        GLM-5 via Z.AI • Direct API • Export to Excel anytime
-                    </p>
                 </div>
             </div>
         </div>
