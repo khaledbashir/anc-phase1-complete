@@ -42,7 +42,7 @@ const ANYTHINGLLM_TRIGGERS = [
 
 /**
  * Route a user message to the appropriate brain.
- * Default: Kimi (vision + actions). Only routes to AnythingLLM for knowledge queries.
+ * Default: local (vision + actions via Gemini). Only routes to AnythingLLM for knowledge queries.
  */
 export function routeMessage(userMessage: string): CopilotBrain {
     const lower = userMessage.toLowerCase().trim();

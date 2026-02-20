@@ -2,14 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { buildVisionPrompt, type VisionBatchRequest, type DrawingAnalysisResult } from "@/app/tools/pdf-filter/lib/pdf-vision";
 import { VISION_CATEGORY_LABELS } from "@/app/tools/pdf-filter/lib/drawing-categories";
 
-const KIMI_API_URL = "https://api.moonshot.ai/v1/chat/completions";
+const GEMINI_MODEL = "gemini-2.0-flash";
 
-function getKimiKey(): string {
-  const key = process.env.KIMI_API_KEY;
+function getGeminiKey(): string {
+  const key = process.env.GEMINI_API_KEY;
   if (!key) {
-    throw new Error("KIMI_API_KEY environment variable is not set");
+    throw new Error("GEMINI_API_KEY environment variable is not set");
   }
   return key;
+}
+
+function stripDataUri(base64: string): { mimeType: string; data: string } {
+  const match = base64.match(/^data:(image\/\w+);base64,(.+)$/);
+  if (match) return { mimeType: match[1], data: match[2] };
+  return { mimeType: "image/png", data: base64 };
 }
 
 export async function POST(request: NextRequest) {
@@ -30,7 +36,7 @@ export async function POST(request: NextRequest) {
 
   let apiKey: string;
   try {
-    apiKey = getKimiKey();
+    apiKey = getGeminiKey();
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Missing API key" },
@@ -43,63 +49,47 @@ export async function POST(request: NextRequest) {
     body.customInstructions || ""
   );
 
-  const imageContent = body.images.flatMap((img, idx) => [
-    {
-      type: "text" as const,
-      text: `Image ${idx} (Page ${img.pageNumber}):`,
-    },
-    {
-      type: "image_url" as const,
-      image_url: {
-        url: img.base64.startsWith("data:")
-          ? img.base64
-          : `data:image/png;base64,${img.base64}`,
-      },
-    },
-  ]);
+  // Build Gemini content parts: interleave text labels with inline image data
+  const userParts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
+  for (let idx = 0; idx < body.images.length; idx++) {
+    const img = body.images[idx];
+    userParts.push({ text: `Image ${idx} (Page ${img.pageNumber}):` });
+    const { mimeType, data } = stripDataUri(img.base64);
+    userParts.push({ inlineData: { mimeType, data } });
+  }
+  userParts.push({
+    text: `Analyze these ${body.images.length} drawing(s). Return a JSON array with one object per image.`,
+  });
+
+  const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
 
   try {
-    const response = await fetch(KIMI_API_URL, {
+    const response = await fetch(geminiUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${apiKey}`,
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "kimi-k2.5",
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt,
-          },
-          {
-            role: "user",
-            content: [
-              ...imageContent,
-              {
-                type: "text",
-                text: `Analyze these ${body.images.length} drawing(s). Return a JSON array with one object per image.`,
-              },
-            ],
-          },
-        ],
-        max_tokens: 4096,
-        temperature: 0.6,
-        extra_body: { thinking: { type: "disabled" } },
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: userParts }],
+        generationConfig: {
+          temperature: 0.6,
+          maxOutputTokens: 4096,
+          responseMimeType: "text/plain",
+        },
       }),
     });
 
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error("Kimi API error:", response.status, errorBody);
+      console.error("Gemini API error:", response.status, errorBody);
       return NextResponse.json(
-        { error: `Kimi API error (${response.status}): ${errorBody}` },
+        { error: `Gemini API error (${response.status}): ${errorBody}` },
         { status: 502 }
       );
     }
 
     const data = await response.json();
-    const textContent = data.choices?.[0]?.message?.content || "[]";
+    const textContent =
+      data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
 
     let parsed: any[];
     try {
