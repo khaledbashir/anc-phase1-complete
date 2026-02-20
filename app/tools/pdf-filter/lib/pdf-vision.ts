@@ -59,7 +59,7 @@ export function estimateCost(
   return {
     perImage,
     total: drawingCount * perImage,
-    modelName: "Kimi K2.5",
+    modelName: "Gemini 2.0 Flash",
   };
 }
 

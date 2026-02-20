@@ -484,18 +484,26 @@ export default function PdfFilterClient() {
         ...drawingTriage.keep.map((r) => r.pageIndex),
       ].sort((a, b) => a - b);
 
+      // Use FormData to avoid "Request Header Fields Too Large" —
+      // extracted text from 50+ RFP pages can be 500KB+, which exceeds
+      // reverse proxy header limits when sent as JSON body.
+      const fd = new FormData();
+      fd.append("clientName", meta.clientName);
+      fd.append("venue", meta.venue || "");
+      fd.append("projectTitle", meta.projectTitle || "");
+      fd.append("userEmail", userEmail);
+      fd.append("keptPageIndices", JSON.stringify(allKeptIndices));
+      fd.append("drawingManifest", JSON.stringify(drawingManifest));
+      // Send extracted text as a file blob (chunked transfer, no header limit)
+      fd.append(
+        "extractedText",
+        new Blob([keptTexts], { type: "text/plain" }),
+        "extracted.txt"
+      );
+
       const res = await fetch("/api/rfp/create-from-filter", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientName: meta.clientName,
-          venue: meta.venue,
-          projectTitle: meta.projectTitle,
-          extractedText: keptTexts,
-          keptPageIndices: allKeptIndices,
-          drawingManifest,
-          userEmail,
-        }),
+        body: fd,
       });
 
       const data = await res.json();

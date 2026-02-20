@@ -7,7 +7,7 @@
  * and pre-fills the estimator. Shows extracted screens for review before applying.
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
     X, Loader2, CheckCircle2, AlertTriangle, FileSearch,
     Monitor, MapPin, Ruler, Cpu, ChevronDown, ChevronUp,
@@ -59,6 +59,91 @@ interface AutoRfpResponse {
     estimatorAnswers?: EstimatorAnswers;
     matchReport?: MatchReportEntry[];
     extractionMethod?: string;
+}
+
+// ============================================================================
+// EXTRACTION PROGRESS (multi-stage indicator)
+// ============================================================================
+
+const EXTRACTION_STAGES = [
+    { id: "upload", label: "Uploading PDF", description: "Sending document to AI workspace", delayMs: 0 },
+    { id: "embed", label: "Embedding", description: "Indexing document for AI retrieval", delayMs: 4000 },
+    { id: "read", label: "Reading RFP", description: "AI is scanning for Division 11, display schedules, specs", delayMs: 8000 },
+    { id: "extract", label: "Extracting Screens", description: "Identifying screen requirements, quantities, dimensions", delayMs: 14000 },
+    { id: "match", label: "Matching Products", description: "Finding best product matches from ANC catalog", delayMs: 20000 },
+] as const;
+
+function ExtractionProgress({ uploading }: { uploading: boolean }) {
+    const [activeStage, setActiveStage] = useState(0);
+    const [elapsed, setElapsed] = useState(0);
+
+    useEffect(() => {
+        const start = Date.now();
+        const timer = setInterval(() => {
+            const ms = Date.now() - start;
+            setElapsed(ms);
+            const nextStage = EXTRACTION_STAGES.findIndex((s, i) =>
+                i > activeStage && ms < s.delayMs
+            );
+            const current = nextStage === -1
+                ? EXTRACTION_STAGES.length - 1
+                : Math.max(0, nextStage - 1);
+            setActiveStage(current);
+        }, 500);
+        return () => clearInterval(timer);
+    }, []);
+
+    return (
+        <div className="p-6 flex flex-col gap-5">
+            {/* Progress bar */}
+            <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                <div
+                    className="h-full bg-[#0A52EF] rounded-full transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.min(95, ((activeStage + 1) / EXTRACTION_STAGES.length) * 100)}%` }}
+                />
+            </div>
+
+            {/* Stages */}
+            <div className="space-y-2">
+                {EXTRACTION_STAGES.map((stage, idx) => {
+                    const isActive = idx === activeStage;
+                    const isDone = idx < activeStage;
+                    const isPending = idx > activeStage;
+
+                    return (
+                        <div
+                            key={stage.id}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300 ${
+                                isActive ? "bg-[#0A52EF]/5 border border-[#0A52EF]/20" :
+                                isDone ? "opacity-60" : "opacity-30"
+                            }`}
+                        >
+                            <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                                {isDone && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
+                                {isActive && <Loader2 className="w-4 h-4 text-[#0A52EF] animate-spin" />}
+                                {isPending && <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-medium ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                                    {stage.label}
+                                </p>
+                                {isActive && (
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                        {stage.description}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Timer */}
+            <p className="text-[10px] text-muted-foreground text-center">
+                {Math.floor(elapsed / 1000)}s elapsed — typically takes 15-30 seconds
+            </p>
+        </div>
+    );
 }
 
 // ============================================================================
@@ -426,16 +511,7 @@ export default function AutoRfpPanel({ open, onClose, projectId, onApply }: Auto
 
                 {/* ═══ EXTRACTING PHASE ═══ */}
                 {phase === "extracting" && (
-                    <div className="p-8 flex flex-col items-center justify-center gap-4 text-center">
-                        <div className="w-12 h-12 rounded-full border-2 border-[#0A52EF]/20 border-t-[#0A52EF] animate-spin" />
-                        <div>
-                            <p className="text-sm font-medium text-foreground">Analyzing RFP...</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                AI is reading the document, extracting screen requirements, and matching products.
-                                This may take 15-30 seconds.
-                            </p>
-                        </div>
-                    </div>
+                    <ExtractionProgress uploading={uploading} />
                 )}
 
                 {/* ═══ ERROR PHASE ═══ */}

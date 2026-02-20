@@ -37,19 +37,43 @@ interface CreateFromFilterBody {
 
 export async function POST(req: NextRequest) {
   try {
-    const body: CreateFromFilterBody = await req.json();
+    // Parse FormData — extracted text arrives as a file blob to avoid
+    // "Request Header Fields Too Large" from reverse proxy (50+ pages = 500KB+)
+    const formData = await req.formData();
 
-    // ── Validation ──
-    if (!body.userEmail) {
+    const userEmail = formData.get("userEmail") as string | null;
+    if (!userEmail) {
       return NextResponse.json({ ok: false, error: "userEmail is required" }, { status: 400 });
     }
-    if (!body.extractedText && body.keptPageIndices.length === 0) {
+
+    // Read extracted text from file blob
+    const textFile = formData.get("extractedText") as File | null;
+    const extractedText = textFile ? await textFile.text() : "";
+
+    const keptPageIndices: number[] = JSON.parse(
+      (formData.get("keptPageIndices") as string) || "[]"
+    );
+    const drawingManifest: DrawingManifestEntry[] = JSON.parse(
+      (formData.get("drawingManifest") as string) || "[]"
+    );
+
+    if (!extractedText && keptPageIndices.length === 0) {
       return NextResponse.json({ ok: false, error: "No content to embed — filter produced no pages" }, { status: 400 });
     }
 
-    const clientName = body.clientName || "Untitled Client";
-    const projectTitle = body.projectTitle || `${clientName} — RFP Project`;
-    const venue = body.venue || "";
+    const clientName = (formData.get("clientName") as string) || "Untitled Client";
+    const projectTitle = (formData.get("projectTitle") as string) || `${clientName} — RFP Project`;
+    const venue = (formData.get("venue") as string) || "";
+
+    const body: CreateFromFilterBody = {
+      clientName,
+      venue,
+      projectTitle,
+      extractedText,
+      keptPageIndices,
+      drawingManifest,
+      userEmail,
+    };
 
     // ── 1. SYNC: Create workspace + proposal (fast, returns immediately) ──
     const clientLogo = await findClientLogo(clientName);

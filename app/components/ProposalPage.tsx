@@ -22,6 +22,7 @@ import {
 // Context
 import { useProposalContext, ProposalContextProvider } from "@/contexts/ProposalContext";
 import { FEATURES } from "@/lib/featureFlags";
+import { EmbeddingStatusBanner } from "@/app/components/proposal/form/wizard/EmbeddingStatusBanner";
 
 import AuditTable from "@/app/components/proposal/AuditTable";
 import CopilotPanel from "@/app/components/chat/CopilotPanel";
@@ -128,8 +129,18 @@ const WizardWrapper = ({ projectId, initialData }: ProposalPageProps) => {
 
   // Form Content (The Hub - Drafting Mode)
   const effectiveStep = isMirrorMode && activeStep === 2 ? 3 : activeStep;
+  const formSource = useWatch({ name: "details.source" as any, control }) as string | undefined;
+  const formProposalId = useWatch({ name: "details.proposalId" as any, control }) as string | undefined;
+  const isFromFilter = formSource === "rfp_filter";
   const FormContent = (
     <div className="flex flex-col h-full">
+      {/* Embedding pipeline status — visible on ALL steps for rfp_filter projects */}
+      {isFromFilter && formProposalId && formProposalId !== "new" && (
+        <div className="px-6 pt-4 shrink-0">
+          <EmbeddingStatusBanner projectId={formProposalId} />
+        </div>
+      )}
+
       {/* ActionToolbar: only visible in drafting mode */}
       <div className="px-6 pt-6 shrink-0">
         <ActionToolbar />
