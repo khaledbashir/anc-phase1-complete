@@ -23,6 +23,7 @@ import {
     BarChart3,
     Kanban,
     MessageSquare,
+    FileSearch,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRbac } from "@/hooks/useRbac";
@@ -37,6 +38,7 @@ const mainMenuItems = [
 const toolsMenuItems = [
     { icon: MessageSquare, label: "Chat", href: "/chat", allowedRoles: null },
     { icon: SlidersHorizontal, label: "PDF Filter", href: "/tools/pdf-filter", allowedRoles: null }, // All roles
+    { icon: FileSearch, label: "PDF Triage", href: "/tools/pdf-triage", allowedRoles: null },
     { icon: Calculator, label: "Estimator", href: "/estimator", allowedRoles: null },
     // Demo Lab hidden from nav — accessible via direct URL /demo
     // { icon: Sparkles, label: "Demo Lab", href: "/demo", allowedRoles: null },
@@ -86,10 +88,10 @@ export default function DashboardSidebar() {
     const [mounted, setMounted] = useState(false);
     const displayRole = userRole
         ? userRole
-              .toLowerCase()
-              .split("_")
-              .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-              .join(" ")
+            .toLowerCase()
+            .split("_")
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ")
         : "Viewer";
 
     const isAdmin = mounted ? session?.user?.authRole === "admin" : false;
