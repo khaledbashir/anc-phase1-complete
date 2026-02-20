@@ -42,61 +42,79 @@ const PdfResponsibilityMatrix = ({ colors, respMatrix }: PdfResponsibilityMatrix
     return (
         <div data-preview-section="exhibit-a" className="px-6">
             <SectionHeader title="Exhibit B — Statement of Work" colors={colors} />
-            <div className="border rounded overflow-hidden" style={{ borderColor: colors.border }}>
-                {nonEmptyCategories.map((cat, catIdx) => {
-                    const sectionType = respMatrix.format === "short"
-                        ? "paragraph"
-                        : respMatrix.format === "long"
-                            ? "table"
-                            : categorizeSection(cat);
+            <table className="w-full text-[8px] border-collapse" style={{ borderColor: colors.border, border: `1px solid ${colors.border}`, pageBreakInside: 'auto', fontFamily: "Arial, Helvetica, sans-serif" }}>
+                <colgroup>
+                    <col style={{ width: "66%" }} />
+                    <col style={{ width: "17%" }} />
+                    <col style={{ width: "17%" }} />
+                </colgroup>
+                <tbody>
+                    {nonEmptyCategories.map((cat, catIdx) => {
+                        const sectionType = respMatrix.format === "short"
+                            ? "paragraph"
+                            : respMatrix.format === "long"
+                                ? "table"
+                                : categorizeSection(cat);
 
-                    return (
-                        <div key={catIdx}>
-                            {/* Category header — text + thin blue underline */}
-                            <div
-                                className="grid grid-cols-12 px-4 py-1 text-[9px] font-semibold uppercase tracking-wider border-b-2 break-inside-avoid"
-                                style={{ borderColor: colors.primary, color: colors.primaryDark, background: 'transparent' }}
-                            >
-                                <div className={sectionType === "table" ? "col-span-8" : "col-span-12"}>{cat.name}</div>
-                                {sectionType === "table" && (
-                                    <>
-                                        <div className="col-span-2 text-center">ANC</div>
-                                        <div className="col-span-2 text-center">PURCHASER</div>
-                                    </>
+                        return (
+                            <React.Fragment key={catIdx}>
+                                {/* Category header row */}
+                                <tr style={{ borderBottom: `2px solid ${colors.primary}`, pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                                    <td
+                                        colSpan={sectionType === "table" ? 1 : 3}
+                                        className="text-[9px] font-semibold uppercase tracking-wider"
+                                        style={{ padding: '4px 16px', color: colors.primaryDark, background: 'transparent' }}
+                                    >
+                                        {cat.name}
+                                    </td>
+                                    {sectionType === "table" && (
+                                        <>
+                                            <td className="text-[9px] font-semibold uppercase tracking-wider text-center" style={{ padding: '4px 8px', color: colors.primaryDark }}>ANC</td>
+                                            <td className="text-[9px] font-semibold uppercase tracking-wider text-center" style={{ padding: '4px 8px', color: colors.primaryDark }}>PURCHASER</td>
+                                        </>
+                                    )}
+                                </tr>
+                                {/* Items */}
+                                {sectionType === "table" ? (
+                                    cat.items.map((item, idx) => (
+                                        <tr
+                                            key={idx}
+                                            style={{
+                                                borderBottom: `1px solid ${colors.borderLight}`,
+                                                background: idx % 2 === 1 ? colors.surface : colors.white,
+                                                pageBreakInside: 'avoid',
+                                                breakInside: 'avoid',
+                                            }}
+                                        >
+                                            <td className="leading-snug" style={{ padding: '2px 12px', color: colors.text }}>{item.description}</td>
+                                            <td className="text-center font-medium" style={{ padding: '2px 8px', color: colors.text }}>
+                                                {item.anc && !isIncludeStatement(item.anc) && item.anc.toUpperCase() !== "NA" ? item.anc : ""}
+                                            </td>
+                                            <td className="text-center font-medium" style={{ padding: '2px 8px', color: colors.text }}>
+                                                {item.purchaser && item.purchaser.toUpperCase() !== "EDITABLE" ? item.purchaser : ""}
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    cat.items.filter(item => isIncludeStatement(item.anc)).map((item, idx) => (
+                                        <tr
+                                            key={idx}
+                                            style={{
+                                                borderBottom: `1px solid ${colors.borderLight}`,
+                                                background: idx % 2 === 1 ? colors.surface : colors.white,
+                                                pageBreakInside: 'avoid',
+                                                breakInside: 'avoid',
+                                            }}
+                                        >
+                                            <td colSpan={3} className="leading-snug" style={{ padding: '2px 12px', color: colors.text }}>{item.description}</td>
+                                        </tr>
+                                    ))
                                 )}
-                            </div>
-                            {/* Items */}
-                            {sectionType === "table" ? (
-                                cat.items.map((item, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="grid grid-cols-12 px-3 py-0.5 text-[8px] border-b items-start"
-                                        style={{ borderColor: colors.borderLight, background: idx % 2 === 1 ? colors.surface : colors.white }}
-                                    >
-                                        <div className="col-span-8 leading-snug pr-2" style={{ color: colors.text }}>{item.description}</div>
-                                        <div className="col-span-2 text-center font-medium" style={{ color: colors.text }}>
-                                            {item.anc && !isIncludeStatement(item.anc) && item.anc.toUpperCase() !== "NA" ? item.anc : ""}
-                                        </div>
-                                        <div className="col-span-2 text-center font-medium" style={{ color: colors.text }}>
-                                            {item.purchaser && item.purchaser.toUpperCase() !== "EDITABLE" ? item.purchaser : ""}
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                cat.items.filter(item => isIncludeStatement(item.anc)).map((item, idx) => (
-                                    <div
-                                        key={idx}
-                                        className="px-3 py-0.5 text-[8px] leading-snug border-b"
-                                        style={{ borderColor: colors.borderLight, color: colors.text, background: idx % 2 === 1 ? colors.surface : colors.white }}
-                                    >
-                                        {item.description}
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+                            </React.Fragment>
+                        );
+                    })}
+                </tbody>
+            </table>
         </div>
     );
 };
