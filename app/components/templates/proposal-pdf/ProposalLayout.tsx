@@ -121,12 +121,6 @@ export default function ProposalLayout({ data, children, disableFixedFooter = fa
                             widows: 3;
                         }
                         
-                        /* Natalia rule: never split a table across page boundaries */
-                        .rounded-lg.border {
-                            page-break-inside: avoid !important;
-                            break-inside: avoid !important;
-                        }
-                        
                         /* Ensure break-before sections don't leave stray space on the previous page */
                         .break-before-page {
                             margin-top: 0;
