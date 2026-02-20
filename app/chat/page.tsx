@@ -657,9 +657,89 @@ function tryExtractExcelData(text: string): ExcelExportData | null {
 function buildExcelPayloadFromText(content: string): ExcelExportData {
     const extracted = tryExtractExcelData(content);
     if (extracted) return extracted;
+
+    // Try to parse markdown tables (pipe-delimited)
+    const displays: ExcelExportData["displays"] = [];
+    const services: ExcelExportData["services"] = [];
+    let projectName = "AI Chat Export";
+
+    const nameMatch = content.match(/(?:project|client|venue|estimate)[:\s]+([^\n*]+)/i);
+    if (nameMatch) projectName = nameMatch[1].trim().replace(/[*_#]/g, "").trim();
+
+    // Find markdown table rows (lines with pipes)
+    const tableLines = content.split("\n").filter(
+        (l) => l.includes("|") && !l.match(/^\s*\|?\s*[-:]+\s*\|/) // skip separator rows
+    );
+
+    if (tableLines.length > 1) {
+        // Parse header to find column indices
+        const headerCells = tableLines[0].split("|").map((c) => c.trim().replace(/[*_]/g, "").toLowerCase());
+        const nameCol = headerCells.findIndex((h) => /name|item|display|description|category|spec/i.test(h));
+
+        // Find all columns that might contain dollar values
+        const dataRows = tableLines.slice(1);
+        for (const row of dataRows) {
+            const cells = row.split("|").map((c) => c.trim().replace(/[*_]/g, ""));
+            if (cells.length < 2) continue;
+
+            const label = cells[nameCol >= 0 ? nameCol : 1] || cells[1] || "";
+            if (!label || /^[-:=\s]*$/.test(label)) continue;
+
+            // Extract all dollar amounts from the row
+            const amounts: number[] = [];
+            for (const cell of cells) {
+                const dollarMatch = cell.match(/\$?([\d,]+(?:\.\d+)?)/);
+                if (dollarMatch) {
+                    const val = parseFloat(dollarMatch[1].replace(/,/g, ""));
+                    if (val > 0) amounts.push(val);
+                }
+            }
+
+            if (amounts.length === 0) continue;
+            const cost = amounts[0] || 0;
+            const selling = amounts.length > 1 ? amounts[amounts.length - 1] : cost;
+
+            if (/total|grand|subtotal/i.test(label)) continue;
+
+            if (/install|labor|pm|management|permit|electrical|travel|engineering|service/i.test(label)) {
+                services.push({ category: label, cost, selling_price: selling, margin_dollars: selling - cost, margin_pct: selling > 0 ? Math.round(((selling - cost) / selling) * 100) : 0 });
+            } else {
+                displays.push({ name: label, cost, selling_price: selling, margin_dollars: selling - cost, margin_pct: selling > 0 ? Math.round(((selling - cost) / selling) * 100) : 0 });
+            }
+        }
+    }
+
+    // Fallback: try dollar-sign line matching
+    if (displays.length === 0) {
+        const costLines = content.match(/(.+?)[\s:—\-]+\$[\d,]+(?:\.\d+)?/g);
+        if (costLines) {
+            for (const line of costLines) {
+                const match = line.match(/(.+?)[\s:—\-]+\$([\d,]+(?:\.\d+)?)/);
+                if (!match) continue;
+                const name = match[1].trim().replace(/^[\-\*•]\s*/, "").replace(/[*_]/g, "");
+                const amount = parseFloat(match[2].replace(/,/g, ""));
+                if (/total|grand|margin|selling|subtotal/i.test(name)) continue;
+                if (/install|labor|pm|management|permit|electrical|travel|engineering|service/i.test(name)) {
+                    services.push({ category: name, cost: amount, selling_price: amount });
+                } else {
+                    displays.push({ name, cost: amount, selling_price: amount });
+                }
+            }
+        }
+    }
+
+    if (displays.length === 0) {
+        displays.push({ name: "Estimate from Chat", cost: 0, selling_price: 0, details: { "AI Response": content.slice(0, 2000) } });
+    }
+
+    const grandCost = displays.reduce((s, d) => s + d.cost, 0) + services.reduce((s, sv) => s + sv.cost, 0);
+    const grandSelling = displays.reduce((s, d) => s + d.selling_price, 0) + services.reduce((s, sv) => s + sv.selling_price, 0);
+
     return {
-        project_name: "AI Chat Export",
-        displays: [{ name: "Estimate from Chat", cost: 0, selling_price: 0, details: { "AI Response": content.slice(0, 500) } }],
+        project_name: projectName, displays, services,
+        grand_total_cost: grandCost, grand_total_selling: grandSelling || grandCost,
+        grand_total_margin: grandSelling - grandCost,
+        grand_total_margin_pct: grandSelling > 0 ? Math.round(((grandSelling - grandCost) / grandSelling) * 100 * 10) / 10 : 0,
         date: new Date().toISOString().split("T")[0], estimate_type: "Budget Estimate", currency: "USD",
     };
 }
