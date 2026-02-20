@@ -232,9 +232,9 @@ export async function parseANCExcel(buffer: Buffer, fileName?: string): Promise<
                 name: cleanedProjectName,
                 rowIndex: i + 1,
                 sourceRef: { sheet: ledSheetName, row: i + 1 },
-                pitchMm: formatDimension(pitch),
-                heightFt: formatDimension(heightFt),
-                widthFt: formatDimension(widthFt),
+                pitchMm: parseDimension(pitch),
+                heightFt: parseDimension(heightFt),
+                widthFt: parseDimension(widthFt),
                 pixelsH: parseInt(pixelsH) || 0,
                 pixelsW: parseInt(pixelsW) || 0,
                 brightness: brightness, // REQ: Rename to Brightness
