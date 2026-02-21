@@ -2,8 +2,9 @@ import os
 import httpx
 import json
 
-OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+Z_AI_API_KEY = os.environ.get("Z_AI_API_KEY", "")
+Z_AI_VISION_BASE_URL = os.environ.get("Z_AI_VISION_BASE_URL", "https://api.z.ai/api/paas/v4")
+Z_AI_URL = f"{Z_AI_VISION_BASE_URL}/chat/completions"
 
 ANYTHINGLLM_URL = os.environ.get("ANYTHINGLLM_URL", "https://basheer-anything-llm.prd42b.easypanel.host")
 ANYTHINGLLM_API_KEY = os.environ.get("ANYTHINGLLM_API_KEY", "")
@@ -15,10 +16,7 @@ async def extract_from_drawing(images: list[dict], project_context: str = "") ->
     results = []
     
     for img in images:
-        messages = [
-            {
-                "role": "system",
-                "content": """You are an LED display specification extractor for construction RFPs. 
+        prompt_text = f"""You are an LED display specification extractor for construction RFPs. 
 You analyze architectural drawings and floor plans to identify LED displays, video boards, 
 scoreboards, ribbon boards, digital signage, and similar display systems.
 
@@ -39,37 +37,36 @@ For each display you find, extract:
 - raw_notes: Your detailed notes about what you see
 
 Return a JSON array of screen objects. If no displays are found in the drawing, return an empty array.
-Only return the JSON array, no other text."""
-            },
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": f"Analyze this architectural drawing from an RFP{' for ' + project_context if project_context else ''}. Extract all LED display/video board specifications you can identify."
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{img['base64']}"
-                        }
+Only return the JSON array, no other text.
+
+Analyze this architectural drawing from an RFP{' for ' + project_context if project_context else ''}. Extract all LED display/video board specifications you can identify."""
+
+        messages = [{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{img['base64']}"
                     }
-                ]
-            }
-        ]
+                },
+                {
+                    "type": "text",
+                    "text": prompt_text
+                }
+            ]
+        }]
         
         async with httpx.AsyncClient(timeout=60) as client:
             try:
                 response = await client.post(
-                    OPENROUTER_URL,
+                    Z_AI_URL,
                     headers={
-                        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                        "Content-Type": "application/json",
-                        "HTTP-Referer": "https://basheer-rag.prd42b.easypanel.host",
-                        "X-Title": "ANC Proposal Engine"
+                        "Authorization": f"Bearer {Z_AI_API_KEY}",
+                        "Content-Type": "application/json"
                     },
                     json={
-                        "model": "z-ai/glm-4.6v",
+                        "model": "glm-4.6v-flash",
                         "messages": messages,
                         "max_tokens": 4096,
                         "temperature": 0.1
@@ -78,10 +75,13 @@ Only return the JSON array, no other text."""
                 
                 response.raise_for_status()
                 data = response.json()
-                content = data["choices"][0]["message"]["content"]
+                msg = data["choices"][0]["message"]
+                text = msg.get("content") or ""
+                reasoning = msg.get("reasoning_content") or ""
+                full_response = text if text.strip() else reasoning
                 
                 # Parse JSON from response (handle markdown code blocks)
-                cleaned = content.strip()
+                cleaned = full_response.strip()
                 if cleaned.startswith("```"):
                     cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
                 
@@ -97,7 +97,7 @@ Only return the JSON array, no other text."""
                         "source_page": img["page_num"],
                         "source_type": "drawing",
                         "screen_name": "PARSE_ERROR",
-                        "raw_notes": content,
+                        "raw_notes": full_response,
                         "confidence": 0.0
                     })
             except Exception as e:

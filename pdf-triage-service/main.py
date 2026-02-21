@@ -26,7 +26,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
+MAX_FILE_SIZE = 2000 * 1024 * 1024  # 2GB
 
 @app.get("/api/health")
 async def health_check():
@@ -83,7 +83,7 @@ async def triage_pdf(
                 
         # Check file size
         if os.path.getsize(temp_path) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=400, detail="File too large. Max size is 500MB.")
+            raise HTTPException(status_code=400, detail="File too large. Max size is 2GB.")
         
         # Open and process the PDF
         with fitz.open(temp_path) as doc:
@@ -159,7 +159,7 @@ async def extract_pages(
                 f.write(chunk)
                 
         if os.path.getsize(temp_path) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=400, detail="File too large. Max size is 500MB.")
+            raise HTTPException(status_code=400, detail="File too large. Max size is 2GB.")
             
         with fitz.open(temp_path) as doc:
             new_doc = fitz.open()
@@ -296,7 +296,7 @@ async def extract_specs_vision(payload: Dict[str, Any]):
     return {
         "screens": screens,
         "processing_time_ms": processing_time_ms,
-        "model": "z-ai/glm-4.6v",
+        "model": "glm-4.6v-flash",
         "pages_processed": len(images)
     }
 
