@@ -28,7 +28,7 @@ SQL
 
 # Start the PDF triage Python service in the background on port 8000
 echo "Starting PDF triage service..."
-python3 -m uvicorn --app-dir pdf-triage-service main:app --host 127.0.0.1 --port 8000 &
+python3 -m uvicorn --app-dir pdf-triage-service main:app --host 0.0.0.0 --port 8000 &
 
 # Start the application
 # Increase max HTTP header size to prevent 431 errors from accumulated auth cookies
