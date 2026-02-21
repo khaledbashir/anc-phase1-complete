@@ -147,10 +147,10 @@ export default function ExhibitA_TechnicalSpecs({ data, showSOW = false, heading
                             </>
                         ) : (
                             <>
-                                <col style={{ width: "26%" }} />
-                                <col style={{ width: "24%" }} />
-                                <col style={{ width: "10%" }} />
-                                <col style={{ width: "18%" }} />
+                                <col style={{ width: "40%" }} />
+                                <col style={{ width: "14%" }} />
+                                <col style={{ width: "8%" }} />
+                                <col style={{ width: "16%" }} />
                                 {hasAnyBrightness && <col style={{ width: "12%" }} />}
                                 <col style={{ width: hasAnyBrightness ? "10%" : "12%" }} />
                             </>
