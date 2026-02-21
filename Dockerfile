@@ -34,7 +34,7 @@ COPY --from=build --chown=nextjs:nodejs /app/docker-entrypoint.sh ./docker-entry
 COPY --from=build --chown=nextjs:nodejs /app/pdf-triage-service ./pdf-triage-service
 
 # Install Python dependencies for the triage service
-RUN pip3 install --no-cache-dir --break-system-packages -r pdf-triage-service/requirements.txt
+RUN pip3 install --no-cache-dir -r pdf-triage-service/requirements.txt
 
 RUN chmod +x docker-entrypoint.sh
 
