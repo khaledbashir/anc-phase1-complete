@@ -8,26 +8,40 @@ import {
   AlertCircle,
   Clock,
   CheckCircle2,
-  Eye,
   Brain,
+  Eye,
   Sparkles,
+  Monitor,
+  Database,
 } from "lucide-react";
+
+export interface PipelineEvent {
+  type: "stage" | "progress" | "warning" | "complete" | "error";
+  stage?: string;
+  message?: string;
+  current?: number;
+  total?: number;
+  totalPages?: number;
+  breakdown?: Record<string, number>;
+  result?: any;
+}
 
 interface UploadZoneProps {
   onUpload: (files: File[]) => void;
   isLoading: boolean;
-  progress?: { stage: string; percent: number; message: string };
+  events: PipelineEvent[];
 }
 
-const STAGES = [
-  { label: "Uploading to Mistral OCR", icon: UploadCloud, key: "uploading" },
-  { label: "Extracting text & tables", icon: Eye, key: "ocr" },
-  { label: "Classifying pages", icon: Brain, key: "classifying" },
-  { label: "Analyzing drawings (Gemini)", icon: Sparkles, key: "vision" },
-  { label: "Extracting LED specs", icon: Sparkles, key: "extracting" },
-];
+interface StageState {
+  key: string;
+  label: string;
+  icon: typeof UploadCloud;
+  status: "pending" | "active" | "done" | "error";
+  detail?: string;
+  count?: string;
+}
 
-export default function UploadZone({ onUpload, isLoading, progress }: UploadZoneProps) {
+export default function UploadZone({ onUpload, isLoading, events }: UploadZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -39,29 +53,16 @@ export default function UploadZone({ onUpload, isLoading, progress }: UploadZone
       setElapsedSeconds(0);
       intervalRef.current = setInterval(() => setElapsedSeconds((p) => p + 1), 1000);
     } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isLoading]);
 
-  const currentStageIndex = progress
-    ? STAGES.findIndex((s) => s.key === progress.stage)
-    : Math.min(Math.floor(elapsedSeconds / 5), STAGES.length - 1);
+  // Build stage states from events
+  const stages: StageState[] = buildStages(events);
 
-  const displayProgress = progress?.percent ?? Math.min(95, Math.round((1 - Math.exp(-elapsedSeconds / 30)) * 100));
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!isLoading) setIsDragging(true);
-  }, [isLoading]);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
+  const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); if (!isLoading) setIsDragging(true); }, [isLoading]);
+  const handleDragLeave = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); }, []);
 
   const validateAndUpload = (files: File[]) => {
     setError(null);
@@ -73,8 +74,7 @@ export default function UploadZone({ onUpload, isLoading, progress }: UploadZone
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
+    e.preventDefault(); setIsDragging(false);
     if (isLoading) return;
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) validateAndUpload(files);
@@ -84,10 +84,10 @@ export default function UploadZone({ onUpload, isLoading, progress }: UploadZone
     if (e.target.files && e.target.files.length > 0) validateAndUpload(Array.from(e.target.files));
   };
 
-  const formatTime = (s: number) => {
-    const m = Math.floor(s / 60);
-    return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
-  };
+  const formatTime = (s: number) => { const m = Math.floor(s / 60); return m > 0 ? `${m}m ${s % 60}s` : `${s}s`; };
+
+  // Latest message for display
+  const latestMessage = [...events].reverse().find((e) => e.message)?.message || "Starting...";
 
   return (
     <div className="w-full max-w-2xl mx-auto mt-12">
@@ -101,53 +101,62 @@ export default function UploadZone({ onUpload, isLoading, progress }: UploadZone
           : "border-border hover:border-primary/50 hover:bg-muted/50"
         }`}
       >
-        <input
-          type="file"
-          accept="application/pdf"
-          multiple
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
-          onChange={handleFileChange}
-          disabled={isLoading}
-        />
+        {!isLoading && (
+          <input
+            type="file"
+            accept="application/pdf"
+            multiple
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            onChange={handleFileChange}
+          />
+        )}
         <div className="flex flex-col items-center justify-center space-y-4">
           {isLoading ? (
-            <div className="flex flex-col items-center w-full max-w-md">
-              <Loader2 className="w-10 h-10 mb-4 animate-spin text-primary" />
-              {fileName && <p className="text-xs text-muted-foreground mb-3 truncate max-w-xs">{fileName}</p>}
+            <div className="flex flex-col items-center w-full max-w-lg">
+              <Loader2 className="w-10 h-10 mb-3 animate-spin text-primary" />
+              {fileName && <p className="text-xs text-muted-foreground mb-2 truncate max-w-xs">{fileName}</p>}
 
-              <div className="w-full bg-muted rounded-full h-2.5 mb-4 overflow-hidden">
-                <div className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out" style={{ width: `${displayProgress}%` }} />
+              {/* Current action */}
+              <p className="text-sm text-primary font-medium mb-4 text-center">{latestMessage}</p>
+
+              {/* Elapsed time */}
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-5">
+                <Clock className="w-3 h-3" />
+                {formatTime(elapsedSeconds)}
               </div>
 
-              <div className="flex items-center justify-between w-full text-xs text-muted-foreground mb-5">
-                <span className="font-medium text-primary">
-                  {displayProgress}%
-                  {progress?.message && ` — ${progress.message}`}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatTime(elapsedSeconds)}
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-2 w-full">
-                {STAGES.map((stage, i) => {
-                  const StageIcon = stage.icon;
-                  const isActive = i === currentStageIndex;
-                  const isDone = i < currentStageIndex;
+              {/* Pipeline stages */}
+              <div className="flex flex-col gap-1.5 w-full">
+                {stages.map((stage) => {
+                  const Icon = stage.icon;
                   return (
                     <div
                       key={stage.key}
-                      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
-                        isActive ? "bg-primary/10 text-primary font-medium"
-                        : isDone ? "text-muted-foreground/60"
+                      className={`flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-300 ${
+                        stage.status === "active" ? "bg-primary/10 text-primary font-medium"
+                        : stage.status === "done" ? "text-foreground/70"
+                        : stage.status === "error" ? "text-destructive/70"
                         : "text-muted-foreground/30"
                       }`}
                     >
-                      {isDone ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                       : isActive ? <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-                       : <StageIcon className="w-4 h-4 shrink-0" />}
-                      <span>{stage.label}</span>
+                      {stage.status === "done" ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                      ) : stage.status === "active" ? (
+                        <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                      ) : stage.status === "error" ? (
+                        <AlertCircle className="w-4 h-4 shrink-0" />
+                      ) : (
+                        <Icon className="w-4 h-4 shrink-0" />
+                      )}
+                      <span className="flex-1">{stage.label}</span>
+                      {stage.count && (
+                        <span className={`text-xs font-mono ${stage.status === "done" ? "text-emerald-500" : "text-primary"}`}>
+                          {stage.count}
+                        </span>
+                      )}
+                      {stage.detail && (
+                        <span className="text-xs text-muted-foreground truncate max-w-[200px]">{stage.detail}</span>
+                      )}
                     </div>
                   );
                 })}
@@ -161,7 +170,7 @@ export default function UploadZone({ onUpload, isLoading, progress }: UploadZone
               <div>
                 <h3 className="text-xl font-semibold text-foreground">Upload RFP Documents</h3>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Drop one or more PDFs — Mistral OCR extracts text, Gemini analyzes drawings.
+                  Drop one or more PDFs. We&apos;ll OCR every page, classify content, and extract LED specs.
                 </p>
               </div>
               <div className="flex gap-3 text-xs text-muted-foreground">
@@ -185,4 +194,94 @@ export default function UploadZone({ onUpload, isLoading, progress }: UploadZone
       )}
     </div>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Build stages from SSE events
+// ---------------------------------------------------------------------------
+
+function buildStages(events: PipelineEvent[]): StageState[] {
+  const stages: StageState[] = [
+    { key: "uploaded", label: "Upload received", icon: UploadCloud, status: "pending" },
+    { key: "kreuzberg", label: "OCR text extraction (Kreuzberg)", icon: Database, status: "pending" },
+    { key: "mistral", label: "Structured extraction (Mistral OCR)", icon: Eye, status: "pending" },
+    { key: "classifying", label: "Page classification", icon: Brain, status: "pending" },
+    { key: "extracting", label: "LED spec extraction (AI)", icon: Monitor, status: "pending" },
+  ];
+
+  let currentActive: string | null = null;
+
+  for (const event of events) {
+    if (event.type === "stage") {
+      const stageKey = event.stage || "";
+
+      // Mark completed stages
+      if (stageKey === "kreuzberg") {
+        markDone(stages, "uploaded");
+        currentActive = "kreuzberg";
+      } else if (stageKey === "kreuzberg_done") {
+        markDone(stages, "kreuzberg");
+        // Add page count
+        const s = stages.find((s) => s.key === "kreuzberg");
+        if (s && event.totalPages) s.count = `${event.totalPages} pages`;
+      } else if (stageKey === "mistral") {
+        markDone(stages, "kreuzberg");
+        currentActive = "mistral";
+      } else if (stageKey === "mistral_done") {
+        markDone(stages, "mistral");
+      } else if (stageKey === "classifying") {
+        markDone(stages, "mistral");
+        currentActive = "classifying";
+      } else if (stageKey === "classified") {
+        markDone(stages, "classifying");
+        const s = stages.find((s) => s.key === "classifying");
+        if (s && event.breakdown) {
+          const b = event.breakdown;
+          s.count = `${b.led_specs || 0} LED, ${b.drawings || 0} draw`;
+        }
+      } else if (stageKey === "extracting") {
+        markDone(stages, "classifying");
+        currentActive = "extracting";
+      } else if (stageKey === "uploaded") {
+        currentActive = "uploaded";
+      }
+    }
+
+    if (event.type === "progress") {
+      const stageKey = event.stage || "";
+      const s = stages.find((s) => s.key === stageKey);
+      if (s && event.current != null && event.total != null) {
+        s.count = `${event.current}/${event.total}`;
+        s.detail = event.message;
+      }
+    }
+
+    if (event.type === "complete") {
+      // Mark all done
+      stages.forEach((s) => { s.status = "done"; });
+      const s = stages.find((s) => s.key === "extracting");
+      if (s && event.result?.screens) s.count = `${event.result.screens.length} displays`;
+      return stages;
+    }
+
+    if (event.type === "error") {
+      if (currentActive) {
+        const s = stages.find((s) => s.key === currentActive);
+        if (s) { s.status = "error"; s.detail = event.message; }
+      }
+    }
+  }
+
+  // Set active stage
+  if (currentActive) {
+    const s = stages.find((s) => s.key === currentActive);
+    if (s && s.status !== "done" && s.status !== "error") s.status = "active";
+  }
+
+  return stages;
+}
+
+function markDone(stages: StageState[], key: string) {
+  const s = stages.find((s) => s.key === key);
+  if (s) s.status = "done";
 }
