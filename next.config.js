@@ -8,6 +8,11 @@ const nextConfig = {
     eslint: { ignoreDuringBuilds: true },
     outputFileTracingRoot: path.join(__dirname),
     serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+    experimental: {
+        serverActions: {
+            bodySizeLimit: "2000mb",
+        },
+    },
     transpilePackages: [
         "react-markdown",
         "remark-gfm",
