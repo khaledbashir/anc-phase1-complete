@@ -1095,12 +1095,26 @@ const Step4Export = () => {
                                                 </div>
                                                 <Switch id="showPricingTables" checked={watch("details.showPricingTables") ?? true} onCheckedChange={(checked) => setValue("details.showPricingTables", checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
                                             </div>
-                                            <div className="flex items-start justify-between py-3 gap-4">
+                                            <div className="flex items-start justify-between py-3 border-b border-border/30 gap-4">
                                                 <div className="flex flex-col min-w-0">
                                                     <Label htmlFor="showNotes" className="text-sm font-semibold text-foreground block">Notes Section</Label>
                                                     <p className="text-[11px] text-muted-foreground leading-relaxed">Include additional notes in the PDF</p>
                                                 </div>
                                                 <Switch id="showNotes" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
+                                            </div>
+                                            <div className="flex items-start justify-between py-3 border-b border-border/30 gap-4">
+                                                <div className="flex flex-col min-w-0">
+                                                    <Label htmlFor="showScopeOfWork-budget" className="text-sm font-semibold text-foreground block">Scope of Work</Label>
+                                                    <p className="text-[11px] text-muted-foreground leading-relaxed">Include Scope of Work text (Exhibit B)</p>
+                                                </div>
+                                                <Switch id="showScopeOfWork-budget" checked={watch("details.showScopeOfWork") || false} onCheckedChange={(checked) => setValue("details.showScopeOfWork", checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
+                                            </div>
+                                            <div className="flex items-start justify-between py-3 gap-4">
+                                                <div className="flex flex-col min-w-0">
+                                                    <Label htmlFor="showRespMatrix-budget" className="text-sm font-semibold text-foreground block">Responsibility Matrix</Label>
+                                                    <p className="text-[11px] text-muted-foreground leading-relaxed">Include responsibility matrix table</p>
+                                                </div>
+                                                <Switch id="showRespMatrix-budget" checked={watch("details.showResponsibilityMatrix" as any) ?? true} onCheckedChange={(checked) => setValue("details.showResponsibilityMatrix" as any, checked)} className="data-[state=checked]:bg-brand-blue shrink-0 mt-0.5" />
                                             </div>
                                         </TabsContent>
 
@@ -1150,12 +1164,26 @@ const Step4Export = () => {
                                                 </div>
                                                 <Switch id="showPaymentTerms-proposal" checked={watch("details.showPaymentTerms") ?? true} onCheckedChange={(checked) => setValue("details.showPaymentTerms", checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
-                                            <div className="flex items-center justify-between py-3">
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
                                                 <div className="flex flex-col">
                                                     <Label htmlFor="showNotes-proposal" className="text-sm font-semibold text-foreground">Notes Section</Label>
                                                     <p className="text-[11px] text-muted-foreground">Include additional notes in the PDF</p>
                                                 </div>
                                                 <Switch id="showNotes-proposal" checked={watch("details.showNotes") ?? true} onCheckedChange={(checked) => setValue("details.showNotes", checked)} className="data-[state=checked]:bg-brand-blue" />
+                                            </div>
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showScopeOfWork-proposal" className="text-sm font-semibold text-foreground">Scope of Work</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include Scope of Work text (Exhibit B)</p>
+                                                </div>
+                                                <Switch id="showScopeOfWork-proposal" checked={watch("details.showScopeOfWork") || false} onCheckedChange={(checked) => setValue("details.showScopeOfWork", checked)} className="data-[state=checked]:bg-brand-blue" />
+                                            </div>
+                                            <div className="flex items-center justify-between py-3">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showRespMatrix-proposal" className="text-sm font-semibold text-foreground">Responsibility Matrix</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include responsibility matrix table</p>
+                                                </div>
+                                                <Switch id="showRespMatrix-proposal" checked={watch("details.showResponsibilityMatrix" as any) ?? true} onCheckedChange={(checked) => setValue("details.showResponsibilityMatrix" as any, checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                         </TabsContent>
 
@@ -1218,6 +1246,13 @@ const Step4Export = () => {
                                                     <p className="text-[11px] text-muted-foreground">Include custom Scope of Work text (Exhibit B)</p>
                                                 </div>
                                                 <Switch id="showScopeOfWork" checked={watch("details.showScopeOfWork") || false} onCheckedChange={(checked) => setValue("details.showScopeOfWork", checked)} className="data-[state=checked]:bg-brand-blue" />
+                                            </div>
+                                            <div className="flex items-center justify-between py-3 border-b border-border/30">
+                                                <div className="flex flex-col">
+                                                    <Label htmlFor="showRespMatrix-loi" className="text-sm font-semibold text-foreground">Responsibility Matrix</Label>
+                                                    <p className="text-[11px] text-muted-foreground">Include responsibility matrix table</p>
+                                                </div>
+                                                <Switch id="showRespMatrix-loi" checked={watch("details.showResponsibilityMatrix" as any) ?? true} onCheckedChange={(checked) => setValue("details.showResponsibilityMatrix" as any, checked)} className="data-[state=checked]:bg-brand-blue" />
                                             </div>
                                             <div className="flex items-center justify-between py-3">
                                                 <div className="flex flex-col">

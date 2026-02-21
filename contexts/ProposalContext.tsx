@@ -849,6 +849,7 @@ export const ProposalContextProvider = ({
     const showPaymentTerms = details?.showPaymentTerms;
     const showSignatureBlock = details?.showSignatureBlock;
     const showScopeOfWork = details?.showScopeOfWork;
+    const showResponsibilityMatrix = (details as any)?.showResponsibilityMatrix;
     const pageLayout = details?.pageLayout;
     const specsDisplayMode = (details as any)?.specsDisplayMode;
 
@@ -893,6 +894,7 @@ export const ProposalContextProvider = ({
                             showExhibitB: d?.showExhibitB,
                             showNotes: d?.showNotes,
                             showScopeOfWork: d?.showScopeOfWork,
+                            showResponsibilityMatrix: d?.showResponsibilityMatrix,
                             pageLayout: d?.pageLayout,
                         },
                         quoteItems: d?.quoteItems,
@@ -952,6 +954,7 @@ export const ProposalContextProvider = ({
         showPaymentTerms,
         showSignatureBlock,
         showScopeOfWork,
+        showResponsibilityMatrix,
         pageLayout,
         specsDisplayMode,
         aiFields,
@@ -2104,6 +2107,7 @@ export const ProposalContextProvider = ({
                                 showExhibitB: d?.showExhibitB,
                                 showNotes: d?.showNotes,
                                 showScopeOfWork: d?.showScopeOfWork,
+                                showResponsibilityMatrix: d?.showResponsibilityMatrix,
                                 pageLayout: d?.pageLayout,
                             },
                             quoteItems: d?.quoteItems,
@@ -2193,6 +2197,8 @@ export const ProposalContextProvider = ({
                     showNotes: (formValues as any)?.details?.showNotes,
                     showScopeOfWork: (formValues as any)?.details
                         ?.showScopeOfWork,
+                    showResponsibilityMatrix: (formValues as any)?.details
+                        ?.showResponsibilityMatrix,
                     pageLayout: (formValues as any)?.details?.pageLayout,
                 },
                 quoteItems: (formValues as any)?.details?.quoteItems,

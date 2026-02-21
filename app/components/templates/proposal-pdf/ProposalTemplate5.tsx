@@ -183,6 +183,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
     const generatedScheduleTasks = Array.isArray(generatedSchedule?.tasks) ? generatedSchedule.tasks : [];
     const hasGeneratedSchedule = !mirrorMode && generatedScheduleTasks.length > 0;
     const showExhibitA = (details as any)?.showExhibitA ?? false;
+    const showResponsibilityMatrix = (details as any)?.showResponsibilityMatrix ?? true;
     const shouldRenderLegalIntro = docModeConfig.includeLegalIntro;
     const shouldRenderPaymentTerms = docModeConfig.includePaymentTerms && showPaymentTerms;
     const shouldRenderSignatureBlock = docModeConfig.includeSignatures && showSignatureBlock;
@@ -566,7 +567,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                                 <ScopeOfWorkSection />
                             </div>
                         )}
-                        {respMatrix && respMatrix.categories.filter(c => c.items?.length > 0).length > 0 && (
+                        {showResponsibilityMatrix && respMatrix && respMatrix.categories.filter(c => c.items?.length > 0).length > 0 && (
                             <>
                                 <PageBreak />
                                 <ContinuationPageHeader />
@@ -640,7 +641,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         )}
 
                         {/* Resp Matrix SOW (if present in Excel) — own page per Natalia */}
-                        {respMatrix && respMatrix.categories.filter(c => c.items?.length > 0).length > 0 && (
+                        {showResponsibilityMatrix && respMatrix && respMatrix.categories.filter(c => c.items?.length > 0).length > 0 && (
                             <>
                                 <PageBreak />
                                 <ContinuationPageHeader />
@@ -707,7 +708,7 @@ const ProposalTemplate5 = (data: ProposalTemplate5Props) => {
                         </>
                     )}
                     {/* Resp Matrix SOW (if present in Excel) — own page */}
-                    {respMatrix && respMatrix.categories.filter(c => c.items?.length > 0).length > 0 && (
+                    {showResponsibilityMatrix && respMatrix && respMatrix.categories.filter(c => c.items?.length > 0).length > 0 && (
                         <>
                             <PageBreak />
                             <ContinuationPageHeader />
