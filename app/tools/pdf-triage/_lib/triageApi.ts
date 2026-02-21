@@ -18,7 +18,9 @@ export interface TriageResponse {
     pages: TriagePage[];
 }
 
-const TRIAGE_API = process.env.NEXT_PUBLIC_TRIAGE_API_URL || 'https://basheer-rag.prd42b.easypanel.host';
+// All triage API calls go through the Next.js proxy route,
+// which forwards to the Python service running on localhost:8000 inside the same container.
+const TRIAGE_API = '/api/pdf-triage';
 
 export async function triagePdf(
     file: File,

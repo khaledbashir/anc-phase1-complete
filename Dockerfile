@@ -10,8 +10,12 @@ RUN npm run build
 
 FROM node:22-bullseye-slim AS production
 
-# Minimal dependencies (Chromium runs in separate Browserless container)
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates && rm -rf /var/lib/apt/lists/*
+# Install Python3 + pip for the PDF triage service, plus ca-certificates
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    python3 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -26,6 +30,12 @@ COPY --from=build --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=build --chown=nextjs:nodejs /app/specimens ./specimens
 COPY --from=build --chown=nextjs:nodejs /app/docker-entrypoint.sh ./docker-entrypoint.sh
 
+# Copy PDF triage Python service
+COPY --from=build --chown=nextjs:nodejs /app/pdf-triage-service ./pdf-triage-service
+
+# Install Python dependencies for the triage service
+RUN pip3 install --no-cache-dir --break-system-packages -r pdf-triage-service/requirements.txt
+
 RUN chmod +x docker-entrypoint.sh
 
 USER nextjs
@@ -33,4 +43,4 @@ USER nextjs
 EXPOSE 3000
 CMD ["./docker-entrypoint.sh"]
 
-# Build trigger: 1739749800
+# Build trigger: 1740149863
