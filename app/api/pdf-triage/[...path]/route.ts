@@ -20,10 +20,13 @@ async function proxyRequest(req: NextRequest, { params }: { params: Promise<{ pa
     const contentType = req.headers.get("content-type") || "";
 
     let body: any;
+    // CRITICAL: Only pass strictly necessary headers to avoid 431 Request Header Fields Too Large
+    // NextAuth cookies + standard browser headers can easily exceed FastAPI's 8KB limit.
     let headers: Record<string, string> = {};
 
     if (contentType.includes("multipart/form-data")) {
-        // For multipart (file uploads), pass the raw body through
+        // For multipart (file uploads), pass the raw body through.
+        // Also forward the actual exact content-type boundary
         body = await req.arrayBuffer();
         headers["content-type"] = contentType;
     } else if (contentType.includes("application/json")) {
