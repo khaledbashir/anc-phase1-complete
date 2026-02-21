@@ -12,15 +12,10 @@ export interface TriagePage {
 export interface TriageResponse {
     filename: string;
     total_pages: number;
-    text_pages: number;
-    drawing_pages: number;
-    processing_time_ms: number;
     pages: TriagePage[];
 }
 
-// All triage API calls go through the Next.js proxy route,
-// which forwards to the Python service running on localhost:8000 inside the same container.
-const TRIAGE_API = '/api/pdf-triage';
+const TRIAGE_API = process.env.NEXT_PUBLIC_TRIAGE_API_URL;
 
 export async function triagePdf(
     file: File,
