@@ -64,7 +64,7 @@ const ModeSelector = ({ onSelect }: ModeSelectorProps) => {
         {/* RFP Filter — primary path */}
         <button
           type="button"
-          onClick={() => router.push("/tools/pdf-filter")}
+          onClick={() => router.push("/tools/pdf-triage")}
           className={cn(
             "group relative flex flex-col items-center text-center p-8 rounded-xl border border-border bg-card",
             "hover:border-foreground/20 hover:bg-muted/30",
