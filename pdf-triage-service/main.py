@@ -19,6 +19,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://basheer-rag.prd42b.easypanel.host",
+        "https://basheer-therag2.prd42b.easypanel.host",
         "http://localhost:3000"
     ],
     allow_credentials=True,
