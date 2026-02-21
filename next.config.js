@@ -12,6 +12,7 @@ const nextConfig = {
         serverActions: {
             bodySizeLimit: "2000mb",
         },
+        middlewareClientMaxBodySize: "2000mb",
     },
     transpilePackages: [
         "react-markdown",
