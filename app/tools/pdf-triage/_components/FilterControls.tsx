@@ -76,10 +76,10 @@ export default function FilterControls({
                                             : "border-primary/30 bg-primary/10 text-primary hover:bg-primary/20"
                                     )}
                                 >
-                                    <div className="flex items-center gap-1.5">
-                                        <div className={cn("w-2 h-2 rounded-full", isOff ? "bg-muted-foreground" : "bg-primary")} />
-                                        {HUMAN_CATEGORY_LABELS[cat] || cat}
-                                    </div>
+                                    <span className="flex items-center gap-1.5">
+                                        <span className={cn("w-2 h-2 rounded-full block", isOff ? "bg-muted-foreground" : "bg-primary")} />
+                                        <span>{HUMAN_CATEGORY_LABELS[cat] || cat}</span>
+                                    </span>
                                 </button>
                             );
                         })}

@@ -18,7 +18,7 @@ export interface TriageResponse {
     pages: TriagePage[];
 }
 
-const TRIAGE_API = process.env.NEXT_PUBLIC_TRIAGE_API_URL || 'http://localhost:8000';
+const TRIAGE_API = process.env.NEXT_PUBLIC_TRIAGE_API_URL || 'https://basheer-rag.prd42b.easypanel.host';
 
 export async function triagePdf(
     file: File,

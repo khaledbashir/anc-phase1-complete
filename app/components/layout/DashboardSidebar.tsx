@@ -213,18 +213,18 @@ export default function DashboardSidebar() {
                         className="group relative p-3 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
                     >
                         <Settings className="w-5 h-5" />
-                        <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
+                        <span className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card block">
                             Settings
-                        </div>
+                        </span>
                     </button>
                     <button
                         onClick={() => signOut({ callbackUrl: "/auth/login" })}
                         className="group relative p-3 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
                     >
                         <LogOut className="w-5 h-5" />
-                        <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
+                        <span className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card block">
                             Sign Out
-                        </div>
+                        </span>
                     </button>
                     <div className="w-8 h-8 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden">
                         <div className="w-full h-full bg-gradient-to-br from-muted to-muted-foreground/20" />
