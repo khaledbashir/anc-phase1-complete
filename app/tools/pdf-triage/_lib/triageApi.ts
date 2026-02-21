@@ -29,7 +29,7 @@ export async function triagePdf(
         url += `?disabled_categories=${disabledCategories.join(',')}`;
     }
 
-    const res = await fetch(url, { method: 'POST', body: formData });
+    const res = await fetch(url, { method: 'POST', body: formData, credentials: 'omit' });
     if (!res.ok) {
         let errDetail = await res.text();
         try {
@@ -49,7 +49,7 @@ export async function extractPages(
     formData.append('file', file);
     formData.append('pages', JSON.stringify(pageNumbers));
 
-    const res = await fetch(`${TRIAGE_API}/api/extract`, { method: 'POST', body: formData });
+    const res = await fetch(`${TRIAGE_API}/api/extract`, { method: 'POST', body: formData, credentials: 'omit' });
     if (!res.ok) {
         let errDetail = await res.text();
         try {
@@ -63,7 +63,7 @@ export async function extractPages(
 
 export async function healthCheck(): Promise<boolean> {
     try {
-        const res = await fetch(`${TRIAGE_API}/api/health`, { method: 'GET', cache: 'no-store' });
+        const res = await fetch(`${TRIAGE_API}/api/health`, { method: 'GET', cache: 'no-store', credentials: 'omit' });
         return res.ok;
     } catch {
         return false;
@@ -116,7 +116,8 @@ export async function extractSpecs(
 
     const res = await fetch(`${TRIAGE_API}/api/extract-specs`, {
         method: 'POST',
-        body: formData
+        body: formData,
+        credentials: 'omit'
     });
 
     if (!res.ok) {

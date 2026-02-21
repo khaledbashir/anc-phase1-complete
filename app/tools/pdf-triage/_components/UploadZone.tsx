@@ -1,16 +1,52 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
-import { UploadCloud, File as FileIcon, Loader2, AlertCircle } from "lucide-react";
+import React, { useCallback, useState, useEffect, useRef } from "react";
+import { UploadCloud, File as FileIcon, Loader2, AlertCircle, Clock, Zap, FileSearch, CheckCircle2 } from "lucide-react";
 
 interface UploadZoneProps {
     onUpload: (file: File) => void;
     isLoading: boolean;
 }
 
+const STAGES = [
+    { label: "Uploading PDF", icon: UploadCloud, minTime: 0 },
+    { label: "Parsing pages", icon: FileSearch, minTime: 3 },
+    { label: "Classifying content", icon: Zap, minTime: 8 },
+    { label: "Scoring relevance", icon: CheckCircle2, minTime: 15 },
+];
+
 export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
+    const [fileName, setFileName] = useState<string | null>(null);
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Elapsed time counter
+    useEffect(() => {
+        if (isLoading) {
+            setElapsedSeconds(0);
+            intervalRef.current = setInterval(() => {
+                setElapsedSeconds(prev => prev + 1);
+            }, 1000);
+        } else {
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = null;
+            }
+        }
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [isLoading]);
+
+    // Calculate current stage based on elapsed time
+    const currentStageIndex = STAGES.reduce((acc, stage, i) => {
+        return elapsedSeconds >= stage.minTime ? i : acc;
+    }, 0);
+
+    // Simulated progress (0–95%) based on elapsed time, asymptotic
+    const simulatedProgress = Math.min(95, Math.round((1 - Math.exp(-elapsedSeconds / 25)) * 100));
 
     const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -34,6 +70,7 @@ export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
             setError("File is too large. Maximum size is 2GB.");
             return;
         }
+        setFileName(file.name);
         onUpload(file);
     };
 
@@ -55,6 +92,12 @@ export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
         }
     };
 
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return m > 0 ? `${m}m ${s}s` : `${s}s`;
+    };
+
     return (
         <div className="w-full max-w-2xl mx-auto mt-12">
             <div
@@ -62,7 +105,7 @@ export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all ${isLoading
-                    ? "border-muted bg-muted/20 cursor-not-allowed opacity-70"
+                    ? "border-primary/30 bg-primary/5 cursor-not-allowed"
                     : isDragging
                         ? "border-primary bg-primary/5 scale-[1.02]"
                         : "border-border hover:border-primary/50 hover:bg-muted/50"
@@ -77,12 +120,62 @@ export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
                 />
                 <div className="flex flex-col items-center justify-center space-y-4">
                     {isLoading ? (
-                        <div className="flex flex-col items-center text-primary">
-                            <Loader2 className="w-12 h-12 mb-4 animate-spin" />
-                            <h3 className="text-xl font-semibold">Triage in Progress</h3>
-                            <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-                                Analyzing your PDF... This may take up to 30 seconds for massive documents. Please wait.
-                            </p>
+                        <div className="flex flex-col items-center w-full max-w-md">
+                            {/* Spinner */}
+                            <Loader2 className="w-10 h-10 mb-4 animate-spin text-primary" />
+
+                            {/* File name */}
+                            {fileName && (
+                                <p className="text-xs text-muted-foreground mb-3 truncate max-w-xs">
+                                    {fileName}
+                                </p>
+                            )}
+
+                            {/* Progress bar */}
+                            <div className="w-full bg-muted rounded-full h-2.5 mb-4 overflow-hidden">
+                                <div
+                                    className="bg-primary h-2.5 rounded-full transition-all duration-1000 ease-out"
+                                    style={{ width: `${simulatedProgress}%` }}
+                                />
+                            </div>
+
+                            {/* Progress percentage + elapsed time */}
+                            <div className="flex items-center justify-between w-full text-xs text-muted-foreground mb-5">
+                                <span className="font-medium text-primary">{simulatedProgress}%</span>
+                                <span className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {formatTime(elapsedSeconds)}
+                                </span>
+                            </div>
+
+                            {/* Stage indicators */}
+                            <div className="flex flex-col gap-2 w-full">
+                                {STAGES.map((stage, i) => {
+                                    const StageIcon = stage.icon;
+                                    const isActive = i === currentStageIndex;
+                                    const isDone = i < currentStageIndex;
+                                    return (
+                                        <div
+                                            key={stage.label}
+                                            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-300 ${isActive
+                                                    ? "bg-primary/10 text-primary font-medium"
+                                                    : isDone
+                                                        ? "text-muted-foreground/60"
+                                                        : "text-muted-foreground/30"
+                                                }`}
+                                        >
+                                            {isDone ? (
+                                                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                                            ) : isActive ? (
+                                                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                                            ) : (
+                                                <StageIcon className="w-4 h-4 shrink-0" />
+                                            )}
+                                            <span>{stage.label}</span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     ) : (
                         <>
