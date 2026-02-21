@@ -85,8 +85,25 @@ async def triage_pdf(
         # Open and process the PDF
         with fitz.open(temp_path) as doc:
             total_pages = len(doc)
-            for page_idx, page in enumerate(doc):
-                text = page.get_text()
+            for page_idx in range(total_pages):
+                try:
+                    page = doc.load_page(page_idx)
+                    text = page.get_text()
+                except Exception as page_err:
+                    # MuPDF can fail on individual pages (corrupted xref, etc.)
+                    # Mark as drawing and continue instead of crashing the whole request
+                    drawing_pages_count += 1
+                    pages_result.append({
+                        "page_num": page_idx + 1,
+                        "classification": "drawing",
+                        "score": 0.0,
+                        "text_length": 0,
+                        "matched_keywords": [],
+                        "matched_categories": [],
+                        "snippet": f"[Page could not be parsed: {str(page_err)[:100]}]",
+                        "recommended": "review"
+                    })
+                    continue
                 
                 score_info = score_page(text, local_kw_bank, disabled_cats_set)
                 
