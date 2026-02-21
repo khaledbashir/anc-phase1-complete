@@ -17,7 +17,7 @@ const TRIAGE_INTERNAL_URL = "http://127.0.0.1:8000";
 
 async function proxyRequest(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
     const { path } = await params;
-    const targetPath = "/api/" + path.join("/");
+    const targetPath = "/" + path.join("/");
     const targetUrl = new URL(targetPath, TRIAGE_INTERNAL_URL);
 
     // Forward query params
