@@ -14,6 +14,12 @@ const nextConfig = {
         },
         middlewareClientMaxBodySize: "2000mb",
     },
+    api: {
+        responseLimit: false,
+        bodyParser: {
+            sizeLimit: "2000mb",
+        },
+    },
     transpilePackages: [
         "react-markdown",
         "remark-gfm",
@@ -37,6 +43,30 @@ const nextConfig = {
         "mdast-util-phrasing",
         "escape-string-regexp",
     ],
+    async rewrites() {
+        return [
+            {
+                source: "/api/triage/:path*",
+                destination: "http://127.0.0.1:8000/api/triage/:path*",
+            },
+            {
+                source: "/api/triage",
+                destination: "http://127.0.0.1:8000/api/triage",
+            },
+            {
+                source: "/api/extract-specs/:path*",
+                destination: "http://127.0.0.1:8000/api/extract-specs/:path*",
+            },
+            {
+                source: "/api/extract-specs",
+                destination: "http://127.0.0.1:8000/api/extract-specs",
+            },
+            {
+                source: "/api/extract",
+                destination: "http://127.0.0.1:8000/api/extract",
+            },
+        ];
+    },
     generateBuildId: async () => {
         return `build-${Date.now()}`;
     },

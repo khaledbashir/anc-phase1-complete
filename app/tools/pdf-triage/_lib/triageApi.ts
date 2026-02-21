@@ -20,7 +20,7 @@ export interface TriageResponse {
     pages: TriagePage[];
 }
 
-const TRIAGE_API = "https://basheer-triage.prd42b.easypanel.host";
+const TRIAGE_API = "";
 
 export async function triagePdf(
     files: File[],
