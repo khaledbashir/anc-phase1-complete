@@ -15,7 +15,7 @@ export interface TriageResponse {
     pages: TriagePage[];
 }
 
-const TRIAGE_API = process.env.NEXT_PUBLIC_TRIAGE_API_URL || "https://basheer-triage.prd42b.easypanel.host";
+const TRIAGE_API = "/api/pdf-triage";
 
 export async function triagePdf(
     file: File,
