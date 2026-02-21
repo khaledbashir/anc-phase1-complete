@@ -14,7 +14,7 @@ import { Loader2, RefreshCcw } from "lucide-react";
 
 export default function PdfTriagePage() {
     // Triage State
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<File[]>([]);
     const [isTriaging, setIsTriaging] = useState(false);
     const [triageData, setTriageData] = useState<TriageResponse | null>(null);
     const [triageError, setTriageError] = useState<string | null>(null);
@@ -42,8 +42,8 @@ export default function PdfTriagePage() {
     }, [triageData]);
 
     // Handle Upload & Triage
-    const handleUpload = async (uploadedFile: File) => {
-        setFile(uploadedFile);
+    const handleUpload = async (uploadedFiles: File[]) => {
+        setFiles(uploadedFiles);
         setIsTriaging(true);
         setTriageError(null);
         setTriageData(null);
@@ -56,7 +56,7 @@ export default function PdfTriagePage() {
         setUploadProgress(0);
 
         try {
-            const data = await triagePdf(uploadedFile, (p) => setUploadProgress(p));
+            const data = await triagePdf(uploadedFiles, (p) => setUploadProgress(p));
             setTriageData(data);
 
             // Auto-select pages marked as 'keep' by default
@@ -77,7 +77,7 @@ export default function PdfTriagePage() {
     };
 
     const handleReset = () => {
-        setFile(null);
+        setFiles([]);
         setTriageData(null);
         setTriageError(null);
         setSelectedPages(new Set());
@@ -128,12 +128,12 @@ export default function PdfTriagePage() {
     };
 
     const handleExtract = async () => {
-        if (!file || !triageData) return;
+        if (files.length === 0 || !triageData) return;
         setIsExtracting(true);
         setTriageError(null);
 
         try {
-            const result = await extractSpecs(file, triageData, projectContext);
+            const result = await extractSpecs(files, triageData, projectContext);
             setExtractionResult(result);
             setEditedScreens(result.screens);
         } catch (err: any) {
@@ -220,7 +220,7 @@ export default function PdfTriagePage() {
                         />
 
                         <ExportButton
-                            file={file}
+                            files={files}
                             selectedPages={selectedPages}
                         />
 

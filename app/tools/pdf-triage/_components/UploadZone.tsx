@@ -4,13 +4,13 @@ import React, { useCallback, useState, useEffect, useRef } from "react";
 import { UploadCloud, File as FileIcon, Loader2, AlertCircle, Clock, Zap, FileSearch, CheckCircle2 } from "lucide-react";
 
 interface UploadZoneProps {
-    onUpload: (file: File) => void;
+    onUpload: (files: File[]) => void;
     isLoading: boolean;
     realProgress?: number; // 0-100
 }
 
 const STAGES = [
-    { label: "Uploading PDF", icon: UploadCloud, minTime: 0 },
+    { label: "Uploading PDFs", icon: UploadCloud, minTime: 0 },
     { label: "Parsing pages", icon: FileSearch, minTime: 3 },
     { label: "Classifying content", icon: Zap, minTime: 8 },
     { label: "Scoring relevance", icon: CheckCircle2, minTime: 15 },
@@ -67,18 +67,28 @@ export default function UploadZone({ onUpload, isLoading, realProgress }: Upload
         setIsDragging(false);
     }, []);
 
-    const validateAndUpload = (file: File) => {
+    const validateAndUpload = (files: File[]) => {
         setError(null);
-        if (file.type !== "application/pdf") {
+
+        const validFiles = files.filter(f => f.type === "application/pdf");
+        if (validFiles.length === 0) {
             setError("Only PDF files are supported.");
             return;
         }
-        if (file.size > 2000 * 1024 * 1024) {
-            setError("File is too large. Maximum size is 2GB.");
+
+        const tooLarge = validFiles.some(f => f.size > 2000 * 1024 * 1024);
+        if (tooLarge) {
+            setError("One or more files exceed the 2GB limit.");
             return;
         }
-        setFileName(file.name);
-        onUpload(file);
+
+        if (validFiles.length === 1) {
+            setFileName(validFiles[0].name);
+        } else {
+            setFileName(`${validFiles.length} files selected`);
+        }
+
+        onUpload(validFiles);
     };
 
     const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -89,13 +99,13 @@ export default function UploadZone({ onUpload, isLoading, realProgress }: Upload
 
         const files = Array.from(e.dataTransfer.files);
         if (files.length > 0) {
-            validateAndUpload(files[0]);
+            validateAndUpload(files);
         }
     }, [isLoading]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            validateAndUpload(e.target.files[0]);
+            validateAndUpload(Array.from(e.target.files));
         }
     };
 
@@ -121,6 +131,7 @@ export default function UploadZone({ onUpload, isLoading, realProgress }: Upload
                 <input
                     type="file"
                     accept="application/pdf"
+                    multiple
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                     onChange={handleFileChange}
                     disabled={isLoading}

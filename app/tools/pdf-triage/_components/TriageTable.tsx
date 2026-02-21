@@ -49,6 +49,11 @@ export default function TriageTable({
             if (sortField === "score") sortVal = a.score - b.score;
             if (sortField === "classification") sortVal = a.classification.localeCompare(b.classification);
             if (sortField === "recommended") sortVal = a.recommended.localeCompare(b.recommended);
+            if (sortField === "source_filename") {
+                const nameA = a.source_filename || "";
+                const nameB = b.source_filename || "";
+                sortVal = nameA.localeCompare(nameB);
+            }
 
             return sortOrder === "asc" ? sortVal : -sortVal;
         });
@@ -78,11 +83,6 @@ export default function TriageTable({
             // Unselect visible
             const visibleSet = new Set(sortedPages.map(p => p.page_num));
             const newSelection = Array.from(selectedPages).filter(num => !visibleSet.has(num));
-            // Trigger "clear" logic up in parent basically by sending specific pages to un-toggle
-            // Wait, our prop is onToggleSelection which toggles. To force state, it's easier to just pass the raw page numbers we want to toggle.
-            // If we pass all visible pages to onToggleSelection... parent handles it.
-            // Actually, a better approach for parent is setSelection based on state. 
-            // Let's implement batch actions via the parent. But for Select All Checkbox here:
             onToggleSelection(sortedPages.map(p => p.page_num));
         } else {
             // Select all visible (only those not already selected)
@@ -110,6 +110,9 @@ export default function TriageTable({
 
         return <span className={cn("px-2 py-0.5 rounded text-xs font-bold", colorCls)}>{score.toFixed(3)}</span>;
     };
+
+    // Check if we have multiple files
+    const hasMultipleFiles = pages.some(p => p.source_filename);
 
     return (
         <div className="bg-card border border-border rounded-xl flex flex-col overflow-hidden max-h-[800px]">
@@ -157,6 +160,11 @@ export default function TriageTable({
                                     {isAllVisibleSelected ? <CheckSquare className="w-4 h-4 text-primary" /> : <Square className="w-4 h-4" />}
                                 </button>
                             </th>
+                            {hasMultipleFiles && (
+                                <th className="p-3 w-48 font-medium text-muted-foreground cursor-pointer hover:text-foreground" onClick={() => handleSort("source_filename")}>
+                                    <div className="flex items-center">File <SortIcon field="source_filename" /></div>
+                                </th>
+                            )}
                             <th className="p-3 font-medium text-muted-foreground cursor-pointer hover:text-foreground" onClick={() => handleSort("page_num")}>
                                 <div className="flex items-center">Page <SortIcon field="page_num" /></div>
                             </th>
@@ -197,6 +205,11 @@ export default function TriageTable({
                                                 : <Square className="w-4 h-4 text-muted-foreground opacity-50 group-hover:opacity-100" />}
                                         </button>
                                     </td>
+                                    {hasMultipleFiles && (
+                                        <td className="p-3 align-top pt-4 text-xs font-medium text-muted-foreground max-w-[12rem] truncate" title={page.source_filename}>
+                                            {page.source_filename}
+                                        </td>
+                                    )}
                                     <td className="p-3 align-top pt-4 font-mono font-medium">{page.page_num}</td>
                                     <td className="p-3 align-top pt-3.5">
                                         <ScoreBadge score={page.score} type={page.classification} />
@@ -253,7 +266,7 @@ export default function TriageTable({
                         })}
                         {sortedPages.length === 0 && (
                             <tr>
-                                <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                                <td colSpan={hasMultipleFiles ? 8 : 7} className="p-8 text-center text-muted-foreground">
                                     No pages match the current filters.
                                 </td>
                             </tr>

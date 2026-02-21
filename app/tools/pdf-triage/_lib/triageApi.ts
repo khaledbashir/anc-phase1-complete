@@ -1,5 +1,6 @@
 export interface TriagePage {
     page_num: number;
+    source_filename?: string;
     classification: "text" | "drawing";
     score: number;
     text_length: number;
@@ -11,6 +12,7 @@ export interface TriagePage {
 
 export interface TriageResponse {
     filename: string;
+    files_processed: number;
     total_pages: number;
     text_pages: number;
     drawing_pages: number;
@@ -21,13 +23,13 @@ export interface TriageResponse {
 const TRIAGE_API = "https://basheer-triage.prd42b.easypanel.host";
 
 export async function triagePdf(
-    file: File,
+    files: File[],
     onProgress?: (percent: number) => void,
     disabledCategories?: string[]
 ): Promise<TriageResponse> {
     return new Promise((resolve, reject) => {
         const formData = new FormData();
-        formData.append('file', file);
+        files.forEach(f => formData.append('files', f));
 
         let url = `${TRIAGE_API}/api/triage`;
         if (disabledCategories?.length) {
@@ -140,12 +142,12 @@ export interface ExtractionResponse {
 }
 
 export async function extractSpecs(
-    file: File,
+    files: File[],
     triageResult: TriageResponse,
     projectContext?: string
 ): Promise<ExtractionResponse> {
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach(f => formData.append('files', f));
     formData.append('triage_result', JSON.stringify(triageResult));
 
     if (projectContext) {

@@ -6,17 +6,17 @@ import { extractPages } from "../_lib/triageApi";
 import { cn } from "@/lib/utils";
 
 interface ExportButtonProps {
-    file: File | null;
+    files: File[];
     selectedPages: Set<number>;
     disabled?: boolean;
 }
 
-export default function ExportButton({ file, selectedPages, disabled }: ExportButtonProps) {
+export default function ExportButton({ files, selectedPages, disabled }: ExportButtonProps) {
     const [isExporting, setIsExporting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const handleExport = async () => {
-        if (!file || selectedPages.size === 0) return;
+        if (files.length === 0 || selectedPages.size === 0) return;
 
         setIsExporting(true);
         setError(null);
@@ -25,8 +25,10 @@ export default function ExportButton({ file, selectedPages, disabled }: ExportBu
             // Convert Set to sorted Array
             const pageNums = Array.from(selectedPages).sort((a, b) => a - b);
 
-            // Call extraction API
-            const blob = await extractPages(file, pageNums);
+            // TODO: The backend /api/extract only supports a single file currently.
+            // For now, we will just export pages from the first file.
+            const fileToExtract = files[0];
+            const blob = await extractPages(fileToExtract, pageNums);
 
             // Create download trigger
             const url = window.URL.createObjectURL(blob);
@@ -34,8 +36,8 @@ export default function ExportButton({ file, selectedPages, disabled }: ExportBu
             a.href = url;
 
             // Construct filename
-            const extStart = file.name.lastIndexOf('.');
-            const baseName = extStart > -1 ? file.name.substring(0, extStart) : file.name;
+            const extStart = fileToExtract.name.lastIndexOf('.');
+            const baseName = extStart > -1 ? fileToExtract.name.substring(0, extStart) : fileToExtract.name;
             a.download = `${baseName}_filtered.pdf`;
 
             document.body.appendChild(a);
@@ -52,7 +54,7 @@ export default function ExportButton({ file, selectedPages, disabled }: ExportBu
         }
     };
 
-    const isDisabled = disabled || isExporting || selectedPages.size === 0 || !file;
+    const isDisabled = disabled || isExporting || selectedPages.size === 0 || files.length === 0;
 
     return (
         <div className="fixed bottom-0 left-0 right-0 md:left-20 border-t border-border bg-background/80 backdrop-blur-md p-4 flex items-center justify-between z-40 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.1)]">

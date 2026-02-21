@@ -40,14 +40,11 @@ def get_recommendation(score: float, classification: str) -> str:
 
 @app.post("/api/triage")
 async def triage_pdf(
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     custom_keywords: Optional[str] = Query(None),
     disabled_categories: Optional[str] = Query(None)
 ):
     start_time = time.time()
-    
-    if not file.filename.lower().endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
     
     # Read custom keywords and disabled categories
     disabled_cats_set = set()
@@ -60,82 +57,88 @@ async def triage_pdf(
         if custom_kw_list:
             local_kw_bank["custom"] = custom_kw_list
             
-    # Process PDF file using a temporary file
-    temp_fd, temp_path = tempfile.mkstemp(suffix=".pdf")
-    os.close(temp_fd)
-    
     pages_result = []
     text_pages_count = 0
     drawing_pages_count = 0
     total_pages = 0
+    global_page_idx = 1
     
-    try:
-        # Write to temp file chunk by chunk to avoid loading entirely in memory
-        with open(temp_path, "wb") as f:
-            while True:
-                chunk = await file.read(8192)
-                if not chunk:
-                    break
-                f.write(chunk)
-                
-        # Check file size
-        if os.path.getsize(temp_path) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=400, detail="File too large. Max size is 2GB.")
+    for file in files:
+        if not file.filename.lower().endswith('.pdf'):
+            raise HTTPException(status_code=400, detail=f"Only PDF files are supported. Found: {file.filename}")
+            
+        # Process PDF file using a temporary file
+        temp_fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+        os.close(temp_fd)
         
-        # Open and process the PDF
-        with fitz.open(temp_path) as doc:
-            total_pages = len(doc)
-            for page_idx in range(total_pages):
-                try:
-                    page = doc.load_page(page_idx)
-                    text = page.get_text()
-                except Exception as page_err:
-                    # MuPDF can fail on individual pages (corrupted xref, etc.)
-                    # Mark as drawing and continue instead of crashing the whole request
-                    drawing_pages_count += 1
+        try:
+            with open(temp_path, "wb") as f:
+                while True:
+                    chunk = await file.read(8192)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    
+            if os.path.getsize(temp_path) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=400, detail=f"File {file.filename} is too large. Max size is 2GB.")
+            
+            with fitz.open(temp_path) as doc:
+                file_total_pages = len(doc)
+                total_pages += file_total_pages
+                
+                for local_page_idx in range(file_total_pages):
+                    try:
+                        page = doc.load_page(local_page_idx)
+                        text = page.get_text()
+                    except Exception as page_err:
+                        drawing_pages_count += 1
+                        pages_result.append({
+                            "page_num": global_page_idx,
+                            "source_filename": file.filename,
+                            "classification": "drawing",
+                            "score": 0.0,
+                            "text_length": 0,
+                            "matched_keywords": [],
+                            "matched_categories": [],
+                            "snippet": f"[Page could not be parsed: {str(page_err)[:100]}]",
+                            "recommended": "review"
+                        })
+                        global_page_idx += 1
+                        continue
+                    
+                    score_info = score_page(text, local_kw_bank, disabled_cats_set)
+                    
+                    if score_info["classification"] == "text":
+                        text_pages_count += 1
+                    else:
+                        drawing_pages_count += 1
+                    
                     pages_result.append({
-                        "page_num": page_idx + 1,
-                        "classification": "drawing",
-                        "score": 0.0,
-                        "text_length": 0,
-                        "matched_keywords": [],
-                        "matched_categories": [],
-                        "snippet": f"[Page could not be parsed: {str(page_err)[:100]}]",
-                        "recommended": "review"
+                        "page_num": global_page_idx,
+                        "source_filename": file.filename,
+                        "classification": score_info["classification"],
+                        "score": score_info["score"],
+                        "text_length": len(text) if text else 0,
+                        "matched_keywords": score_info.get("matched_keywords", []),
+                        "matched_categories": score_info.get("matched_categories", []),
+                        "snippet": score_info.get("snippet", ""),
+                        "recommended": get_recommendation(score_info["score"], score_info["classification"])
                     })
-                    continue
-                
-                score_info = score_page(text, local_kw_bank, disabled_cats_set)
-                
-                if score_info["classification"] == "text":
-                    text_pages_count += 1
-                else:
-                    drawing_pages_count += 1
-                
-                pages_result.append({
-                    "page_num": page_idx + 1,
-                    "classification": score_info["classification"],
-                    "score": score_info["score"],
-                    "text_length": len(text) if text else 0,
-                    "matched_keywords": score_info.get("matched_keywords", []),
-                    "matched_categories": score_info.get("matched_categories", []),
-                    "snippet": score_info.get("snippet", ""),
-                    "recommended": get_recommendation(score_info["score"], score_info["classification"])
-                })
-    
-    except fitz.FileDataError:
-        raise HTTPException(status_code=400, detail="Invalid or corrupt PDF file.")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    finally:
-        # Always remove temp file
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+                    global_page_idx += 1
+        
+        except fitz.FileDataError:
+            raise HTTPException(status_code=400, detail=f"Invalid or corrupt PDF file: {file.filename}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error processing {file.filename}: {str(e)}")
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
     
     processing_time_ms = int((time.time() - start_time) * 1000)
     
     return {
-        "filename": file.filename,
+        "filename": "Multi-File Project" if len(files) > 1 else files[0].filename,
+        "files_processed": len(files),
         "total_pages": total_pages,
         "text_pages": text_pages_count,
         "drawing_pages": drawing_pages_count,
@@ -335,7 +338,7 @@ async def extract_specs_text(payload: Dict[str, Any]):
 
 @app.post("/api/extract-specs")
 async def extract_specs_orchestrator(
-    file: UploadFile = File(...),
+    files: List[UploadFile] = File(...),
     triage_result: str = Form(...),
     project_context: str = Form("")
 ):
@@ -359,49 +362,81 @@ async def extract_specs_orchestrator(
                 "processing_time_ms": 0
             }
         }
+    
+    # Map filenames to the list of pages we need from that file
+    pages_by_file = {}
+    for p in keep_pages:
+        filename = p.get("source_filename")
+        if not filename:
+            # Fallback for old single-file triage results
+            filename = files[0].filename
         
-    text_page_nums = {p["page_num"] for p in keep_pages if p["classification"] == "text"}
-    drawing_page_nums = {p["page_num"] for p in keep_pages if p["classification"] == "drawing"}
-    
+        if filename not in pages_by_file:
+            pages_by_file[filename] = {"text": set(), "drawing": set()}
+            
+        if p["classification"] == "text":
+            pages_by_file[filename]["text"].add(p["page_num"])
+        else:
+            pages_by_file[filename]["drawing"].add(p["page_num"])
+            
     start_time = time.time()
-    
-    temp_fd, temp_path = tempfile.mkstemp(suffix=".pdf")
-    os.close(temp_fd)
     
     text_payloads = []
     vision_payloads = []
     
-    try:
-        with open(temp_path, "wb") as f:
-            while True:
-                chunk = await file.read(8192)
-                if not chunk:
-                    break
-                f.write(chunk)
+    # We need to compute offsets because page_num is a global index 1..N across all files
+    global_page_offset = 0
+    
+    for file in files:
+        if not file.filename.lower().endswith('.pdf'):
+            continue
+            
+        temp_fd, temp_path = tempfile.mkstemp(suffix=".pdf")
+        os.close(temp_fd)
+        
+        try:
+            with open(temp_path, "wb") as f:
+                while True:
+                    chunk = await file.read(8192)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+            
+            with fitz.open(temp_path) as doc:
+                file_total_pages = len(doc)
                 
-        with fitz.open(temp_path) as doc:
-            for page_num in text_page_nums:
-                idx = page_num - 1
-                if 0 <= idx < len(doc):
-                    page = doc.load_page(idx)
-                    text_payloads.append({
-                        "page_num": page_num,
-                        "text": page.get_text()
-                    })
-
-            for page_num in drawing_page_nums:
-                idx = page_num - 1
-                if 0 <= idx < len(doc):
-                    page = doc.load_page(idx)
-                    pix = page.get_pixmap(dpi=200)
-                    b64_str = base64.b64encode(pix.tobytes("png")).decode("ascii")
-                    vision_payloads.append({
-                        "page_num": page_num,
-                        "base64": b64_str
-                    })
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+                # Check if this file has any pages we need
+                needed = pages_by_file.get(file.filename)
+                if needed:
+                    for global_page_num in needed["text"]:
+                        local_idx = (global_page_num - 1) - global_page_offset
+                        if 0 <= local_idx < file_total_pages:
+                            page = doc.load_page(local_idx)
+                            text_payloads.append({
+                                "page_num": global_page_num,
+                                "text": page.get_text()
+                            })
+                            
+                    for global_page_num in needed["drawing"]:
+                        local_idx = (global_page_num - 1) - global_page_offset
+                        if 0 <= local_idx < file_total_pages:
+                            page = doc.load_page(local_idx)
+                            pix = page.get_pixmap(dpi=200)
+                            b64_str = base64.b64encode(pix.tobytes("png")).decode("ascii")
+                            vision_payloads.append({
+                                "page_num": global_page_num,
+                                "base64": b64_str
+                            })
+                            
+                global_page_offset += file_total_pages
+                
+        except Exception as e:
+            # If one file fails to read during extraction, just skip and log/print it 
+            # so we still extract from the rest.
+            print(f"Extraction error reading {file.filename}: {e}")
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
             
     # Run text and vision extractions concurrently
     tasks = []
