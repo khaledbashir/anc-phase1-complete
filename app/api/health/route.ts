@@ -5,6 +5,7 @@ export const maxDuration = 10;
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { healthCheck as kreuzbergHealth } from "@/services/kreuzberg/kreuzbergClient";
+import { mistralOcrHealthCheck } from "@/services/rfp/unified";
 import path from "path";
 import fs from "fs";
 
@@ -51,6 +52,16 @@ export async function GET() {
     kreuzberg = { status: "unreachable" };
   }
 
+  let mistralOcr: { status: string; url?: string } = { status: "unreachable" };
+  try {
+    const mHealth = await withTimeout(mistralOcrHealthCheck(), 5000);
+    mistralOcr = mHealth.ok
+      ? { status: "connected", url: mHealth.url }
+      : { status: "unreachable" };
+  } catch {
+    mistralOcr = { status: "unreachable" };
+  }
+
   const healthy = database === "connected";
   const body = {
     status: healthy ? "healthy" : "degraded",
@@ -58,6 +69,7 @@ export async function GET() {
     readiness: healthy ? "ready" : "degraded",
     database,
     kreuzberg,
+    mistralOcr,
     version,
     uptime: uptimeSeconds,
     uptimeHours: Math.round((uptimeSeconds / 3600) * 100) / 100,

@@ -1,0 +1,18 @@
+/**
+ * Unified RFP Analysis Pipeline — Public API
+ */
+
+export { analyzeRfp } from "./analyzeRfp";
+export { extractWithMistral, mistralOcrHealthCheck } from "./mistralOcrClient";
+export { classifyAllPages, getPagesNeedingVision } from "./pageClassifier";
+export { analyzeDrawings, extractSpecsFromText } from "./geminiVision";
+
+export type {
+  RFPAnalysisResult,
+  AnalyzedPage,
+  ExtractedLEDSpec,
+  ExtractedProjectInfo,
+  AnalysisPipelineOptions,
+  AnalysisProgress,
+  PageCategory,
+} from "./types";

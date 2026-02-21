@@ -24,6 +24,7 @@ import {
     Kanban,
     MessageSquare,
     FileSearch,
+    Scan,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRbac } from "@/hooks/useRbac";
@@ -37,6 +38,7 @@ const mainMenuItems = [
 
 const toolsMenuItems = [
     { icon: MessageSquare, label: "Chat", href: "/chat", allowedRoles: null },
+    { icon: Scan, label: "RFP Analyzer", href: "/tools/rfp-analyzer", allowedRoles: null },
     { icon: SlidersHorizontal, label: "RFP Triage", href: "/tools/pdf-triage", allowedRoles: null }, // All roles
     { icon: Calculator, label: "Estimator", href: "/estimator", allowedRoles: null },
     // Demo Lab hidden from nav — accessible via direct URL /demo
