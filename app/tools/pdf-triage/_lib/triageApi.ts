@@ -12,6 +12,9 @@ export interface TriagePage {
 export interface TriageResponse {
     filename: string;
     total_pages: number;
+    text_pages: number;
+    drawing_pages: number;
+    processing_time_ms: number;
     pages: TriagePage[];
 }
 
@@ -19,26 +22,61 @@ const TRIAGE_API = "/api/pdf-triage";
 
 export async function triagePdf(
     file: File,
+    onProgress?: (percent: number) => void,
     disabledCategories?: string[]
 ): Promise<TriageResponse> {
-    const formData = new FormData();
-    formData.append('file', file);
+    return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('file', file);
 
-    let url = `${TRIAGE_API}/api/triage`;
-    if (disabledCategories?.length) {
-        url += `?disabled_categories=${disabledCategories.join(',')}`;
-    }
+        let url = `${TRIAGE_API}/api/triage`;
+        if (disabledCategories?.length) {
+            url += `?disabled_categories=${disabledCategories.join(',')}`;
+        }
 
-    const res = await fetch(url, { method: 'POST', body: formData, credentials: 'omit' });
-    if (!res.ok) {
-        let errDetail = await res.text();
-        try {
-            const js = JSON.parse(errDetail);
-            if (js.detail) errDetail = js.detail;
-        } catch (e) { }
-        throw new Error(`Triage failed: ${res.status} - ${errDetail}`);
-    }
-    return res.json();
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', url);
+
+        // This is where we get the REAL upload progress
+        if (onProgress && xhr.upload) {
+            xhr.upload.onprogress = (event) => {
+                if (event.lengthComputable) {
+                    const percentComplete = Math.round((event.loaded / event.total) * 100);
+                    onProgress(percentComplete);
+                }
+            };
+        }
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    resolve(JSON.parse(xhr.responseText));
+                } catch (e) {
+                    reject(new Error("Failed to parse triage response"));
+                }
+            } else {
+                let errDetail = xhr.responseText;
+                try {
+                    const js = JSON.parse(errDetail);
+                    if (js.detail) errDetail = js.detail;
+                } catch (e) { }
+                reject(new Error(`Triage failed: ${xhr.status} - ${errDetail}`));
+            }
+        };
+
+        xhr.onerror = () => {
+            reject(new Error("Network error during triage upload"));
+        };
+
+        xhr.ontimeout = () => {
+            reject(new Error("Triage upload timed out"));
+        };
+
+        // Increase timeout for massive files (Set to 10 minutes)
+        xhr.timeout = 600000;
+
+        xhr.send(formData);
+    });
 }
 
 export async function extractPages(

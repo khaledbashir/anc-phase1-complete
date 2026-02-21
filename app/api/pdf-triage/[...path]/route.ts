@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import http from "http";
+import { Readable } from "stream";
 
 export const runtime = "nodejs";
-// Allow Next.js 15 to take up to 300 seconds processing the request
-export const maxDuration = 300;
-export const fetchCache = "force-no-store";
-
-// Next.js 15 config to disable body parsing for massive 2GB files
-export const config = {
-    api: {
-        bodyParser: false,
-        responseLimit: false,
-    },
-};
+export const maxDuration = 300; // 5 minutes max
+export const dynamic = "force-dynamic";
 
 const TRIAGE_INTERNAL_URL = "http://127.0.0.1:8000";
 
@@ -25,47 +18,76 @@ async function proxyRequest(req: NextRequest, { params }: { params: Promise<{ pa
         targetUrl.searchParams.set(key, value);
     });
 
-    // Safelist headers: ONLY forward safe headers, explicitly ignoring NextAuth cookies
-    // which cause FastAPI to throw a 431 Request Header Fields Too Large.
-    const headers = new Headers();
+    // Safelist headers to avoid 431 error
+    const headers: Record<string, string> = {};
     if (req.headers.has("content-type")) {
-        headers.set("content-type", req.headers.get("content-type")!);
+        headers["content-type"] = req.headers.get("content-type")!;
     }
     if (req.headers.has("content-length")) {
-        headers.set("content-length", req.headers.get("content-length")!);
+        headers["content-length"] = req.headers.get("content-length")!;
     }
 
-    try {
-        // We pass the raw readable stream DIRECTLY to fetch, rather than doing req.arrayBuffer(),
-        // so it never loads the 2GB file into memory, bypassing the 10MB boundary limitations.
-        const upstream = await fetch(targetUrl.toString(), {
-            method: req.method,
-            headers,
-            body: (req.method !== "GET" && req.method !== "HEAD") ? req.body as any : undefined,
-            // @ts-ignore Node.js specific fetch extension required when streaming request bodies
-            duplex: "half",
-        });
+    return new Promise((resolve) => {
+        const proxyReq = http.request(
+            targetUrl.toString(),
+            {
+                method: req.method,
+                headers,
+                // Increase timeout for the internal request to 10 mins
+                timeout: 600000,
+            },
+            (proxyRes) => {
+                // Transfer headers from proxy response
+                const resHeaders = new Headers();
+                if (proxyRes.headers["content-type"]) {
+                    resHeaders.set("content-type", proxyRes.headers["content-type"] as string);
+                }
+                if (proxyRes.headers["content-disposition"]) {
+                    resHeaders.set("content-disposition", proxyRes.headers["content-disposition"] as string);
+                }
 
-        const respHeaders = new Headers();
-        if (upstream.headers.has("content-type")) {
-            respHeaders.set("content-type", upstream.headers.get("content-type")!);
-        }
-        if (upstream.headers.has("content-disposition")) {
-            respHeaders.set("content-disposition", upstream.headers.get("content-disposition")!);
-        }
+                // Convert Node.js IncomingMessage to Web ReadableStream for Next.js
+                // This ensures full streaming transparency from Python -> Browser
+                const responseStream = new ReadableStream({
+                    start(controller) {
+                        proxyRes.on("data", (chunk) => controller.enqueue(chunk));
+                        proxyRes.on("end", () => controller.close());
+                        proxyRes.on("error", (err) => controller.error(err));
+                    }
+                });
 
-        return new NextResponse(upstream.body, {
-            status: upstream.status,
-            headers: respHeaders,
-        });
-
-    } catch (err: any) {
-        console.error("[pdf-triage streaming proxy] Error:", err.message);
-        return NextResponse.json(
-            { detail: `Triage service unavailable: ${err.message}` },
-            { status: 502 }
+                resolve(new NextResponse(responseStream, {
+                    status: proxyRes.statusCode || 200,
+                    headers: resHeaders,
+                }));
+            }
         );
-    }
+
+        proxyReq.on("error", (err) => {
+            console.error("[pdf-triage proxy] Request error:", err.message);
+            resolve(NextResponse.json(
+                { detail: `Internal proxy error: ${err.message}` },
+                { status: 502 }
+            ));
+        });
+
+        proxyReq.on("timeout", () => {
+            console.error("[pdf-triage proxy] Request timeout");
+            proxyReq.destroy();
+            resolve(NextResponse.json(
+                { detail: "Triage service request timed out" },
+                { status: 504 }
+            ));
+        });
+
+        // Pipe the NextRequest body stream into the Node.js http.request
+        if (req.body) {
+            // Native ReadableStream to Node.js Readable helper
+            Readable.fromWeb(req.body as any).pipe(proxyReq);
+        } else {
+            proxyReq.end();
+        }
+    });
 }
 
 export const POST = proxyRequest;

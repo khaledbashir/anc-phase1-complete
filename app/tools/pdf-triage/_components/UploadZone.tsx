@@ -6,6 +6,7 @@ import { UploadCloud, File as FileIcon, Loader2, AlertCircle, Clock, Zap, FileSe
 interface UploadZoneProps {
     onUpload: (file: File) => void;
     isLoading: boolean;
+    realProgress?: number; // 0-100
 }
 
 const STAGES = [
@@ -15,7 +16,7 @@ const STAGES = [
     { label: "Scoring relevance", icon: CheckCircle2, minTime: 15 },
 ];
 
-export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
+export default function UploadZone({ onUpload, isLoading, realProgress }: UploadZoneProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -40,13 +41,19 @@ export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
         };
     }, [isLoading]);
 
-    // Calculate current stage based on elapsed time
+    // Calculate current stage based on elapsed time OR real progress
     const currentStageIndex = STAGES.reduce((acc, stage, i) => {
+        if (realProgress !== undefined) {
+            // If we have real progress, we stay in "Uploading" until 100%
+            return realProgress < 100 ? 0 : Math.max(1, acc);
+        }
         return elapsedSeconds >= stage.minTime ? i : acc;
     }, 0);
 
-    // Simulated progress (0–95%) based on elapsed time, asymptotic
-    const simulatedProgress = Math.min(95, Math.round((1 - Math.exp(-elapsedSeconds / 25)) * 100));
+    // Simulated progress vs Real Progress
+    const displayProgress = realProgress !== undefined
+        ? realProgress
+        : Math.min(95, Math.round((1 - Math.exp(-elapsedSeconds / 25)) * 100));
 
     const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
         e.preventDefault();
@@ -134,14 +141,17 @@ export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
                             {/* Progress bar */}
                             <div className="w-full bg-muted rounded-full h-2.5 mb-4 overflow-hidden">
                                 <div
-                                    className="bg-primary h-2.5 rounded-full transition-all duration-1000 ease-out"
-                                    style={{ width: `${simulatedProgress}%` }}
+                                    className="bg-primary h-2.5 rounded-full transition-all duration-500 ease-out"
+                                    style={{ width: `${displayProgress}%` }}
                                 />
                             </div>
 
                             {/* Progress percentage + elapsed time */}
                             <div className="flex items-center justify-between w-full text-xs text-muted-foreground mb-5">
-                                <span className="font-medium text-primary">{simulatedProgress}%</span>
+                                <span className="font-medium text-primary">
+                                    {displayProgress}%
+                                    {realProgress !== undefined && realProgress === 100 && " (Processing...)"}
+                                </span>
                                 <span className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
                                     {formatTime(elapsedSeconds)}
@@ -158,10 +168,10 @@ export default function UploadZone({ onUpload, isLoading }: UploadZoneProps) {
                                         <div
                                             key={stage.label}
                                             className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-300 ${isActive
-                                                    ? "bg-primary/10 text-primary font-medium"
-                                                    : isDone
-                                                        ? "text-muted-foreground/60"
-                                                        : "text-muted-foreground/30"
+                                                ? "bg-primary/10 text-primary font-medium"
+                                                : isDone
+                                                    ? "text-muted-foreground/60"
+                                                    : "text-muted-foreground/30"
                                                 }`}
                                         >
                                             {isDone ? (

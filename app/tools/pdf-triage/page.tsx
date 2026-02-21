@@ -18,6 +18,7 @@ export default function PdfTriagePage() {
     const [isTriaging, setIsTriaging] = useState(false);
     const [triageData, setTriageData] = useState<TriageResponse | null>(null);
     const [triageError, setTriageError] = useState<string | null>(null);
+    const [uploadProgress, setUploadProgress] = useState<number>(0);
 
     // Filter & Selection State
     const [activeTab, setActiveTab] = useState<FilterTab>("All");
@@ -52,9 +53,10 @@ export default function PdfTriagePage() {
         setExtractionResult(null);
         setEditedScreens([]);
         setProjectContext("");
+        setUploadProgress(0);
 
         try {
-            const data = await triagePdf(uploadedFile);
+            const data = await triagePdf(uploadedFile, (p) => setUploadProgress(p));
             setTriageData(data);
 
             // Auto-select pages marked as 'keep' by default
@@ -171,7 +173,7 @@ export default function PdfTriagePage() {
             <main className="p-6 xl:px-8 max-w-7xl mx-auto">
                 {/* Upload State */}
                 {!triageData && (
-                    <UploadZone onUpload={handleUpload} isLoading={isTriaging} />
+                    <UploadZone onUpload={handleUpload} isLoading={isTriaging} realProgress={uploadProgress} />
                 )}
 
                 {/* Error State */}
