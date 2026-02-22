@@ -879,3 +879,53 @@ model FeatureVote {
   @@unique([featureId, voterId])
   @@index([featureId])
 }
+
+// ============================================================================
+// RFP ANALYSIS — Persistent results from the RFP Analyzer pipeline
+// Stores extracted specs, requirements, project info, and triage data.
+// Searchable history: every analysis is saved and retrievable.
+// ============================================================================
+
+model RfpAnalysis {
+  id          String   @id @default(cuid())
+
+  // Project identification
+  projectName String?  // Extracted or user-provided
+  clientName  String?  // Extracted from RFP
+  venue       String?  // Extracted
+  location    String?  // City/state
+
+  // Source file info
+  filename    String   // Original uploaded filename
+  fileSize    Int      // Bytes
+  pageCount   Int      // Total pages in PDF
+
+  // Pipeline stats
+  relevantPages    Int      @default(0)
+  noisePages       Int      @default(0)
+  drawingPages     Int      @default(0)
+  specsFound       Int      @default(0)
+  processingTimeMs Int      @default(0)
+  visionPages      Int      @default(0) // Pages processed by Mistral vision
+
+  // Extracted data (JSON blobs)
+  screens      Json     @default("[]")      // ExtractedLEDSpec[]
+  requirements Json     @default("[]")      // ExtractedRequirement[]
+  project      Json     @default("{}")      // ExtractedProjectInfo
+  triage       Json     @default("[]")      // Page triage data
+  pages        Json     @default("[]")      // AnalyzedPage[] (markdown + tables)
+
+  // Status
+  status       String   @default("complete") // "processing", "complete", "failed"
+  errorMessage String?
+
+  // Ownership
+  createdBy    String?  // User email
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([projectName])
+  @@index([clientName])
+  @@index([createdAt])
+  @@index([status])
+}

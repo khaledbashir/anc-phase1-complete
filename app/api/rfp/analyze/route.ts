@@ -19,6 +19,7 @@ import { promisify } from "util";
 import { extractSinglePage } from "@/services/rfp/unified/mistralOcrClient";
 import { extractLEDSpecsBatched } from "@/services/rfp/unified/specExtractor";
 import { convertPageToImage } from "@/services/rfp/unified/pdfToImages";
+import { prisma } from "@/lib/prisma";
 
 const execFileAsync = promisify(execFile);
 import type {
@@ -379,30 +380,69 @@ export async function POST(request: NextRequest) {
         // STEP 6: Done
         // =============================================================
 
-        send("complete", {
-          result: {
-            screens,
-            project: projectInfo ?? {
-              clientName: null, projectName: null, venue: null, location: null,
-              isOutdoor: false, isUnionLabor: false, bondRequired: false,
-              specialRequirements: [], schedulePhases: [],
-            },
-            pages: mistralPages,
-            stats: {
-              totalPages: ocrResult.totalPages,
+        const finalProject = projectInfo ?? {
+          clientName: null, projectName: null, venue: null, location: null,
+          isOutdoor: false, isUnionLabor: false, bondRequired: false,
+          specialRequirements: [], schedulePhases: [],
+        };
+
+        const finalStats = {
+          totalPages: ocrResult.totalPages,
+          relevantPages: relevantPages.length,
+          noisePages: noisePages.length,
+          drawingPages: classifiedPages.filter((p) => p.isDrawing).length,
+          specsFound: screens.length,
+          processingTimeMs: Date.now() - startTime,
+          visionPagesProcessed: mistralPages.filter((p) => p.visionAnalyzed).length,
+        };
+
+        const triageData = classifiedPages.map((p) => ({
+          pageNumber: p.pageNumber,
+          category: p.category,
+          relevance: p.relevance,
+          isDrawing: p.isDrawing,
+        }));
+
+        // Save to database (fire and forget — don't block the response)
+        let analysisId: string | null = null;
+        try {
+          const fileStat = await stat(filePath);
+          const saved = await prisma.rfpAnalysis.create({
+            data: {
+              projectName: finalProject.projectName,
+              clientName: finalProject.clientName,
+              venue: finalProject.venue,
+              location: finalProject.location,
+              filename: body.filename || "document.pdf",
+              fileSize: fileStat.size,
+              pageCount: ocrResult.totalPages,
               relevantPages: relevantPages.length,
               noisePages: noisePages.length,
               drawingPages: classifiedPages.filter((p) => p.isDrawing).length,
               specsFound: screens.length,
               processingTimeMs: Date.now() - startTime,
-              visionPagesProcessed: mistralPages.filter((p) => p.visionAnalyzed).length,
+              visionPages: mistralPages.filter((p) => p.visionAnalyzed).length,
+              screens: JSON.parse(JSON.stringify(screens)),
+              requirements: [],
+              project: JSON.parse(JSON.stringify(finalProject)),
+              triage: JSON.parse(JSON.stringify(triageData)),
+              pages: [], // Don't store full page markdown (too big)
+              status: "complete",
             },
-            triage: classifiedPages.map((p) => ({
-              pageNumber: p.pageNumber,
-              category: p.category,
-              relevance: p.relevance,
-              isDrawing: p.isDrawing,
-            })),
+          });
+          analysisId = saved.id;
+        } catch (dbErr: any) {
+          console.error("[Pipeline] Failed to save to DB:", dbErr.message);
+        }
+
+        send("complete", {
+          result: {
+            id: analysisId,
+            screens,
+            project: finalProject,
+            pages: mistralPages,
+            stats: finalStats,
+            triage: triageData,
           },
         });
 
