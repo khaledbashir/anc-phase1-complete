@@ -265,8 +265,18 @@ Return a JSON object:
   ]
 }
 
+WHAT IS NOT A DISPLAY (skip these):
+- Section headers or category groupings (e.g., "LED Ribbon Displays" as a section title — extract the individual ribbon boards instead)
+- Assembly/mounting structures (e.g., "Center Hung Display Assembly" is the structure — extract the individual boards on it)
+- Generic references like "All LED displays shall..." — this is a requirement, not a display
+- Systems without their own LED panel (scoring system, control system, display processor)
+
+MINIMUM DATA RULE:
+- Each display MUST have at least ONE physical spec: dimensions (width OR height), pixel pitch, OR brightness
+- Do NOT extract entries that have only a name with zero measurable specs
+
 RULES:
-- Extract EVERY display, even if specs are partial
+- Extract every display that has at least one measurable spec
 - Convert all dimensions to FEET (120" = 10ft, 3048mm = 10ft)
 - If pixel pitch/brightness not specified, set to null
 - Quantity defaults to 1 if not stated

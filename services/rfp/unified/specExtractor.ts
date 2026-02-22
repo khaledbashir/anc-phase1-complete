@@ -97,8 +97,20 @@ Return ONLY valid JSON (no markdown fences, no explanation, no text before or af
   ]
 }
 
+WHAT IS NOT A DISPLAY (do NOT add to screens):
+- Section headers or category groupings (e.g., "LED Ribbon Displays" as a section title is NOT a display — the individual ribbon boards ARE)
+- Assembly/mounting structures (e.g., "Center Hung Display Assembly" is the structure, not a display — the individual boards on it like "Main Video", "Corner Wedges" ARE)
+- Generic references like "All LED displays shall..." — this is a requirement, not a display
+- Systems or subsystems that don't have their own LED panel (e.g., "scoring system", "control system", "display processor")
+- If a name appears ONLY as a header with no dimensions, no pixel pitch, and no brightness anywhere — it's a category, skip it
+
+MINIMUM DATA RULE:
+- Each display MUST have at least ONE physical spec: dimensions (width OR height), pixel pitch, OR brightness
+- If a display name appears with ZERO physical specs and no quantity > 0, do NOT extract it
+- Set confidence < 0.3 for displays with only a name and location but no specs
+
 RULES:
-- Extract EVERY new LED display, even if specs are partial
+- Extract every new LED display that has at least one measurable spec
 - Convert dimensions to FEET (120" = 10ft, 3048mm = 10ft). If dimensions are in inches, convert: 28" height = 2.33ft
 - If pixel pitch/brightness not specified, set to null
 - Quantity defaults to 1 if not stated
@@ -356,6 +368,17 @@ export async function extractLEDSpecsBatched(
     project.specialRequirements = [...new Set([...project.specialRequirements, ...result.project.specialRequirements])];
     project.schedulePhases = [...project.schedulePhases, ...result.project.schedulePhases];
   }
+
+  // Filter out ghost entries — section headers and assemblies with zero specs
+  allScreens = allScreens.filter((s) => {
+    const hasAnySpec = s.widthFt != null || s.heightFt != null ||
+      s.pixelPitchMm != null || s.brightnessNits != null ||
+      s.widthPx != null || s.heightPx != null;
+    if (!hasAnySpec) {
+      console.log(`[specExtractor] Dropping "${s.name}" — no physical specs (likely section header)`);
+    }
+    return hasAnySpec;
+  });
 
   // Deduplicate screens by name + location
   allScreens = deduplicateScreens(allScreens);

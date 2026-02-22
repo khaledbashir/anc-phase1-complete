@@ -183,8 +183,15 @@ export async function analyzeRfp(
     .filter((p) => p.extractedSpecs && p.extractedSpecs.length > 0)
     .flatMap((p) => p.extractedSpecs!);
 
-  // Merge and deduplicate
-  const allSpecs = deduplicateSpecs([...textSpecs, ...drawingSpecs]);
+  // Filter ghost entries (section headers with no specs), then deduplicate
+  const filteredSpecs = [...textSpecs, ...drawingSpecs].filter((s) => {
+    const hasSpec = s.widthFt != null || s.heightFt != null ||
+      s.pixelPitchMm != null || s.brightnessNits != null ||
+      s.widthPx != null || s.heightPx != null;
+    if (!hasSpec) console.log(`[analyzeRfp] Dropping "${s.name}" — no physical specs`);
+    return hasSpec;
+  });
+  const allSpecs = deduplicateSpecs(filteredSpecs);
 
   // =========================================================================
   // STEP 6: Build project info
