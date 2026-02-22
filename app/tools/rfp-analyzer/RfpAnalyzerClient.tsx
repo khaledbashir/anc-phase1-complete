@@ -82,12 +82,17 @@ export default function RfpAnalyzerClient() {
       setEvents([{ type: "stage", stage: "uploading", message: `Uploading ${file.name} (${sizeMbStr}MB)...` }]);
 
       abortRef.current = new AbortController();
-      const fd = new FormData();
-      fd.append("file", file);
 
+      // Send raw binary body (not FormData) so the server can stream
+      // directly to disk without buffering the entire file in memory.
+      // Filename sent via header.
       const uploadResponse = await fetch("/api/rfp/analyze/upload", {
         method: "POST",
-        body: fd,
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "X-Filename": file.name,
+        },
+        body: file,
         credentials: "omit",
         signal: abortRef.current.signal,
       });
