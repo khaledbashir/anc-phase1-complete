@@ -1,11 +1,12 @@
 /**
  * POST /api/rfp/analyze — RFP Analysis Pipeline
  *
- * 1. Kreuzberg OCR → fast text from ALL pages (cheap, local)
- * 2. Keyword triage → generous filter, keeps anything remotely relevant
- * 3. Convert relevant pages to JPEG images (pdftoppm)
- * 4. Queue each image through Mistral OCR — vision model SEES the page
- * 5. Batched AI extraction → LED specs from vision results
+ * 1. pdftotext → extract text from ALL pages (free, local, instant)
+ * 2. Keyword triage → strict filter, keeps LED-relevant pages
+ * 3. Smart split:
+ *    - Text pages (pdftotext ≥ 150 chars) → use pdftotext output directly
+ *    - Drawing pages (pdftotext < 150 chars) → Mistral vision OCR
+ * 4. Batched AI extraction → LED specs from combined text
  *
  * Streams real-time progress via SSE.
  */
@@ -230,7 +231,8 @@ export async function POST(request: NextRequest) {
           let relevance = 5;
 
           // STRICT triage. A 1380-page RFP has maybe 30-80 LED-relevant pages.
-          // We MUST filter aggressively or Mistral OCR costs go through the roof.
+          // Text pages use pdftotext (free) but still need strict filtering
+          // to keep AI extraction batches focused and accurate.
           //
           // Rule: only keep pages with STRONG LED signals.
           // Generic words like "display" or "screen" alone don't count.
@@ -298,85 +300,107 @@ export async function POST(request: NextRequest) {
         });
 
         // =============================================================
-        // STEP 4: Convert relevant pages to JPEG images
+        // STEP 4: Smart split — text pages use pdftotext, only drawings hit Mistral
         // =============================================================
 
-        const mistralPages: AnalyzedPage[] = [];
+        const analyzedPages: AnalyzedPage[] = [];
 
         if (relevantPages.length > 0) {
+          // Split into text pages vs drawing pages
+          const textPages = relevantPages.filter((p) => !p.isDrawing);
+          const drawingPages = relevantPages.filter((p) => p.isDrawing);
+
+          // 4a: Text pages — use pdftotext output directly (FREE, instant)
           send("stage", {
-            stage: "converting",
-            message: `Converting ${relevantPages.length} pages to images...`,
+            stage: "processing_text",
+            message: `${textPages.length} text pages ready (pdftotext), ${drawingPages.length} drawings need vision...`,
           });
 
-          // Convert each page to JPEG + send to Mistral in sequence
-          // This way we don't store all images at once either
-          send("stage", {
-            stage: "vision",
-            message: `Vision model reading ${relevantPages.length} pages...`,
-          });
+          for (let i = 0; i < textPages.length; i++) {
+            const rp = textPages[i];
+            analyzedPages.push({
+              index: i,
+              pageNumber: rp.pageNumber,
+              category: rp.category,
+              relevance: rp.relevance,
+              markdown: rp.text,
+              tables: [],
+              visionAnalyzed: false,
+              summary: rp.text.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
+              classifiedBy: "text-heuristic" as const,
+            });
+          }
 
-          for (let i = 0; i < relevantPages.length; i++) {
-            const rp = relevantPages[i];
-
-            send("progress", {
+          // 4b: Drawing pages — convert to JPEG + Mistral vision OCR
+          if (drawingPages.length > 0) {
+            send("stage", {
               stage: "vision",
-              current: i + 1,
-              total: relevantPages.length,
-              message: `Page ${rp.pageNumber} — converting to image & reading (${i + 1}/${relevantPages.length})`,
+              message: `Vision model reading ${drawingPages.length} drawing pages...`,
             });
 
-            try {
-              // Convert this page to JPEG
-              const pageDir = path.join(imageDir, `p${rp.pageNumber}`);
-              const imagePath = await convertPageToImage(filePath, rp.pageNumber, pageDir);
+            for (let i = 0; i < drawingPages.length; i++) {
+              const rp = drawingPages[i];
 
-              // Send JPEG to Mistral OCR — vision model SEES the image
-              const ocrPage = await extractSinglePage(imagePath, rp.pageNumber);
-
-              mistralPages.push({
-                index: i,
-                pageNumber: rp.pageNumber,
-                category: rp.category,
-                relevance: rp.relevance,
-                markdown: ocrPage.markdown,
-                tables: ocrPage.tables.map((t) => ({
-                  id: t.id,
-                  content: t.content,
-                  format: t.format,
-                })),
-                visionAnalyzed: true,
-                summary: ocrPage.markdown.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
-                classifiedBy: "mistral-ocr" as const,
-              });
-            } catch (err: any) {
-              console.error(`[Pipeline] Page ${rp.pageNumber} failed:`, err.message);
-
-              // Fallback: use Kreuzberg text
-              mistralPages.push({
-                index: i,
-                pageNumber: rp.pageNumber,
-                category: rp.category,
-                relevance: rp.relevance,
-                markdown: rp.text,
-                tables: [],
-                visionAnalyzed: false,
-                summary: rp.text.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
-                classifiedBy: "text-heuristic" as const,
+              send("progress", {
+                stage: "vision",
+                current: i + 1,
+                total: drawingPages.length,
+                message: `Drawing page ${rp.pageNumber} — Mistral vision OCR (${i + 1}/${drawingPages.length})`,
               });
 
-              send("warning", {
-                message: `Page ${rp.pageNumber}: vision failed, using text fallback`,
-              });
+              try {
+                const pageDir = path.join(imageDir, `p${rp.pageNumber}`);
+                const imagePath = await convertPageToImage(filePath, rp.pageNumber, pageDir);
+                const ocrPage = await extractSinglePage(imagePath, rp.pageNumber);
+
+                analyzedPages.push({
+                  index: textPages.length + i,
+                  pageNumber: rp.pageNumber,
+                  category: rp.category,
+                  relevance: rp.relevance,
+                  markdown: ocrPage.markdown,
+                  tables: ocrPage.tables.map((t) => ({
+                    id: t.id,
+                    content: t.content,
+                    format: t.format,
+                  })),
+                  visionAnalyzed: true,
+                  summary: ocrPage.markdown.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
+                  classifiedBy: "mistral-ocr" as const,
+                });
+              } catch (err: any) {
+                console.error(`[Pipeline] Drawing page ${rp.pageNumber} vision failed:`, err.message);
+                // Fallback: use whatever pdftotext got (probably sparse but better than nothing)
+                analyzedPages.push({
+                  index: textPages.length + i,
+                  pageNumber: rp.pageNumber,
+                  category: rp.category,
+                  relevance: rp.relevance,
+                  markdown: rp.text,
+                  tables: [],
+                  visionAnalyzed: false,
+                  summary: rp.text.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
+                  classifiedBy: "text-heuristic" as const,
+                });
+
+                send("warning", {
+                  message: `Drawing page ${rp.pageNumber}: vision failed, using text fallback`,
+                });
+              }
             }
           }
 
+          // Sort by page number for consistent batching
+          analyzedPages.sort((a, b) => a.pageNumber - b.pageNumber);
+
           send("stage", {
             stage: "vision_done",
-            message: `Vision model processed ${mistralPages.length} pages`,
-            pagesProcessed: mistralPages.length,
-            visionSuccess: mistralPages.filter((p) => p.visionAnalyzed).length,
-            tables: mistralPages.reduce((s, p) => s + p.tables.length, 0),
+            message: `Processed ${analyzedPages.length} pages (${textPages.length} text + ${drawingPages.length} drawings)`,
+            pagesProcessed: analyzedPages.length,
+            textPages: textPages.length,
+            visionPages: drawingPages.length,
+            visionSuccess: analyzedPages.filter((p) => p.visionAnalyzed).length,
+            tables: analyzedPages.reduce((s, p) => s + p.tables.length, 0),
           });
         }
 
@@ -388,14 +412,14 @@ export async function POST(request: NextRequest) {
         let projectInfo: any = null;
         let requirements: any[] = [];
 
-        if (mistralPages.length > 0) {
+        if (analyzedPages.length > 0) {
           send("stage", {
             stage: "extracting",
-            message: `AI extracting LED specs from ${mistralPages.length} pages...`,
+            message: `AI extracting LED specs from ${analyzedPages.length} pages...`,
           });
 
           const result = await extractLEDSpecsBatched(
-            mistralPages,
+            analyzedPages,
             (batch, totalBatches) => {
               send("progress", {
                 stage: "extracting",
@@ -435,7 +459,7 @@ export async function POST(request: NextRequest) {
           drawingPages: classifiedPages.filter((p) => p.isDrawing).length,
           specsFound: screens.length,
           processingTimeMs: Date.now() - startTime,
-          visionPagesProcessed: mistralPages.filter((p) => p.visionAnalyzed).length,
+          visionPagesProcessed: analyzedPages.filter((p) => p.visionAnalyzed).length,
         };
 
         const triageData = classifiedPages.map((p) => ({
@@ -463,7 +487,7 @@ export async function POST(request: NextRequest) {
               drawingPages: classifiedPages.filter((p) => p.isDrawing).length,
               specsFound: screens.length,
               processingTimeMs: Date.now() - startTime,
-              visionPages: mistralPages.filter((p) => p.visionAnalyzed).length,
+              visionPages: analyzedPages.filter((p) => p.visionAnalyzed).length,
               screens: JSON.parse(JSON.stringify(screens)),
               requirements: JSON.parse(JSON.stringify(requirements)),
               project: JSON.parse(JSON.stringify(finalProject)),
@@ -482,7 +506,7 @@ export async function POST(request: NextRequest) {
         // Non-blocking — don't delay the response. Updates DB in background.
         // =============================================================
         let aiWorkspaceSlug: string | null = null;
-        if (analysisId && mistralPages.length > 0) {
+        if (analysisId && analyzedPages.length > 0) {
           send("stage", {
             stage: "provisioning_workspace",
             message: "Creating AI verification workspace...",
@@ -493,7 +517,7 @@ export async function POST(request: NextRequest) {
               analysisId,
               projectName: finalProject.projectName,
               venue: finalProject.venue,
-              relevantPages: mistralPages,
+              relevantPages: analyzedPages,
               anythingLlmUserId,
             });
 
@@ -514,7 +538,7 @@ export async function POST(request: NextRequest) {
             screens,
             requirements,
             project: finalProject,
-            pages: mistralPages,
+            pages: analyzedPages,
             stats: finalStats,
             triage: triageData,
             aiWorkspaceSlug,

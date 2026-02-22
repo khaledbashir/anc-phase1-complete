@@ -210,11 +210,11 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
 
 function buildStages(events: PipelineEvent[]): StageState[] {
   const stages: StageState[] = [
-    { key: "upload",    label: "Upload received",                    icon: UploadCloud, status: "pending" },
-    { key: "ocr",       label: "Text extraction (Kreuzberg)",        icon: Database,    status: "pending" },
-    { key: "triage",    label: "Page triage & classification",       icon: Filter,      status: "pending" },
-    { key: "vision",    label: "Vision reading pages (Mistral OCR)", icon: Eye,         status: "pending" },
-    { key: "extract",   label: "LED spec extraction (AI)",           icon: Monitor,     status: "pending" },
+    { key: "upload",    label: "Upload received",                       icon: UploadCloud, status: "pending" },
+    { key: "ocr",       label: "Text extraction (pdftotext)",           icon: Database,    status: "pending" },
+    { key: "triage",    label: "Page triage & classification",          icon: Filter,      status: "pending" },
+    { key: "vision",    label: "Processing pages (text + vision OCR)",  icon: Eye,         status: "pending" },
+    { key: "extract",   label: "LED spec extraction (AI)",              icon: Monitor,     status: "pending" },
   ];
 
   let currentActive: string | null = null;
@@ -254,10 +254,10 @@ function buildStages(events: PipelineEvent[]): StageState[] {
         }
       }
 
-      // Image conversion + Mistral vision
-      else if (s === "converting") {
+      // Text pages + drawing vision
+      else if (s === "processing_text") {
         markDone(stages, "triage");
-        currentActive = "vision"; // Show under vision stage
+        currentActive = "vision";
       } else if (s === "vision") {
         markDone(stages, "triage");
         currentActive = "vision";
@@ -266,8 +266,9 @@ function buildStages(events: PipelineEvent[]): StageState[] {
         const st = stages.find((x) => x.key === "vision");
         if (st) {
           const parts: string[] = [];
-          if ((event as any).visionSuccess != null) parts.push(`${(event as any).visionSuccess} read`);
-          if (event.tables != null) parts.push(`${event.tables} tables`);
+          if ((event as any).textPages != null) parts.push(`${(event as any).textPages} text`);
+          if ((event as any).visionPages != null && (event as any).visionPages > 0) parts.push(`${(event as any).visionPages} drawings`);
+          if (event.tables != null && event.tables > 0) parts.push(`${event.tables} tables`);
           if (parts.length > 0) st.count = parts.join(", ");
         }
       }
