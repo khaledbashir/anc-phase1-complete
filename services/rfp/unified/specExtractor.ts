@@ -248,6 +248,7 @@ export async function extractLEDSpecs(
 
 const BATCH_SIZE = 10;
 const MAX_CHARS_PER_BATCH = 30_000;
+const PARALLEL_BATCHES = 4; // Run up to 4 Mistral calls concurrently
 
 export async function extractLEDSpecsBatched(
   relevantPages: AnalyzedPage[],
@@ -280,34 +281,53 @@ export async function extractLEDSpecsBatched(
   }
   if (currentBatch.length > 0) batches.push(currentBatch);
 
-  // Process each batch
+  // Process batches in parallel (up to PARALLEL_BATCHES concurrently)
+  type BatchResult = { screens: ExtractedLEDSpec[]; project: ExtractedProjectInfo; requirements: ExtractedRequirement[] };
+  const results: BatchResult[] = new Array(batches.length);
+  let completed = 0;
+
+  const runBatch = async (i: number) => {
+    try {
+      results[i] = await extractLEDSpecs(batches[i]);
+    } catch (err) {
+      console.error(`[SpecExtractor] Batch ${i + 1}/${batches.length} failed:`, err);
+      results[i] = { screens: [], project: emptyProject(), requirements: [] };
+    }
+    completed++;
+    onProgress?.(completed, batches.length);
+  };
+
+  // Concurrency pool — run PARALLEL_BATCHES at a time
+  const queue = batches.map((_, i) => i);
+  const workers = Array.from({ length: Math.min(PARALLEL_BATCHES, batches.length) }, async () => {
+    while (queue.length > 0) {
+      const idx = queue.shift()!;
+      await runBatch(idx);
+    }
+  });
+  await Promise.all(workers);
+
+  // Merge all results
   let allScreens: ExtractedLEDSpec[] = [];
   let allRequirements: ExtractedRequirement[] = [];
   let project: ExtractedProjectInfo = emptyProject();
 
-  for (let i = 0; i < batches.length; i++) {
-    onProgress?.(i + 1, batches.length);
+  for (const result of results) {
+    if (!result) continue;
+    allScreens.push(...result.screens);
+    allRequirements.push(...result.requirements);
 
-    try {
-      const result = await extractLEDSpecs(batches[i]);
-
-      allScreens.push(...result.screens);
-      allRequirements.push(...result.requirements);
-
-      // Merge project info — take first non-null values
-      if (!project.clientName && result.project.clientName) project = { ...project, ...result.project };
-      if (result.project.clientName && !project.clientName) project.clientName = result.project.clientName;
-      if (result.project.venue && !project.venue) project.venue = result.project.venue;
-      if (result.project.projectName && !project.projectName) project.projectName = result.project.projectName;
-      if (result.project.location && !project.location) project.location = result.project.location;
-      if (result.project.isOutdoor) project.isOutdoor = true;
-      if (result.project.isUnionLabor) project.isUnionLabor = true;
-      if (result.project.bondRequired) project.bondRequired = true;
-      project.specialRequirements = [...new Set([...project.specialRequirements, ...result.project.specialRequirements])];
-      project.schedulePhases = [...project.schedulePhases, ...result.project.schedulePhases];
-    } catch (err) {
-      console.error(`[SpecExtractor] Batch ${i + 1}/${batches.length} failed:`, err);
-    }
+    // Merge project info — take first non-null values
+    if (!project.clientName && result.project.clientName) project = { ...project, ...result.project };
+    if (result.project.clientName && !project.clientName) project.clientName = result.project.clientName;
+    if (result.project.venue && !project.venue) project.venue = result.project.venue;
+    if (result.project.projectName && !project.projectName) project.projectName = result.project.projectName;
+    if (result.project.location && !project.location) project.location = result.project.location;
+    if (result.project.isOutdoor) project.isOutdoor = true;
+    if (result.project.isUnionLabor) project.isUnionLabor = true;
+    if (result.project.bondRequired) project.bondRequired = true;
+    project.specialRequirements = [...new Set([...project.specialRequirements, ...result.project.specialRequirements])];
+    project.schedulePhases = [...project.schedulePhases, ...result.project.schedulePhases];
   }
 
   // Deduplicate screens by name + location
