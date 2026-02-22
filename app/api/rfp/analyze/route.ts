@@ -347,6 +347,7 @@ export async function POST(request: NextRequest) {
 
         let screens: ExtractedLEDSpec[] = [];
         let projectInfo: any = null;
+        let requirements: any[] = [];
 
         if (mistralPages.length > 0) {
           send("stage", {
@@ -368,11 +369,13 @@ export async function POST(request: NextRequest) {
 
           screens = result.screens;
           projectInfo = result.project;
+          requirements = result.requirements;
 
           send("stage", {
             stage: "extracted",
-            message: `Found ${screens.length} LED display(s)`,
+            message: `Found ${screens.length} LED display(s), ${requirements.length} requirement(s)`,
             specsFound: screens.length,
+            requirementsFound: requirements.length,
           });
         }
 
@@ -423,7 +426,7 @@ export async function POST(request: NextRequest) {
               processingTimeMs: Date.now() - startTime,
               visionPages: mistralPages.filter((p) => p.visionAnalyzed).length,
               screens: JSON.parse(JSON.stringify(screens)),
-              requirements: [],
+              requirements: JSON.parse(JSON.stringify(requirements)),
               project: JSON.parse(JSON.stringify(finalProject)),
               triage: JSON.parse(JSON.stringify(triageData)),
               pages: [], // Don't store full page markdown (too big)
@@ -439,6 +442,7 @@ export async function POST(request: NextRequest) {
           result: {
             id: analysisId,
             screens,
+            requirements,
             project: finalProject,
             pages: mistralPages,
             stats: finalStats,

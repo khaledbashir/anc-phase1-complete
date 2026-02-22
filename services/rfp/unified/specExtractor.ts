@@ -9,7 +9,7 @@
  */
 
 import { queryVault } from "@/lib/anything-llm";
-import type { AnalyzedPage, ExtractedLEDSpec, ExtractedProjectInfo } from "./types";
+import type { AnalyzedPage, ExtractedLEDSpec, ExtractedProjectInfo, ExtractedRequirement } from "./types";
 
 const WORKSPACE_SLUG = process.env.ANYTHING_LLM_WORKSPACE || "ancdashboard";
 
@@ -17,7 +17,7 @@ const WORKSPACE_SLUG = process.env.ANYTHING_LLM_WORKSPACE || "ancdashboard";
 // Extraction prompt
 // ---------------------------------------------------------------------------
 
-const EXTRACTION_PROMPT = `You are the ANC Digital Signage Expert AI. Extract EVERY LED display/screen requirement from the following RFP text.
+const EXTRACTION_PROMPT = `You are the ANC Digital Signage Expert AI. Extract EVERY LED display/screen requirement AND key project requirements from the following RFP text.
 
 PRIORITY SECTIONS (search for these):
 1. "SECTION 11 06 60" — Display Schedule (MASTER TRUTH for quantities/dimensions)
@@ -34,7 +34,10 @@ Return ONLY valid JSON (no markdown, no explanation):
     "is_outdoor": false,
     "is_union": false,
     "bond_required": false,
-    "special_requirements": []
+    "special_requirements": [],
+    "schedule_phases": [
+      { "phase_name": "Submission deadline", "start_date": null, "end_date": "2026-03-15", "duration": null }
+    ]
   },
   "screens": [
     {
@@ -57,6 +60,16 @@ Return ONLY valid JSON (no markdown, no explanation):
       "source_pages": [9, 15],
       "notes": null
     }
+  ],
+  "requirements": [
+    {
+      "description": "NEMA 4X Environmental Rating required for all outdoor displays",
+      "category": "compliance",
+      "status": "critical",
+      "date": null,
+      "source_pages": [12],
+      "raw_text": "All outdoor LED displays shall meet NEMA 4X rating"
+    }
   ]
 }
 
@@ -66,7 +79,11 @@ RULES:
 - If pixel pitch/brightness not specified, set to null
 - Quantity defaults to 1 if not stated
 - Confidence 0-1 based on how clearly specs are stated
-- Include source page numbers`;
+- Include source page numbers
+- For requirements: category is one of: compliance, technical, deadline, financial, operational, environmental, other
+- For requirements: status is one of: critical (must meet), verified (standard), risk (potential issue), info (nice to know)
+- Extract deadlines, certifications, bond/insurance needs, environmental ratings, warranty terms
+- Only include requirements relevant to LED displays and AV systems, not general construction`;
 
 // ---------------------------------------------------------------------------
 // Extract specs from relevant pages
@@ -77,9 +94,10 @@ export async function extractLEDSpecs(
 ): Promise<{
   screens: ExtractedLEDSpec[];
   project: ExtractedProjectInfo;
+  requirements: ExtractedRequirement[];
 }> {
   if (relevantPages.length === 0) {
-    return { screens: [], project: emptyProject() };
+    return { screens: [], project: emptyProject(), requirements: [] };
   }
 
   // Combine markdown from relevant pages
@@ -112,7 +130,7 @@ export async function extractLEDSpecs(
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error("[SpecExtractor] No JSON in AnythingLLM response:", response.slice(0, 200));
-      return { screens: [], project: emptyProject() };
+      return { screens: [], project: emptyProject(), requirements: [] };
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
@@ -142,6 +160,17 @@ export async function extractLEDSpecs(
       }),
     );
 
+    const requirements: ExtractedRequirement[] = (parsed.requirements || []).map(
+      (r: any): ExtractedRequirement => ({
+        description: r.description || "",
+        category: r.category || "other",
+        status: r.status || "info",
+        date: r.date ?? null,
+        sourcePages: r.source_pages || [],
+        rawText: r.raw_text ?? null,
+      }),
+    );
+
     const project: ExtractedProjectInfo = {
       clientName: parsed.project?.client_name ?? null,
       projectName: parsed.project?.project_name ?? null,
@@ -151,13 +180,18 @@ export async function extractLEDSpecs(
       isUnionLabor: parsed.project?.is_union ?? false,
       bondRequired: parsed.project?.bond_required ?? false,
       specialRequirements: parsed.project?.special_requirements || [],
-      schedulePhases: [],
+      schedulePhases: (parsed.project?.schedule_phases || []).map((p: any) => ({
+        phaseName: p.phase_name || "",
+        startDate: p.start_date ?? null,
+        endDate: p.end_date ?? null,
+        duration: p.duration ?? null,
+      })),
     };
 
-    return { screens, project };
+    return { screens, project, requirements };
   } catch (err) {
     console.error("[SpecExtractor] AnythingLLM error:", err);
-    return { screens: [], project: emptyProject() };
+    return { screens: [], project: emptyProject(), requirements: [] };
   }
 }
 
@@ -174,9 +208,10 @@ export async function extractLEDSpecsBatched(
 ): Promise<{
   screens: ExtractedLEDSpec[];
   project: ExtractedProjectInfo;
+  requirements: ExtractedRequirement[];
 }> {
   if (relevantPages.length === 0) {
-    return { screens: [], project: emptyProject() };
+    return { screens: [], project: emptyProject(), requirements: [] };
   }
 
   // Build batches — respect both page count and char limit
@@ -200,6 +235,7 @@ export async function extractLEDSpecsBatched(
 
   // Process each batch
   let allScreens: ExtractedLEDSpec[] = [];
+  let allRequirements: ExtractedRequirement[] = [];
   let project: ExtractedProjectInfo = emptyProject();
 
   for (let i = 0; i < batches.length; i++) {
@@ -209,6 +245,7 @@ export async function extractLEDSpecsBatched(
       const result = await extractLEDSpecs(batches[i]);
 
       allScreens.push(...result.screens);
+      allRequirements.push(...result.requirements);
 
       // Merge project info — take first non-null values
       if (!project.clientName && result.project.clientName) project = { ...project, ...result.project };
@@ -220,6 +257,7 @@ export async function extractLEDSpecsBatched(
       if (result.project.isUnionLabor) project.isUnionLabor = true;
       if (result.project.bondRequired) project.bondRequired = true;
       project.specialRequirements = [...new Set([...project.specialRequirements, ...result.project.specialRequirements])];
+      project.schedulePhases = [...project.schedulePhases, ...result.project.schedulePhases];
     } catch (err) {
       console.error(`[SpecExtractor] Batch ${i + 1}/${batches.length} failed:`, err);
       // Continue with other batches — don't fail the whole thing
@@ -229,7 +267,16 @@ export async function extractLEDSpecsBatched(
   // Deduplicate screens by name + location
   allScreens = deduplicateScreens(allScreens);
 
-  return { screens: allScreens, project };
+  // Deduplicate requirements by description
+  const seenReqs = new Set<string>();
+  allRequirements = allRequirements.filter((r) => {
+    const key = r.description.toLowerCase().trim();
+    if (seenReqs.has(key)) return false;
+    seenReqs.add(key);
+    return true;
+  });
+
+  return { screens: allScreens, project, requirements: allRequirements };
 }
 
 function deduplicateScreens(screens: ExtractedLEDSpec[]): ExtractedLEDSpec[] {
