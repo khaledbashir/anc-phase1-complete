@@ -32,7 +32,7 @@ import type {
   PageCategory,
 } from "@/services/rfp/unified/types";
 
-export const maxDuration = 300;
+export const maxDuration = 600;
 export const dynamic = "force-dynamic";
 
 const UPLOAD_DIR = "/tmp/rfp-uploads";
@@ -145,35 +145,65 @@ export async function POST(request: NextRequest) {
           return;
         }
 
-        // Extract text per page using pdftotext (poppler-utils)
-        // -f N -l N = single page, - = stdout
+        // Extract ALL text in one pdftotext call, split by form-feed (\f)
+        // 1,380 pages: ~5-10s in one call vs ~2+ min with 1,380 separate calls
         const ocrPages: Array<{ pageNumber: number; text: string }> = [];
         let totalChars = 0;
 
-        for (let p = 1; p <= totalPages; p++) {
-          try {
-            const { stdout: pageText } = await execFileAsync(
-              "pdftotext",
-              ["-f", String(p), "-l", String(p), "-layout", filePath, "-"],
-              { timeout: 10_000, maxBuffer: 1024 * 1024 }, // 1MB per page max
-            );
-            ocrPages.push({ pageNumber: p, text: pageText });
-            totalChars += pageText.length;
-          } catch {
-            // Page failed — push empty (will be filtered as low-relevance)
-            ocrPages.push({ pageNumber: p, text: "" });
-          }
+        send("progress", {
+          stage: "ocr",
+          current: 0,
+          total: totalPages,
+          message: `Running pdftotext on ${totalPages.toLocaleString()} pages...`,
+        });
 
-          // Progress every 100 pages
-          if (p % 100 === 0 || p === totalPages) {
-            send("progress", {
-              stage: "ocr",
-              current: p,
-              total: totalPages,
-              message: `Text extraction: ${p.toLocaleString()}/${totalPages.toLocaleString()} pages`,
-            });
+        try {
+          const { stdout: allText } = await execFileAsync(
+            "pdftotext",
+            ["-layout", filePath, "-"],
+            { timeout: 120_000, maxBuffer: 200 * 1024 * 1024 }, // 200MB buffer, 2min timeout
+          );
+
+          // pdftotext separates pages with form-feed character \f
+          const pageTexts = allText.split("\f");
+          for (let p = 1; p <= totalPages; p++) {
+            const text = pageTexts[p - 1] || "";
+            ocrPages.push({ pageNumber: p, text });
+            totalChars += text.length;
+          }
+        } catch (bulkErr: any) {
+          // Fallback: per-page extraction if bulk fails (e.g., corrupt PDF)
+          console.warn("[Pipeline] Bulk pdftotext failed, falling back to per-page:", bulkErr.message);
+          for (let p = 1; p <= totalPages; p++) {
+            try {
+              const { stdout: pageText } = await execFileAsync(
+                "pdftotext",
+                ["-f", String(p), "-l", String(p), "-layout", filePath, "-"],
+                { timeout: 10_000, maxBuffer: 1024 * 1024 },
+              );
+              ocrPages.push({ pageNumber: p, text: pageText });
+              totalChars += pageText.length;
+            } catch {
+              ocrPages.push({ pageNumber: p, text: "" });
+            }
+
+            if (p % 100 === 0 || p === totalPages) {
+              send("progress", {
+                stage: "ocr",
+                current: p,
+                total: totalPages,
+                message: `Text extraction (fallback): ${p.toLocaleString()}/${totalPages.toLocaleString()} pages`,
+              });
+            }
           }
         }
+
+        send("progress", {
+          stage: "ocr",
+          current: totalPages,
+          total: totalPages,
+          message: `Text extracted: ${totalPages.toLocaleString()} pages, ${(totalChars / 1024).toFixed(0)}KB`,
+        });
 
         const ocrResult = { totalPages, text: "", pages: ocrPages };
 
