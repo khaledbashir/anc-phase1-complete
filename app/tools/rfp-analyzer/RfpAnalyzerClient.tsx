@@ -125,7 +125,8 @@ export default function RfpAnalyzerClient() {
   const [quoteImportResult, setQuoteImportResult] = useState<any>(null);
   const [pricingPreview, setPricingPreview] = useState<PricingPreview | null>(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
-  const [resultsTab, setResultsTab] = useState<"extraction" | "pricing">("extraction");
+  const [resultsTab, setResultsTab] = useState<string>("displays");
+  const [customTabs, setCustomTabs] = useState<Array<{ id: string; name: string; content: string }>>([]);
   const [drawingUpload, setDrawingUpload] = useState<{ uploading: boolean; results: Array<{ filename: string; pages: number }> }>({ uploading: false, results: [] });
   const [quotePreviewOpen, setQuotePreviewOpen] = useState(false);
   const [editableSpecs, setEditableSpecs] = useState<ExtractedLEDSpec[]>([]);
@@ -310,7 +311,7 @@ export default function RfpAnalyzerClient() {
     if (!result) return;
     setEditableSpecs(result.screens.map((s) => ({ ...s })));
     setQuotePreviewOpen(true);
-    setResultsTab("pricing");
+    setResultsTab("estimate");
   };
 
   const updateEditableSpec = (index: number, field: keyof ExtractedLEDSpec, value: any) => {
@@ -399,7 +400,7 @@ export default function RfpAnalyzerClient() {
       const data = await res.json();
       setQuoteImportResult(data);
       // Auto-trigger pricing preview after import + switch to Pricing tab
-      setResultsTab("pricing");
+      setResultsTab("estimate");
       autoPreviewPricing(data.quotes || []);
     } catch (err: any) {
       setError(err.message);
@@ -585,7 +586,7 @@ export default function RfpAnalyzerClient() {
     setResult(null);
     setQuoteImportResult(null);
     setPricingPreview(null);
-    setResultsTab("extraction");
+    setResultsTab("displays");
     setDrawingUpload({ uploading: false, results: [] });
     setQuotePreviewOpen(false);
     setEditableSpecs([]);
@@ -841,9 +842,10 @@ export default function RfpAnalyzerClient() {
 
               {/* Tab content area */}
               <div className="min-h-[400px]">
-                {resultsTab === "extraction" && (
-                  <div className="p-5 space-y-6">
-                    {/* Pricing summary — compact inline bar */}
+                {/* ── LED Displays ── */}
+                {resultsTab === "displays" && (
+                  <div className="p-5 space-y-4">
+                    {/* Pricing inline bar */}
                     {pricingPreview && (
                       <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800 border border-border rounded-lg">
                         <div className="flex items-center gap-4 text-xs">
@@ -856,7 +858,7 @@ export default function RfpAnalyzerClient() {
                           </span>
                         </div>
                         <button
-                          onClick={() => setResultsTab("pricing")}
+                          onClick={() => setResultsTab("estimate")}
                           className="text-[10px] text-primary hover:underline font-medium shrink-0"
                         >
                           Full breakdown &rarr;
@@ -869,33 +871,26 @@ export default function RfpAnalyzerClient() {
                         <span className="text-sm text-muted-foreground">Calculating estimated pricing from rate cards...</span>
                       </div>
                     )}
+                    <SpecsTable specs={result.screens} />
+                  </div>
+                )}
 
-                    {/* LED specs table */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Monitor className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span className="text-xs font-semibold text-foreground">LED Displays ({result.screens.length})</span>
-                      </div>
-                      <SpecsTable specs={result.screens} />
-                    </div>
-
-                    {/* Requirements table */}
-                    {requirements.length > 0 && (
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <Shield className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-xs font-semibold text-foreground">Requirements ({requirements.length})</span>
-                          {criticalReqs > 0 && (
-                            <span className="px-1.5 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-bold rounded-full">
-                              {criticalReqs} critical
-                            </span>
-                          )}
-                        </div>
-                        <RequirementsTable requirements={requirements} />
+                {/* ── Requirements ── */}
+                {resultsTab === "requirements" && (
+                  <div className="p-5">
+                    <RequirementsTable requirements={requirements} />
+                    {requirements.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Shield className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-xs">No requirements extracted from this RFP.</p>
                       </div>
                     )}
+                  </div>
+                )}
 
-                    {/* Document Browser — page categories with workspace embedding controls */}
+                {/* ── Page Triage / Documents ── */}
+                {resultsTab === "documents" && (
+                  <div className="p-5 space-y-4">
                     {result.triage.length > 0 && (
                       <DocumentBrowser
                         triage={result.triage}
@@ -908,7 +903,6 @@ export default function RfpAnalyzerClient() {
                         hasWorkspace={!!result.aiWorkspaceSlug}
                       />
                     )}
-
                     {/* Upload supplementary drawings */}
                     {result.id && (
                       <div className="flex items-center justify-between px-4 py-2.5 border border-dashed border-border rounded-lg">
@@ -943,7 +937,21 @@ export default function RfpAnalyzerClient() {
                   </div>
                 )}
 
-                {resultsTab === "pricing" && (
+                {/* ── Custom user tabs ── */}
+                {customTabs.map((tab) => resultsTab === tab.id && (
+                  <div key={tab.id} className="p-5">
+                    <textarea
+                      value={tab.content}
+                      onChange={(e) => setCustomTabs((prev) =>
+                        prev.map((t) => t.id === tab.id ? { ...t, content: e.target.value } : t)
+                      )}
+                      placeholder="Type your notes here..."
+                      className="w-full min-h-[300px] bg-transparent text-sm font-mono text-foreground resize-none focus:outline-none placeholder:text-muted-foreground/40"
+                    />
+                  </div>
+                ))}
+
+                {resultsTab === "estimate" && (
                   <div className="p-5 space-y-6">
                     {/* Workflow Steps */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1379,40 +1387,47 @@ export default function RfpAnalyzerClient() {
                 )}
               </div>
 
-              {/* Sheet tabs (Excel style) */}
-              <div className="flex items-end border-t border-border bg-zinc-50 dark:bg-zinc-800 shrink-0">
+              {/* Sheet tabs (Excel style — matches estimator) */}
+              <div className="flex items-end border-t border-border bg-zinc-50 dark:bg-zinc-800 shrink-0 overflow-x-auto">
+                {[
+                  { id: "displays", label: "LED Displays", color: "#0A52EF", badge: `${result.screens.length}` },
+                  { id: "requirements", label: "Requirements", color: "#F59E0B", badge: criticalReqs > 0 ? `${criticalReqs}` : `${requirements.length}` },
+                  { id: "documents", label: "Page Triage", color: "#6366F1", badge: `${result.triage.length}` },
+                  { id: "estimate", label: "Estimate", color: "#217346", badge: pricingPreview ? fmtUsd(pricingPreview.summary.totalSellingPrice) : undefined },
+                  ...customTabs.map((t) => ({ id: t.id, label: t.name, color: "#8B5CF6", badge: undefined as string | undefined })),
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setResultsTab(tab.id)}
+                    className={`px-3 py-1.5 text-[11px] font-medium border-r border-border whitespace-nowrap transition-colors relative ${
+                      resultsTab === tab.id
+                        ? "bg-white dark:bg-zinc-900 text-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                    }`}
+                  >
+                    {resultsTab === tab.id && (
+                      <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ backgroundColor: tab.color }} />
+                    )}
+                    <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: tab.color }} />
+                    {tab.label}
+                    {tab.badge && (
+                      <span className="ml-1.5 text-[10px] text-muted-foreground">{tab.badge}</span>
+                    )}
+                    {tab.id === "estimate" && loadingPricing && <Loader2 className="inline w-3 h-3 ml-1.5 animate-spin" />}
+                  </button>
+                ))}
                 <button
-                  onClick={() => setResultsTab("extraction")}
-                  className={`px-4 py-1.5 text-[11px] font-medium border-r border-border whitespace-nowrap transition-colors relative ${
-                    resultsTab === "extraction"
-                      ? "bg-white dark:bg-zinc-900 text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
-                  }`}
+                  onClick={() => {
+                    const id = `custom-${Date.now()}`;
+                    const name = prompt("Tab name:");
+                    if (!name) return;
+                    setCustomTabs((prev) => [...prev, { id, name, content: "" }]);
+                    setResultsTab(id);
+                  }}
+                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
+                  title="Add worksheet"
                 >
-                  {resultsTab === "extraction" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0A52EF]" />
-                  )}
-                  <span className="inline-block w-2 h-2 rounded-full mr-1.5 bg-[#0A52EF]" />
-                  What&apos;s Inside
-                  <span className="ml-1.5 text-[10px] text-muted-foreground">({result.screens.length} displays)</span>
-                </button>
-                <button
-                  onClick={() => setResultsTab("pricing")}
-                  className={`px-4 py-1.5 text-[11px] font-medium border-r border-border whitespace-nowrap transition-colors relative ${
-                    resultsTab === "pricing"
-                      ? "bg-white dark:bg-zinc-900 text-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
-                  }`}
-                >
-                  {resultsTab === "pricing" && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#217346]" />
-                  )}
-                  <span className="inline-block w-2 h-2 rounded-full mr-1.5 bg-[#217346]" />
-                  Estimate
-                  {pricingPreview && (
-                    <span className="ml-1.5 text-[10px] text-emerald-600">{fmtUsd(pricingPreview.summary.totalSellingPrice)}</span>
-                  )}
-                  {loadingPricing && <Loader2 className="inline w-3 h-3 ml-1.5 animate-spin" />}
+                  <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -1594,17 +1609,17 @@ function PipelineStepper({
   onTabSwitch,
 }: {
   phase: Phase;
-  resultsTab: "extraction" | "pricing";
+  resultsTab: string;
   hasResult: boolean;
   hasPricing: boolean;
   specsFound: number;
-  onTabSwitch: (tab: "extraction" | "pricing") => void;
+  onTabSwitch: (tab: string) => void;
 }) {
   // Determine which stage is active
   let activeIdx = 0;
   if (phase === "processing") activeIdx = 1;
-  else if (phase === "results" && resultsTab === "extraction") activeIdx = 2;
-  else if (phase === "results" && resultsTab === "pricing") activeIdx = 3;
+  else if (phase === "results" && resultsTab === "displays") activeIdx = 2;
+  else if (phase === "results" && resultsTab === "estimate") activeIdx = 3;
   // Stage 4 (proposal) is only "done" if user clicks Create Proposal
 
   const getStatus = (idx: number): "done" | "active" | "upcoming" => {
@@ -1617,8 +1632,8 @@ function PipelineStepper({
 
   const handleClick = (idx: number) => {
     if (!hasResult) return;
-    if (idx === 2) onTabSwitch("extraction");
-    if (idx === 3) onTabSwitch("pricing");
+    if (idx === 2) onTabSwitch("displays");
+    if (idx === 3) onTabSwitch("estimate");
   };
 
   return (
