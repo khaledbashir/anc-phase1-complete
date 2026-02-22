@@ -161,6 +161,102 @@ export async function extractLEDSpecs(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Batched extraction — processes pages in groups, no truncation
+// ---------------------------------------------------------------------------
+
+const BATCH_SIZE = 10;
+const MAX_CHARS_PER_BATCH = 30_000;
+
+export async function extractLEDSpecsBatched(
+  relevantPages: AnalyzedPage[],
+  onProgress?: (batch: number, totalBatches: number) => void,
+): Promise<{
+  screens: ExtractedLEDSpec[];
+  project: ExtractedProjectInfo;
+}> {
+  if (relevantPages.length === 0) {
+    return { screens: [], project: emptyProject() };
+  }
+
+  // Build batches — respect both page count and char limit
+  const batches: AnalyzedPage[][] = [];
+  let currentBatch: AnalyzedPage[] = [];
+  let currentChars = 0;
+
+  for (const page of relevantPages) {
+    const pageChars = page.markdown.length + page.tables.reduce((s, t) => s + t.content.length, 0);
+
+    if (currentBatch.length >= BATCH_SIZE || (currentChars + pageChars > MAX_CHARS_PER_BATCH && currentBatch.length > 0)) {
+      batches.push(currentBatch);
+      currentBatch = [];
+      currentChars = 0;
+    }
+
+    currentBatch.push(page);
+    currentChars += pageChars;
+  }
+  if (currentBatch.length > 0) batches.push(currentBatch);
+
+  // Process each batch
+  let allScreens: ExtractedLEDSpec[] = [];
+  let project: ExtractedProjectInfo = emptyProject();
+
+  for (let i = 0; i < batches.length; i++) {
+    onProgress?.(i + 1, batches.length);
+
+    try {
+      const result = await extractLEDSpecs(batches[i]);
+
+      allScreens.push(...result.screens);
+
+      // Merge project info — take first non-null values
+      if (!project.clientName && result.project.clientName) project = { ...project, ...result.project };
+      if (result.project.clientName && !project.clientName) project.clientName = result.project.clientName;
+      if (result.project.venue && !project.venue) project.venue = result.project.venue;
+      if (result.project.projectName && !project.projectName) project.projectName = result.project.projectName;
+      if (result.project.location && !project.location) project.location = result.project.location;
+      if (result.project.isOutdoor) project.isOutdoor = true;
+      if (result.project.isUnionLabor) project.isUnionLabor = true;
+      if (result.project.bondRequired) project.bondRequired = true;
+      project.specialRequirements = [...new Set([...project.specialRequirements, ...result.project.specialRequirements])];
+    } catch (err) {
+      console.error(`[SpecExtractor] Batch ${i + 1}/${batches.length} failed:`, err);
+      // Continue with other batches — don't fail the whole thing
+    }
+  }
+
+  // Deduplicate screens by name + location
+  allScreens = deduplicateScreens(allScreens);
+
+  return { screens: allScreens, project };
+}
+
+function deduplicateScreens(screens: ExtractedLEDSpec[]): ExtractedLEDSpec[] {
+  const seen = new Map<string, ExtractedLEDSpec>();
+
+  for (const screen of screens) {
+    const key = `${screen.name.toLowerCase().trim()}|${screen.location.toLowerCase().trim()}`;
+
+    if (seen.has(key)) {
+      // Merge: keep the one with higher confidence, merge source pages
+      const existing = seen.get(key)!;
+      if (screen.confidence > existing.confidence) {
+        seen.set(key, {
+          ...screen,
+          sourcePages: [...new Set([...existing.sourcePages, ...screen.sourcePages])],
+        });
+      } else {
+        existing.sourcePages = [...new Set([...existing.sourcePages, ...screen.sourcePages])];
+      }
+    } else {
+      seen.set(key, screen);
+    }
+  }
+
+  return Array.from(seen.values());
+}
+
 function emptyProject(): ExtractedProjectInfo {
   return {
     clientName: null,

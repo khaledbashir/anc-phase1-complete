@@ -3,9 +3,9 @@
  */
 
 export { analyzeRfp } from "./analyzeRfp";
-export { extractWithMistral, mistralOcrHealthCheck } from "./mistralOcrClient";
+export { extractWithMistral, extractSinglePage, mistralOcrHealthCheck } from "./mistralOcrClient";
 export { classifyAllPages, getPagesNeedingVision } from "./pageClassifier";
-export { extractLEDSpecs } from "./specExtractor";
+export { extractLEDSpecs, extractLEDSpecsBatched } from "./specExtractor";
 
 export type {
   RFPAnalysisResult,

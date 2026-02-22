@@ -1,16 +1,13 @@
 /**
- * POST /api/rfp/analyze — Unified RFP Analysis (Automatic Pipeline)
+ * POST /api/rfp/analyze — RFP Analysis Pipeline
  *
- * The user uploads a PDF. Everything else is automatic:
- *   1. Kreuzberg OCR → fast text extraction (all pages)
- *   2. Classify + triage → keep relevant, kill noise
- *   3. Mistral OCR → structured markdown on relevant pages only
- *   4. AI → extract LED specs from structured content
+ * 1. Kreuzberg OCR → fast text from ALL pages (cheap, local)
+ * 2. Keyword triage → generous filter, keeps anything remotely relevant
+ * 3. Convert relevant pages to JPEG images (pdftoppm)
+ * 4. Queue each image through Mistral OCR — vision model SEES the page
+ * 5. Batched AI extraction → LED specs from vision results
  *
- * Streams real-time progress via SSE. User sees stages updating,
- * then gets clean results at the end.
- *
- * Accepts: sessionId from /api/rfp/analyze/upload
+ * Streams real-time progress via SSE.
  */
 
 import { NextRequest } from "next/server";
@@ -18,10 +15,10 @@ import { readFile } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import { extractText } from "@/services/kreuzberg/kreuzbergClient";
-import { extractWithMistral } from "@/services/rfp/unified/mistralOcrClient";
-import { extractLEDSpecs } from "@/services/rfp/unified/specExtractor";
+import { extractSinglePage } from "@/services/rfp/unified/mistralOcrClient";
+import { extractLEDSpecsBatched } from "@/services/rfp/unified/specExtractor";
+import { convertPageToImage } from "@/services/rfp/unified/pdfToImages";
 import type {
-  RFPAnalysisResult,
   AnalyzedPage,
   ExtractedLEDSpec,
   PageCategory,
@@ -32,12 +29,24 @@ export const dynamic = "force-dynamic";
 
 const UPLOAD_DIR = "/tmp/rfp-uploads";
 
+// ---------------------------------------------------------------------------
 // Keyword banks
+// ---------------------------------------------------------------------------
+
 const LED_KEYWORDS = [
   "led", "display", "videoboard", "video board", "ribbon", "fascia",
   "scoreboard", "pixel pitch", "nits", "brightness", "resolution",
   "cabinet", "module", "11 06 60", "11 63 10", "display schedule",
   "screen", "marquee", "dvled", "direct view", "viewing distance",
+  "division 11", "signage", "digital display", "av system", "audio visual",
+  "video wall", "media mesh", "transparent led", "led panel", "led screen",
+];
+
+const SUPPORTING_KEYWORDS = [
+  "electrical", "power distribution", "conduit", "raceway", "control system",
+  "mounting", "structural", "steel frame", "rigging", "catenary",
+  "scope of work", "shall provide", "shall furnish", "shall install",
+  "cost", "price", "bid", "schedule of values",
 ];
 
 const NOISE_KEYWORDS = [
@@ -67,6 +76,8 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  const imageDir = path.join(UPLOAD_DIR, body.sessionId);
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
@@ -85,12 +96,11 @@ export async function POST(request: NextRequest) {
         const sizeMb = (buffer.length / 1024 / 1024).toFixed(1);
 
         // =============================================================
-        // STEP 2: Kreuzberg OCR — fast text extraction (ALL pages)
+        // STEP 2: Kreuzberg OCR — fast text (ALL pages, cheap)
         // =============================================================
         send("stage", {
           stage: "ocr",
           message: `Extracting text from all pages (${sizeMb}MB)...`,
-          detail: "Kreuzberg: PaddleOCR + Tesseract",
         });
 
         const ocrResult = await extractText(buffer, body.filename || "document.pdf");
@@ -103,11 +113,11 @@ export async function POST(request: NextRequest) {
         });
 
         // =============================================================
-        // STEP 3: Classify + triage — kill the noise
+        // STEP 3: Keyword triage — generous, keeps anything relevant
         // =============================================================
         send("stage", {
           stage: "triaging",
-          message: `Filtering ${ocrResult.totalPages.toLocaleString()} pages — keeping only relevant content...`,
+          message: `Classifying ${ocrResult.totalPages.toLocaleString()} pages...`,
         });
 
         const classifiedPages: Array<{
@@ -116,7 +126,6 @@ export async function POST(request: NextRequest) {
           category: PageCategory;
           relevance: number;
           isDrawing: boolean;
-          ledScore: number;
         }> = [];
 
         for (const page of ocrResult.pages) {
@@ -124,31 +133,36 @@ export async function POST(request: NextRequest) {
           const textLength = page.text.trim().length;
           const isDrawing = textLength < 150;
 
-          // Score LED relevance
           let ledScore = 0;
           for (const kw of LED_KEYWORDS) {
             if (text.includes(kw)) ledScore++;
           }
 
-          // Score noise
+          let supportScore = 0;
+          for (const kw of SUPPORTING_KEYWORDS) {
+            if (text.includes(kw)) supportScore++;
+          }
+
           let noiseScore = 0;
           for (const kw of NOISE_KEYWORDS) {
             if (text.includes(kw)) noiseScore++;
           }
 
-          // Classify
           let category: PageCategory = "unknown";
-          let relevance = 20;
+          let relevance = 10;
 
           if (isDrawing) {
             category = "drawing";
-            relevance = 60;
+            relevance = 50;
           } else if (ledScore >= 2) {
             category = "led_specs";
             relevance = Math.min(100, 70 + ledScore * 5);
-          } else if (ledScore === 1 && noiseScore === 0) {
-            category = "technical";
-            relevance = 50;
+          } else if (ledScore === 1) {
+            category = noiseScore === 0 ? "technical" : "unknown";
+            relevance = 40 + supportScore * 5;
+          } else if (supportScore >= 2 && noiseScore === 0) {
+            category = text.includes("scope of work") || text.includes("shall provide") ? "scope_of_work" : "technical";
+            relevance = 30 + supportScore * 5;
           } else if (noiseScore >= 3) {
             category = "legal";
             relevance = 5;
@@ -157,29 +171,21 @@ export async function POST(request: NextRequest) {
             relevance = 5;
           } else if (text.includes("scope of work") || text.includes("shall provide")) {
             category = "scope_of_work";
-            relevance = 55;
+            relevance = 35;
           } else if (text.includes("cost") || text.includes("price") || text.includes("bid")) {
             category = "cost_schedule";
-            relevance = 45;
+            relevance = 25;
           }
 
-          classifiedPages.push({
-            pageNumber: page.pageNumber,
-            text: page.text,
-            category,
-            relevance,
-            isDrawing,
-            ledScore,
-          });
+          classifiedPages.push({ pageNumber: page.pageNumber, text: page.text, category, relevance, isDrawing });
         }
 
-        // Keep pages with relevance >= 40
-        const relevantPages = classifiedPages.filter((p) => p.relevance >= 40);
-        const noisePages = classifiedPages.filter((p) => p.relevance < 40);
+        const relevantPages = classifiedPages.filter((p) => p.relevance >= 20);
+        const noisePages = classifiedPages.filter((p) => p.relevance < 20);
 
         send("stage", {
           stage: "triaged",
-          message: `Kept ${relevantPages.length} relevant pages, filtered out ${noisePages.length} noise pages`,
+          message: `Kept ${relevantPages.length} pages, filtered ${noisePages.length}`,
           relevant: relevantPages.length,
           noise: noisePages.length,
           led: relevantPages.filter((p) => p.category === "led_specs").length,
@@ -187,80 +193,90 @@ export async function POST(request: NextRequest) {
         });
 
         // =============================================================
-        // STEP 4: Mistral OCR — structured extraction (relevant pages ONLY)
+        // STEP 4: Convert relevant pages to JPEG images
         // =============================================================
 
-        let mistralPages: AnalyzedPage[] = [];
+        const mistralPages: AnalyzedPage[] = [];
 
         if (relevantPages.length > 0) {
           send("stage", {
-            stage: "vision",
-            message: `Sending ${relevantPages.length} pages to Mistral OCR for structured extraction...`,
-            detail: "Tables, markdown, images, headers",
+            stage: "converting",
+            message: `Converting ${relevantPages.length} pages to images...`,
           });
 
-          // Build a smaller PDF with only relevant pages
-          const { PDFDocument } = await import("pdf-lib");
-          const srcDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
-          const filteredDoc = await PDFDocument.create();
+          // Convert each page to JPEG + send to Mistral in sequence
+          // This way we don't store all images at once either
+          send("stage", {
+            stage: "vision",
+            message: `Vision model reading ${relevantPages.length} pages...`,
+          });
 
-          for (const rp of relevantPages) {
-            const idx = rp.pageNumber - 1;
-            if (idx >= 0 && idx < srcDoc.getPageCount()) {
-              const [copiedPage] = await filteredDoc.copyPages(srcDoc, [idx]);
-              filteredDoc.addPage(copiedPage);
+          for (let i = 0; i < relevantPages.length; i++) {
+            const rp = relevantPages[i];
+
+            send("progress", {
+              stage: "vision",
+              current: i + 1,
+              total: relevantPages.length,
+              message: `Page ${rp.pageNumber} — converting to image & reading (${i + 1}/${relevantPages.length})`,
+            });
+
+            try {
+              // Convert this page to JPEG
+              const pageDir = path.join(imageDir, `p${rp.pageNumber}`);
+              const imagePath = await convertPageToImage(filePath, rp.pageNumber, pageDir);
+
+              // Send JPEG to Mistral OCR — vision model SEES the image
+              const ocrPage = await extractSinglePage(imagePath, rp.pageNumber);
+
+              mistralPages.push({
+                index: i,
+                pageNumber: rp.pageNumber,
+                category: rp.category,
+                relevance: rp.relevance,
+                markdown: ocrPage.markdown,
+                tables: ocrPage.tables.map((t) => ({
+                  id: t.id,
+                  content: t.content,
+                  format: t.format,
+                })),
+                visionAnalyzed: true,
+                summary: ocrPage.markdown.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
+                classifiedBy: "mistral-ocr" as const,
+              });
+            } catch (err: any) {
+              console.error(`[Pipeline] Page ${rp.pageNumber} failed:`, err.message);
+
+              // Fallback: use Kreuzberg text
+              mistralPages.push({
+                index: i,
+                pageNumber: rp.pageNumber,
+                category: rp.category,
+                relevance: rp.relevance,
+                markdown: rp.text,
+                tables: [],
+                visionAnalyzed: false,
+                summary: rp.text.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
+                classifiedBy: "text-heuristic" as const,
+              });
+
+              send("warning", {
+                message: `Page ${rp.pageNumber}: vision failed, using text fallback`,
+              });
             }
           }
 
-          const filteredBuffer = Buffer.from(await filteredDoc.save());
-
-          send("progress", {
-            stage: "vision",
-            message: `Built ${relevantPages.length}-page PDF (${(filteredBuffer.length / 1024 / 1024).toFixed(1)}MB) — sending to Mistral OCR...`,
+          send("stage", {
+            stage: "vision_done",
+            message: `Vision model processed ${mistralPages.length} pages`,
+            pagesProcessed: mistralPages.length,
+            visionSuccess: mistralPages.filter((p) => p.visionAnalyzed).length,
+            tables: mistralPages.reduce((s, p) => s + p.tables.length, 0),
           });
-
-          try {
-            const mistralResult = await extractWithMistral(filteredBuffer, "relevant-pages.pdf");
-
-            mistralPages = mistralResult.pages.map((mp, i) => ({
-              index: i,
-              pageNumber: relevantPages[i]?.pageNumber || i + 1,
-              category: relevantPages[i]?.category || "unknown",
-              relevance: relevantPages[i]?.relevance || 50,
-              markdown: mp.markdown,
-              tables: mp.tables,
-              visionAnalyzed: true,
-              summary: mp.markdown.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
-              classifiedBy: "mistral-ocr" as const,
-            }));
-
-            send("stage", {
-              stage: "vision_done",
-              message: `Mistral OCR extracted structured content from ${mistralPages.length} pages`,
-              tables: mistralPages.reduce((s, p) => s + p.tables.length, 0),
-            });
-          } catch (err: any) {
-            send("warning", {
-              message: `Mistral OCR failed: ${err.message}. Falling back to Kreuzberg text.`,
-            });
-
-            // Fallback: use Kreuzberg text as markdown
-            mistralPages = relevantPages.map((rp, i) => ({
-              index: i,
-              pageNumber: rp.pageNumber,
-              category: rp.category,
-              relevance: rp.relevance,
-              markdown: rp.text,
-              tables: [],
-              visionAnalyzed: false,
-              summary: rp.text.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
-              classifiedBy: "text-heuristic" as const,
-            }));
-          }
         }
 
         // =============================================================
-        // STEP 5: AI extraction — pull LED specs
+        // STEP 5: Batched AI extraction
         // =============================================================
 
         let screens: ExtractedLEDSpec[] = [];
@@ -269,10 +285,21 @@ export async function POST(request: NextRequest) {
         if (mistralPages.length > 0) {
           send("stage", {
             stage: "extracting",
-            message: `AI analyzing ${mistralPages.length} pages for LED display specifications...`,
+            message: `AI extracting LED specs from ${mistralPages.length} pages...`,
           });
 
-          const result = await extractLEDSpecs(mistralPages);
+          const result = await extractLEDSpecsBatched(
+            mistralPages,
+            (batch, totalBatches) => {
+              send("progress", {
+                stage: "extracting",
+                current: batch,
+                total: totalBatches,
+                message: `Extraction batch ${batch}/${totalBatches}...`,
+              });
+            },
+          );
+
           screens = result.screens;
           projectInfo = result.project;
 
@@ -284,10 +311,8 @@ export async function POST(request: NextRequest) {
         }
 
         // =============================================================
-        // STEP 6: Build final result
+        // STEP 6: Done
         // =============================================================
-
-        const processingTime = Date.now() - startTime;
 
         send("complete", {
           result: {
@@ -304,7 +329,8 @@ export async function POST(request: NextRequest) {
               noisePages: noisePages.length,
               drawingPages: classifiedPages.filter((p) => p.isDrawing).length,
               specsFound: screens.length,
-              processingTimeMs: processingTime,
+              processingTimeMs: Date.now() - startTime,
+              visionPagesProcessed: mistralPages.filter((p) => p.visionAnalyzed).length,
             },
             triage: classifiedPages.map((p) => ({
               pageNumber: p.pageNumber,
@@ -314,6 +340,12 @@ export async function POST(request: NextRequest) {
             })),
           },
         });
+
+        // Cleanup images (fire and forget)
+        try {
+          const { rm } = await import("fs/promises");
+          await rm(imageDir, { recursive: true, force: true });
+        } catch { /* ignore */ }
       } catch (err: any) {
         send("error", { message: err.message || "Pipeline failed" });
       } finally {

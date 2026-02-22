@@ -101,6 +101,74 @@ export async function extractWithMistral(
 }
 
 // ---------------------------------------------------------------------------
+// Extract a SINGLE page IMAGE — vision model actually SEES the page
+// ---------------------------------------------------------------------------
+
+export async function extractSinglePage(
+  imagePath: string,
+  pageNumber: number,
+): Promise<MistralOcrPage> {
+  const { readFile: rf } = await import("fs/promises");
+  const imageBuffer = await rf(imagePath);
+
+  const filename = `page-${pageNumber}.jpg`;
+  const form = new FormData();
+  const blob = new Blob([imageBuffer], { type: "image/jpeg" });
+  form.append("file", blob, filename);
+
+  let lastError: Error | null = null;
+
+  for (const base of OCRRRR_URLS) {
+    try {
+      const controller = new AbortController();
+      // 60s per single page — should be plenty
+      const timer = setTimeout(() => controller.abort(), 60_000);
+
+      const res = await fetch(`${base}/api/extract`, {
+        method: "POST",
+        body: form,
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Mistral OCR ${res.status}: ${text.slice(0, 200)}`);
+      }
+
+      const json = await res.json();
+      const data: MistralOcrResult = json.data || json;
+
+      if (!data.pages || data.pages.length === 0) {
+        // Vision model returned nothing — page might be blank or unreadable
+        return {
+          index: 0,
+          markdown: "",
+          images: [],
+          tables: [],
+          hyperlinks: [],
+          header: null,
+          footer: null,
+          dimensions: { dpi: 0, height: 0, width: 0 },
+        };
+      }
+
+      // Return the first (and only) page result
+      return data.pages[0];
+    } catch (err: any) {
+      lastError = err;
+      if (base !== OCRRRR_URLS[OCRRRR_URLS.length - 1]) {
+        console.warn(`[MistralOCR] page ${pageNumber} — ${base} failed: ${err.message}`);
+      }
+    }
+  }
+
+  throw new Error(
+    `Mistral OCR page ${pageNumber} failed: ${lastError?.message || "unknown"}`,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Health check
 // ---------------------------------------------------------------------------
 

@@ -210,11 +210,11 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
 
 function buildStages(events: PipelineEvent[]): StageState[] {
   const stages: StageState[] = [
-    { key: "upload",    label: "Upload received",                  icon: UploadCloud, status: "pending" },
-    { key: "ocr",       label: "Text extraction (Kreuzberg OCR)",  icon: Database,    status: "pending" },
-    { key: "triage",    label: "Page triage & classification",     icon: Filter,      status: "pending" },
-    { key: "vision",    label: "Structured extraction (Mistral)",  icon: Eye,         status: "pending" },
-    { key: "extract",   label: "LED spec extraction (AI)",         icon: Monitor,     status: "pending" },
+    { key: "upload",    label: "Upload received",                    icon: UploadCloud, status: "pending" },
+    { key: "ocr",       label: "Text extraction (Kreuzberg)",        icon: Database,    status: "pending" },
+    { key: "triage",    label: "Page triage & classification",       icon: Filter,      status: "pending" },
+    { key: "vision",    label: "Vision reading pages (Mistral OCR)", icon: Eye,         status: "pending" },
+    { key: "extract",   label: "LED spec extraction (AI)",           icon: Monitor,     status: "pending" },
   ];
 
   let currentActive: string | null = null;
@@ -254,15 +254,21 @@ function buildStages(events: PipelineEvent[]): StageState[] {
         }
       }
 
-      // Mistral OCR (vision)
-      else if (s === "vision") {
+      // Image conversion + Mistral vision
+      else if (s === "converting") {
+        markDone(stages, "triage");
+        currentActive = "vision"; // Show under vision stage
+      } else if (s === "vision") {
         markDone(stages, "triage");
         currentActive = "vision";
       } else if (s === "vision_done") {
         markDone(stages, "vision");
         const st = stages.find((x) => x.key === "vision");
-        if (st && event.tables != null) {
-          st.count = `${event.tables} tables found`;
+        if (st) {
+          const parts: string[] = [];
+          if ((event as any).visionSuccess != null) parts.push(`${(event as any).visionSuccess} read`);
+          if (event.tables != null) parts.push(`${event.tables} tables`);
+          if (parts.length > 0) st.count = parts.join(", ");
         }
       }
 
@@ -287,13 +293,18 @@ function buildStages(events: PipelineEvent[]): StageState[] {
       }
     }
 
-    // Progress updates
+    // Progress updates — show current/total for per-page processing
     if (event.type === "progress") {
       const stageKey = event.stage || "";
-      const keyMap: Record<string, string> = { vision: "vision", ocr: "ocr" };
+      const keyMap: Record<string, string> = { vision: "vision", ocr: "ocr", extracting: "extract" };
       const mappedKey = keyMap[stageKey] || stageKey;
       const st = stages.find((x) => x.key === mappedKey);
-      if (st) st.detail = event.message;
+      if (st) {
+        if (event.current != null && event.total != null) {
+          st.count = `${event.current}/${event.total}`;
+        }
+        st.detail = event.message;
+      }
     }
 
     // Complete — all done
