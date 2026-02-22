@@ -283,7 +283,7 @@ export async function provisionRfpWorkspace(opts: {
 // Build structured markdown from extraction results
 // ---------------------------------------------------------------------------
 
-function buildExtractionSummary(opts: {
+export function buildExtractionSummary(opts: {
   projectName: string | null;
   venue: string | null;
   screens?: ExtractedLEDSpec[];

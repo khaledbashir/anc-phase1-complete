@@ -26,17 +26,32 @@ import {
   MessageSquare,
   ImageIcon,
   Plus,
+  ToggleLeft,
+  ToggleRight,
+  RefreshCw,
 } from "lucide-react";
 
 // ==========================================================================
 // Types
 // ==========================================================================
 
+interface PageData {
+  pageNumber: number;
+  category: string;
+  relevance: number;
+  markdown: string;
+  tables: Array<{ id: string; content: string; format: string }>;
+  summary: string;
+  thumbnail?: string;
+  visionAnalyzed?: boolean;
+}
+
 interface AnalysisResult {
   id: string | null;
   screens: ExtractedLEDSpec[];
   requirements?: ExtractedRequirement[];
   aiWorkspaceSlug?: string | null;
+  pages?: PageData[];
   project: {
     clientName: string | null;
     projectName: string | null;
@@ -111,6 +126,10 @@ export default function RfpAnalyzerClient() {
   const [drawingUpload, setDrawingUpload] = useState<{ uploading: boolean; results: Array<{ filename: string; pages: number }> }>({ uploading: false, results: [] });
   const [quotePreviewOpen, setQuotePreviewOpen] = useState(false);
   const [editableSpecs, setEditableSpecs] = useState<ExtractedLEDSpec[]>([]);
+  // Document browser — category toggles for workspace embedding
+  const [enabledCategories, setEnabledCategories] = useState<Set<string>>(new Set());
+  const [reEmbedding, setReEmbedding] = useState(false);
+  const [reEmbedResult, setReEmbedResult] = useState<string | null>(null);
 
   // ========================================================================
   // Auto-run pricing when extraction completes (no manual step needed)
@@ -122,6 +141,24 @@ export default function RfpAnalyzerClient() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result?.id]);
+
+  // Initialize enabled categories from triage data — relevant pages on, boilerplate off
+  useEffect(() => {
+    if (result?.triage?.length) {
+      const relevant = new Set<string>();
+      for (const p of result.triage) {
+        // Default ON for useful categories, OFF for noise
+        if (p.relevance >= 30 && p.category !== "boilerplate" && p.category !== "unknown") {
+          relevant.add(p.category);
+        }
+      }
+      // Always include these if present
+      for (const cat of ["led_specs", "technical", "cost_schedule", "scope_of_work", "legal", "schedule"]) {
+        if (result.triage.some((p) => p.category === cat)) relevant.add(cat);
+      }
+      setEnabledCategories(relevant);
+    }
+  }, [result?.triage]);
 
   // ========================================================================
   // Upload → auto-pipeline (one SSE stream, fully automatic)
@@ -585,6 +622,50 @@ export default function RfpAnalyzerClient() {
   };
 
   // ========================================================================
+  // Re-embed workspace with selected categories
+  // ========================================================================
+
+  const handleReEmbed = async () => {
+    if (!result?.id || !result.pages?.length) return;
+    setReEmbedding(true);
+    setReEmbedResult(null);
+    try {
+      const selectedPages = result.pages
+        .filter((p) => enabledCategories.has(p.category))
+        .map((p) => ({
+          pageNumber: p.pageNumber,
+          category: p.category,
+          markdown: p.markdown,
+          tables: p.tables,
+        }));
+
+      const res = await fetch("/api/rfp/workspace/re-embed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysisId: result.id, selectedPages }),
+      });
+
+      if (!res.ok) throw new Error(`Re-embed failed (${res.status})`);
+      const data = await res.json();
+      setReEmbedResult(`${data.pagesEmbedded} pages embedded across ${data.documentsCreated} documents`);
+    } catch (err: any) {
+      setReEmbedResult(`Error: ${err.message}`);
+    } finally {
+      setReEmbedding(false);
+    }
+  };
+
+  const toggleCategory = (cat: string) => {
+    setEnabledCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+    setReEmbedResult(null); // Clear stale result
+  };
+
+  // ========================================================================
   // Render
   // ========================================================================
 
@@ -844,14 +925,18 @@ export default function RfpAnalyzerClient() {
                       </div>
                     )}
 
-                    {/* Triage minimap */}
+                    {/* Document Browser — page categories with workspace embedding controls */}
                     {result.triage.length > 0 && (
-                      <div>
-                        <h3 className="text-sm font-semibold text-foreground mb-3">
-                          Page Triage Map ({result.triage.length} pages)
-                        </h3>
-                        <TriageMinimap triage={result.triage} />
-                      </div>
+                      <DocumentBrowser
+                        triage={result.triage}
+                        hasPages={!!result.pages?.length}
+                        enabledCategories={enabledCategories}
+                        onToggle={toggleCategory}
+                        onReEmbed={handleReEmbed}
+                        reEmbedding={reEmbedding}
+                        reEmbedResult={reEmbedResult}
+                        hasWorkspace={!!result.aiWorkspaceSlug}
+                      />
                     )}
 
                     {/* Upload supplementary drawings */}
@@ -1466,38 +1551,154 @@ const CAT_COLORS: Record<string, string> = {
   unknown: "bg-slate-200",
 };
 
-function TriageMinimap({ triage }: { triage: AnalysisResult["triage"] }) {
-  const counts = triage.reduce<Record<string, number>>((acc, p) => {
-    acc[p.category] = (acc[p.category] || 0) + 1;
+const CAT_LABELS: Record<string, string> = {
+  led_specs: "LED Specs",
+  drawing: "Drawings",
+  cost_schedule: "Cost / Pricing",
+  scope_of_work: "Scope of Work",
+  technical: "Technical",
+  legal: "Legal / Bond",
+  schedule: "Schedule",
+  boilerplate: "Boilerplate",
+  unknown: "Other",
+};
+
+const CAT_ICONS: Record<string, string> = {
+  led_specs: "📺",
+  drawing: "📐",
+  cost_schedule: "💰",
+  scope_of_work: "📋",
+  technical: "⚙️",
+  legal: "⚖️",
+  schedule: "📅",
+  boilerplate: "📄",
+  unknown: "❓",
+};
+
+function DocumentBrowser({
+  triage,
+  hasPages,
+  enabledCategories,
+  onToggle,
+  onReEmbed,
+  reEmbedding,
+  reEmbedResult,
+  hasWorkspace,
+}: {
+  triage: AnalysisResult["triage"];
+  hasPages: boolean;
+  enabledCategories: Set<string>;
+  onToggle: (cat: string) => void;
+  onReEmbed: () => void;
+  reEmbedding: boolean;
+  reEmbedResult: string | null;
+  hasWorkspace: boolean;
+}) {
+  // Group pages by category with stats
+  const groups = triage.reduce<Record<string, { pages: number[]; relevant: number; total: number }>>((acc, p) => {
+    if (!acc[p.category]) acc[p.category] = { pages: [], relevant: 0, total: 0 };
+    acc[p.category].pages.push(p.pageNumber);
+    acc[p.category].total++;
+    if (p.relevance >= 40) acc[p.category].relevant++;
     return acc;
   }, {});
 
+  // Sort: most relevant categories first, boilerplate/unknown last
+  const sortedCats = Object.entries(groups).sort(([a, ga], [b, gb]) => {
+    if (a === "boilerplate" || a === "unknown") return 1;
+    if (b === "boilerplate" || b === "unknown") return -1;
+    return gb.relevant - ga.relevant;
+  });
+
+  const enabledPageCount = triage.filter((p) => enabledCategories.has(p.category)).length;
+  const hasChanges = hasPages && hasWorkspace;
+
   return (
     <div>
-      <div className="flex flex-wrap gap-3 mb-3 text-xs">
-        {Object.entries(counts).sort(([, a], [, b]) => b - a).map(([cat, count]) => (
-          <div key={cat} className="flex items-center gap-1.5">
-            <div className={`w-2.5 h-2.5 rounded-sm ${CAT_COLORS[cat] || CAT_COLORS.unknown}`} />
-            <span className="text-muted-foreground capitalize">{cat.replace(/_/g, " ")} ({count})</span>
-          </div>
-        ))}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-foreground">
+          Document Categories ({triage.length} pages)
+        </h3>
+        {hasChanges && (
+          <button
+            onClick={onReEmbed}
+            disabled={reEmbedding || enabledPageCount === 0}
+            className="flex items-center gap-1.5 px-3 py-1 bg-[#0A52EF] hover:bg-[#0840C0] disabled:opacity-50 text-white rounded-md text-xs font-medium transition-colors"
+          >
+            {reEmbedding ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <RefreshCw className="w-3 h-3" />
+            )}
+            {reEmbedding ? "Updating..." : `Update Workspace (${enabledPageCount} pages)`}
+          </button>
+        )}
       </div>
 
-      <div className="flex flex-wrap gap-[2px]">
-        {triage.map((p) => (
-          <div
-            key={p.pageNumber}
-            className={`w-3 h-4 rounded-[2px] ${CAT_COLORS[p.category] || CAT_COLORS.unknown} ${
-              p.relevance >= 40 ? "opacity-100" : "opacity-25"
-            }`}
-            title={`Page ${p.pageNumber}: ${p.category} (${p.relevance}% relevance)${p.isDrawing ? " [Drawing]" : ""}`}
-          />
-        ))}
+      {/* Category cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+        {sortedCats.map(([cat, data]) => {
+          const enabled = enabledCategories.has(cat);
+          return (
+            <button
+              key={cat}
+              onClick={() => onToggle(cat)}
+              className={`flex items-start gap-2 p-2.5 rounded-lg border text-left transition-all ${
+                enabled
+                  ? "border-[#0A52EF]/30 bg-[#0A52EF]/5"
+                  : "border-border bg-muted/30 opacity-50"
+              }`}
+            >
+              <span className="text-base leading-none mt-0.5">{CAT_ICONS[cat] || CAT_ICONS.unknown}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-xs font-medium truncate">{CAT_LABELS[cat] || cat}</span>
+                  {enabled ? (
+                    <ToggleRight className="w-3.5 h-3.5 text-[#0A52EF] shrink-0" />
+                  ) : (
+                    <ToggleLeft className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  )}
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  {data.total} page{data.total !== 1 ? "s" : ""}
+                  {data.relevant < data.total && ` · ${data.relevant} relevant`}
+                </span>
+                {/* Mini page blocks */}
+                <div className="flex flex-wrap gap-[1px] mt-1.5">
+                  {data.pages.slice(0, 30).map((pn) => {
+                    const page = triage.find((t) => t.pageNumber === pn);
+                    return (
+                      <div
+                        key={pn}
+                        className={`w-2 h-2.5 rounded-[1px] ${CAT_COLORS[cat] || CAT_COLORS.unknown} ${
+                          page && page.relevance >= 40 ? "opacity-100" : "opacity-30"
+                        }`}
+                        title={`Page ${pn}${page ? ` (${page.relevance}% relevance)` : ""}`}
+                      />
+                    );
+                  })}
+                  {data.pages.length > 30 && (
+                    <span className="text-[8px] text-muted-foreground ml-0.5">+{data.pages.length - 30}</span>
+                  )}
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      <p className="text-[10px] text-muted-foreground mt-2">
-        Each block = 1 page. Bright = relevant (kept), faded = noise (filtered). Hover for details.
-      </p>
+      {/* Status message */}
+      {reEmbedResult && (
+        <p className={`text-xs mt-2 ${reEmbedResult.startsWith("Error") ? "text-red-500" : "text-emerald-600"}`}>
+          {reEmbedResult.startsWith("Error") ? "⚠ " : "✓ "}{reEmbedResult}
+        </p>
+      )}
+
+      {!hasPages && (
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Category selection available during live analysis. From history, workspace uses original embedding.
+        </p>
+      )}
     </div>
   );
 }
