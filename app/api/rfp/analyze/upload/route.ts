@@ -62,14 +62,16 @@ export async function POST(request: NextRequest) {
 
     const sizeMb = (fileSize / 1024 / 1024).toFixed(1);
 
-    // Get page count — read from disk (single copy in memory)
+    // Get page count using pdfinfo (poppler-utils) — zero memory usage
+    // Never load a 631MB PDF into Node.js memory just to count pages
     let pageCount = 0;
     try {
-      const { PDFDocument } = await import("pdf-lib");
-      const { readFile } = await import("fs/promises");
-      const buf = await readFile(filePath);
-      const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
-      pageCount = doc.getPageCount();
+      const { execFile } = await import("child_process");
+      const { promisify } = await import("util");
+      const execFileAsync = promisify(execFile);
+      const { stdout } = await execFileAsync("pdfinfo", [filePath], { timeout: 30_000 });
+      const match = stdout.match(/Pages:\s+(\d+)/);
+      pageCount = match ? parseInt(match[1], 10) : 0;
     } catch {
       // Fallback: estimate (~50KB per page average for construction RFPs)
       pageCount = Math.max(1, Math.round(fileSize / 50000));
