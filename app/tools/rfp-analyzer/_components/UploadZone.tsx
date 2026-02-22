@@ -95,15 +95,16 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
   const latestMessage = [...events].reverse().find((e) => e.message)?.message || "Starting...";
 
   return (
-    <div className="w-full max-w-2xl mx-auto mt-12">
+    <div className="w-full max-w-3xl mx-auto mt-8 space-y-6">
+      {/* Drop zone */}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all ${
-          isLoading ? "border-primary/30 bg-primary/5 cursor-not-allowed"
-          : isDragging ? "border-primary bg-primary/5 scale-[1.02]"
-          : "border-border hover:border-primary/50 hover:bg-muted/50"
+        className={`relative border-2 border-dashed rounded-xl transition-all ${
+          isLoading ? "border-primary/30 bg-primary/5 cursor-not-allowed p-8"
+          : isDragging ? "border-primary bg-primary/5 scale-[1.01] p-12"
+          : "border-border hover:border-primary/50 hover:bg-muted/30 p-12"
         }`}
       >
         {!isLoading && (
@@ -172,21 +173,24 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
             </div>
           ) : (
             <>
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-2">
-                <UploadCloud className="w-8 h-8 text-primary" />
+              <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center">
+                <UploadCloud className="w-7 h-7 text-primary" />
               </div>
-              <div>
-                <h3 className="text-xl font-semibold text-foreground">Upload RFP Documents</h3>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Drop a PDF. We&apos;ll OCR every page, filter noise, and extract LED specs automatically.
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-foreground">Drop your RFP here</h3>
+                <p className="text-sm text-muted-foreground mt-1.5 max-w-md">
+                  Project manuals, spec books, bid documents — drop any PDF and we&apos;ll pull out every LED display spec automatically.
                 </p>
               </div>
-              <div className="flex gap-3 text-xs text-muted-foreground">
-                <span className="bg-muted px-3 py-1.5 rounded-full flex items-center gap-1.5">
+              <div className="flex gap-2 text-[11px] text-muted-foreground">
+                <span className="bg-muted/80 px-2.5 py-1 rounded-md flex items-center gap-1.5">
                   <FileIcon className="w-3 h-3" /> PDF up to 2GB
                 </span>
-                <span className="bg-muted px-3 py-1.5 rounded-full flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3" /> Fully automatic
+                <span className="bg-muted/80 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3" /> AI-powered
+                </span>
+                <span className="bg-muted/80 px-2.5 py-1 rounded-md flex items-center gap-1.5">
+                  <Monitor className="w-3 h-3" /> LED extraction
                 </span>
               </div>
             </>
@@ -194,8 +198,26 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
         </div>
       </div>
 
+      {/* What happens after upload — pipeline preview */}
+      {!isLoading && (
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { icon: FileIcon, label: "Extract text", desc: "Every page scanned" },
+            { icon: Filter, label: "Filter noise", desc: "Keep LED pages only" },
+            { icon: Eye, label: "Read drawings", desc: "Vision OCR on diagrams" },
+            { icon: Sparkles, label: "Extract specs", desc: "Displays, sizes, pitch" },
+          ].map((step, i) => (
+            <div key={i} className="flex flex-col items-center text-center px-2 py-3 rounded-lg bg-muted/30 border border-border/50">
+              <step.icon className="w-4 h-4 text-muted-foreground mb-1.5" />
+              <span className="text-[11px] font-medium text-foreground">{step.label}</span>
+              <span className="text-[10px] text-muted-foreground mt-0.5">{step.desc}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {error && (
-        <div className="mt-4 p-4 border border-destructive/50 bg-destructive/10 text-destructive rounded-lg flex items-start gap-3">
+        <div className="p-4 border border-destructive/50 bg-destructive/10 text-destructive rounded-lg flex items-start gap-3">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
           <div className="text-sm">{error}</div>
         </div>

@@ -56,7 +56,6 @@ interface NavChild {
 const mainMenuItems: NavItem[] = [
     { icon: LayoutGrid, label: "Projects", href: "/projects", allowedRoles: null },
     { icon: Kanban, label: "Pipeline", href: "/pipeline", allowedRoles: null },
-    { icon: FileText, label: "Templates", href: "/templates", soon: true, allowedRoles: null },
 ];
 
 const toolsMenuItems: NavItem[] = [
@@ -159,9 +158,7 @@ export default function DashboardSidebar() {
                             <Image src="/ANC_Logo_2023_blue.png" alt="ANC" width={36} height={36} className="w-full h-auto object-contain dark:hidden" />
                             <Image src="/ANC_Logo_2023_white.png" alt="ANC" width={36} height={36} className="w-full h-auto object-contain hidden dark:block" />
                         </div>
-                        {expanded && (
-                            <span className="text-sm font-bold text-foreground tracking-tight">ANC</span>
-                        )}
+                        {/* Logo only — no text badge */}
                     </Link>
                     {expanded && (
                         <button

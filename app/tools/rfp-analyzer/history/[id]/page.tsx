@@ -107,52 +107,30 @@ export default function AnalysisDetailPage() {
     })();
   }, [id]);
 
-  // Excel export
-  const handleExport = () => {
+  // Excel export (.xlsx via API)
+  const [exporting, setExporting] = useState(false);
+  const handleExport = async () => {
     if (!analysis) return;
-    const screens = analysis.screens || [];
-    const rows = [
-      ["Display Name", "Location", "Width (ft)", "Height (ft)", "Pixel Pitch (mm)", "Brightness (nits)", "Environment", "Quantity", "Service Type", "Mounting", "Confidence", "Source Pages"].join("\t"),
-      ...screens.map((s) => [
-        s.name,
-        s.location,
-        s.widthFt ?? "",
-        s.heightFt ?? "",
-        s.pixelPitchMm ?? "",
-        s.brightnessNits ?? "",
-        s.environment,
-        s.quantity,
-        s.serviceType ?? "",
-        s.mountingType ?? "",
-        `${Math.round(s.confidence * 100)}%`,
-        (s.sourcePages || []).join(", "),
-      ].join("\t")),
-    ];
-
-    // Add requirements sheet
-    const reqs = analysis.requirements || [];
-    if (reqs.length > 0) {
-      rows.push("", "", "REQUIREMENTS");
-      rows.push(["Description", "Category", "Status", "Date", "Source Pages", "Raw Text"].join("\t"));
-      for (const r of reqs) {
-        rows.push([
-          r.description,
-          r.category,
-          r.status,
-          r.date ?? "",
-          (r.sourcePages || []).join(", "),
-          r.rawText ?? "",
-        ].join("\t"));
-      }
+    setExporting(true);
+    try {
+      const res = await fetch("/api/rfp/pipeline/extraction-excel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysisId: analysis.id }),
+      });
+      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || `${analysis.projectName || analysis.filename || "rfp-analysis"}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error("Export failed:", err);
+    } finally {
+      setExporting(false);
     }
-
-    const blob = new Blob([rows.join("\n")], { type: "text/tab-separated-values" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${analysis.projectName || analysis.filename || "rfp-analysis"}_specs.tsv`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   if (loading) {
@@ -212,10 +190,11 @@ export default function AnalysisDetailPage() {
 
           <button
             onClick={handleExport}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+            disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
           >
-            <Download className="w-4 h-4" />
-            Export TSV
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Export .xlsx
           </button>
         </div>
       </header>

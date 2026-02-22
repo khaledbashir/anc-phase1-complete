@@ -14,18 +14,17 @@ import {
   Clock,
   MapPin,
   Building2,
-  Zap,
   Download,
   Upload,
   DollarSign,
   FileSpreadsheet,
   AlertTriangle,
   Shield,
-  Calendar,
   Loader2,
   History,
   MessageSquare,
   ImageIcon,
+  Plus,
 } from "lucide-react";
 
 // ==========================================================================
@@ -263,6 +262,34 @@ export default function RfpAnalyzerClient() {
 
   const removeEditableSpec = (index: number) => {
     setEditableSpecs((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const addEditableSpec = () => {
+    setEditableSpecs((prev) => [
+      ...prev,
+      {
+        name: "",
+        location: "",
+        widthFt: null,
+        heightFt: null,
+        widthPx: null,
+        heightPx: null,
+        pixelPitchMm: null,
+        brightnessNits: null,
+        environment: "indoor" as const,
+        quantity: 1,
+        serviceType: null,
+        mountingType: null,
+        maxPowerW: null,
+        weightLbs: null,
+        specialRequirements: [],
+        confidence: 1,
+        sourcePages: [],
+        sourceType: "text" as const,
+        citation: "Manually added",
+        notes: null,
+      },
+    ]);
   };
 
   // ========================================================================
@@ -886,112 +913,167 @@ export default function RfpAnalyzerClient() {
                       />
                     </div>
 
-                    {/* Editable quote preview */}
-                    {quotePreviewOpen && editableSpecs.length > 0 && (
-                      <div className="border border-primary/20 rounded-lg overflow-hidden">
-                        <div className="flex items-center justify-between px-4 py-2 bg-primary/5 border-b border-primary/10">
-                          <span className="text-sm font-semibold text-primary">
-                            Review Quote Request ({editableSpecs.length} displays)
-                          </span>
-                          <button
-                            onClick={() => setQuotePreviewOpen(false)}
-                            className="text-xs text-muted-foreground hover:text-foreground"
-                          >
-                            Close preview
-                          </button>
+                    {/* Editable quote preview — ExcelPreview style */}
+                    {quotePreviewOpen && (
+                      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-border overflow-hidden shadow-sm">
+                        {/* Green title bar (matches estimator) */}
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-[#217346] text-white text-xs shrink-0">
+                          <div className="flex items-center gap-2">
+                            <FileSpreadsheet className="w-3.5 h-3.5" />
+                            <span className="font-medium truncate max-w-[300px]">
+                              Quote Request — {result.project.projectName || result.project.venue || "LED Displays"}
+                            </span>
+                            <span className="text-white/60">({editableSpecs.length} displays)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={handleDownloadSubcontractorExcel}
+                              disabled={downloading === "subcontractor" || editableSpecs.length === 0}
+                              className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
+                            >
+                              {downloading === "subcontractor" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                              Export .xlsx
+                            </button>
+                            <button
+                              onClick={() => setQuotePreviewOpen(false)}
+                              className="px-1.5 py-0.5 bg-white/10 hover:bg-white/20 rounded text-[10px] transition-colors"
+                            >
+                              ✕
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Column letters (Excel style) */}
+                        <div className="flex border-b border-border bg-zinc-50 dark:bg-zinc-800 shrink-0">
+                          <div className="w-10 shrink-0 border-r border-border" />
+                          {["A", "B", "C", "D", "E", "F", "G"].map((letter) => (
+                            <div key={letter} className="flex-1 min-w-[80px] px-2 py-0.5 text-center text-[10px] font-medium text-muted-foreground border-r border-border last:border-r-0">
+                              {letter}
+                            </div>
+                          ))}
+                          <div className="w-10 shrink-0" />
+                        </div>
+
+                        {/* Data rows */}
                         <div className="overflow-x-auto">
                           <table className="w-full border-collapse text-xs">
                             <thead>
-                              <tr className="bg-zinc-100 dark:bg-zinc-800">
-                                <th className="text-left px-3 py-2 font-semibold border-b border-border w-[200px]">Display Name</th>
-                                <th className="text-left px-3 py-2 font-semibold border-b border-border w-[160px]">Location</th>
-                                <th className="text-right px-3 py-2 font-semibold border-b border-border w-[70px]">W (ft)</th>
-                                <th className="text-right px-3 py-2 font-semibold border-b border-border w-[70px]">H (ft)</th>
-                                <th className="text-right px-3 py-2 font-semibold border-b border-border w-[70px]">Pitch</th>
-                                <th className="text-center px-3 py-2 font-semibold border-b border-border w-[50px]">Qty</th>
-                                <th className="text-left px-3 py-2 font-semibold border-b border-border">Notes for Supplier</th>
-                                <th className="text-center px-3 py-2 font-semibold border-b border-border w-[40px]"></th>
+                              <tr className="bg-[#0A52EF]/5 dark:bg-[#0A52EF]/10">
+                                <td className="w-10 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800 font-normal">1</td>
+                                <th className="text-left px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[160px]">DISPLAY</th>
+                                <th className="text-left px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[140px]">LOCATION</th>
+                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[70px]">W (FT)</th>
+                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[70px]">H (FT)</th>
+                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[70px]">PITCH</th>
+                                <th className="text-center px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[50px]">QTY</th>
+                                <th className="text-left px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-b border-border min-w-[140px]">NOTES</th>
+                                <th className="w-10 border-b border-border bg-zinc-50 dark:bg-zinc-800" />
                               </tr>
                             </thead>
                             <tbody>
                               {editableSpecs.map((spec, idx) => (
-                                <tr key={idx} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
-                                  <td className="px-1 py-1 border-b border-border">
+                                <tr key={idx} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group">
+                                  <td className="w-10 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
+                                    {idx + 2}
+                                  </td>
+                                  <td className="px-0 py-0 border-r border-b border-border">
                                     <input
                                       type="text"
                                       value={spec.name}
                                       onChange={(e) => updateEditableSpec(idx, "name", e.target.value)}
-                                      className="w-full px-2 py-1 text-xs bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded"
+                                      placeholder="Display name"
+                                      className="w-full px-2 py-1.5 text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell placeholder:text-muted-foreground/40"
                                     />
                                   </td>
-                                  <td className="px-1 py-1 border-b border-border">
+                                  <td className="px-0 py-0 border-r border-b border-border">
                                     <input
                                       type="text"
                                       value={spec.location}
                                       onChange={(e) => updateEditableSpec(idx, "location", e.target.value)}
-                                      className="w-full px-2 py-1 text-xs bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded"
+                                      placeholder="Location"
+                                      className="w-full px-2 py-1.5 text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell placeholder:text-muted-foreground/40"
                                     />
                                   </td>
-                                  <td className="px-1 py-1 border-b border-border">
+                                  <td className="px-0 py-0 border-r border-b border-border">
                                     <input
                                       type="number"
                                       value={spec.widthFt ?? ""}
                                       onChange={(e) => updateEditableSpec(idx, "widthFt", e.target.value ? parseFloat(e.target.value) : null)}
-                                      className="w-full px-2 py-1 text-xs text-right bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded font-mono"
+                                      className="w-full px-2 py-1.5 text-xs text-right font-mono bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell"
                                     />
                                   </td>
-                                  <td className="px-1 py-1 border-b border-border">
+                                  <td className="px-0 py-0 border-r border-b border-border">
                                     <input
                                       type="number"
                                       value={spec.heightFt ?? ""}
                                       onChange={(e) => updateEditableSpec(idx, "heightFt", e.target.value ? parseFloat(e.target.value) : null)}
-                                      className="w-full px-2 py-1 text-xs text-right bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded font-mono"
+                                      className="w-full px-2 py-1.5 text-xs text-right font-mono bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell"
                                     />
                                   </td>
-                                  <td className="px-1 py-1 border-b border-border">
+                                  <td className="px-0 py-0 border-r border-b border-border">
                                     <input
                                       type="number"
                                       value={spec.pixelPitchMm ?? ""}
                                       onChange={(e) => updateEditableSpec(idx, "pixelPitchMm", e.target.value ? parseFloat(e.target.value) : null)}
-                                      className="w-full px-2 py-1 text-xs text-right bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded font-mono"
+                                      className="w-full px-2 py-1.5 text-xs text-right font-mono bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell"
                                     />
                                   </td>
-                                  <td className="px-1 py-1 border-b border-border">
+                                  <td className="px-0 py-0 border-r border-b border-border">
                                     <input
                                       type="number"
                                       value={spec.quantity}
                                       onChange={(e) => updateEditableSpec(idx, "quantity", parseInt(e.target.value) || 1)}
-                                      className="w-full px-2 py-1 text-xs text-center bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded font-mono"
                                       min={1}
+                                      className="w-full px-2 py-1.5 text-xs text-center font-mono bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell"
                                     />
                                   </td>
-                                  <td className="px-1 py-1 border-b border-border">
+                                  <td className="px-0 py-0 border-b border-border">
                                     <input
                                       type="text"
                                       value={spec.notes ?? ""}
                                       onChange={(e) => updateEditableSpec(idx, "notes", e.target.value || null)}
                                       placeholder="Add note..."
-                                      className="w-full px-2 py-1 text-xs bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded text-muted-foreground placeholder:text-muted-foreground/50"
+                                      className="w-full px-2 py-1.5 text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell text-muted-foreground placeholder:text-muted-foreground/30"
                                     />
                                   </td>
-                                  <td className="px-1 py-1 border-b border-border text-center">
+                                  <td className="w-10 border-b border-border bg-zinc-50 dark:bg-zinc-800 text-center">
                                     <button
                                       onClick={() => removeEditableSpec(idx)}
-                                      className="text-muted-foreground hover:text-red-500 transition-colors p-1"
-                                      title="Remove from quote"
+                                      className="text-muted-foreground/40 group-hover:text-red-400 hover:!text-red-500 transition-colors text-sm leading-none"
+                                      title="Remove display"
                                     >
-                                      &times;
+                                      ✕
                                     </button>
                                   </td>
                                 </tr>
                               ))}
+                              {/* Add display row */}
+                              <tr
+                                onClick={addEditableSpec}
+                                className="hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 cursor-pointer transition-colors"
+                              >
+                                <td className="w-10 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
+                                  {editableSpecs.length + 2}
+                                </td>
+                                <td colSpan={7} className="px-2 py-1.5 border-b border-border">
+                                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-emerald-600 transition-colors">
+                                    <Plus className="w-3 h-3" />
+                                    Add display...
+                                  </span>
+                                </td>
+                                <td className="w-10 border-b border-border bg-zinc-50 dark:bg-zinc-800" />
+                              </tr>
                             </tbody>
                           </table>
                         </div>
+
                         {editableSpecs.length === 0 && (
-                          <div className="p-6 text-center text-muted-foreground text-sm">
-                            All displays removed. Close preview to reset.
+                          <div className="p-8 text-center">
+                            <FileSpreadsheet className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
+                            <p className="text-sm text-muted-foreground">All displays removed</p>
+                            <button onClick={addEditableSpec} className="mt-2 text-xs text-primary hover:underline">
+                              Add a display
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1240,11 +1322,11 @@ function Flag({ label }: { label: string }) {
   );
 }
 
-function PipelineStep({ step, title, description, icon: Icon, status, action }: {
+function PipelineStep({ step, title, description, status, action }: {
   step: number;
   title: string;
   description: string;
-  icon: typeof FileText;
+  icon?: typeof FileText;
   status: "ready" | "done" | "disabled";
   action: React.ReactNode;
 }) {
