@@ -98,6 +98,12 @@ export interface ExtractedLEDSpec {
   citation: string;
   /** Raw notes from AI */
   notes: string | null;
+  /** Whether this is a cost alternate (not base bid) */
+  isAlternate?: boolean;
+  /** Alternate ID from the RFP (e.g., "A1", "B3") */
+  alternateId?: string | null;
+  /** Description of what this alternate changes */
+  alternateDescription?: string | null;
 }
 
 // ============================================================================

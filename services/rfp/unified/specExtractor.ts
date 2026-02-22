@@ -28,6 +28,25 @@ PRIORITY SECTIONS (search for these):
 2. "SECTION 11 63 10" — LED Display Systems (technical specs)
 3. Any section mentioning: scoreboard, ribbon, fascia, marquee, video board, LED display
 
+CRITICAL RULE — ADDENDUM PRIORITY:
+- If you see an Addendum that replaces or modifies a section, ONLY extract the addendum version. The addendum SUPERSEDES the original.
+- Look for phrases: "hereby replaces", "revised", "updated schedule", "this addendum modifies Section...", "replace in its entirety"
+- If both original and addendum specs appear for the SAME display, ONLY return the addendum specs.
+- This is critical: bidding on superseded specs loses the contract.
+
+COST ALTERNATES:
+- RFPs often include alternate pricing scenarios (e.g., "Alt A1", "Alternate 1", "Cost Alternate", "Option B").
+- Extract these as SEPARATE screen entries with is_alternate: true.
+- Set alternate_id to the ID from the RFP (e.g., "A1", "B3", "C", "F1").
+- Set alternate_description to what it changes (e.g., "12mm Discrete Lamp upgrade for Main South").
+- Alternates typically change pixel pitch, dimensions, or brightness for an existing base bid display.
+
+EXISTING HARDWARE / INTERFACE-ONLY:
+- If the RFP says to "interface with existing", "reuse", "relocate", "reinstall", or "integrate existing" equipment, do NOT extract these as new LED displays.
+- Only extract items that require NEW LED hardware to be provided.
+- If game clocks, shot clocks, play clocks, or scoring systems are to be INTERFACED (not replaced), exclude them from the screens array.
+- Instead add a requirement: "Interface with existing [equipment name]" with category: "technical".
+
 Return ONLY valid JSON (no markdown fences, no explanation, no text before or after):
 {
   "project": {
@@ -60,7 +79,10 @@ Return ONLY valid JSON (no markdown fences, no explanation, no text before or af
       "special_requirements": ["weatherproof"],
       "confidence": 0.95,
       "source_pages": [9, 15],
-      "notes": null
+      "notes": null,
+      "is_alternate": false,
+      "alternate_id": null,
+      "alternate_description": null
     }
   ],
   "requirements": [
@@ -76,15 +98,17 @@ Return ONLY valid JSON (no markdown fences, no explanation, no text before or af
 }
 
 RULES:
-- Extract EVERY display, even if specs are partial
-- Convert dimensions to FEET (120" = 10ft, 3048mm = 10ft)
+- Extract EVERY new LED display, even if specs are partial
+- Convert dimensions to FEET (120" = 10ft, 3048mm = 10ft). If dimensions are in inches, convert: 28" height = 2.33ft
 - If pixel pitch/brightness not specified, set to null
 - Quantity defaults to 1 if not stated
 - Confidence 0-1 based on how clearly specs are stated
 - Include source page numbers
+- Use concise display names from the RFP (e.g., "Main Video" not "Main LED Video Display Board")
 - For requirements: category = compliance|technical|deadline|financial|operational|environmental|other
 - For requirements: status = critical|verified|risk|info
-- If no LED displays found, return empty screens array — do NOT invent data`;
+- If no LED displays found, return empty screens array — do NOT invent data
+- Do NOT extract static/non-illuminated signage, banners, or backlit panels as LED displays`;
 
 // ---------------------------------------------------------------------------
 // Direct Mistral Chat call
@@ -204,6 +228,9 @@ export async function extractLEDSpecs(
         sourceType: "text",
         citation: `[Source: Pages ${(s.source_pages || []).join(", ")}]`,
         notes: s.notes ?? null,
+        isAlternate: s.is_alternate ?? false,
+        alternateId: s.alternate_id ?? null,
+        alternateDescription: s.alternate_description ?? null,
       }),
     );
 
@@ -345,28 +372,107 @@ export async function extractLEDSpecsBatched(
   return { screens: allScreens, project, requirements: allRequirements };
 }
 
+// ---------------------------------------------------------------------------
+// Smart fuzzy deduplication
+// ---------------------------------------------------------------------------
+
+const NOISE_WORDS = new Set([
+  "led", "display", "screen", "board", "panel", "rgb", "new", "proposed",
+  "existing", "the", "a", "an", "for", "of", "at", "in", "on", "to",
+  "system", "systems", "sign", "signage", "digital", "electronic",
+]);
+
+function normalizeForDedup(name: string): string[] {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 1 && !NOISE_WORDS.has(w));
+}
+
+function tokenSimilarity(a: string[], b: string[]): number {
+  if (a.length === 0 && b.length === 0) return 1;
+  if (a.length === 0 || b.length === 0) return 0;
+  const setA = new Set(a);
+  const setB = new Set(b);
+  let intersection = 0;
+  for (const t of setA) if (setB.has(t)) intersection++;
+  const union = new Set([...setA, ...setB]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
+function normalizedSubstring(a: string[], b: string[]): boolean {
+  const strA = a.join(" ");
+  const strB = b.join(" ");
+  if (strA.length < 3 || strB.length < 3) return false;
+  return strA.includes(strB) || strB.includes(strA);
+}
+
+function dimensionMatch(a: ExtractedLEDSpec, b: ExtractedLEDSpec): boolean {
+  if (a.widthFt == null || a.heightFt == null) return false;
+  if (b.widthFt == null || b.heightFt == null) return false;
+  return a.widthFt === b.widthFt && a.heightFt === b.heightFt && a.pixelPitchMm === b.pixelPitchMm;
+}
+
+function mergeSpecs(primary: ExtractedLEDSpec, secondary: ExtractedLEDSpec): ExtractedLEDSpec {
+  const merged = { ...primary };
+  merged.widthFt ??= secondary.widthFt;
+  merged.heightFt ??= secondary.heightFt;
+  merged.widthPx ??= secondary.widthPx;
+  merged.heightPx ??= secondary.heightPx;
+  merged.pixelPitchMm ??= secondary.pixelPitchMm;
+  merged.brightnessNits ??= secondary.brightnessNits;
+  merged.serviceType ??= secondary.serviceType;
+  merged.mountingType ??= secondary.mountingType;
+  merged.maxPowerW ??= secondary.maxPowerW;
+  merged.weightLbs ??= secondary.weightLbs;
+  merged.sourcePages = [...new Set([...merged.sourcePages, ...secondary.sourcePages])];
+  if (secondary.specialRequirements.length > merged.specialRequirements.length) {
+    merged.specialRequirements = [...new Set([...merged.specialRequirements, ...secondary.specialRequirements])];
+  }
+  return merged;
+}
+
+function screensMatch(a: ExtractedLEDSpec, b: ExtractedLEDSpec): boolean {
+  // Never merge across environments
+  if (a.environment !== b.environment) return false;
+  // Never merge base bid with alternate
+  if ((a.isAlternate ?? false) !== (b.isAlternate ?? false)) return false;
+  // For alternates, only merge if same alternate ID
+  if (a.isAlternate && b.isAlternate && a.alternateId !== b.alternateId) return false;
+
+  const tokensA = normalizeForDedup(a.name);
+  const tokensB = normalizeForDedup(b.name);
+
+  // Check token similarity
+  if (tokenSimilarity(tokensA, tokensB) >= 0.6) return true;
+  // Check substring match
+  if (normalizedSubstring(tokensA, tokensB)) return true;
+  // Check dimension + pitch match (same physical display)
+  if (dimensionMatch(a, b)) return true;
+
+  return false;
+}
+
 function deduplicateScreens(screens: ExtractedLEDSpec[]): ExtractedLEDSpec[] {
-  const seen = new Map<string, ExtractedLEDSpec>();
+  const deduped: ExtractedLEDSpec[] = [];
 
   for (const screen of screens) {
-    const key = `${screen.name.toLowerCase().trim()}|${screen.location.toLowerCase().trim()}`;
+    const matchIdx = deduped.findIndex((d) => screensMatch(d, screen));
 
-    if (seen.has(key)) {
-      const existing = seen.get(key)!;
+    if (matchIdx >= 0) {
+      const existing = deduped[matchIdx];
       if (screen.confidence > existing.confidence) {
-        seen.set(key, {
-          ...screen,
-          sourcePages: [...new Set([...existing.sourcePages, ...screen.sourcePages])],
-        });
+        deduped[matchIdx] = mergeSpecs(screen, existing);
       } else {
-        existing.sourcePages = [...new Set([...existing.sourcePages, ...screen.sourcePages])];
+        deduped[matchIdx] = mergeSpecs(existing, screen);
       }
     } else {
-      seen.set(key, screen);
+      deduped.push({ ...screen });
     }
   }
 
-  return Array.from(seen.values());
+  return deduped;
 }
 
 function emptyProject(): ExtractedProjectInfo {

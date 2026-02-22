@@ -141,10 +141,11 @@ async function priceDisplay(
   zoneClass: ZoneClass,
   installComplexity: "simple" | "standard" | "complex" | "heavy",
 ): Promise<PricedDisplay> {
-  // Calculate area
-  const widthFt = spec.widthFt || 10;
-  const heightFt = spec.heightFt || 6;
-  const areaSqFt = round2(widthFt * heightFt);
+  // Calculate area — do NOT fake dimensions if missing
+  const widthFt = spec.widthFt || 0;
+  const heightFt = spec.heightFt || 0;
+  const hasDimensions = widthFt > 0 && heightFt > 0;
+  const areaSqFt = hasDimensions ? round2(widthFt * heightFt) : 0;
   const areaSqM = areaSqFt / 10.7639;
 
   // Determine hardware cost
@@ -356,23 +357,34 @@ export async function generateRateCardExcel(
     r.getCell(1).font = { bold: true, name: "Calibri" };
     r.getCell(2).value = pd.spec.pixelPitchMm != null ? `${pd.spec.pixelPitchMm}mm` : "—";
     r.getCell(2).alignment = { horizontal: "center" };
-    r.getCell(3).value = pd.areaSqFt;
-    r.getCell(3).numFmt = "#,##0";
+    const dimsMissing = pd.areaSqFt === 0;
+    r.getCell(3).value = dimsMissing ? "TBD" : pd.areaSqFt;
+    if (!dimsMissing) r.getCell(3).numFmt = "#,##0";
     r.getCell(3).alignment = { horizontal: "center" };
+    if (dimsMissing) r.getCell(3).font = { color: { argb: "FFCC0000" }, italic: true, name: "Calibri" };
     r.getCell(4).value = pd.spec.quantity;
     r.getCell(4).alignment = { horizontal: "center" };
-    r.getCell(5).value = pd.hardwareCost;
-    r.getCell(5).numFmt = FMT;
-    r.getCell(6).value = pd.installCost + pd.pmCost + pd.engCost;
-    r.getCell(6).numFmt = FMT;
-    r.getCell(7).value = pd.totalCost;
-    r.getCell(7).numFmt = FMT;
-    r.getCell(8).value = pd.hardwareSellingPrice;
-    r.getCell(8).numFmt = FMT;
-    r.getCell(9).value = pd.servicesSellingPrice;
-    r.getCell(9).numFmt = FMT;
-    r.getCell(10).value = pd.totalSellingPrice;
-    r.getCell(10).numFmt = FMT;
+    if (dimsMissing) {
+      // Flag cost cells as needing dimensions
+      [5, 6, 7, 8, 9, 10].forEach((c) => {
+        r.getCell(c).value = "Dims Required";
+        r.getCell(c).font = { color: { argb: "FFCC0000" }, italic: true, size: 9, name: "Calibri" };
+        r.getCell(c).alignment = { horizontal: "center" };
+      });
+    } else {
+      r.getCell(5).value = pd.hardwareCost;
+      r.getCell(5).numFmt = FMT;
+      r.getCell(6).value = pd.installCost + pd.pmCost + pd.engCost;
+      r.getCell(6).numFmt = FMT;
+      r.getCell(7).value = pd.totalCost;
+      r.getCell(7).numFmt = FMT;
+      r.getCell(8).value = pd.hardwareSellingPrice;
+      r.getCell(8).numFmt = FMT;
+      r.getCell(9).value = pd.servicesSellingPrice;
+      r.getCell(9).numFmt = FMT;
+      r.getCell(10).value = pd.totalSellingPrice;
+      r.getCell(10).numFmt = FMT;
+    }
     r.getCell(11).value = pd.blendedMarginPct;
     r.getCell(11).numFmt = PCT;
     r.getCell(11).alignment = { horizontal: "center" };
@@ -390,12 +402,14 @@ export async function generateRateCardExcel(
 
     addStripeRow(r, 12, idx % 2 === 0);
 
-    totalHardwareCost += pd.hardwareCost;
-    totalInstallCost += (pd.installCost + pd.pmCost + pd.engCost);
-    totalCost += pd.totalCost;
-    totalHardwareSell += pd.hardwareSellingPrice;
-    totalServicesSell += pd.servicesSellingPrice;
-    totalSell += pd.totalSellingPrice;
+    if (!dimsMissing) {
+      totalHardwareCost += pd.hardwareCost;
+      totalInstallCost += (pd.installCost + pd.pmCost + pd.engCost);
+      totalCost += pd.totalCost;
+      totalHardwareSell += pd.hardwareSellingPrice;
+      totalServicesSell += pd.servicesSellingPrice;
+      totalSell += pd.totalSellingPrice;
+    }
     row++;
   });
 

@@ -14,6 +14,10 @@ import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
 import { assignWorkspaceToUser } from "@/services/anythingllm/userProvisioner";
 import type { AnalyzedPage } from "./types";
 
+// Bigger chunks = fewer uploads = more reliable on large RFPs
+const PAGES_PER_DOC = 25;
+const MAX_RETRIES = 1;
+
 // ---------------------------------------------------------------------------
 // Create workspace + embed pages
 // ---------------------------------------------------------------------------
@@ -74,12 +78,16 @@ export async function provisionRfpWorkspace(opts: {
       }),
     }).catch((e) => console.error("[RFP Workspace] Config failed:", e));
 
-    // 3. Upload relevant pages as documents
-    // Group pages into chunks to avoid too many uploads
-    const PAGES_PER_DOC = 10;
+    // 3. Upload relevant pages as documents (chunked, with retry)
+    const totalChunks = Math.ceil(opts.relevantPages.length / PAGES_PER_DOC);
     const docPaths: string[] = [];
+    let uploadSuccess = 0;
+    let uploadFailed = 0;
+
+    console.log(`[RFP Workspace] Uploading ${opts.relevantPages.length} pages in ${totalChunks} chunk(s)...`);
 
     for (let i = 0; i < opts.relevantPages.length; i += PAGES_PER_DOC) {
+      const chunkIdx = Math.floor(i / PAGES_PER_DOC) + 1;
       const chunk = opts.relevantPages.slice(i, i + PAGES_PER_DOC);
       const startPage = chunk[0]?.pageNumber || i;
       const endPage = chunk[chunk.length - 1]?.pageNumber || i + chunk.length;
@@ -95,37 +103,56 @@ export async function provisionRfpWorkspace(opts: {
 
       const filename = `rfp-pages-${startPage}-${endPage}.txt`;
 
-      try {
-        // Upload as raw text document
-        const formData = new FormData();
-        const blob = new Blob([content], { type: "text/plain" });
-        formData.append("file", blob, filename);
+      // Try upload with retry
+      let uploaded = false;
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const formData = new FormData();
+          const blob = new Blob([content], { type: "text/plain" });
+          formData.append("file", blob, filename);
 
-        const uploadRes = await fetch(`${ANYTHING_LLM_BASE_URL}/document/upload`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
-          },
-          body: formData,
-        });
+          const uploadRes = await fetch(`${ANYTHING_LLM_BASE_URL}/document/upload`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
+            },
+            body: formData,
+          });
 
-        if (uploadRes.ok) {
-          const uploadData = await uploadRes.json();
-          // AnythingLLM returns { success: true, error: null, documents: [{ location: "..." }] }
-          const docs = uploadData?.documents || [];
-          for (const doc of docs) {
-            if (doc.location) docPaths.push(doc.location);
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            const docs = uploadData?.documents || [];
+            for (const doc of docs) {
+              if (doc.location) docPaths.push(doc.location);
+            }
+            uploaded = true;
+            uploadSuccess++;
+            console.log(`[RFP Workspace] Chunk ${chunkIdx}/${totalChunks} uploaded (pages ${startPage}-${endPage})`);
+            break;
+          } else {
+            const errText = await uploadRes.text().catch(() => "unknown");
+            console.error(`[RFP Workspace] Chunk ${chunkIdx}/${totalChunks} failed (${uploadRes.status}): ${errText.slice(0, 100)}`);
           }
+        } catch (err: any) {
+          console.error(`[RFP Workspace] Chunk ${chunkIdx}/${totalChunks} attempt ${attempt + 1} error:`, err.message);
         }
-      } catch (err: any) {
-        console.error(`[RFP Workspace] Upload chunk ${startPage}-${endPage} failed:`, err.message);
+
+        // Wait before retry
+        if (attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
       }
+
+      if (!uploaded) uploadFailed++;
     }
 
+    console.log(`[RFP Workspace] Upload complete: ${uploadSuccess} succeeded, ${uploadFailed} failed out of ${totalChunks}`);
+
     // 4. Add uploaded documents to workspace for embedding
+    // Embed whatever we got — partial is better than nothing
     if (docPaths.length > 0) {
       try {
-        await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${slug}/update-embeddings`, {
+        const embedRes = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${slug}/update-embeddings`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -133,10 +160,17 @@ export async function provisionRfpWorkspace(opts: {
           },
           body: JSON.stringify({ adds: docPaths }),
         });
-        console.log(`[RFP Workspace] Embedded ${docPaths.length} document(s) into ${slug}`);
+        if (embedRes.ok) {
+          console.log(`[RFP Workspace] Embedded ${docPaths.length} document(s) into ${slug}`);
+        } else {
+          const errText = await embedRes.text().catch(() => "unknown");
+          console.error(`[RFP Workspace] Embedding failed (${embedRes.status}): ${errText.slice(0, 200)}`);
+        }
       } catch (err: any) {
         console.error("[RFP Workspace] Embedding failed:", err.message);
       }
+    } else {
+      console.warn("[RFP Workspace] No documents uploaded — workspace will be empty");
     }
 
     // 5. Assign workspace to uploading user (so they only see their own)
@@ -146,6 +180,7 @@ export async function provisionRfpWorkspace(opts: {
       );
     }
 
+    // Always return slug — even empty workspace is better than no workspace
     return slug;
   } catch (err: any) {
     console.error("[RFP Workspace] Provisioning failed:", err.message);
