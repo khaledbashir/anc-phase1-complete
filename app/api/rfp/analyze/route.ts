@@ -1,324 +1,319 @@
 /**
- * POST /api/rfp/analyze — Unified RFP Analysis (SSE Streaming)
+ * POST /api/rfp/analyze — Unified RFP Analysis (Automatic Pipeline)
  *
- * Accepts multipart/form-data with one or more PDF files.
- * Streams real-time progress events via Server-Sent Events.
+ * The user uploads a PDF. Everything else is automatic:
+ *   1. Kreuzberg OCR → fast text extraction (all pages)
+ *   2. Classify + triage → keep relevant, kill noise
+ *   3. Mistral OCR → structured markdown on relevant pages only
+ *   4. AI → extract LED specs from structured content
  *
- * Each event is a JSON object with { type, data }.
- * Final event has type "complete" with the full result.
+ * Streams real-time progress via SSE. User sees stages updating,
+ * then gets clean results at the end.
+ *
+ * Accepts: sessionId from /api/rfp/analyze/upload
  */
 
 import { NextRequest } from "next/server";
-import { extractWithMistral } from "@/services/rfp/unified/mistralOcrClient";
+import { readFile } from "fs/promises";
+import { existsSync } from "fs";
+import path from "path";
 import { extractText } from "@/services/kreuzberg/kreuzbergClient";
-import { classifyAllPages } from "@/services/rfp/unified/pageClassifier";
+import { extractWithMistral } from "@/services/rfp/unified/mistralOcrClient";
 import { extractLEDSpecs } from "@/services/rfp/unified/specExtractor";
 import type {
   RFPAnalysisResult,
   AnalyzedPage,
   ExtractedLEDSpec,
+  PageCategory,
 } from "@/services/rfp/unified/types";
-import type { MistralOcrPage } from "@/services/rfp/unified/mistralOcrClient";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
+const UPLOAD_DIR = "/tmp/rfp-uploads";
+
+// Keyword banks
+const LED_KEYWORDS = [
+  "led", "display", "videoboard", "video board", "ribbon", "fascia",
+  "scoreboard", "pixel pitch", "nits", "brightness", "resolution",
+  "cabinet", "module", "11 06 60", "11 63 10", "display schedule",
+  "screen", "marquee", "dvled", "direct view", "viewing distance",
+];
+
+const NOISE_KEYWORDS = [
+  "insurance", "indemnif", "liability", "warranty", "bond",
+  "liquidated damages", "termination", "dispute", "arbitration",
+  "terms and conditions", "general conditions", "table of contents",
+  "appendix", "certification", "biography", "qualifications",
+  "references", "company profile",
+];
+
 export async function POST(request: NextRequest) {
-  let files: Array<{ buffer: Buffer; filename: string }> = [];
-
+  let body: { sessionId: string; filename?: string };
   try {
-    const formData = await request.formData();
-    for (const [, value] of formData.entries()) {
-      if (value instanceof File) {
-        const arrayBuffer = await value.arrayBuffer();
-        files.push({
-          buffer: Buffer.from(arrayBuffer),
-          filename: value.name || `file-${files.length}.pdf`,
-        });
-      }
-    }
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: `Upload failed: ${err instanceof Error ? err.message : String(err)}` }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    body = await request.json();
+  } catch {
+    return new Response(JSON.stringify({ error: "Invalid JSON — send { sessionId }" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
-  if (files.length === 0) {
-    return new Response(
-      JSON.stringify({ error: "No files uploaded." }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+  const filePath = path.join(UPLOAD_DIR, `${body.sessionId}.pdf`);
+  if (!existsSync(filePath)) {
+    return new Response(JSON.stringify({ error: "Session not found. Upload first." }), {
+      status: 404,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
-  // Stream pipeline progress via SSE
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     async start(controller) {
       const send = (type: string, data: any) => {
-        const event = `data: ${JSON.stringify({ type, ...data })}\n\n`;
-        controller.enqueue(encoder.encode(event));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type, ...data })}\n\n`));
       };
 
       const startTime = Date.now();
 
       try {
         // =============================================================
-        // STAGE 1: Upload received — get page counts
+        // STEP 1: Read file
+        // =============================================================
+        send("stage", { stage: "reading", message: "Loading PDF..." });
+        const buffer = await readFile(filePath);
+        const sizeMb = (buffer.length / 1024 / 1024).toFixed(1);
+
+        // =============================================================
+        // STEP 2: Kreuzberg OCR — fast text extraction (ALL pages)
         // =============================================================
         send("stage", {
-          stage: "uploaded",
-          message: `Received ${files.length} file(s), ${(files.reduce((s, f) => s + f.buffer.length, 0) / 1024 / 1024).toFixed(1)}MB total`,
+          stage: "ocr",
+          message: `Extracting text from all pages (${sizeMb}MB)...`,
+          detail: "Kreuzberg: PaddleOCR + Tesseract",
+        });
+
+        const ocrResult = await extractText(buffer, body.filename || "document.pdf");
+
+        send("stage", {
+          stage: "ocr_done",
+          message: `${ocrResult.totalPages.toLocaleString()} pages scanned`,
+          totalPages: ocrResult.totalPages,
+          totalChars: ocrResult.text.length,
         });
 
         // =============================================================
-        // STAGE 2: Kreuzberg OCR — extract text from all pages
+        // STEP 3: Classify + triage — kill the noise
         // =============================================================
         send("stage", {
-          stage: "kreuzberg",
-          message: "Extracting text via Kreuzberg (PaddleOCR + Tesseract)...",
+          stage: "triaging",
+          message: `Filtering ${ocrResult.totalPages.toLocaleString()} pages — keeping only relevant content...`,
         });
 
-        const kreuzbergResults: Array<{
-          filename: string;
-          pages: Array<{ pageNumber: number; text: string }>;
-          totalPages: number;
+        const classifiedPages: Array<{
+          pageNumber: number;
+          text: string;
+          category: PageCategory;
+          relevance: number;
+          isDrawing: boolean;
+          ledScore: number;
         }> = [];
 
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          send("progress", {
-            stage: "kreuzberg",
-            message: `OCR: ${file.filename}`,
-            current: i + 1,
-            total: files.length,
-          });
+        for (const page of ocrResult.pages) {
+          const text = page.text.toLowerCase();
+          const textLength = page.text.trim().length;
+          const isDrawing = textLength < 150;
 
-          try {
-            const result = await extractText(file.buffer, file.filename);
-            kreuzbergResults.push({
-              filename: file.filename,
-              pages: result.pages,
-              totalPages: result.totalPages,
-            });
-
-            send("progress", {
-              stage: "kreuzberg",
-              message: `${file.filename}: ${result.totalPages} pages extracted`,
-              current: i + 1,
-              total: files.length,
-            });
-          } catch (err: any) {
-            send("warning", {
-              message: `Kreuzberg failed for ${file.filename}: ${err.message}`,
-            });
-            kreuzbergResults.push({
-              filename: file.filename,
-              pages: [],
-              totalPages: 0,
-            });
+          // Score LED relevance
+          let ledScore = 0;
+          for (const kw of LED_KEYWORDS) {
+            if (text.includes(kw)) ledScore++;
           }
+
+          // Score noise
+          let noiseScore = 0;
+          for (const kw of NOISE_KEYWORDS) {
+            if (text.includes(kw)) noiseScore++;
+          }
+
+          // Classify
+          let category: PageCategory = "unknown";
+          let relevance = 20;
+
+          if (isDrawing) {
+            category = "drawing";
+            relevance = 60;
+          } else if (ledScore >= 2) {
+            category = "led_specs";
+            relevance = Math.min(100, 70 + ledScore * 5);
+          } else if (ledScore === 1 && noiseScore === 0) {
+            category = "technical";
+            relevance = 50;
+          } else if (noiseScore >= 3) {
+            category = "legal";
+            relevance = 5;
+          } else if (textLength < 100) {
+            category = "boilerplate";
+            relevance = 5;
+          } else if (text.includes("scope of work") || text.includes("shall provide")) {
+            category = "scope_of_work";
+            relevance = 55;
+          } else if (text.includes("cost") || text.includes("price") || text.includes("bid")) {
+            category = "cost_schedule";
+            relevance = 45;
+          }
+
+          classifiedPages.push({
+            pageNumber: page.pageNumber,
+            text: page.text,
+            category,
+            relevance,
+            isDrawing,
+            ledScore,
+          });
         }
 
-        const totalPages = kreuzbergResults.reduce((s, r) => s + r.totalPages, 0);
+        // Keep pages with relevance >= 40
+        const relevantPages = classifiedPages.filter((p) => p.relevance >= 40);
+        const noisePages = classifiedPages.filter((p) => p.relevance < 40);
+
         send("stage", {
-          stage: "kreuzberg_done",
-          message: `Text extracted: ${totalPages} pages across ${files.length} file(s)`,
-          totalPages,
+          stage: "triaged",
+          message: `Kept ${relevantPages.length} relevant pages, filtered out ${noisePages.length} noise pages`,
+          relevant: relevantPages.length,
+          noise: noisePages.length,
+          led: relevantPages.filter((p) => p.category === "led_specs").length,
+          drawings: relevantPages.filter((p) => p.isDrawing).length,
         });
 
         // =============================================================
-        // STAGE 3: Mistral OCR — structured markdown + tables + drawings
+        // STEP 4: Mistral OCR — structured extraction (relevant pages ONLY)
         // =============================================================
-        send("stage", {
-          stage: "mistral",
-          message: "Sending to Mistral OCR for structured extraction...",
-        });
 
-        const mistralResults: Array<{
-          filename: string;
-          pages: MistralOcrPage[];
-        }> = [];
+        let mistralPages: AnalyzedPage[] = [];
 
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          send("progress", {
-            stage: "mistral",
-            message: `Mistral OCR: ${file.filename}`,
-            current: i + 1,
-            total: files.length,
+        if (relevantPages.length > 0) {
+          send("stage", {
+            stage: "vision",
+            message: `Sending ${relevantPages.length} pages to Mistral OCR for structured extraction...`,
+            detail: "Tables, markdown, images, headers",
           });
 
-          try {
-            const result = await extractWithMistral(file.buffer, file.filename);
-            mistralResults.push({
-              filename: file.filename,
-              pages: result.pages,
-            });
+          // Build a smaller PDF with only relevant pages
+          const { PDFDocument } = await import("pdf-lib");
+          const srcDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+          const filteredDoc = await PDFDocument.create();
 
-            send("progress", {
-              stage: "mistral",
-              message: `${file.filename}: ${result.pages.length} pages — structured markdown ready`,
-              current: i + 1,
-              total: files.length,
-            });
-          } catch (err: any) {
-            send("warning", {
-              message: `Mistral OCR failed for ${file.filename}: ${err.message}`,
-            });
-            mistralResults.push({ filename: file.filename, pages: [] });
-          }
-        }
-
-        send("stage", {
-          stage: "mistral_done",
-          message: `Mistral OCR complete: ${mistralResults.reduce((s, r) => s + r.pages.length, 0)} pages processed`,
-        });
-
-        // =============================================================
-        // STAGE 4: Classify pages
-        // =============================================================
-        send("stage", {
-          stage: "classifying",
-          message: "Classifying pages by content type...",
-        });
-
-        const allPages: AnalyzedPage[] = [];
-        const fileStats: RFPAnalysisResult["files"] = [];
-        let globalOffset = 0;
-
-        for (const mr of mistralResults) {
-          const classified = classifyAllPages(mr.pages);
-
-          // Enrich with Kreuzberg text (more accurate for keyword matching)
-          const kr = kreuzbergResults.find((k) => k.filename === mr.filename);
-          if (kr) {
-            for (const page of classified) {
-              const kPage = kr.pages.find((p) => p.pageNumber === page.pageNumber);
-              if (kPage && kPage.text.length > page.markdown.length) {
-                // Kreuzberg got more text — use it for classification but keep Mistral markdown for display
-                // (Mistral has better formatting, Kreuzberg has better raw text extraction)
-              }
+          for (const rp of relevantPages) {
+            const idx = rp.pageNumber - 1;
+            if (idx >= 0 && idx < srcDoc.getPageCount()) {
+              const [copiedPage] = await filteredDoc.copyPages(srcDoc, [idx]);
+              filteredDoc.addPage(copiedPage);
             }
           }
 
-          for (const page of classified) {
-            page.pageNumber += globalOffset;
-            page.index += globalOffset;
-            allPages.push(page);
-          }
+          const filteredBuffer = Buffer.from(await filteredDoc.save());
 
-          fileStats.push({
-            filename: mr.filename,
-            pageCount: mr.pages.length,
-            sizeBytes: files.find((f) => f.filename === mr.filename)?.buffer.length || 0,
+          send("progress", {
+            stage: "vision",
+            message: `Built ${relevantPages.length}-page PDF (${(filteredBuffer.length / 1024 / 1024).toFixed(1)}MB) — sending to Mistral OCR...`,
           });
 
-          globalOffset += mr.pages.length;
+          try {
+            const mistralResult = await extractWithMistral(filteredBuffer, "relevant-pages.pdf");
+
+            mistralPages = mistralResult.pages.map((mp, i) => ({
+              index: i,
+              pageNumber: relevantPages[i]?.pageNumber || i + 1,
+              category: relevantPages[i]?.category || "unknown",
+              relevance: relevantPages[i]?.relevance || 50,
+              markdown: mp.markdown,
+              tables: mp.tables,
+              visionAnalyzed: true,
+              summary: mp.markdown.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
+              classifiedBy: "mistral-ocr" as const,
+            }));
+
+            send("stage", {
+              stage: "vision_done",
+              message: `Mistral OCR extracted structured content from ${mistralPages.length} pages`,
+              tables: mistralPages.reduce((s, p) => s + p.tables.length, 0),
+            });
+          } catch (err: any) {
+            send("warning", {
+              message: `Mistral OCR failed: ${err.message}. Falling back to Kreuzberg text.`,
+            });
+
+            // Fallback: use Kreuzberg text as markdown
+            mistralPages = relevantPages.map((rp, i) => ({
+              index: i,
+              pageNumber: rp.pageNumber,
+              category: rp.category,
+              relevance: rp.relevance,
+              markdown: rp.text,
+              tables: [],
+              visionAnalyzed: false,
+              summary: rp.text.split("\n").find((l) => l.trim().length > 10)?.slice(0, 150) || "",
+              classifiedBy: "text-heuristic" as const,
+            }));
+          }
         }
 
-        const drawingPages = allPages.filter((p) => p.category === "drawing");
-        const ledPages = allPages.filter((p) => p.category === "led_specs");
-        const costPages = allPages.filter((p) => p.category === "cost_schedule");
-
-        send("stage", {
-          stage: "classified",
-          message: `Classified: ${ledPages.length} LED spec pages, ${drawingPages.length} drawings, ${costPages.length} cost pages, ${allPages.length - ledPages.length - drawingPages.length - costPages.length} other`,
-          breakdown: {
-            led_specs: ledPages.length,
-            drawings: drawingPages.length,
-            cost: costPages.length,
-            other: allPages.length - ledPages.length - drawingPages.length - costPages.length,
-          },
-        });
-
         // =============================================================
-        // STAGE 5: AnythingLLM — extract LED specs from relevant pages
+        // STEP 5: AI extraction — pull LED specs
         // =============================================================
-        send("stage", {
-          stage: "extracting",
-          message: "Extracting LED display specifications...",
-        });
 
-        const relevantPages = allPages.filter(
-          (p) =>
-            p.relevance >= 30 &&
-            p.category !== "legal" &&
-            p.category !== "boilerplate" &&
-            p.markdown.trim().length > 50,
-        );
-
-        let textSpecs: ExtractedLEDSpec[] = [];
+        let screens: ExtractedLEDSpec[] = [];
         let projectInfo: any = null;
 
-        if (relevantPages.length > 0) {
-          send("progress", {
+        if (mistralPages.length > 0) {
+          send("stage", {
             stage: "extracting",
-            message: `Analyzing ${relevantPages.length} relevant pages for LED specs...`,
-            current: 0,
-            total: relevantPages.length,
+            message: `AI analyzing ${mistralPages.length} pages for LED display specifications...`,
           });
 
-          const extractResult = await extractLEDSpecs(relevantPages);
-          textSpecs = extractResult.screens;
-          projectInfo = extractResult.project;
+          const result = await extractLEDSpecs(mistralPages);
+          screens = result.screens;
+          projectInfo = result.project;
 
-          send("progress", {
-            stage: "extracting",
-            message: `Found ${textSpecs.length} LED display(s)`,
-            current: relevantPages.length,
-            total: relevantPages.length,
+          send("stage", {
+            stage: "extracted",
+            message: `Found ${screens.length} LED display(s)`,
+            specsFound: screens.length,
           });
         }
 
         // =============================================================
-        // STAGE 6: Build final result
+        // STEP 6: Build final result
         // =============================================================
-        const allSpecs = deduplicateSpecs([
-          ...textSpecs,
-          ...allPages
-            .filter((p) => p.extractedSpecs && p.extractedSpecs.length > 0)
-            .flatMap((p) => p.extractedSpecs!),
-        ]);
 
-        const highConfidence = allSpecs.filter((s) => s.confidence >= 0.8).length;
-        const accuracy: "High" | "Standard" | "Low" =
-          allSpecs.length === 0
-            ? "Low"
-            : highConfidence / allSpecs.length >= 0.7
-              ? "High"
-              : highConfidence / allSpecs.length >= 0.4
-                ? "Standard"
-                : "Low";
+        const processingTime = Date.now() - startTime;
 
-        const result: RFPAnalysisResult = {
-          pages: allPages,
-          screens: allSpecs,
-          project: projectInfo ?? {
-            clientName: null,
-            projectName: null,
-            venue: null,
-            location: null,
-            isOutdoor: false,
-            isUnionLabor: false,
-            bondRequired: false,
-            specialRequirements: [],
-            schedulePhases: [],
+        send("complete", {
+          result: {
+            screens,
+            project: projectInfo ?? {
+              clientName: null, projectName: null, venue: null, location: null,
+              isOutdoor: false, isUnionLabor: false, bondRequired: false,
+              specialRequirements: [], schedulePhases: [],
+            },
+            pages: mistralPages,
+            stats: {
+              totalPages: ocrResult.totalPages,
+              relevantPages: relevantPages.length,
+              noisePages: noisePages.length,
+              drawingPages: classifiedPages.filter((p) => p.isDrawing).length,
+              specsFound: screens.length,
+              processingTimeMs: processingTime,
+            },
+            triage: classifiedPages.map((p) => ({
+              pageNumber: p.pageNumber,
+              category: p.category,
+              relevance: p.relevance,
+              isDrawing: p.isDrawing,
+            })),
           },
-          stats: {
-            totalPages: allPages.length,
-            relevantPages: allPages.filter((p) => p.relevance >= 50).length,
-            drawingPages: drawingPages.length,
-            specsFound: allSpecs.length,
-            extractionAccuracy: accuracy,
-            processingTimeMs: Date.now() - startTime,
-            mistralPagesProcessed: mistralResults.reduce((s, r) => s + r.pages.length, 0),
-            geminiPagesProcessed: relevantPages.length,
-          },
-          files: fileStats,
-        };
-
-        send("complete", { result });
+        });
       } catch (err: any) {
         send("error", { message: err.message || "Pipeline failed" });
       } finally {
@@ -334,39 +329,4 @@ export async function POST(request: NextRequest) {
       Connection: "keep-alive",
     },
   });
-}
-
-// ---------------------------------------------------------------------------
-// Deduplicate specs (copied from analyzeRfp — keeps server route self-contained)
-// ---------------------------------------------------------------------------
-
-function deduplicateSpecs(specs: ExtractedLEDSpec[]): ExtractedLEDSpec[] {
-  if (specs.length === 0) return [];
-  const deduped: ExtractedLEDSpec[] = [];
-  for (const spec of specs) {
-    const key = spec.name.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
-    const existing = deduped.find(
-      (d) => d.name.toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim() === key && d.environment === spec.environment,
-    );
-    if (existing) {
-      if (spec.confidence > existing.confidence) {
-        const merged = { ...spec };
-        merged.widthFt ??= existing.widthFt;
-        merged.heightFt ??= existing.heightFt;
-        merged.pixelPitchMm ??= existing.pixelPitchMm;
-        merged.brightnessNits ??= existing.brightnessNits;
-        merged.sourcePages = [...new Set([...merged.sourcePages, ...existing.sourcePages])];
-        deduped[deduped.indexOf(existing)] = merged;
-      } else {
-        existing.widthFt ??= spec.widthFt;
-        existing.heightFt ??= spec.heightFt;
-        existing.pixelPitchMm ??= spec.pixelPitchMm;
-        existing.brightnessNits ??= spec.brightnessNits;
-        existing.sourcePages = [...new Set([...existing.sourcePages, ...spec.sourcePages])];
-      }
-    } else {
-      deduped.push({ ...spec });
-    }
-  }
-  return deduped;
 }

@@ -13,6 +13,7 @@ import {
   Sparkles,
   Monitor,
   Database,
+  Filter,
 } from "lucide-react";
 
 export interface PipelineEvent {
@@ -22,7 +23,13 @@ export interface PipelineEvent {
   current?: number;
   total?: number;
   totalPages?: number;
-  breakdown?: Record<string, number>;
+  totalChars?: number;
+  relevant?: number;
+  noise?: number;
+  led?: number;
+  drawings?: number;
+  tables?: number;
+  specsFound?: number;
   result?: any;
 }
 
@@ -36,7 +43,7 @@ interface StageState {
   key: string;
   label: string;
   icon: typeof UploadCloud;
-  status: "pending" | "active" | "done" | "error";
+  status: "pending" | "active" | "done" | "error" | "warning";
   detail?: string;
   count?: string;
 }
@@ -58,7 +65,6 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isLoading]);
 
-  // Build stage states from events
   const stages: StageState[] = buildStages(events);
 
   const handleDragOver = useCallback((e: React.DragEvent) => { e.preventDefault(); if (!isLoading) setIsDragging(true); }, [isLoading]);
@@ -86,7 +92,6 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
 
   const formatTime = (s: number) => { const m = Math.floor(s / 60); return m > 0 ? `${m}m ${s % 60}s` : `${s}s`; };
 
-  // Latest message for display
   const latestMessage = [...events].reverse().find((e) => e.message)?.message || "Starting...";
 
   return (
@@ -136,6 +141,7 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
                         stage.status === "active" ? "bg-primary/10 text-primary font-medium"
                         : stage.status === "done" ? "text-foreground/70"
                         : stage.status === "error" ? "text-destructive/70"
+                        : stage.status === "warning" ? "text-amber-600/70"
                         : "text-muted-foreground/30"
                       }`}
                     >
@@ -145,6 +151,8 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
                         <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                       ) : stage.status === "error" ? (
                         <AlertCircle className="w-4 h-4 shrink-0" />
+                      ) : stage.status === "warning" ? (
+                        <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
                       ) : (
                         <Icon className="w-4 h-4 shrink-0" />
                       )}
@@ -170,7 +178,7 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
               <div>
                 <h3 className="text-xl font-semibold text-foreground">Upload RFP Documents</h3>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Drop one or more PDFs. We&apos;ll OCR every page, classify content, and extract LED specs.
+                  Drop a PDF. We&apos;ll OCR every page, filter noise, and extract LED specs automatically.
                 </p>
               </div>
               <div className="flex gap-3 text-xs text-muted-foreground">
@@ -178,7 +186,7 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
                   <FileIcon className="w-3 h-3" /> PDF up to 2GB
                 </span>
                 <span className="bg-muted px-3 py-1.5 rounded-full flex items-center gap-1.5">
-                  <Brain className="w-3 h-3" /> Multi-file support
+                  <Sparkles className="w-3 h-3" /> Fully automatic
                 </span>
               </div>
             </>
@@ -197,91 +205,126 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
 }
 
 // ---------------------------------------------------------------------------
-// Build stages from SSE events
+// Build stages from SSE events — matches route.ts event names exactly
 // ---------------------------------------------------------------------------
 
 function buildStages(events: PipelineEvent[]): StageState[] {
   const stages: StageState[] = [
-    { key: "uploaded", label: "Upload received", icon: UploadCloud, status: "pending" },
-    { key: "kreuzberg", label: "OCR text extraction (Kreuzberg)", icon: Database, status: "pending" },
-    { key: "mistral", label: "Structured extraction (Mistral OCR)", icon: Eye, status: "pending" },
-    { key: "classifying", label: "Page classification", icon: Brain, status: "pending" },
-    { key: "extracting", label: "LED spec extraction (AI)", icon: Monitor, status: "pending" },
+    { key: "upload",    label: "Upload received",                  icon: UploadCloud, status: "pending" },
+    { key: "ocr",       label: "Text extraction (Kreuzberg OCR)",  icon: Database,    status: "pending" },
+    { key: "triage",    label: "Page triage & classification",     icon: Filter,      status: "pending" },
+    { key: "vision",    label: "Structured extraction (Mistral)",  icon: Eye,         status: "pending" },
+    { key: "extract",   label: "LED spec extraction (AI)",         icon: Monitor,     status: "pending" },
   ];
 
   let currentActive: string | null = null;
 
   for (const event of events) {
     if (event.type === "stage") {
-      const stageKey = event.stage || "";
+      const s = event.stage || "";
 
-      // Mark completed stages
-      if (stageKey === "kreuzberg") {
-        markDone(stages, "uploaded");
-        currentActive = "kreuzberg";
-      } else if (stageKey === "kreuzberg_done") {
-        markDone(stages, "kreuzberg");
-        // Add page count
-        const s = stages.find((s) => s.key === "kreuzberg");
-        if (s && event.totalPages) s.count = `${event.totalPages} pages`;
-      } else if (stageKey === "mistral") {
-        markDone(stages, "kreuzberg");
-        currentActive = "mistral";
-      } else if (stageKey === "mistral_done") {
-        markDone(stages, "mistral");
-      } else if (stageKey === "classifying") {
-        markDone(stages, "mistral");
-        currentActive = "classifying";
-      } else if (stageKey === "classified") {
-        markDone(stages, "classifying");
-        const s = stages.find((s) => s.key === "classifying");
-        if (s && event.breakdown) {
-          const b = event.breakdown;
-          s.count = `${b.led_specs || 0} LED, ${b.drawings || 0} draw`;
+      // Upload phase
+      if (s === "uploading") {
+        currentActive = "upload";
+      } else if (s === "uploaded") {
+        markDone(stages, "upload");
+      }
+
+      // Kreuzberg OCR
+      else if (s === "reading" || s === "ocr") {
+        markDone(stages, "upload");
+        currentActive = "ocr";
+      } else if (s === "ocr_done") {
+        markDone(stages, "ocr");
+        const st = stages.find((x) => x.key === "ocr");
+        if (st) {
+          if (event.totalPages) st.count = `${event.totalPages} pages`;
         }
-      } else if (stageKey === "extracting") {
-        markDone(stages, "classifying");
-        currentActive = "extracting";
-      } else if (stageKey === "uploaded") {
-        currentActive = "uploaded";
+      }
+
+      // Triage
+      else if (s === "triaging") {
+        markDone(stages, "ocr");
+        currentActive = "triage";
+      } else if (s === "triaged") {
+        markDone(stages, "triage");
+        const st = stages.find((x) => x.key === "triage");
+        if (st && event.relevant != null && event.noise != null) {
+          st.count = `${event.relevant} kept, ${event.noise} filtered`;
+        }
+      }
+
+      // Mistral OCR (vision)
+      else if (s === "vision") {
+        markDone(stages, "triage");
+        currentActive = "vision";
+      } else if (s === "vision_done") {
+        markDone(stages, "vision");
+        const st = stages.find((x) => x.key === "vision");
+        if (st && event.tables != null) {
+          st.count = `${event.tables} tables found`;
+        }
+      }
+
+      // AI extraction
+      else if (s === "extracting") {
+        markDone(stages, "vision");
+        currentActive = "extract";
+      } else if (s === "extracted") {
+        markDone(stages, "extract");
+        const st = stages.find((x) => x.key === "extract");
+        if (st && event.specsFound != null) {
+          st.count = `${event.specsFound} displays`;
+        }
       }
     }
 
+    // Warnings (e.g. Mistral OCR fallback)
+    if (event.type === "warning") {
+      if (currentActive === "vision") {
+        const st = stages.find((x) => x.key === "vision");
+        if (st) { st.status = "warning"; st.detail = event.message; }
+      }
+    }
+
+    // Progress updates
     if (event.type === "progress") {
       const stageKey = event.stage || "";
-      const s = stages.find((s) => s.key === stageKey);
-      if (s && event.current != null && event.total != null) {
-        s.count = `${event.current}/${event.total}`;
-        s.detail = event.message;
-      }
+      const keyMap: Record<string, string> = { vision: "vision", ocr: "ocr" };
+      const mappedKey = keyMap[stageKey] || stageKey;
+      const st = stages.find((x) => x.key === mappedKey);
+      if (st) st.detail = event.message;
     }
 
+    // Complete — all done
     if (event.type === "complete") {
-      // Mark all done
-      stages.forEach((s) => { s.status = "done"; });
-      const s = stages.find((s) => s.key === "extracting");
-      if (s && event.result?.screens) s.count = `${event.result.screens.length} displays`;
+      stages.forEach((st) => { st.status = "done"; });
+      const st = stages.find((x) => x.key === "extract");
+      if (st && event.result?.screens) st.count = `${event.result.screens.length} displays`;
       return stages;
     }
 
+    // Error
     if (event.type === "error") {
       if (currentActive) {
-        const s = stages.find((s) => s.key === currentActive);
-        if (s) { s.status = "error"; s.detail = event.message; }
+        const st = stages.find((x) => x.key === currentActive);
+        if (st) { st.status = "error"; st.detail = event.message; }
       }
     }
   }
 
   // Set active stage
   if (currentActive) {
-    const s = stages.find((s) => s.key === currentActive);
-    if (s && s.status !== "done" && s.status !== "error") s.status = "active";
+    const st = stages.find((x) => x.key === currentActive);
+    if (st && st.status !== "done" && st.status !== "error" && st.status !== "warning") {
+      st.status = "active";
+    }
   }
 
   return stages;
 }
 
 function markDone(stages: StageState[], key: string) {
-  const s = stages.find((s) => s.key === key);
-  if (s) s.status = "done";
+  const s = stages.find((x) => x.key === key);
+  if (s && s.status !== "error" && s.status !== "warning") s.status = "done";
 }

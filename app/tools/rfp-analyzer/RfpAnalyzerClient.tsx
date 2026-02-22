@@ -2,57 +2,131 @@
 
 import React, { useState, useCallback, useRef } from "react";
 import UploadZone, { type PipelineEvent } from "./_components/UploadZone";
-import SummaryCards from "./_components/SummaryCards";
-import PageGrid from "./_components/PageGrid";
-import PageDetail from "./_components/PageDetail";
 import SpecsTable from "./_components/SpecsTable";
-import type { RFPAnalysisResult, AnalyzedPage } from "@/services/rfp/unified/types";
-import { RefreshCcw, Monitor } from "lucide-react";
+import type { ExtractedLEDSpec } from "@/services/rfp/unified/types";
+import {
+  RefreshCcw,
+  Monitor,
+  FileText,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  Building2,
+  Zap,
+} from "lucide-react";
+
+// ==========================================================================
+// Types
+// ==========================================================================
+
+interface AnalysisResult {
+  screens: ExtractedLEDSpec[];
+  project: {
+    clientName: string | null;
+    projectName: string | null;
+    venue: string | null;
+    location: string | null;
+    isOutdoor: boolean;
+    isUnionLabor: boolean;
+    bondRequired: boolean;
+    specialRequirements: string[];
+  };
+  stats: {
+    totalPages: number;
+    relevantPages: number;
+    noisePages: number;
+    drawingPages: number;
+    specsFound: number;
+    processingTimeMs: number;
+  };
+  triage: Array<{
+    pageNumber: number;
+    category: string;
+    relevance: number;
+    isDrawing: boolean;
+  }>;
+}
+
+type Phase = "upload" | "processing" | "results";
+
+// ==========================================================================
+// Main Component — thin client, all heavy lifting is server-side
+// ==========================================================================
 
 export default function RfpAnalyzerClient() {
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [phase, setPhase] = useState<Phase>("upload");
   const [events, setEvents] = useState<PipelineEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<RFPAnalysisResult | null>(null);
-  const [selectedPages, setSelectedPages] = useState<Set<number>>(new Set());
-  const [activePage, setActivePage] = useState<AnalyzedPage | null>(null);
+  const [fileInfo, setFileInfo] = useState<{ filename: string; pageCount: number; sizeMb: string } | null>(null);
+  const [result, setResult] = useState<AnalysisResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // =========================================================================
-  // SSE Upload + Pipeline
-  // =========================================================================
+  // ========================================================================
+  // Upload → auto-pipeline (one SSE stream, fully automatic)
+  // ========================================================================
 
   const handleUpload = useCallback(async (files: File[]) => {
-    setIsProcessing(true);
-    setError(null);
-    setResult(null);
-    setSelectedPages(new Set());
-    setActivePage(null);
-    setEvents([]);
+    const file = files[0];
+    if (!file) return;
 
-    abortRef.current = new AbortController();
+    setPhase("processing");
+    setError(null);
+    setEvents([]);
+    setResult(null);
 
     try {
-      const formData = new FormData();
-      files.forEach((f) => formData.append("file", f));
+      // ------ Step 1: Upload file with XHR progress ------
+      setEvents([{ type: "stage", stage: "uploading", message: `Uploading ${file.name} (${(file.size / 1024 / 1024).toFixed(0)}MB)...` }]);
+
+      const uploadRes = await new Promise<{ sessionId: string; filename: string; pageCount: number; sizeMb: string }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/rfp/analyze/upload");
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const pct = Math.round((e.loaded / e.total) * 100);
+            setEvents([{
+              type: "stage",
+              stage: "uploading",
+              message: `Uploading: ${pct}% (${(e.loaded / 1024 / 1024).toFixed(0)}MB / ${(e.total / 1024 / 1024).toFixed(0)}MB)`,
+            }]);
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(JSON.parse(xhr.responseText));
+          } else {
+            try { reject(new Error(JSON.parse(xhr.responseText)?.error || `Upload failed (${xhr.status})`)); }
+            catch { reject(new Error(`Upload failed (${xhr.status})`)); }
+          }
+        };
+        xhr.onerror = () => reject(new Error("Upload failed — network error"));
+        xhr.send((() => { const fd = new FormData(); fd.append("file", file); return fd; })());
+      });
+
+      setFileInfo({ filename: uploadRes.filename, pageCount: uploadRes.pageCount, sizeMb: uploadRes.sizeMb });
+      setEvents([{ type: "stage", stage: "uploaded", message: `Uploaded: ${uploadRes.pageCount.toLocaleString()} pages, ${uploadRes.sizeMb}MB` }]);
+
+      // ------ Step 2: Start automatic pipeline (SSE) ------
+      abortRef.current = new AbortController();
 
       const response = await fetch("/api/rfp/analyze", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: uploadRes.sessionId, filename: uploadRes.filename }),
         signal: abortRef.current.signal,
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        let errMsg: string;
-        try { errMsg = JSON.parse(errText).error || errText; } catch { errMsg = errText; }
-        throw new Error(errMsg);
+        const errBody = await response.text();
+        try { throw new Error(JSON.parse(errBody)?.error || `Pipeline failed (${response.status})`); }
+        catch { throw new Error(`Pipeline failed (${response.status})`); }
       }
 
-      // Read SSE stream
+      // ------ Step 3: Consume SSE stream ------
       const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response stream");
-
+      if (!reader) throw new Error("No stream");
       const decoder = new TextDecoder();
       let buffer = "";
 
@@ -65,125 +139,178 @@ export default function RfpAnalyzerClient() {
         buffer = lines.pop() || "";
 
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const event: PipelineEvent = JSON.parse(line.slice(6));
-              setEvents((prev) => [...prev, event]);
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const event: PipelineEvent = JSON.parse(line.slice(6));
+            setEvents((prev) => [...prev, event]);
 
-              if (event.type === "complete" && event.result) {
-                const data = event.result as RFPAnalysisResult;
-                setResult(data);
-                const autoSelect = new Set<number>();
-                data.pages.forEach((p) => { if (p.relevance >= 50) autoSelect.add(p.index); });
-                setSelectedPages(autoSelect);
-              }
-
-              if (event.type === "error") {
-                setError(event.message || "Pipeline error");
-              }
-            } catch {
-              // Ignore parse errors in stream
+            if (event.type === "complete" && event.result) {
+              setResult(event.result);
+              setPhase("results");
             }
+
+            if (event.type === "error") {
+              throw new Error(event.message || "Pipeline failed");
+            }
+          } catch (e: any) {
+            if (e.message?.includes("failed") || e.message?.includes("Pipeline")) throw e;
           }
         }
       }
-    } catch (err: any) {
-      if (err.name !== "AbortError") {
-        console.error("Analysis error:", err);
-        setError(err.message || "Unknown error");
+
+      // If stream ended without complete event
+      if (phase !== "results" && !result) {
+        // Check if last event was an error
+        const lastErr = events.find((e) => e.type === "error");
+        if (lastErr) throw new Error(lastErr.message || "Pipeline failed");
       }
-    } finally {
-      setIsProcessing(false);
-      abortRef.current = null;
+    } catch (err: any) {
+      if (err.name === "AbortError") return;
+      console.error("Pipeline error:", err);
+      setError(err.message || "Unknown error");
+      setPhase("upload");
     }
   }, []);
 
+  // ========================================================================
+  // Reset
+  // ========================================================================
+
   const handleReset = () => {
     if (abortRef.current) abortRef.current.abort();
-    setResult(null);
+    setPhase("upload");
     setError(null);
-    setSelectedPages(new Set());
-    setActivePage(null);
     setEvents([]);
-    setIsProcessing(false);
+    setFileInfo(null);
+    setResult(null);
   };
 
-  const toggleSelect = (pageIndex: number) => {
-    setSelectedPages((prev) => {
-      const next = new Set(prev);
-      if (next.has(pageIndex)) next.delete(pageIndex); else next.add(pageIndex);
-      return next;
-    });
-  };
-
-  const handlePageClick = (page: AnalyzedPage) => {
-    setActivePage(activePage?.index === page.index ? null : page);
-  };
-
-  const handleNavigate = (direction: "prev" | "next") => {
-    if (!result || !activePage) return;
-    const idx = result.pages.findIndex((p) => p.index === activePage.index);
-    const next = direction === "prev" ? idx - 1 : idx + 1;
-    if (next >= 0 && next < result.pages.length) setActivePage(result.pages[next]);
-  };
+  // ========================================================================
+  // Render
+  // ========================================================================
 
   return (
     <div className="flex-1 min-w-0 bg-background relative min-h-screen pb-24">
+      {/* Header */}
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border py-4 px-6 xl:px-8">
         <div className="flex items-center justify-between max-w-[1600px] mx-auto">
           <div>
             <h1 className="text-2xl font-bold text-foreground">RFP Analyzer</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Kreuzberg OCR + Mistral Vision — unified extraction pipeline
+              {fileInfo
+                ? `${fileInfo.filename} — ${fileInfo.pageCount.toLocaleString()} pages, ${fileInfo.sizeMb}MB`
+                : "Upload an RFP PDF — we handle the rest"
+              }
             </p>
           </div>
-          {(result || isProcessing) && (
+          {phase !== "upload" && (
             <button
               onClick={handleReset}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
             >
               <RefreshCcw className="w-4 h-4" />
-              {isProcessing ? "Cancel" : "New Analysis"}
+              {phase === "processing" ? "Cancel" : "New Analysis"}
             </button>
           )}
         </div>
       </header>
 
       <main className="p-6 xl:px-8 max-w-[1600px] mx-auto">
-        {(!result || isProcessing) && !error && (
-          <UploadZone onUpload={handleUpload} isLoading={isProcessing} events={events} />
+        {/* ============ UPLOAD / PROCESSING ============ */}
+        {(phase === "upload" || phase === "processing") && (
+          <>
+            <UploadZone
+              onUpload={handleUpload}
+              isLoading={phase === "processing"}
+              events={events}
+            />
+            {error && phase === "upload" && (
+              <div className="mt-6 p-5 max-w-2xl mx-auto text-center border border-destructive/20 bg-destructive/10 rounded-xl">
+                <p className="text-sm text-destructive font-medium mb-3">{error}</p>
+                <button onClick={handleReset} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-muted">
+                  Try Again
+                </button>
+              </div>
+            )}
+          </>
         )}
 
-        {error && !isProcessing && (
-          <div className="mt-8 p-6 max-w-2xl mx-auto text-center border border-destructive/20 bg-destructive/10 rounded-xl">
-            <h3 className="text-lg font-semibold text-destructive mb-2">Analysis Failed</h3>
-            <p className="text-sm text-destructive/80 mb-4">{error}</p>
-            <button onClick={handleReset} className="px-4 py-2 bg-background border border-border rounded-lg text-sm font-medium hover:bg-muted">
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {result && !isProcessing && (
+        {/* ============ RESULTS ============ */}
+        {phase === "results" && result && (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out space-y-8">
-            <SummaryCards stats={result.stats} files={result.files} selectedCount={selectedPages.size} />
+            {/* Stats row */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              <StatCard icon={FileText} label="Total Pages" value={result.stats.totalPages.toLocaleString()} />
+              <StatCard
+                icon={CheckCircle2}
+                label="Relevant Pages"
+                value={result.stats.relevantPages.toString()}
+                sub={`${Math.round((result.stats.relevantPages / result.stats.totalPages) * 100)}% kept`}
+                accent="text-emerald-500"
+              />
+              <StatCard icon={FileText} label="Noise Filtered" value={result.stats.noisePages.toString()} sub="auto-removed" />
+              <StatCard icon={Monitor} label="LED Displays" value={result.stats.specsFound.toString()} accent="text-primary" />
+              <StatCard icon={Clock} label="Processing Time" value={`${(result.stats.processingTimeMs / 1000).toFixed(1)}s`} />
+              <StatCard icon={Zap} label="Drawings Detected" value={result.stats.drawingPages.toString()} />
+            </div>
 
-            {result.project.clientName && (
-              <div className="bg-card border border-border rounded-xl p-4">
-                <h3 className="text-sm font-semibold text-foreground mb-2">Project Information</h3>
+            {/* Project info */}
+            {(result.project.clientName || result.project.venue || result.project.projectName) && (
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-primary" />
+                  Project Information
+                </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  {result.project.clientName && <div><span className="text-muted-foreground">Client:</span> <span className="font-medium">{result.project.clientName}</span></div>}
-                  {result.project.venue && <div><span className="text-muted-foreground">Venue:</span> <span className="font-medium">{result.project.venue}</span></div>}
-                  {result.project.projectName && <div><span className="text-muted-foreground">Project:</span> <span className="font-medium">{result.project.projectName}</span></div>}
-                  <div className="flex gap-3">
-                    {result.project.isOutdoor && <span className="px-2 py-0.5 bg-blue-500/10 text-blue-500 text-xs font-medium rounded-full">Outdoor</span>}
-                    {result.project.isUnionLabor && <span className="px-2 py-0.5 bg-amber-500/10 text-amber-500 text-xs font-medium rounded-full">Union</span>}
-                    {result.project.bondRequired && <span className="px-2 py-0.5 bg-red-500/10 text-red-500 text-xs font-medium rounded-full">Bond</span>}
-                  </div>
+                  {result.project.clientName && (
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Client</span>
+                      <span className="font-medium">{result.project.clientName}</span>
+                    </div>
+                  )}
+                  {result.project.projectName && (
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Project</span>
+                      <span className="font-medium">{result.project.projectName}</span>
+                    </div>
+                  )}
+                  {result.project.venue && (
+                    <div>
+                      <span className="text-xs text-muted-foreground block">Venue</span>
+                      <span className="font-medium">{result.project.venue}</span>
+                    </div>
+                  )}
+                  {result.project.location && (
+                    <div className="flex items-start gap-1">
+                      <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
+                      <div>
+                        <span className="text-xs text-muted-foreground block">Location</span>
+                        <span className="font-medium">{result.project.location}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Flags */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {result.project.isOutdoor && <Flag label="Outdoor" />}
+                  {result.project.isUnionLabor && <Flag label="Union Labor" />}
+                  {result.project.bondRequired && <Flag label="Bond Required" />}
+                  {result.project.specialRequirements.map((r) => <Flag key={r} label={r} />)}
                 </div>
               </div>
             )}
 
+            {/* Triage minimap */}
+            {result.triage.length > 0 && (
+              <div className="bg-card border border-border rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-foreground mb-3">
+                  Page Triage Map ({result.triage.length} pages)
+                </h3>
+                <TriageMinimap triage={result.triage} />
+              </div>
+            )}
+
+            {/* LED specs table */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
@@ -193,28 +320,91 @@ export default function RfpAnalyzerClient() {
               </div>
               <SpecsTable specs={result.screens} />
             </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-foreground">Page Analysis ({result.pages.length} pages)</h3>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>{selectedPages.size} selected</span>
-                  <button onClick={() => setSelectedPages(new Set(result.pages.filter((p) => p.relevance >= 50).map((p) => p.index)))} className="text-xs text-primary hover:underline">Select relevant</button>
-                  <button onClick={() => setSelectedPages(new Set(result.pages.map((p) => p.index)))} className="text-xs text-primary hover:underline">All</button>
-                  <button onClick={() => setSelectedPages(new Set())} className="text-xs text-primary hover:underline">Clear</button>
-                </div>
-              </div>
-              <PageGrid pages={result.pages} selectedPages={selectedPages} onToggleSelect={toggleSelect} onPageClick={handlePageClick} activePage={activePage?.index ?? null} />
-            </div>
-
-            {activePage && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-                <PageDetail page={activePage} onClose={() => setActivePage(null)} onNavigate={handleNavigate} isSelected={selectedPages.has(activePage.index)} onToggleSelect={() => toggleSelect(activePage.index)} totalPages={result.pages.length} />
-              </div>
-            )}
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+// ==========================================================================
+// Sub-components
+// ==========================================================================
+
+function StatCard({ icon: Icon, label, value, sub, accent }: {
+  icon: typeof FileText; label: string; value: string; sub?: string; accent?: string;
+}) {
+  return (
+    <div className="bg-card border border-border rounded-xl p-4">
+      <div className="flex items-center gap-2 mb-1.5">
+        <Icon className={`w-4 h-4 ${accent || "text-muted-foreground"}`} />
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </div>
+      <div className={`text-2xl font-bold ${accent || "text-foreground"}`}>{value}</div>
+      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function Flag({ label }: { label: string }) {
+  return (
+    <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 text-xs font-medium rounded-full">
+      {label}
+    </span>
+  );
+}
+
+// ==========================================================================
+// Triage Minimap — compact colored blocks showing page classification
+// ==========================================================================
+
+const CAT_COLORS: Record<string, string> = {
+  led_specs: "bg-emerald-500",
+  drawing: "bg-blue-500",
+  cost_schedule: "bg-amber-500",
+  scope_of_work: "bg-purple-500",
+  technical: "bg-orange-400",
+  legal: "bg-slate-300",
+  schedule: "bg-cyan-500",
+  boilerplate: "bg-slate-200",
+  unknown: "bg-slate-200",
+};
+
+function TriageMinimap({ triage }: { triage: AnalysisResult["triage"] }) {
+  // Count categories
+  const counts = triage.reduce<Record<string, number>>((acc, p) => {
+    acc[p.category] = (acc[p.category] || 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <div>
+      {/* Legend */}
+      <div className="flex flex-wrap gap-3 mb-3 text-xs">
+        {Object.entries(counts).sort(([, a], [, b]) => b - a).map(([cat, count]) => (
+          <div key={cat} className="flex items-center gap-1.5">
+            <div className={`w-2.5 h-2.5 rounded-sm ${CAT_COLORS[cat] || CAT_COLORS.unknown}`} />
+            <span className="text-muted-foreground capitalize">{cat.replace(/_/g, " ")} ({count})</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Blocks */}
+      <div className="flex flex-wrap gap-[2px]">
+        {triage.map((p) => (
+          <div
+            key={p.pageNumber}
+            className={`w-3 h-4 rounded-[2px] ${CAT_COLORS[p.category] || CAT_COLORS.unknown} ${
+              p.relevance >= 40 ? "opacity-100" : "opacity-25"
+            }`}
+            title={`Page ${p.pageNumber}: ${p.category} (${p.relevance}% relevance)${p.isDrawing ? " [Drawing]" : ""}`}
+          />
+        ))}
+      </div>
+
+      <p className="text-[10px] text-muted-foreground mt-2">
+        Each block = 1 page. Bright = relevant (kept), faded = noise (filtered). Hover for details.
+      </p>
     </div>
   );
 }
