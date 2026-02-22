@@ -32,5 +32,5 @@ python3 -m uvicorn --app-dir pdf-triage-service main:app --host 0.0.0.0 --port 8
 
 # Start the application
 # Increase max HTTP header size to prevent 431 errors from accumulated auth cookies
-export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-http-header-size=131072"
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--max-http-header-size=262144"
 exec npm start
