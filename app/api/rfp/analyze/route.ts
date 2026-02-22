@@ -597,6 +597,9 @@ export async function POST(request: NextRequest) {
               venue: finalProject.venue,
               relevantPages: analyzedPages,
               anythingLlmUserId,
+              screens,
+              requirements,
+              project: finalProject,
             });
 
             if (aiWorkspaceSlug) {
