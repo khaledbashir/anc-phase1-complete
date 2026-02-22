@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
 import UploadZone, { type PipelineEvent } from "./_components/UploadZone";
 import SpecsTable from "./_components/SpecsTable";
@@ -108,6 +108,17 @@ export default function RfpAnalyzerClient() {
   const [loadingPricing, setLoadingPricing] = useState(false);
   const [resultsTab, setResultsTab] = useState<"extraction" | "pricing">("extraction");
   const [drawingUpload, setDrawingUpload] = useState<{ uploading: boolean; results: Array<{ filename: string; pages: number }> }>({ uploading: false, results: [] });
+
+  // ========================================================================
+  // Auto-run pricing when extraction completes (no manual step needed)
+  // ========================================================================
+
+  useEffect(() => {
+    if (result?.id && result.screens.length > 0 && !pricingPreview && !loadingPricing) {
+      autoPreviewPricing([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result?.id]);
 
   // ========================================================================
   // Upload → auto-pipeline (one SSE stream, fully automatic)
@@ -371,36 +382,31 @@ export default function RfpAnalyzerClient() {
   };
 
   // ========================================================================
-  // TSV Export
+  // Excel Export (extraction results)
   // ========================================================================
 
-  const handleExportTsv = () => {
-    if (!result) return;
-    const rows = [
-      ["Display Name", "Location", "Width (ft)", "Height (ft)", "Pixel Pitch (mm)", "Brightness (nits)", "Environment", "Quantity", "Service Type", "Mounting", "Confidence", "Source Pages"].join("\t"),
-      ...result.screens.map((s) => [
-        s.name, s.location, s.widthFt ?? "", s.heightFt ?? "", s.pixelPitchMm ?? "",
-        s.brightnessNits ?? "", s.environment, s.quantity, s.serviceType ?? "",
-        s.mountingType ?? "", `${Math.round(s.confidence * 100)}%`, (s.sourcePages || []).join(", "),
-      ].join("\t")),
-    ];
-
-    const reqs = result.requirements || [];
-    if (reqs.length > 0) {
-      rows.push("", "", "REQUIREMENTS");
-      rows.push(["Description", "Category", "Status", "Date", "Source Pages", "Raw Text"].join("\t"));
-      for (const r of reqs) {
-        rows.push([r.description, r.category, r.status, r.date ?? "", (r.sourcePages || []).join(", "), r.rawText ?? ""].join("\t"));
-      }
+  const handleExportExcel = async () => {
+    if (!result?.id) return;
+    setDownloading("extraction");
+    try {
+      const res = await fetch("/api/rfp/pipeline/extraction-excel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysisId: result.id }),
+      });
+      if (!res.ok) throw new Error(`Export failed (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "Extraction.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setDownloading(null);
     }
-
-    const blob = new Blob([rows.join("\n")], { type: "text/tab-separated-values" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${result.project?.projectName || fileInfo?.filename || "rfp-analysis"}_specs.tsv`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   // ========================================================================
@@ -616,11 +622,20 @@ export default function RfpAnalyzerClient() {
                     </Link>
                   )}
                   <button
-                    onClick={handleExportTsv}
-                    className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors"
+                    onClick={handleDownloadRateCard}
+                    disabled={downloading === "ratecard" || !result?.id}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
                   >
-                    <Download className="w-3 h-3" />
-                    Export .tsv
+                    {downloading === "ratecard" ? <Loader2 className="w-3 h-3 animate-spin" /> : <DollarSign className="w-3 h-3" />}
+                    Download Rate Card
+                  </button>
+                  <button
+                    onClick={handleExportExcel}
+                    disabled={downloading === "extraction"}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
+                  >
+                    {downloading === "extraction" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                    Export .xlsx
                   </button>
                 </div>
               </div>
