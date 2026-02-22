@@ -9,6 +9,7 @@ export interface CreateWorkspaceRequest {
   userEmail: string;
   createInitialProposal?: boolean;
   clientName?: string;
+  enableKnowledgeBase?: boolean;
   calculationMode?: "MIRROR" | "STRATEGIC" | "ESTIMATE";
   excelData?: {
     screens?: any[];
@@ -115,7 +116,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 3. AI PROVISIONING — create dedicated AnythingLLM workspace (non-blocking)
+    // 3. KNOWLEDGE BASE PROVISIONING (non-blocking, opt-in)
+    const enableKB = body.enableKnowledgeBase !== false; // default true for backwards compat
+    if (enableKB) {
     provisionProjectWorkspace(body.name, workspace.id).then(async (slug) => {
       if (!slug) return;
 
@@ -140,7 +143,10 @@ export async function POST(request: NextRequest) {
         const almId = user.anythingLlmUserId ?? await ensureAnythingLlmUser(user.id, body.userEmail);
         if (almId) await assignWorkspaceToUser(slug, almId);
       }
-    }).catch((e) => console.error("[Workspace/Create] AI provisioning failed:", e));
+    }).catch((e) => console.error("[Workspace/Create] Knowledge Base provisioning failed:", e));
+    } else {
+      console.log("[Workspace/Create] Knowledge Base disabled by user — skipping AI provisioning");
+    }
 
     // 4. STRATEGIC HANDOFF
     return NextResponse.json(
