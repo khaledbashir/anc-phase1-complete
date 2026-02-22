@@ -78,10 +78,13 @@ const settingsMenuItems: NavItem[] = [
     { icon: Users, label: "Users", href: "/admin/users", allowedRoles: ["ADMIN"] as UserRole[] },
 ];
 
+const dataPricingMenuItems: NavItem[] = [
+    { icon: Package, label: "Product Catalog", href: "/admin/products", allowedRoles: null },
+    { icon: DollarSign, label: "Rate Card", href: "/admin/rate-card", allowedRoles: null },
+    { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", beta: true, allowedRoles: null },
+];
+
 const adminMenuItems: NavItem[] = [
-    { icon: Package, label: "Product Catalog", href: "/admin/products", allowedRoles: ["ADMIN", "PRODUCT_EXPERT"] as UserRole[] },
-    { icon: DollarSign, label: "Rate Card", href: "/admin/rate-card", allowedRoles: ["ADMIN"] as UserRole[] },
-    { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", beta: true, allowedRoles: ["ADMIN"] as UserRole[] },
     { icon: BarChart3, label: "Performance", href: "/admin/performance", demoPhase: "3", allowedRoles: ["ADMIN", "ESTIMATOR", "PROPOSAL_LEAD"] as UserRole[] },
 ];
 
@@ -292,10 +295,33 @@ export default function DashboardSidebar() {
                                 </div>
                             </div>
 
-                            {isAdmin && (
+                            <div>
+                                <h3 className="text-sm font-semibold text-foreground mb-3">Data & Pricing</h3>
+                                <div className="space-y-1">
+                                    {dataPricingMenuItems.map((item) => (
+                                        <Link
+                                            key={item.href}
+                                            href={item.href}
+                                            onClick={() => setIsSettingsOpen(false)}
+                                            className={cn(
+                                                "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                                                isActive(item.href)
+                                                    ? item.beta ? "bg-amber-500/10 text-amber-500" : "bg-primary/10 text-primary"
+                                                    : "text-foreground hover:bg-accent",
+                                            )}
+                                        >
+                                            <item.icon className="w-5 h-5" />
+                                            <span className="text-sm font-medium flex-1">{item.label}</span>
+                                            {item.beta && <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">BETA</span>}
+                                        </Link>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {isAdmin && adminMenuItems.length > 0 && (
                                 <div>
                                     <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                                        Admin Tools
+                                        Admin
                                         <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Admin Only</span>
                                     </h3>
                                     <div className="space-y-1">
@@ -307,13 +333,12 @@ export default function DashboardSidebar() {
                                                 className={cn(
                                                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                                                     isActive(item.href)
-                                                        ? item.beta ? "bg-amber-500/10 text-amber-500" : "bg-primary/10 text-primary"
+                                                        ? "bg-primary/10 text-primary"
                                                         : "text-foreground hover:bg-accent",
                                                 )}
                                             >
                                                 <item.icon className="w-5 h-5" />
                                                 <span className="text-sm font-medium flex-1">{item.label}</span>
-                                                {item.beta && <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">BETA</span>}
                                             </Link>
                                         ))}
                                     </div>
