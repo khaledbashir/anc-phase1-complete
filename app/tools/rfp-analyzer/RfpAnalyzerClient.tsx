@@ -75,46 +75,41 @@ export default function RfpAnalyzerClient() {
     setResult(null);
 
     try {
-      // ------ Step 1: Upload file with XHR progress ------
-      setEvents([{ type: "stage", stage: "uploading", message: `Uploading ${file.name} (${(file.size / 1024 / 1024).toFixed(0)}MB)...` }]);
+      // ------ Step 1: Upload file ------
+      // credentials: "omit" prevents auth cookies from being sent,
+      // which avoids 431 "Request Header Fields Too Large" from the proxy
+      const sizeMbStr = (file.size / 1024 / 1024).toFixed(0);
+      setEvents([{ type: "stage", stage: "uploading", message: `Uploading ${file.name} (${sizeMbStr}MB)...` }]);
 
-      const uploadRes = await new Promise<{ sessionId: string; filename: string; pageCount: number; sizeMb: string }>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "/api/rfp/analyze/upload");
+      abortRef.current = new AbortController();
+      const fd = new FormData();
+      fd.append("file", file);
 
-        xhr.upload.onprogress = (e) => {
-          if (e.lengthComputable) {
-            const pct = Math.round((e.loaded / e.total) * 100);
-            setEvents([{
-              type: "stage",
-              stage: "uploading",
-              message: `Uploading: ${pct}% (${(e.loaded / 1024 / 1024).toFixed(0)}MB / ${(e.total / 1024 / 1024).toFixed(0)}MB)`,
-            }]);
-          }
-        };
-
-        xhr.onload = () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve(JSON.parse(xhr.responseText));
-          } else {
-            try { reject(new Error(JSON.parse(xhr.responseText)?.error || `Upload failed (${xhr.status})`)); }
-            catch { reject(new Error(`Upload failed (${xhr.status})`)); }
-          }
-        };
-        xhr.onerror = () => reject(new Error("Upload failed — network error"));
-        xhr.send((() => { const fd = new FormData(); fd.append("file", file); return fd; })());
+      const uploadResponse = await fetch("/api/rfp/analyze/upload", {
+        method: "POST",
+        body: fd,
+        credentials: "omit",
+        signal: abortRef.current.signal,
       });
+
+      if (!uploadResponse.ok) {
+        const errText = await uploadResponse.text();
+        let msg = `Upload failed (${uploadResponse.status})`;
+        try { msg = JSON.parse(errText)?.error || msg; } catch {}
+        throw new Error(msg);
+      }
+
+      const uploadRes: { sessionId: string; filename: string; pageCount: number; sizeMb: string } = await uploadResponse.json();
 
       setFileInfo({ filename: uploadRes.filename, pageCount: uploadRes.pageCount, sizeMb: uploadRes.sizeMb });
       setEvents([{ type: "stage", stage: "uploaded", message: `Uploaded: ${uploadRes.pageCount.toLocaleString()} pages, ${uploadRes.sizeMb}MB` }]);
 
       // ------ Step 2: Start automatic pipeline (SSE) ------
-      abortRef.current = new AbortController();
-
       const response = await fetch("/api/rfp/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sessionId: uploadRes.sessionId, filename: uploadRes.filename }),
+        credentials: "omit",
         signal: abortRef.current.signal,
       });
 

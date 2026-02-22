@@ -49,6 +49,7 @@ export default auth((req) => {
     pathname.startsWith("/api/agent-skill") ||
     pathname.startsWith("/api/mcp") ||
     pathname.startsWith("/api/performance/seed") ||
+    pathname.startsWith("/api/rfp/analyze") ||
     pathname.startsWith("/share/performance/") ||
     pathname.startsWith("/auth/")
   ) {
