@@ -11,7 +11,6 @@ import {
     Users,
     Workflow,
     Settings,
-    SlidersHorizontal,
     DollarSign,
     Package,
     Calculator,
@@ -23,357 +22,259 @@ import {
     BarChart3,
     Kanban,
     MessageSquare,
-    FileSearch,
     Scan,
+    ChevronRight,
+    ChevronLeft,
+    History,
+    FileSpreadsheet,
+    PanelLeftClose,
+    PanelLeftOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRbac } from "@/hooks/useRbac";
 import type { UserRole } from "@/lib/rbac";
 
-const mainMenuItems = [
-    { icon: LayoutGrid, label: "Projects", href: "/projects", allowedRoles: null }, // All roles
+// ─── Navigation Data ────────────────────────────────────────────────────────
+
+interface NavItem {
+    icon: typeof LayoutGrid;
+    label: string;
+    href: string;
+    allowedRoles: UserRole[] | null;
+    soon?: boolean;
+    beta?: boolean;
+    demoPhase?: string;
+    children?: NavChild[];
+}
+
+interface NavChild {
+    label: string;
+    href: string;
+    icon?: typeof LayoutGrid;
+}
+
+const mainMenuItems: NavItem[] = [
+    { icon: LayoutGrid, label: "Projects", href: "/projects", allowedRoles: null },
     { icon: Kanban, label: "Pipeline", href: "/pipeline", allowedRoles: null },
     { icon: FileText, label: "Templates", href: "/templates", soon: true, allowedRoles: null },
 ];
 
-const toolsMenuItems = [
+const toolsMenuItems: NavItem[] = [
     { icon: MessageSquare, label: "Chat", href: "/chat", allowedRoles: null },
-    { icon: Scan, label: "RFP Analyzer", href: "/tools/rfp-analyzer", allowedRoles: null },
+    {
+        icon: Scan,
+        label: "RFP Analyzer",
+        href: "/tools/rfp-analyzer",
+        allowedRoles: null,
+        children: [
+            { label: "History", href: "/tools/rfp-analyzer/history", icon: History },
+        ],
+    },
     { icon: Calculator, label: "Estimator", href: "/estimator", allowedRoles: null },
-    // Demo Lab hidden from nav — accessible via direct URL /demo
-    // { icon: Sparkles, label: "Demo Lab", href: "/demo", allowedRoles: null },
 ];
 
-const settingsMenuItems = [
+const settingsMenuItems: NavItem[] = [
     { icon: UserCircle, label: "Profile", href: "/settings/profile", allowedRoles: null },
     { icon: Bell, label: "Notifications", href: "/settings/notifications", soon: true, demoPhase: "3", allowedRoles: null },
     { icon: Users, label: "Users", href: "/admin/users", allowedRoles: ["ADMIN"] as UserRole[] },
 ];
 
-const adminMenuItems = [
-    {
-        icon: Package,
-        label: "Product Catalog",
-        href: "/admin/products",
-        allowedRoles: ["ADMIN", "PRODUCT_EXPERT"] as UserRole[],
-    },
-    {
-        icon: DollarSign,
-        label: "Rate Card",
-        href: "/admin/rate-card",
-        allowedRoles: ["ADMIN"] as UserRole[],
-    },
-    {
-        icon: Workflow,
-        label: "Pricing Logic",
-        href: "/admin/pricing-logic",
-        beta: true,
-        allowedRoles: ["ADMIN"] as UserRole[],
-    },
-    {
-        icon: BarChart3,
-        label: "Performance",
-        href: "/admin/performance",
-        demoPhase: "3",
-        allowedRoles: ["ADMIN", "ESTIMATOR", "PROPOSAL_LEAD"] as UserRole[],
-    },
+const adminMenuItems: NavItem[] = [
+    { icon: Package, label: "Product Catalog", href: "/admin/products", allowedRoles: ["ADMIN", "PRODUCT_EXPERT"] as UserRole[] },
+    { icon: DollarSign, label: "Rate Card", href: "/admin/rate-card", allowedRoles: ["ADMIN"] as UserRole[] },
+    { icon: Workflow, label: "Pricing Logic", href: "/admin/pricing-logic", beta: true, allowedRoles: ["ADMIN"] as UserRole[] },
+    { icon: BarChart3, label: "Performance", href: "/admin/performance", demoPhase: "3", allowedRoles: ["ADMIN", "ESTIMATOR", "PROPOSAL_LEAD"] as UserRole[] },
 ];
+
+// ─── Component ──────────────────────────────────────────────────────────────
 
 export default function DashboardSidebar() {
     const pathname = usePathname();
     const { data: session } = useSession();
     const { hasRole, userRole, isLoading } = useRbac();
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isNavExpanded, setIsNavExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(false);
     const [mounted, setMounted] = useState(false);
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+
     const displayRole = userRole
-        ? userRole
-            .toLowerCase()
-            .split("_")
-            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-            .join(" ")
+        ? userRole.toLowerCase().split("_").map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ")
         : "Viewer";
 
     const isAdmin = mounted ? session?.user?.authRole === "admin" : false;
 
-    // Helper to check if user can access a nav item
     const canAccess = (allowedRoles: UserRole[] | null): boolean => {
-        if (!allowedRoles) return true; // null = available to all (no mount/loading guard needed)
-        if (isLoading || !mounted) return false; // role-restricted items wait for client
+        if (!allowedRoles) return true;
+        if (isLoading || !mounted) return false;
         return hasRole(allowedRoles);
     };
 
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    useEffect(() => { setMounted(true); }, []);
 
+    // Auto-expand groups whose children are active
     useEffect(() => {
-        setIsNavExpanded(false);
+        const groups = new Set<string>();
+        [...toolsMenuItems, ...mainMenuItems].forEach((item) => {
+            if (item.children?.some((c) => pathname.startsWith(c.href))) {
+                groups.add(item.label);
+            }
+            if (pathname.startsWith(item.href) && item.children) {
+                groups.add(item.label);
+            }
+        });
+        setExpandedGroups(groups);
     }, [pathname]);
+
+    const toggleGroup = (label: string) => {
+        setExpandedGroups((prev) => {
+            const next = new Set(prev);
+            if (next.has(label)) next.delete(label);
+            else next.add(label);
+            return next;
+        });
+    };
+
+    const isActive = (href: string) => pathname === href;
+    const isParentActive = (item: NavItem) =>
+        pathname === item.href || pathname.startsWith(item.href + "/") ||
+        item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href));
+
+    // ─── Render ─────────────────────────────────────────────────────────
 
     return (
         <>
-            <aside className="h-screen w-16 md:w-20 border-r border-border bg-background flex flex-col items-center py-4 z-50 transition-colors duration-300 sticky top-0">
-                {/* Minimal Logo */}
-                <button
-                    onClick={() => setIsNavExpanded((prev) => !prev)}
-                    className="mb-6 flex items-center justify-center cursor-pointer"
-                    aria-label="Toggle navigation"
-                >
-                    <div className="w-10 h-10 flex items-center justify-center relative">
-                        <Image
-                            src="/ANC_Logo_2023_blue.png"
-                            alt="ANC"
-                            width={40}
-                            height={40}
-                            className="w-full h-auto object-contain dark:hidden"
-                        />
-                        <Image
-                            src="/ANC_Logo_2023_white.png"
-                            alt="ANC"
-                            width={40}
-                            height={40}
-                            className="w-full h-auto object-contain hidden dark:block"
-                        />
-                    </div>
-                </button>
+            <aside
+                className={cn(
+                    "h-screen border-r border-border bg-background flex flex-col z-50 transition-all duration-200 sticky top-0 overflow-hidden",
+                    expanded ? "w-56" : "w-16 md:w-[72px]",
+                )}
+            >
+                {/* Logo + collapse toggle */}
+                <div className={cn(
+                    "flex items-center border-b border-border shrink-0",
+                    expanded ? "px-4 py-3 justify-between" : "px-3 py-3 justify-center",
+                )}>
+                    <Link href="/projects" className="flex items-center gap-3 shrink-0">
+                        <div className="w-9 h-9 flex items-center justify-center relative shrink-0">
+                            <Image src="/ANC_Logo_2023_blue.png" alt="ANC" width={36} height={36} className="w-full h-auto object-contain dark:hidden" />
+                            <Image src="/ANC_Logo_2023_white.png" alt="ANC" width={36} height={36} className="w-full h-auto object-contain hidden dark:block" />
+                        </div>
+                        {expanded && (
+                            <span className="text-sm font-bold text-foreground tracking-tight">ANC</span>
+                        )}
+                    </Link>
+                    {expanded && (
+                        <button
+                            onClick={() => setExpanded(false)}
+                            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        >
+                            <PanelLeftClose className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
 
-                {/* Main Nav */}
-                <nav className="flex flex-col gap-2 overflow-y-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    {/* Primary Navigation */}
-                    {mainMenuItems.map((item) => {
-                        const isActive = pathname === item.href;
-                        const hasAccess = canAccess(item.allowedRoles);
-                        const isRestricted = item.allowedRoles && !hasAccess;
-                        const requiredRoles = (item.allowedRoles as UserRole[] | null)?.join(", ") || "";
-
-                        return (
-                            <Link
+                {/* Nav sections */}
+                <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                    {/* Main */}
+                    <NavSection label="Main" expanded={expanded}>
+                        {mainMenuItems.map((item) => (
+                            <NavItemRow
                                 key={item.label}
-                                href={isRestricted ? "#" : item.href}
-                                className={cn(
-                                    "group relative p-3 rounded transition-all duration-200",
-                                    isActive && hasAccess
-                                        ? "bg-primary/10 text-primary"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-secondary",
-                                    (item.soon || isRestricted) && "pointer-events-none opacity-40"
-                                )}
-                            >
-                                {isRestricted ? (
-                                    <Lock className="w-5 h-5" />
-                                ) : (
-                                    <item.icon className="w-5 h-5" />
-                                )}
-                                <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
-                                    {item.label} {item.soon && "(Soon)"} {isRestricted && `(Requires ${requiredRoles})`}
-                                </div>
-                            </Link>
-                        );
-                    })}
-
-                    {/* Divider */}
-                    <div className="h-px bg-border my-2" />
+                                item={item}
+                                expanded={expanded}
+                                isActive={isActive(item.href)}
+                                isParentActive={isParentActive(item)}
+                                canAccess={canAccess(item.allowedRoles)}
+                                isGroupExpanded={expandedGroups.has(item.label)}
+                                onToggleGroup={() => toggleGroup(item.label)}
+                                pathname={pathname}
+                            />
+                        ))}
+                    </NavSection>
 
                     {/* Tools */}
-                    {toolsMenuItems.map((item) => {
-                        const isActive = pathname === item.href;
-                        const hasAccess = canAccess(item.allowedRoles);
-                        const isRestricted = item.allowedRoles && !hasAccess;
-                        const requiredRoles = (item.allowedRoles as UserRole[] | null)?.join(", ") || "";
-
-                        return (
-                            <Link
+                    <NavSection label="Tools" expanded={expanded}>
+                        {toolsMenuItems.map((item) => (
+                            <NavItemRow
                                 key={item.label}
-                                href={isRestricted ? "#" : item.href}
-                                className={cn(
-                                    "group relative p-3 rounded transition-all duration-200",
-                                    isActive && hasAccess
-                                        ? "bg-primary/10 text-primary"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-secondary",
-                                    isRestricted && "pointer-events-none opacity-40"
-                                )}
-                            >
-                                {isRestricted ? (
-                                    <Lock className="w-5 h-5" />
-                                ) : (
-                                    <item.icon className="w-5 h-5" />
-                                )}
-                                <div className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card">
-                                    {item.label} {isRestricted && `(Requires ${requiredRoles})`}
-                                </div>
-                            </Link>
-                        );
-                    })}
+                                item={item}
+                                expanded={expanded}
+                                isActive={isActive(item.href)}
+                                isParentActive={isParentActive(item)}
+                                canAccess={canAccess(item.allowedRoles)}
+                                isGroupExpanded={expandedGroups.has(item.label)}
+                                onToggleGroup={() => toggleGroup(item.label)}
+                                pathname={pathname}
+                            />
+                        ))}
+                    </NavSection>
                 </nav>
 
-                {/* Bottom Nav — always pinned to bottom */}
-                <div className="flex flex-col gap-3 mt-auto pt-4 border-t border-border">
+                {/* Bottom */}
+                <div className="shrink-0 border-t border-border p-2 space-y-1">
+                    {/* Expand toggle when collapsed */}
+                    {!expanded && (
+                        <button
+                            onClick={() => setExpanded(true)}
+                            className="w-full p-2.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center justify-center"
+                            title="Expand sidebar"
+                        >
+                            <PanelLeftOpen className="w-5 h-5" />
+                        </button>
+                    )}
+
+                    {/* Settings */}
                     <button
                         onClick={() => setIsSettingsOpen(true)}
-                        className="group relative p-3 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
+                        className={cn(
+                            "w-full rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center",
+                            expanded ? "gap-3 px-3 py-2" : "justify-center p-2.5",
+                        )}
                     >
-                        <Settings className="w-5 h-5" />
-                        <span className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card block">
-                            Settings
-                        </span>
+                        <Settings className="w-5 h-5 shrink-0" />
+                        {expanded && <span className="text-sm">Settings</span>}
                     </button>
+
+                    {/* User */}
+                    {expanded && (
+                        <div className="px-3 py-2 rounded bg-muted/50">
+                            <p className="text-sm font-medium text-foreground truncate">{session?.user?.name || "User"}</p>
+                            <p className="text-xs text-muted-foreground truncate">{displayRole}</p>
+                        </div>
+                    )}
+
+                    {/* Logout */}
                     <button
                         onClick={() => signOut({ callbackUrl: "/auth/login" })}
-                        className="group relative p-3 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200"
+                        className={cn(
+                            "w-full rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors flex items-center",
+                            expanded ? "gap-3 px-3 py-2" : "justify-center p-2.5",
+                        )}
                     >
-                        <LogOut className="w-5 h-5" />
-                        <span className="absolute left-full ml-4 px-2 py-1 rounded-sm bg-popover border border-border text-popover-foreground text-[10px] font-medium uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-card block">
-                            Sign Out
-                        </span>
+                        <LogOut className="w-5 h-5 shrink-0" />
+                        {expanded && <span className="text-sm">Sign Out</span>}
                     </button>
-                    <div className="w-8 h-8 rounded-full border border-border bg-muted flex items-center justify-center overflow-hidden">
-                        <div className="w-full h-full bg-gradient-to-br from-muted to-muted-foreground/20" />
-                    </div>
                 </div>
             </aside>
 
-            {/* Expandable Nav Panel */}
-            <div
-                className={cn(
-                    "fixed top-0 left-16 md:left-20 bottom-0 w-72 border-r border-border bg-background z-[70] transition-all duration-200",
-                    isNavExpanded ? "translate-x-0 opacity-100" : "-translate-x-4 opacity-0 pointer-events-none"
-                )}
-            >
-                <div className="h-full flex flex-col">
-                    <div className="h-14 border-b border-border flex items-center justify-between px-4">
-                        <span className="text-sm font-semibold text-foreground">Navigation</span>
-                        <button
-                            onClick={() => setIsNavExpanded(false)}
-                            className="p-2 rounded text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                            aria-label="Close expanded navigation"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-3 space-y-6">
-                        <div>
-                            <h3 className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Main</h3>
-                            <div className="space-y-1">
-                                {mainMenuItems.map((item) => {
-                                    const isActive = pathname === item.href;
-                                    const hasAccess = canAccess(item.allowedRoles);
-                                    const isRestricted = item.allowedRoles && !hasAccess;
-                                    return (
-                                        <Link
-                                            key={item.label}
-                                            href={isRestricted ? "#" : item.href}
-                                            className={cn(
-                                                "flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors",
-                                                isActive && hasAccess
-                                                    ? "bg-primary/10 text-primary"
-                                                    : "text-foreground hover:bg-accent",
-                                                (item.soon || isRestricted) && "pointer-events-none opacity-40"
-                                            )}
-                                        >
-                                            {isRestricted ? <Lock className="w-4 h-4" /> : <item.icon className="w-4 h-4" />}
-                                            <span className="flex-1">{item.label}</span>
-                                            {item.soon && <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Soon</span>}
-                                            {isRestricted && <Lock className="w-3 h-3 text-muted-foreground" />}
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Tools</h3>
-                            <div className="space-y-1">
-                                {toolsMenuItems.map((item) => {
-                                    const isActive = pathname === item.href;
-                                    const hasAccess = canAccess(item.allowedRoles);
-                                    const isRestricted = item.allowedRoles && !hasAccess;
-                                    return (
-                                        <Link
-                                            key={item.label}
-                                            href={isRestricted ? "#" : item.href}
-                                            className={cn(
-                                                "flex items-center gap-3 px-3 py-2 rounded text-sm transition-colors",
-                                                isActive && hasAccess
-                                                    ? "bg-primary/10 text-primary"
-                                                    : "text-foreground hover:bg-accent",
-                                                isRestricted && "pointer-events-none opacity-40"
-                                            )}
-                                        >
-                                            {isRestricted ? <Lock className="w-4 h-4" /> : <item.icon className="w-4 h-4" />}
-                                            <span className="flex-1">{item.label}</span>
-                                            {isRestricted && <Lock className="w-3 h-3 text-muted-foreground" />}
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        <div>
-                            <h3 className="px-2 mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Settings</h3>
-                            <button
-                                onClick={() => {
-                                    setIsNavExpanded(false);
-                                    setIsSettingsOpen(true);
-                                }}
-                                className="w-full flex items-center gap-3 px-3 py-2 rounded text-sm text-foreground hover:bg-accent transition-colors"
-                            >
-                                <Settings className="w-4 h-4" />
-                                <span>Open Settings</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="shrink-0 border-t border-border p-3 space-y-2">
-                        <div className="px-2">
-                            <p className="text-sm font-medium text-foreground truncate">
-                                {session?.user?.name || "User"}
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                                {session?.user?.email || "No email"}
-                            </p>
-                        </div>
-                        <div className="px-2">
-                            <span className="inline-flex items-center rounded bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
-                                {displayRole}
-                            </span>
-                        </div>
-                        <button
-                            onClick={() => signOut({ callbackUrl: "/auth/login" })}
-                            className="w-full flex items-center justify-center gap-2 rounded border border-border px-3 py-2 text-sm font-medium text-foreground hover:bg-accent transition-colors"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            Sign Out
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* Settings Panel */}
+            {/* Settings Modal */}
             {isSettingsOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
                     <div className="w-full max-w-2xl bg-background border border-border rounded-lg shadow-2xl max-h-[80vh] overflow-hidden flex flex-col">
-                        {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                             <h2 className="text-lg font-semibold text-foreground">Settings</h2>
-                            <button
-                                onClick={() => setIsSettingsOpen(false)}
-                                className="p-2 hover:bg-accent rounded-lg transition-colors"
-                            >
+                            <button onClick={() => setIsSettingsOpen(false)} className="p-2 hover:bg-accent rounded-lg transition-colors">
                                 <X className="w-5 h-5 text-muted-foreground" />
                             </button>
                         </div>
 
-                        {/* Content */}
                         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                            {/* General Settings */}
                             <div>
                                 <h3 className="text-sm font-semibold text-foreground mb-3">General</h3>
                                 <div className="space-y-1">
                                     {settingsMenuItems.map((item) => {
                                         const hasAccess = canAccess(item.allowedRoles);
                                         if (item.allowedRoles && !hasAccess) return null;
-                                        const isActive = pathname === item.href;
                                         return (
                                             <Link
                                                 key={item.href}
@@ -381,27 +282,19 @@ export default function DashboardSidebar() {
                                                 onClick={() => !item.soon && setIsSettingsOpen(false)}
                                                 className={cn(
                                                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                                                    isActive
-                                                        ? "bg-primary/10 text-primary"
-                                                        : "text-foreground hover:bg-accent",
-                                                    item.soon && "pointer-events-none opacity-40"
+                                                    isActive(item.href) ? "bg-primary/10 text-primary" : "text-foreground hover:bg-accent",
+                                                    item.soon && "pointer-events-none opacity-40",
                                                 )}
                                             >
                                                 <item.icon className="w-5 h-5" />
                                                 <span className="text-sm font-medium">{item.label}</span>
                                                 {item.soon && <span className="text-[10px] uppercase tracking-wider text-muted-foreground ml-auto">Soon</span>}
-                                                {item.demoPhase && (
-                                                    <span className="text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400 ml-2">
-                                                        Demo for Phase {item.demoPhase}
-                                                    </span>
-                                                )}
                                             </Link>
                                         );
                                     })}
                                 </div>
                             </div>
 
-                            {/* Admin Tools */}
                             {isAdmin && (
                                 <div>
                                     <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -409,49 +302,162 @@ export default function DashboardSidebar() {
                                         <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded">Admin Only</span>
                                     </h3>
                                     <div className="space-y-1">
-                                        {adminMenuItems.map((item) => {
-                                            const isActive = pathname === item.href;
-                                            return (
-                                                <Link
-                                                    key={item.href}
-                                                    href={item.href}
-                                                    onClick={() => setIsSettingsOpen(false)}
-                                                    className={cn(
-                                                        "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
-                                                        isActive
-                                                            ? item.beta
-                                                                ? "bg-amber-500/10 text-amber-500"
-                                                                : "bg-primary/10 text-primary"
-                                                            : "text-foreground hover:bg-accent"
-                                                    )}
-                                                >
-                                                    <item.icon className="w-5 h-5" />
-                                                    <span className="text-sm font-medium flex-1">{item.label}</span>
-                                                    {item.demoPhase && (
-                                                        <span className="text-[10px] uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                                                            Demo for Phase {item.demoPhase}
-                                                        </span>
-                                                    )}
-                                                    {item.beta && (
-                                                        <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">BETA</span>
-                                                    )}
-                                                </Link>
-                                            );
-                                        })}
+                                        {adminMenuItems.map((item) => (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                onClick={() => setIsSettingsOpen(false)}
+                                                className={cn(
+                                                    "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
+                                                    isActive(item.href)
+                                                        ? item.beta ? "bg-amber-500/10 text-amber-500" : "bg-primary/10 text-primary"
+                                                        : "text-foreground hover:bg-accent",
+                                                )}
+                                            >
+                                                <item.icon className="w-5 h-5" />
+                                                <span className="text-sm font-medium flex-1">{item.label}</span>
+                                                {item.beta && <span className="text-xs bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded">BETA</span>}
+                                            </Link>
+                                        ))}
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Footer */}
                         <div className="px-6 py-4 border-t border-border bg-muted/30">
-                            <p className="text-xs text-muted-foreground">
-                                ANC Proposal Engine • Version 1.0.0
-                            </p>
+                            <p className="text-xs text-muted-foreground">ANC Proposal Engine</p>
                         </div>
                     </div>
                 </div>
             )}
         </>
+    );
+}
+
+// ─── Sub-components ─────────────────────────────────────────────────────────
+
+function NavSection({ label, expanded, children }: {
+    label: string;
+    expanded: boolean;
+    children: React.ReactNode;
+}) {
+    return (
+        <div>
+            {expanded && (
+                <h3 className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+                    {label}
+                </h3>
+            )}
+            {!expanded && <div className="h-px bg-border mx-2 mb-2" />}
+            <div className="space-y-0.5">{children}</div>
+        </div>
+    );
+}
+
+function NavItemRow({ item, expanded, isActive, isParentActive, canAccess, isGroupExpanded, onToggleGroup, pathname }: {
+    item: NavItem;
+    expanded: boolean;
+    isActive: boolean;
+    isParentActive: boolean;
+    canAccess: boolean;
+    isGroupExpanded: boolean;
+    onToggleGroup: () => void;
+    pathname: string;
+}) {
+    const isRestricted = item.allowedRoles && !canAccess;
+    const hasChildren = item.children && item.children.length > 0;
+    const Icon = isRestricted ? Lock : item.icon;
+
+    // Collapsed mode — icon only with tooltip
+    if (!expanded) {
+        return (
+            <Link
+                href={isRestricted ? "#" : item.href}
+                className={cn(
+                    "group relative flex items-center justify-center p-2.5 rounded-lg transition-all duration-150",
+                    (isActive || isParentActive) && canAccess
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                    (item.soon || isRestricted) && "pointer-events-none opacity-40",
+                )}
+            >
+                <Icon className="w-5 h-5" />
+                {/* Tooltip */}
+                <div className="absolute left-full ml-3 px-2.5 py-1.5 rounded-md bg-popover border border-border text-popover-foreground text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-md">
+                    {item.label}
+                    {item.soon && " (Soon)"}
+                    {hasChildren && (
+                        <div className="mt-1 pt-1 border-t border-border space-y-0.5">
+                            {item.children!.map((c) => (
+                                <div key={c.href} className="text-muted-foreground">{c.label}</div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+                {/* Active indicator dot */}
+                {(isActive || isParentActive) && canAccess && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-primary rounded-r-full" />
+                )}
+            </Link>
+        );
+    }
+
+    // Expanded mode — full label + children
+    return (
+        <div>
+            <div className="flex items-center">
+                <Link
+                    href={isRestricted ? "#" : item.href}
+                    className={cn(
+                        "flex-1 flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150",
+                        (isActive || isParentActive) && canAccess
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-foreground hover:bg-muted",
+                        (item.soon || isRestricted) && "pointer-events-none opacity-40",
+                    )}
+                >
+                    <Icon className="w-4.5 h-4.5 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                    {item.soon && <span className="text-[10px] uppercase tracking-wider text-muted-foreground ml-auto">Soon</span>}
+                    {item.beta && <span className="text-[10px] bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded ml-auto">BETA</span>}
+                </Link>
+                {hasChildren && !isRestricted && (
+                    <button
+                        onClick={onToggleGroup}
+                        className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors shrink-0"
+                    >
+                        <ChevronRight className={cn(
+                            "w-3.5 h-3.5 transition-transform duration-150",
+                            isGroupExpanded && "rotate-90",
+                        )} />
+                    </button>
+                )}
+            </div>
+
+            {/* Children */}
+            {hasChildren && isGroupExpanded && (
+                <div className="ml-4 pl-3 border-l border-border/50 mt-0.5 space-y-0.5">
+                    {item.children!.map((child) => {
+                        const childActive = pathname === child.href || pathname.startsWith(child.href + "/");
+                        const ChildIcon = child.icon;
+                        return (
+                            <Link
+                                key={child.href}
+                                href={child.href}
+                                className={cn(
+                                    "flex items-center gap-2.5 px-3 py-1.5 rounded-md text-sm transition-colors",
+                                    childActive
+                                        ? "bg-primary/8 text-primary font-medium"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                                )}
+                            >
+                                {ChildIcon && <ChildIcon className="w-3.5 h-3.5" />}
+                                <span className="truncate">{child.label}</span>
+                            </Link>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
     );
 }
