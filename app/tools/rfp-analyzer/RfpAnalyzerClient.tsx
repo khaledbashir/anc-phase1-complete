@@ -29,6 +29,8 @@ import {
   ToggleLeft,
   ToggleRight,
   RefreshCw,
+  ChevronRight,
+  ArrowRight,
 } from "lucide-react";
 
 // ==========================================================================
@@ -705,6 +707,16 @@ export default function RfpAnalyzerClient() {
       </header>
 
       <main className="p-6 xl:px-8 max-w-[1600px] mx-auto">
+        {/* Pipeline stepper — always visible */}
+        <PipelineStepper
+          phase={phase}
+          resultsTab={resultsTab}
+          hasResult={!!result}
+          hasPricing={!!pricingPreview}
+          specsFound={result?.stats.specsFound || 0}
+          onTabSwitch={setResultsTab}
+        />
+
         {/* ============ UPLOAD / PROCESSING ============ */}
         {(phase === "upload" || phase === "processing") && (
           <>
@@ -1533,7 +1545,117 @@ function PipelineStep({ step, title, description, status, action }: {
 }
 
 // ==========================================================================
-// Triage Minimap
+// Pipeline Stepper — horizontal workflow progress
+// ==========================================================================
+
+const PIPELINE_STAGES = [
+  { id: "upload", label: "Upload RFP", icon: Upload, sub: "Drop your PDF" },
+  { id: "extract", label: "AI Extraction", icon: Monitor, sub: "Specs & requirements" },
+  { id: "review", label: "Review & Select", icon: FileText, sub: "Documents & displays" },
+  { id: "price", label: "Price & Quote", icon: DollarSign, sub: "Rate card & budget" },
+  { id: "proposal", label: "Create Proposal", icon: Plus, sub: "Ready to send" },
+] as const;
+
+function PipelineStepper({
+  phase,
+  resultsTab,
+  hasResult,
+  hasPricing,
+  specsFound,
+  onTabSwitch,
+}: {
+  phase: Phase;
+  resultsTab: "extraction" | "pricing";
+  hasResult: boolean;
+  hasPricing: boolean;
+  specsFound: number;
+  onTabSwitch: (tab: "extraction" | "pricing") => void;
+}) {
+  // Determine which stage is active
+  let activeIdx = 0;
+  if (phase === "processing") activeIdx = 1;
+  else if (phase === "results" && resultsTab === "extraction") activeIdx = 2;
+  else if (phase === "results" && resultsTab === "pricing") activeIdx = 3;
+  // Stage 4 (proposal) is only "done" if user clicks Create Proposal
+
+  const getStatus = (idx: number): "done" | "active" | "upcoming" => {
+    if (idx < activeIdx) return "done";
+    if (idx === activeIdx) return "active";
+    // Processing stage counts as active when extracting
+    if (phase === "processing" && idx === 1) return "active";
+    return "upcoming";
+  };
+
+  const handleClick = (idx: number) => {
+    if (!hasResult) return;
+    if (idx === 2) onTabSwitch("extraction");
+    if (idx === 3) onTabSwitch("pricing");
+  };
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center">
+        {PIPELINE_STAGES.map((stage, idx) => {
+          const status = getStatus(idx);
+          const Icon = stage.icon;
+          const clickable = hasResult && (idx === 2 || idx === 3);
+
+          return (
+            <React.Fragment key={stage.id}>
+              {/* Connector */}
+              {idx > 0 && (
+                <div className="flex-1 flex items-center px-1">
+                  <div className={`h-[2px] w-full rounded-full transition-colors ${
+                    status === "done" || (idx <= activeIdx) ? "bg-emerald-500" : "bg-border"
+                  }`} />
+                  <ChevronRight className={`w-3 h-3 shrink-0 -ml-0.5 ${
+                    status === "done" || (idx <= activeIdx) ? "text-emerald-500" : "text-muted-foreground/30"
+                  }`} />
+                </div>
+              )}
+
+              {/* Stage */}
+              <button
+                onClick={() => handleClick(idx)}
+                disabled={!clickable}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg shrink-0 transition-all ${
+                  status === "active"
+                    ? "bg-[#0A52EF]/10 border border-[#0A52EF]/30 text-[#0A52EF]"
+                    : status === "done"
+                    ? "bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 dark:text-emerald-400"
+                    : "bg-muted/30 border border-transparent text-muted-foreground/50"
+                } ${clickable ? "cursor-pointer hover:bg-accent/50" : "cursor-default"}`}
+              >
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                  status === "done"
+                    ? "bg-emerald-500 text-white"
+                    : status === "active"
+                    ? "bg-[#0A52EF] text-white"
+                    : "bg-muted text-muted-foreground/40"
+                }`}>
+                  {status === "done" ? (
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                  ) : (
+                    <Icon className="w-3 h-3" />
+                  )}
+                </div>
+                <div className="text-left hidden sm:block">
+                  <div className="text-[11px] font-semibold leading-tight">{stage.label}</div>
+                  <div className="text-[9px] opacity-70 leading-tight">
+                    {status === "done" && idx === 1 ? `${specsFound} displays` : stage.sub}
+                  </div>
+                </div>
+              </button>
+            </React.Fragment>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ==========================================================================
+// Document Browser (replaces old Triage Minimap)
 // ==========================================================================
 
 const fmtUsd = (n: number) =>
