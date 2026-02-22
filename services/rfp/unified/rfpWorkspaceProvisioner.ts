@@ -109,7 +109,10 @@ export async function provisionRfpWorkspace(opts: {
       body: JSON.stringify({
         openAiTemp: 0.2,
         chatMode: "chat",
-        openAiPrompt: `You are an expert RFP analyst for ANC Sports (LED display manufacturer). You have access to the relevant pages from an RFP document. Answer questions about LED display specifications, requirements, deadlines, and scope of work. Be precise and cite page numbers when possible. Project: ${opts.projectName || "Unknown"}, Venue: ${opts.venue || "Unknown"}.`,
+        // Vector DB settings — tuned for RFP verification
+        topN: 8,                    // Pull 8 chunks per query (RFP specs spread across many sections)
+        similarityThreshold: 0.25,  // Low threshold — catch all references even with varied vocabulary
+        openAiPrompt: `You are an expert RFP analyst for ANC Sports (LED display manufacturer). You have access to the relevant pages from an RFP document. Answer questions about LED display specifications, requirements, deadlines, and scope of work. Be precise and cite page numbers when possible. If an Addendum modifies the original specification, always use the Addendum version. Project: ${opts.projectName || "Unknown"}, Venue: ${opts.venue || "Unknown"}.`,
       }),
     }).catch((e) => console.error("[RFP Workspace] Config failed:", e));
 
