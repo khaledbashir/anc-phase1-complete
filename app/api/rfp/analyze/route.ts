@@ -14,6 +14,7 @@
 import { NextRequest } from "next/server";
 import { stat } from "fs/promises";
 import { existsSync } from "fs";
+import { randomUUID } from "crypto";
 import path from "path";
 import { execFile } from "child_process";
 import { promisify } from "util";
@@ -83,7 +84,7 @@ export async function POST(request: NextRequest) {
     anythingLlmUserId = await ensureAnythingLlmUser(session.user.id, session.user.email).catch(() => null);
   }
 
-  let body: { sessionId: string; filename?: string };
+  let body: { sessionId: string; filename?: string; mergeSessionIds?: string[] };
   try {
     body = await request.json();
   } catch {
@@ -91,6 +92,32 @@ export async function POST(request: NextRequest) {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // Multi-file merge: combine PDFs with pdfunite before analysis
+  if (body.mergeSessionIds && body.mergeSessionIds.length > 1) {
+    const inputPaths = body.mergeSessionIds.map((sid) => path.join(UPLOAD_DIR, `${sid}.pdf`));
+    const missing = inputPaths.filter((p) => !existsSync(p));
+    if (missing.length > 0) {
+      return new Response(JSON.stringify({ error: `Missing uploaded files: ${missing.length} session(s) not found` }), {
+        status: 404,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    // Use a fresh ID for the merged file (can't overwrite an input file)
+    const mergedId = randomUUID();
+    const mergedPath = path.join(UPLOAD_DIR, `${mergedId}.pdf`);
+    try {
+      await execFileAsync("pdfunite", [...inputPaths, mergedPath], { timeout: 120_000 });
+    } catch (err) {
+      console.error("[/api/rfp/analyze] pdfunite merge failed:", err);
+      return new Response(JSON.stringify({ error: "Failed to merge uploaded PDFs" }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    // Point the session to the merged file
+    body.sessionId = mergedId;
   }
 
   const filePath = path.join(UPLOAD_DIR, `${body.sessionId}.pdf`);

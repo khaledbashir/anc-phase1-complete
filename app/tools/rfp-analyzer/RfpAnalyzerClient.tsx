@@ -126,8 +126,7 @@ export default function RfpAnalyzerClient() {
   // ========================================================================
 
   const handleUpload = useCallback(async (files: File[]) => {
-    const file = files[0];
-    if (!file) return;
+    if (!files.length) return;
 
     setPhase("processing");
     setError(null);
@@ -138,58 +137,74 @@ export default function RfpAnalyzerClient() {
 
     try {
       const CHUNK_SIZE = 10 * 1024 * 1024;
-      const sizeMbStr = (file.size / 1024 / 1024).toFixed(0);
-      const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
-
       abortRef.current = new AbortController();
-      let sessionId = "";
-      let lastJson: any = null;
 
-      for (let i = 0; i < totalChunks; i++) {
-        const start = i * CHUNK_SIZE;
-        const end = Math.min(start + CHUNK_SIZE, file.size);
-        const chunk = file.slice(start, end);
-        const pct = Math.round(((i + 1) / totalChunks) * 100);
+      // Upload each file (chunked), collect session IDs
+      const uploaded: Array<{ sessionId: string; filename: string; pageCount: number; sizeMb: string }> = [];
 
-        setEvents([{
-          type: "stage",
-          stage: "uploading",
-          message: `Uploading ${file.name} (${sizeMbStr}MB) — ${pct}%`,
-        }]);
+      for (let fi = 0; fi < files.length; fi++) {
+        const file = files[fi];
+        const sizeMbStr = (file.size / 1024 / 1024).toFixed(0);
+        const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
+        const fileLabel = files.length > 1 ? `(${fi + 1}/${files.length}) ` : "";
+        let sessionId = "";
+        let lastJson: any = null;
 
-        const res = await fetch("/api/rfp/analyze/upload", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/octet-stream",
-            "X-Filename": file.name,
-            "X-Session-Id": sessionId || "",
-            "X-Chunk-Index": String(i),
-            "X-Total-Chunks": String(totalChunks),
-          },
-          body: chunk,
-          credentials: "omit",
-          signal: abortRef.current.signal,
-        });
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * CHUNK_SIZE;
+          const end = Math.min(start + CHUNK_SIZE, file.size);
+          const chunk = file.slice(start, end);
+          const pct = Math.round(((i + 1) / totalChunks) * 100);
 
-        if (!res.ok) {
-          const errText = await res.text();
-          let msg = `Upload failed at chunk ${i + 1}/${totalChunks} (${res.status})`;
-          try { msg = JSON.parse(errText)?.error || msg; } catch {}
-          throw new Error(msg);
+          setEvents([{
+            type: "stage",
+            stage: "uploading",
+            message: `${fileLabel}Uploading ${file.name} (${sizeMbStr}MB) — ${pct}%`,
+          }]);
+
+          const res = await fetch("/api/rfp/analyze/upload", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/octet-stream",
+              "X-Filename": file.name,
+              "X-Session-Id": sessionId || "",
+              "X-Chunk-Index": String(i),
+              "X-Total-Chunks": String(totalChunks),
+            },
+            body: chunk,
+            credentials: "omit",
+            signal: abortRef.current.signal,
+          });
+
+          if (!res.ok) {
+            const errText = await res.text();
+            let msg = `Upload failed: ${file.name} chunk ${i + 1}/${totalChunks} (${res.status})`;
+            try { msg = JSON.parse(errText)?.error || msg; } catch {}
+            throw new Error(msg);
+          }
+
+          lastJson = await res.json();
+          if (!sessionId) sessionId = lastJson.sessionId;
         }
 
-        lastJson = await res.json();
-        if (!sessionId) sessionId = lastJson.sessionId;
+        uploaded.push(lastJson as { sessionId: string; filename: string; pageCount: number; sizeMb: string });
       }
 
-      const uploadRes = lastJson as { sessionId: string; filename: string; pageCount: number; sizeMb: string };
-      setFileInfo({ filename: uploadRes.filename, pageCount: uploadRes.pageCount, sizeMb: uploadRes.sizeMb });
-      setEvents([{ type: "stage", stage: "uploaded", message: `Uploaded: ${uploadRes.pageCount.toLocaleString()} pages, ${uploadRes.sizeMb}MB` }]);
+      const totalPages = uploaded.reduce((sum, u) => sum + u.pageCount, 0);
+      const totalSizeMb = uploaded.reduce((sum, u) => sum + parseFloat(u.sizeMb), 0).toFixed(1);
+      const displayName = uploaded.length === 1 ? uploaded[0].filename : `${uploaded.length} files`;
+      setFileInfo({ filename: displayName, pageCount: totalPages, sizeMb: totalSizeMb });
+      setEvents([{ type: "stage", stage: "uploaded", message: `Uploaded: ${totalPages.toLocaleString()} pages, ${totalSizeMb}MB` }]);
 
+      // Send all session IDs to analyze — server merges if multiple
       const response = await fetch("/api/rfp/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId: uploadRes.sessionId, filename: uploadRes.filename }),
+        body: JSON.stringify({
+          sessionId: uploaded[0].sessionId,
+          filename: uploaded[0].filename,
+          ...(uploaded.length > 1 ? { mergeSessionIds: uploaded.map((u) => u.sessionId) } : {}),
+        }),
         credentials: "omit",
         signal: abortRef.current.signal,
       });
