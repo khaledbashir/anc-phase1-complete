@@ -229,69 +229,69 @@ export default function AnalysisDetailPage() {
   return (
     <div className="flex-1 min-w-0 bg-background relative min-h-screen pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border py-4 px-6 xl:px-8">
-        <div className="flex items-center justify-between max-w-[1600px] mx-auto">
-          <div className="flex items-center gap-4">
+      <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border h-14 px-6 xl:px-8 flex items-center">
+        <div className="flex items-center justify-between w-full max-w-[1600px] mx-auto">
+          <div className="flex items-center gap-3">
             <Link
               href="/tools/rfp-analyzer/history"
-              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-3.5 h-3.5" />
               History
             </Link>
-            <div className="w-px h-6 bg-border" />
+            <div className="w-px h-5 bg-border" />
             <div>
-              <h1 className="text-2xl font-bold text-foreground">
+              <h1 className="text-sm font-bold text-foreground leading-tight">
                 {a.projectName || a.venue || a.filename}
               </h1>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <p className="text-[10px] text-muted-foreground">
                 {a.filename} — {a.pageCount.toLocaleString()} pages — {date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {a.aiWorkspaceSlug && (
               <Link
                 href={`/chat?workspace=${a.aiWorkspaceSlug}`}
                 target="_blank"
-                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
+                className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border border-border text-muted-foreground rounded hover:bg-muted transition-colors"
               >
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="w-3 h-3" />
                 Cross-Check
-                <ExternalLink className="w-3 h-3 opacity-50" />
+                <ExternalLink className="w-2.5 h-2.5 opacity-50" />
               </Link>
             )}
             <button
               onClick={handleScoping}
               disabled={downloading === "scoping"}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-[#217346] text-white rounded-lg hover:bg-[#1a5c38] transition-colors disabled:opacity-50"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold bg-[#217346] text-white rounded hover:bg-[#1a5c38] transition-colors disabled:opacity-50"
             >
-              {downloading === "scoping" ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+              {downloading === "scoping" ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />}
               Scoping Workbook
             </button>
             <button
               onClick={handleRateCard}
               disabled={downloading === "ratecard"}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border border-border text-muted-foreground rounded hover:bg-muted transition-colors disabled:opacity-50"
             >
-              {downloading === "ratecard" ? <Loader2 className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
+              {downloading === "ratecard" ? <Loader2 className="w-3 h-3 animate-spin" /> : <DollarSign className="w-3 h-3" />}
               Rate Card
             </button>
             <button
               onClick={handleExport}
               disabled={downloading === "extraction"}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium border border-border text-muted-foreground rounded hover:bg-muted transition-colors disabled:opacity-50"
             >
-              {downloading === "extraction" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {downloading === "extraction" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
               Specs .xlsx
             </button>
             <button
               onClick={handleCreateProposal}
               disabled={downloading === "creating" || !session?.user?.email}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-[#0A52EF] text-white rounded hover:bg-[#0A52EF]/90 transition-colors disabled:opacity-50"
             >
-              {downloading === "creating" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              {downloading === "creating" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
               Create Proposal
             </button>
           </div>
@@ -380,13 +380,13 @@ function StatCard({ icon: Icon, label, value, sub, accent }: {
   icon: typeof FileText; label: string; value: string; sub?: string; accent?: string;
 }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-1.5">
-        <Icon className={`w-4 h-4 ${accent || "text-muted-foreground"}`} />
-        <span className="text-xs text-muted-foreground">{label}</span>
+    <div className="bg-card border border-border rounded-lg px-3 py-2.5">
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className={`w-3 h-3 ${accent || "text-muted-foreground"}`} />
+        <span className="text-[10px] text-muted-foreground">{label}</span>
       </div>
-      <div className={`text-2xl font-bold ${accent || "text-foreground"}`}>{value}</div>
-      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+      <div className={`text-lg font-bold font-mono ${accent || "text-foreground"}`}>{value}</div>
+      {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
     </div>
   );
 }
@@ -412,19 +412,19 @@ function ProjectInfoCard({ project }: { project: any }) {
   const hasExtras = specialReqs.length > 0 || schedulePhases.length > 0;
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-primary" />
-          Project Information
-        </h3>
+    <div className="bg-card border border-border rounded-lg px-4 py-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-semibold text-foreground">Project Information</span>
+        </div>
         {hasExtras && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
           >
             <span>{expanded ? "Hide" : "Show"} details ({specialReqs.length} requirements{schedulePhases.length > 0 ? ", schedule" : ""})</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+            <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? "rotate-180" : ""}`} />
           </button>
         )}
       </div>

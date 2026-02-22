@@ -843,31 +843,24 @@ export default function RfpAnalyzerClient() {
               <div className="min-h-[400px]">
                 {resultsTab === "extraction" && (
                   <div className="p-5 space-y-6">
-                    {/* Pricing summary banner (auto-generated) */}
+                    {/* Pricing summary — compact inline bar */}
                     {pricingPreview && (
-                      <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
-                        <div className="flex items-center justify-between flex-wrap gap-3">
-                          <div className="flex items-center gap-3">
-                            <DollarSign className="w-5 h-5 text-emerald-600" />
-                            <div>
-                              <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-                                Estimated Total: {fmtUsd(pricingPreview.summary.totalSellingPrice)}
-                              </span>
-                              <span className="text-xs text-emerald-600 dark:text-emerald-400 ml-3">
-                                {pricingPreview.summary.displayCount} displays | {pricingPreview.summary.blendedMarginPct}% margin | Cost: {fmtUsd(pricingPreview.summary.totalCost)}
-                              </span>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => setResultsTab("pricing")}
-                            className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline font-medium"
-                          >
-                            View full pricing breakdown &rarr;
-                          </button>
+                      <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800 border border-border rounded-lg">
+                        <div className="flex items-center gap-4 text-xs">
+                          <DollarSign className="w-4 h-4 text-[#217346] shrink-0" />
+                          <span className="font-bold text-foreground">
+                            {fmtUsd(pricingPreview.summary.totalSellingPrice)}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {pricingPreview.summary.displayCount} displays · {pricingPreview.summary.blendedMarginPct}% margin · Cost {fmtUsd(pricingPreview.summary.totalCost)}
+                          </span>
                         </div>
-                        <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-2">
-                          Auto-estimated from rate cards. Send to supplier for exact quotes, or download pricing Excel now.
-                        </p>
+                        <button
+                          onClick={() => setResultsTab("pricing")}
+                          className="text-[10px] text-primary hover:underline font-medium shrink-0"
+                        >
+                          Full breakdown &rarr;
+                        </button>
                       </div>
                     )}
                     {loadingPricing && !pricingPreview && (
@@ -879,25 +872,25 @@ export default function RfpAnalyzerClient() {
 
                     {/* LED specs table */}
                     <div>
-                      <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                        <Monitor className="w-4 h-4 text-primary" />
-                        Extracted LED Displays ({result.screens.length})
-                      </h3>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Monitor className="w-3.5 h-3.5 text-muted-foreground" />
+                        <span className="text-xs font-semibold text-foreground">LED Displays ({result.screens.length})</span>
+                      </div>
                       <SpecsTable specs={result.screens} />
                     </div>
 
                     {/* Requirements table */}
                     {requirements.length > 0 && (
                       <div>
-                        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-amber-500" />
-                          Requirements & Key Points ({requirements.length})
+                        <div className="flex items-center gap-2 mb-2">
+                          <Shield className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-xs font-semibold text-foreground">Requirements ({requirements.length})</span>
                           {criticalReqs > 0 && (
                             <span className="px-1.5 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-bold rounded-full">
                               {criticalReqs} critical
                             </span>
                           )}
-                        </h3>
+                        </div>
                         <RequirementsTable requirements={requirements} />
                       </div>
                     )}
@@ -918,42 +911,33 @@ export default function RfpAnalyzerClient() {
 
                     {/* Upload supplementary drawings */}
                     {result.id && (
-                      <div className="border border-dashed border-border rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <ImageIcon className="w-4 h-4 text-muted-foreground" />
-                            <div>
-                              <span className="text-sm font-medium">Supplementary Drawings</span>
-                              <p className="text-xs text-muted-foreground">Upload separate drawing/spec files (PDF, PNG, JPG) — max 20 pages each</p>
-                            </div>
-                          </div>
-                          <label className="flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium cursor-pointer transition-colors shrink-0">
-                            {drawingUpload.uploading ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Upload className="w-3.5 h-3.5" />
-                            )}
-                            {drawingUpload.uploading ? "Processing..." : "Upload Drawings"}
-                            <input
-                              type="file"
-                              accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp"
-                              multiple
-                              onChange={handleUploadDrawings}
-                              disabled={drawingUpload.uploading}
-                              className="hidden"
-                            />
-                          </label>
+                      <div className="flex items-center justify-between px-4 py-2.5 border border-dashed border-border rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span className="text-xs font-medium">Supplementary Drawings</span>
+                          <span className="text-[10px] text-muted-foreground">PDF, PNG, JPG — max 20 pages each</span>
+                          {drawingUpload.results.length > 0 && (
+                            <span className="text-[10px] text-[#217346] font-medium ml-1">
+                              {drawingUpload.results.length} uploaded
+                            </span>
+                          )}
                         </div>
-                        {drawingUpload.results.length > 0 && (
-                          <div className="mt-3 space-y-1">
-                            {drawingUpload.results.map((r, i) => (
-                              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                                <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
-                                <span>{r.filename} — {r.pages} page(s) processed</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        <label className="flex items-center gap-1.5 px-2.5 py-1 border border-border hover:bg-muted text-foreground rounded text-xs font-medium cursor-pointer transition-colors shrink-0">
+                          {drawingUpload.uploading ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <Upload className="w-3 h-3" />
+                          )}
+                          {drawingUpload.uploading ? "Processing..." : "Upload"}
+                          <input
+                            type="file"
+                            accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp"
+                            multiple
+                            onChange={handleUploadDrawings}
+                            disabled={drawingUpload.uploading}
+                            className="hidden"
+                          />
+                        </label>
                       </div>
                     )}
                   </div>
@@ -1460,13 +1444,13 @@ function StatCard({ icon: Icon, label, value, sub, accent }: {
   icon: typeof FileText; label: string; value: string; sub?: string; accent?: string;
 }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-4">
-      <div className="flex items-center gap-2 mb-1.5">
-        <Icon className={`w-4 h-4 ${accent || "text-muted-foreground"}`} />
-        <span className="text-xs text-muted-foreground">{label}</span>
+    <div className="bg-card border border-border rounded-lg px-3 py-2.5">
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className={`w-3 h-3 ${accent || "text-muted-foreground"}`} />
+        <span className="text-[10px] text-muted-foreground">{label}</span>
       </div>
-      <div className={`text-2xl font-bold ${accent || "text-foreground"}`}>{value}</div>
-      {sub && <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>}
+      <div className={`text-lg font-bold font-mono ${accent || "text-foreground"}`}>{value}</div>
+      {sub && <p className="text-[10px] text-muted-foreground">{sub}</p>}
     </div>
   );
 }
@@ -1492,19 +1476,19 @@ function ProjectInfoCard({ project }: { project: AnalysisResult["project"] }) {
   const hasExtras = specialReqs.length > 0;
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <Building2 className="w-4 h-4 text-primary" />
-          Project Information
-        </h3>
+    <div className="bg-card border border-border rounded-lg px-4 py-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-semibold text-foreground">Project Information</span>
+        </div>
         {hasExtras && (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
           >
             <span>{expanded ? "Hide" : "Show"} {specialReqs.length} spec requirements</span>
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+            <ChevronDown className={`w-3 h-3 transition-transform ${expanded ? "rotate-180" : ""}`} />
           </button>
         )}
       </div>
@@ -1733,16 +1717,16 @@ const CAT_LABELS: Record<string, string> = {
   unknown: "Other",
 };
 
-const CAT_ICONS: Record<string, string> = {
-  led_specs: "📺",
-  drawing: "📐",
-  cost_schedule: "💰",
-  scope_of_work: "📋",
-  technical: "⚙️",
-  legal: "⚖️",
-  schedule: "📅",
-  boilerplate: "📄",
-  unknown: "❓",
+const CAT_ICONS: Record<string, typeof Monitor> = {
+  led_specs: Monitor,
+  drawing: ImageIcon,
+  cost_schedule: DollarSign,
+  scope_of_work: FileText,
+  technical: Shield,
+  legal: Shield,
+  schedule: Clock,
+  boilerplate: FileText,
+  unknown: FileText,
 };
 
 function DocumentBrowser({
@@ -1785,15 +1769,16 @@ function DocumentBrowser({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground">
-          Document Categories ({triage.length} pages)
-        </h3>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-semibold text-foreground">Document Categories ({triage.length} pages)</span>
+        </div>
         {hasChanges && (
           <button
             onClick={onReEmbed}
             disabled={reEmbedding || enabledPageCount === 0}
-            className="flex items-center gap-1.5 px-3 py-1 bg-[#0A52EF] hover:bg-[#0840C0] disabled:opacity-50 text-white rounded-md text-xs font-medium transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1 bg-[#0A52EF] hover:bg-[#0840C0] disabled:opacity-50 text-white rounded text-[10px] font-medium transition-colors"
           >
             {reEmbedding ? (
               <Loader2 className="w-3 h-3 animate-spin" />
@@ -1819,7 +1804,7 @@ function DocumentBrowser({
                   : "border-border bg-muted/30 opacity-50"
               }`}
             >
-              <span className="text-base leading-none mt-0.5">{CAT_ICONS[cat] || CAT_ICONS.unknown}</span>
+              {(() => { const CatIcon = CAT_ICONS[cat] || CAT_ICONS.unknown; return <CatIcon className="w-3.5 h-3.5 text-muted-foreground mt-0.5 shrink-0" />; })()}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
                   <span className="text-xs font-medium truncate">{CAT_LABELS[cat] || cat}</span>
