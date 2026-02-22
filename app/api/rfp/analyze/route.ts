@@ -11,7 +11,7 @@
  */
 
 import { NextRequest } from "next/server";
-import { readFile } from "fs/promises";
+import { readFile, stat } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
 import { extractText } from "@/services/kreuzberg/kreuzbergClient";
@@ -89,21 +89,23 @@ export async function POST(request: NextRequest) {
 
       try {
         // =============================================================
-        // STEP 1: Read file
+        // STEP 1: Get file info
         // =============================================================
         send("stage", { stage: "reading", message: "Loading PDF..." });
-        const buffer = await readFile(filePath);
-        const sizeMb = (buffer.length / 1024 / 1024).toFixed(1);
+        const fileStat = await stat(filePath);
+        const sizeMb = (fileStat.size / 1024 / 1024).toFixed(1);
 
         // =============================================================
         // STEP 2: Kreuzberg OCR — fast text (ALL pages, cheap)
+        // Buffer is loaded here, sent to Kreuzberg, then GC'd.
         // =============================================================
         send("stage", {
           stage: "ocr",
           message: `Extracting text from all pages (${sizeMb}MB)...`,
         });
 
-        const ocrResult = await extractText(buffer, body.filename || "document.pdf");
+        const pdfBuffer = await readFile(filePath);
+        const ocrResult = await extractText(pdfBuffer, body.filename || "document.pdf");
 
         send("stage", {
           stage: "ocr_done",
