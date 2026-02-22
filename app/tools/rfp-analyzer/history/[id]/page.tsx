@@ -23,6 +23,7 @@ import {
   MessageSquare,
   Plus,
   ExternalLink,
+  ChevronDown,
 } from "lucide-react";
 import SpecsTable from "../../_components/SpecsTable";
 import RequirementsTable from "../../_components/RequirementsTable";
@@ -257,7 +258,7 @@ export default function AnalysisDetailPage() {
                 className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
               >
                 <MessageSquare className="w-4 h-4" />
-                Verify with AI
+                Cross-Check
                 <ExternalLink className="w-3 h-3 opacity-50" />
               </Link>
             )}
@@ -320,70 +321,9 @@ export default function AnalysisDetailPage() {
           <StatCard icon={Clock} label="Processing" value={`${(a.processingTimeMs / 1000).toFixed(1)}s`} />
         </div>
 
-        {/* Project info */}
+        {/* Project info — collapsible */}
         {(project.clientName || project.venue || project.projectName) && (
-          <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-primary" />
-              Project Information
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              {project.clientName && (
-                <div>
-                  <span className="text-xs text-muted-foreground block">Client</span>
-                  <span className="font-medium">{project.clientName}</span>
-                </div>
-              )}
-              {project.projectName && (
-                <div>
-                  <span className="text-xs text-muted-foreground block">Project</span>
-                  <span className="font-medium">{project.projectName}</span>
-                </div>
-              )}
-              {project.venue && (
-                <div>
-                  <span className="text-xs text-muted-foreground block">Venue</span>
-                  <span className="font-medium">{project.venue}</span>
-                </div>
-              )}
-              {project.location && (
-                <div className="flex items-start gap-1">
-                  <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
-                  <div>
-                    <span className="text-xs text-muted-foreground block">Location</span>
-                    <span className="font-medium">{project.location}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Flags */}
-            <div className="flex flex-wrap gap-2 mt-3">
-              {project.isOutdoor && <Flag label="Outdoor" />}
-              {project.isUnionLabor && <Flag label="Union Labor" />}
-              {project.bondRequired && <Flag label="Bond Required" />}
-              {(project.specialRequirements || []).map((r: string) => <Flag key={r} label={r} />)}
-            </div>
-
-            {/* Schedule phases */}
-            {(project.schedulePhases || []).length > 0 && (
-              <div className="mt-4 pt-3 border-t border-border">
-                <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
-                  <Calendar className="w-3 h-3" />
-                  Schedule
-                </h4>
-                <div className="flex flex-wrap gap-3">
-                  {project.schedulePhases.map((p: any, i: number) => (
-                    <div key={i} className="px-3 py-2 bg-muted/50 rounded-lg text-xs">
-                      <span className="font-medium text-foreground">{p.phaseName}</span>
-                      {p.endDate && <span className="text-muted-foreground ml-2">{p.endDate}</span>}
-                      {p.duration && <span className="text-muted-foreground ml-2">({p.duration})</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <ProjectInfoCard project={project} />
         )}
 
         {/* Tabs */}
@@ -456,6 +396,103 @@ function Flag({ label }: { label: string }) {
     <span className="px-2.5 py-1 bg-amber-500/10 text-amber-600 text-xs font-medium rounded-full">
       {label}
     </span>
+  );
+}
+
+function ProjectInfoCard({ project }: { project: any }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const primaryFlags: string[] = [];
+  if (project.isOutdoor) primaryFlags.push("Outdoor");
+  if (project.isUnionLabor) primaryFlags.push("Union Labor");
+  if (project.bondRequired) primaryFlags.push("Bond Required");
+
+  const specialReqs: string[] = project.specialRequirements || [];
+  const schedulePhases: any[] = project.schedulePhases || [];
+  const hasExtras = specialReqs.length > 0 || schedulePhases.length > 0;
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-primary" />
+          Project Information
+        </h3>
+        {hasExtras && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span>{expanded ? "Hide" : "Show"} details ({specialReqs.length} requirements{schedulePhases.length > 0 ? ", schedule" : ""})</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        {project.clientName && (
+          <div>
+            <span className="text-xs text-muted-foreground block">Client</span>
+            <span className="font-medium">{project.clientName}</span>
+          </div>
+        )}
+        {project.projectName && (
+          <div>
+            <span className="text-xs text-muted-foreground block">Project</span>
+            <span className="font-medium">{project.projectName}</span>
+          </div>
+        )}
+        {project.venue && (
+          <div>
+            <span className="text-xs text-muted-foreground block">Venue</span>
+            <span className="font-medium">{project.venue}</span>
+          </div>
+        )}
+        {project.location && (
+          <div className="flex items-start gap-1">
+            <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
+            <div>
+              <span className="text-xs text-muted-foreground block">Location</span>
+              <span className="font-medium">{project.location}</span>
+            </div>
+          </div>
+        )}
+      </div>
+      {primaryFlags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {primaryFlags.map((f) => <Flag key={f} label={f} />)}
+        </div>
+      )}
+      {hasExtras && expanded && (
+        <div className="mt-3 pt-3 border-t border-border space-y-3">
+          {specialReqs.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {specialReqs.map((r: string) => (
+                <span key={r} className="px-2 py-0.5 bg-muted text-muted-foreground text-[11px] rounded-md">
+                  {r}
+                </span>
+              ))}
+            </div>
+          )}
+          {schedulePhases.length > 0 && (
+            <div>
+              <h4 className="text-xs font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+                <Calendar className="w-3 h-3" />
+                Schedule
+              </h4>
+              <div className="flex flex-wrap gap-3">
+                {schedulePhases.map((p: any, i: number) => (
+                  <div key={i} className="px-3 py-2 bg-muted/50 rounded-lg text-xs">
+                    <span className="font-medium text-foreground">{p.phaseName}</span>
+                    {p.endDate && <span className="text-muted-foreground ml-2">{p.endDate}</span>}
+                    {p.duration && <span className="text-muted-foreground ml-2">({p.duration})</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

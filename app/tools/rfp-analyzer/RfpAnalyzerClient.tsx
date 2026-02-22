@@ -30,6 +30,7 @@ import {
   ToggleRight,
   RefreshCw,
   ChevronRight,
+  ChevronDown,
   ArrowRight,
 } from "lucide-react";
 
@@ -682,7 +683,7 @@ export default function RfpAnalyzerClient() {
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
               {phase === "upload"
-                ? "Drop your RFP and let the AI do the heavy lifting"
+                ? "Drop your RFP — specs, pricing, and proposal in minutes"
                 : fileInfo
                 ? `${fileInfo.filename} — ${fileInfo.pageCount.toLocaleString()} pages, ${fileInfo.sizeMb}MB`
                 : ""
@@ -777,49 +778,9 @@ export default function RfpAnalyzerClient() {
               <StatCard icon={Clock} label="Processing Time" value={`${(result.stats.processingTimeMs / 1000).toFixed(1)}s`} />
             </div>
 
-            {/* Project info */}
+            {/* Project info — collapsible */}
             {(result.project.clientName || result.project.venue || result.project.projectName) && (
-              <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-primary" />
-                  Project Information
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  {result.project.clientName && (
-                    <div>
-                      <span className="text-xs text-muted-foreground block">Client</span>
-                      <span className="font-medium">{result.project.clientName}</span>
-                    </div>
-                  )}
-                  {result.project.projectName && (
-                    <div>
-                      <span className="text-xs text-muted-foreground block">Project</span>
-                      <span className="font-medium">{result.project.projectName}</span>
-                    </div>
-                  )}
-                  {result.project.venue && (
-                    <div>
-                      <span className="text-xs text-muted-foreground block">Venue</span>
-                      <span className="font-medium">{result.project.venue}</span>
-                    </div>
-                  )}
-                  {result.project.location && (
-                    <div className="flex items-start gap-1">
-                      <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
-                      <div>
-                        <span className="text-xs text-muted-foreground block">Location</span>
-                        <span className="font-medium">{result.project.location}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {result.project.isOutdoor && <Flag label="Outdoor" />}
-                  {result.project.isUnionLabor && <Flag label="Union Labor" />}
-                  {result.project.bondRequired && <Flag label="Bond Required" />}
-                  {result.project.specialRequirements.map((r) => <Flag key={r} label={r} />)}
-                </div>
-              </div>
+              <ProjectInfoCard project={result.project} />
             )}
 
             {/* ============ TABBED VIEW: Extraction | Pricing ============ */}
@@ -840,7 +801,7 @@ export default function RfpAnalyzerClient() {
                       className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors"
                     >
                       <MessageSquare className="w-3 h-3" />
-                      Verify with AI
+                      Cross-Check
                     </Link>
                   )}
                   <button
@@ -1518,6 +1479,86 @@ function Flag({ label }: { label: string }) {
   );
 }
 
+function ProjectInfoCard({ project }: { project: AnalysisResult["project"] }) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Primary flags always visible
+  const primaryFlags: string[] = [];
+  if (project.isOutdoor) primaryFlags.push("Outdoor");
+  if (project.isUnionLabor) primaryFlags.push("Union Labor");
+  if (project.bondRequired) primaryFlags.push("Bond Required");
+
+  const specialReqs = project.specialRequirements || [];
+  const hasExtras = specialReqs.length > 0;
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-5">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Building2 className="w-4 h-4 text-primary" />
+          Project Information
+        </h3>
+        {hasExtras && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <span>{expanded ? "Hide" : "Show"} {specialReqs.length} spec requirements</span>
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        {project.clientName && (
+          <div>
+            <span className="text-xs text-muted-foreground block">Client</span>
+            <span className="font-medium">{project.clientName}</span>
+          </div>
+        )}
+        {project.projectName && (
+          <div>
+            <span className="text-xs text-muted-foreground block">Project</span>
+            <span className="font-medium">{project.projectName}</span>
+          </div>
+        )}
+        {project.venue && (
+          <div>
+            <span className="text-xs text-muted-foreground block">Venue</span>
+            <span className="font-medium">{project.venue}</span>
+          </div>
+        )}
+        {project.location && (
+          <div className="flex items-start gap-1">
+            <MapPin className="w-3 h-3 text-muted-foreground mt-0.5 shrink-0" />
+            <div>
+              <span className="text-xs text-muted-foreground block">Location</span>
+              <span className="font-medium">{project.location}</span>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* Primary flags — always visible */}
+      {primaryFlags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-3">
+          {primaryFlags.map((f) => <Flag key={f} label={f} />)}
+        </div>
+      )}
+      {/* Special requirements — collapsible */}
+      {hasExtras && expanded && (
+        <div className="mt-3 pt-3 border-t border-border">
+          <div className="flex flex-wrap gap-1.5">
+            {specialReqs.map((r) => (
+              <span key={r} className="px-2 py-0.5 bg-muted text-muted-foreground text-[11px] rounded-md">
+                {r}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PipelineStep({ step, title, description, status, action }: {
   step: number;
   title: string;
@@ -1554,7 +1595,7 @@ function PipelineStep({ step, title, description, status, action }: {
 
 const PIPELINE_STAGES = [
   { id: "upload", label: "RFP In", icon: Upload, sub: "Drop your document" },
-  { id: "extract", label: "AI Reads It", icon: Monitor, sub: "Pulling specs & requirements" },
+  { id: "extract", label: "Specs", icon: Monitor, sub: "Pulling specs & requirements" },
   { id: "review", label: "What's Inside", icon: FileText, sub: "Displays, requirements, docs" },
   { id: "price", label: "Estimate", icon: DollarSign, sub: "Rate card, scoping, subs" },
   { id: "proposal", label: "Proposal", icon: ArrowRight, sub: "Build & send" },
@@ -1759,7 +1800,7 @@ function DocumentBrowser({
             ) : (
               <RefreshCw className="w-3 h-3" />
             )}
-            {reEmbedding ? "Updating..." : `Update Workspace (${enabledPageCount} pages)`}
+            {reEmbedding ? "Updating..." : `Update Reference Library (${enabledPageCount} pages)`}
           </button>
         )}
       </div>

@@ -187,7 +187,7 @@ export default function UploadZone({ onUpload, isLoading, events }: UploadZonePr
                   <FileIcon className="w-3 h-3" /> PDF up to 2GB
                 </span>
                 <span className="bg-muted/80 px-2.5 py-1 rounded-md flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3" /> AI-powered
+                  <Sparkles className="w-3 h-3" /> Auto-extract
                 </span>
                 <span className="bg-muted/80 px-2.5 py-1 rounded-md flex items-center gap-1.5">
                   <Monitor className="w-3 h-3" /> LED extraction
@@ -236,7 +236,7 @@ function buildStages(events: PipelineEvent[]): StageState[] {
     { key: "ocr",       label: "Text extraction (pdftotext)",           icon: Database,    status: "pending" },
     { key: "triage",    label: "Page triage & classification",          icon: Filter,      status: "pending" },
     { key: "vision",    label: "Processing pages (text + vision OCR)",  icon: Eye,         status: "pending" },
-    { key: "extract",   label: "LED spec extraction (AI)",              icon: Monitor,     status: "pending" },
+    { key: "extract",   label: "Pulling LED specs & requirements",      icon: Monitor,     status: "pending" },
   ];
 
   let currentActive: string | null = null;
