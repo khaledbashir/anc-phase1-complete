@@ -18,6 +18,39 @@ import type { AnalyzedPage } from "./types";
 const PAGES_PER_DOC = 25;
 const MAX_RETRIES = 1;
 
+// Internal Docker URL — bypasses EasyPanel reverse proxy for file uploads
+const INTERNAL_ALM_URL = "http://basheer_anything-llm:3001/api/v1";
+
+// ---------------------------------------------------------------------------
+// Resolve the best AnythingLLM URL (internal Docker > external HTTPS)
+// ---------------------------------------------------------------------------
+
+let resolvedUrl: string | null = null;
+
+async function getAlmUrl(): Promise<string> {
+  if (resolvedUrl) return resolvedUrl;
+
+  // Try internal Docker URL first (faster, no proxy overhead)
+  try {
+    const res = await fetch(`${INTERNAL_ALM_URL}/auth`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${ANYTHING_LLM_KEY}` },
+      signal: AbortSignal.timeout(3000),
+    });
+    if (res.ok) {
+      resolvedUrl = INTERNAL_ALM_URL;
+      console.log("[RFP Workspace] Using internal Docker URL");
+      return resolvedUrl;
+    }
+  } catch {
+    // Internal not available — fall back to external
+  }
+
+  resolvedUrl = ANYTHING_LLM_BASE_URL!;
+  console.log("[RFP Workspace] Using external URL");
+  return resolvedUrl;
+}
+
 // ---------------------------------------------------------------------------
 // Create workspace + embed pages
 // ---------------------------------------------------------------------------
@@ -27,12 +60,14 @@ export async function provisionRfpWorkspace(opts: {
   projectName: string | null;
   venue: string | null;
   relevantPages: AnalyzedPage[];
-  anythingLlmUserId?: number | null; // If provided, workspace is assigned to this user
+  anythingLlmUserId?: number | null;
 }): Promise<string | null> {
   if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) {
     console.warn("[RFP Workspace] AnythingLLM not configured — skipping");
     return null;
   }
+
+  const baseUrl = await getAlmUrl();
 
   try {
     // 1. Create workspace
@@ -42,7 +77,7 @@ export async function provisionRfpWorkspace(opts: {
       .slice(0, 20);
     const slugName = `rfp-${safeName}-${opts.analysisId.slice(-6)}`;
 
-    const createRes = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/new`, {
+    const createRes = await fetch(`${baseUrl}/workspace/new`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -65,7 +100,7 @@ export async function provisionRfpWorkspace(opts: {
     console.log(`[RFP Workspace] Created: ${slug}`);
 
     // 2. Configure workspace
-    await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${slug}/update`, {
+    await fetch(`${baseUrl}/workspace/${slug}/update`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -84,7 +119,7 @@ export async function provisionRfpWorkspace(opts: {
     let uploadSuccess = 0;
     let uploadFailed = 0;
 
-    console.log(`[RFP Workspace] Uploading ${opts.relevantPages.length} pages in ${totalChunks} chunk(s)...`);
+    console.log(`[RFP Workspace] Uploading ${opts.relevantPages.length} pages in ${totalChunks} chunk(s) to ${baseUrl}...`);
 
     for (let i = 0; i < opts.relevantPages.length; i += PAGES_PER_DOC) {
       const chunkIdx = Math.floor(i / PAGES_PER_DOC) + 1;
@@ -111,7 +146,7 @@ export async function provisionRfpWorkspace(opts: {
           const blob = new Blob([content], { type: "text/plain" });
           formData.append("file", blob, filename);
 
-          const uploadRes = await fetch(`${ANYTHING_LLM_BASE_URL}/document/upload`, {
+          const uploadRes = await fetch(`${baseUrl}/document/upload`, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${ANYTHING_LLM_KEY}`,
@@ -131,7 +166,7 @@ export async function provisionRfpWorkspace(opts: {
             break;
           } else {
             const errText = await uploadRes.text().catch(() => "unknown");
-            console.error(`[RFP Workspace] Chunk ${chunkIdx}/${totalChunks} failed (${uploadRes.status}): ${errText.slice(0, 100)}`);
+            console.error(`[RFP Workspace] Chunk ${chunkIdx}/${totalChunks} failed (${uploadRes.status}): ${errText.slice(0, 200)}`);
           }
         } catch (err: any) {
           console.error(`[RFP Workspace] Chunk ${chunkIdx}/${totalChunks} attempt ${attempt + 1} error:`, err.message);
@@ -152,7 +187,7 @@ export async function provisionRfpWorkspace(opts: {
     // Embed whatever we got — partial is better than nothing
     if (docPaths.length > 0) {
       try {
-        const embedRes = await fetch(`${ANYTHING_LLM_BASE_URL}/workspace/${slug}/update-embeddings`, {
+        const embedRes = await fetch(`${baseUrl}/workspace/${slug}/update-embeddings`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
