@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -17,9 +18,11 @@ import {
   Shield,
   Calendar,
   DollarSign,
-  Wrench,
-  Info,
   Download,
+  FileSpreadsheet,
+  MessageSquare,
+  Plus,
+  ExternalLink,
 } from "lucide-react";
 import SpecsTable from "../../_components/SpecsTable";
 import RequirementsTable from "../../_components/RequirementsTable";
@@ -68,6 +71,7 @@ interface FullAnalysis {
     relevance: number;
     isDrawing: boolean;
   }>;
+  aiWorkspaceSlug: string | null;
   status: string;
   createdAt: string;
 }
@@ -78,11 +82,13 @@ interface FullAnalysis {
 
 export default function AnalysisDetailPage() {
   const params = useParams();
+  const { data: session } = useSession();
   const id = params?.id as string;
   const [analysis, setAnalysis] = useState<FullAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"specs" | "requirements" | "triage">("specs");
+  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -107,29 +113,84 @@ export default function AnalysisDetailPage() {
     })();
   }, [id]);
 
-  // Excel export (.xlsx via API)
-  const [exporting, setExporting] = useState(false);
+  // Download helper
+  const downloadBlob = async (url: string, body: object, fallbackName: string) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error(`Download failed (${res.status})`);
+    const blob = await res.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = res.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || fallbackName;
+    link.click();
+    URL.revokeObjectURL(blobUrl);
+  };
+
   const handleExport = async () => {
     if (!analysis) return;
-    setExporting(true);
+    setDownloading("extraction");
     try {
-      const res = await fetch("/api/rfp/pipeline/extraction-excel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ analysisId: analysis.id }),
-      });
-      if (!res.ok) throw new Error(`Export failed (${res.status})`);
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = res.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || `${analysis.projectName || analysis.filename || "rfp-analysis"}.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadBlob("/api/rfp/pipeline/extraction-excel", { analysisId: analysis.id }, `${analysis.projectName || "rfp-analysis"}.xlsx`);
     } catch (err: any) {
       console.error("Export failed:", err);
     } finally {
-      setExporting(false);
+      setDownloading(null);
+    }
+  };
+
+  const handleScoping = async () => {
+    if (!analysis) return;
+    setDownloading("scoping");
+    try {
+      await downloadBlob("/api/rfp/pipeline/scoping-workbook", { analysisId: analysis.id }, "Scoping_Workbook.xlsx");
+    } catch (err: any) {
+      console.error("Scoping workbook failed:", err);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handleRateCard = async () => {
+    if (!analysis) return;
+    setDownloading("ratecard");
+    try {
+      await downloadBlob("/api/rfp/pipeline/rate-card-excel", {
+        analysisId: analysis.id,
+        quotes: [],
+        includeBond: analysis.project?.bondRequired || false,
+      }, "Rate_Card.xlsx");
+    } catch (err: any) {
+      console.error("Rate card failed:", err);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const handleCreateProposal = async () => {
+    if (!analysis?.id || !session?.user?.email) return;
+    setDownloading("creating");
+    try {
+      const res = await fetch("/api/rfp/pipeline/create-proposal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          analysisId: analysis.id,
+          userEmail: session.user.email,
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Failed (${res.status})`);
+      }
+      const data = await res.json();
+      window.location.href = `/projects/${data.proposalId}`;
+    } catch (err: any) {
+      setError(err.message);
+      setDownloading(null);
     }
   };
 
@@ -188,14 +249,51 @@ export default function AnalysisDetailPage() {
             </div>
           </div>
 
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Export .xlsx
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {a.aiWorkspaceSlug && (
+              <Link
+                href={`/chat?workspace=${a.aiWorkspaceSlug}`}
+                target="_blank"
+                className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4" />
+                Verify with AI
+                <ExternalLink className="w-3 h-3 opacity-50" />
+              </Link>
+            )}
+            <button
+              onClick={handleScoping}
+              disabled={downloading === "scoping"}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-[#217346] text-white rounded-lg hover:bg-[#1a5c38] transition-colors disabled:opacity-50"
+            >
+              {downloading === "scoping" ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+              Scoping Workbook
+            </button>
+            <button
+              onClick={handleRateCard}
+              disabled={downloading === "ratecard"}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors disabled:opacity-50"
+            >
+              {downloading === "ratecard" ? <Loader2 className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
+              Rate Card
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={downloading === "extraction"}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors disabled:opacity-50"
+            >
+              {downloading === "extraction" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Specs .xlsx
+            </button>
+            <button
+              onClick={handleCreateProposal}
+              disabled={downloading === "creating" || !session?.user?.email}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+            >
+              {downloading === "creating" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+              Create Proposal
+            </button>
+          </div>
         </div>
       </header>
 
