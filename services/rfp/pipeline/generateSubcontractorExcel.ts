@@ -70,12 +70,17 @@ export interface SubcontractorExcelOptions {
 export async function generateSubcontractorExcel(
   options: SubcontractorExcelOptions,
 ): Promise<Buffer> {
-  const { project, specs, requestedBy, dueDate, notes } = options;
+  const { project, specs: rawSpecs, requestedBy, dueDate, notes } = options;
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "ANC Proposal Engine";
   workbook.created = new Date();
 
   const projectName = project.projectName || project.venue || "Untitled Project";
+
+  // Sort: base bid first, then alternates (stable)
+  const baseSpecs = rawSpecs.filter((s) => !s.isAlternate);
+  const altSpecs = rawSpecs.filter((s) => s.isAlternate);
+  const specs = [...baseSpecs, ...altSpecs];
 
   // ━━━ SHEET 1: Quote Request ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -180,15 +185,32 @@ export async function generateSubcontractorExcel(
   row++;
 
   // Data rows
+  let altSeparatorInserted = false;
   specs.forEach((spec, idx) => {
+    // Insert separator before first alternate
+    if (spec.isAlternate && !altSeparatorInserted && altSpecs.length > 0) {
+      altSeparatorInserted = true;
+      sheet.mergeCells(`A${row}:N${row}`);
+      const sepCell = sheet.getCell(`A${row}`);
+      sepCell.value = `COST ALTERNATES — Quote Separately (${altSpecs.length} item${altSpecs.length > 1 ? "s" : ""})`;
+      sepCell.font = { size: 11, bold: true, color: { argb: COLORS.WHITE }, name: "Calibri" };
+      sepCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFCC8800" } };
+      sepCell.alignment = { horizontal: "center", vertical: "middle" };
+      sheet.getRow(row).height = 28;
+      row++;
+    }
+
     const r = sheet.getRow(row);
 
     // # (line number)
     r.getCell(1).value = idx + 1;
     r.getCell(1).alignment = { horizontal: "center" };
 
-    // Display name
-    r.getCell(2).value = spec.name;
+    // Display name — append [Alt X] for alternates
+    const displayLabel = spec.isAlternate && spec.alternateId
+      ? `${spec.name} [Alt ${spec.alternateId}]`
+      : spec.name;
+    r.getCell(2).value = displayLabel;
     r.getCell(2).font = { bold: true, name: "Calibri" };
 
     // Location
@@ -236,8 +258,14 @@ export async function generateSubcontractorExcel(
       styleInputCell(r.getCell(col));
     }
 
-    // Stripe alternating rows
-    addStripeRow(r, 11, idx % 2 === 0); // only stripe the requirements columns
+    // Color rows: amber for alternates, stripe for base bid
+    if (spec.isAlternate) {
+      for (let col = 1; col <= 11; col++) {
+        r.getCell(col).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.AMBER_BG } };
+      }
+    } else {
+      addStripeRow(r, 11, idx % 2 === 0);
+    }
 
     r.height = 24;
     row++;
@@ -247,7 +275,7 @@ export async function generateSubcontractorExcel(
   row++;
   sheet.mergeCells(`A${row}:N${row}`);
   const summaryCell = sheet.getCell(`A${row}`);
-  summaryCell.value = `Total Displays: ${specs.length}  |  ${specs.filter(s => s.environment === "outdoor").length} Outdoor  |  ${specs.filter(s => s.environment === "indoor").length} Indoor  |  Total Qty: ${specs.reduce((sum, s) => sum + s.quantity, 0)}`;
+  summaryCell.value = `Total: ${specs.length} displays (${baseSpecs.length} base bid, ${altSpecs.length} alternates)  |  ${specs.filter(s => s.environment === "outdoor").length} Outdoor  |  ${specs.filter(s => s.environment === "indoor").length} Indoor  |  Total Qty: ${specs.reduce((sum, s) => sum + s.quantity, 0)}`;
   summaryCell.font = { size: 11, bold: true, color: { argb: COLORS.WHITE }, name: "Calibri" };
   summaryCell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.DARK_HEADER } };
   summaryCell.alignment = { horizontal: "center", vertical: "middle" };
@@ -281,7 +309,7 @@ export async function generateSubcontractorExcel(
     properties: { tabColor: { argb: "FF28A745" } },
   });
 
-  detailSheet.mergeCells("A1:P1");
+  detailSheet.mergeCells("A1:R1");
   const dtTitle = detailSheet.getCell("A1");
   dtTitle.value = `${projectName} — Full LED Specifications`;
   dtTitle.font = { size: 14, bold: true, color: { argb: COLORS.WHITE }, name: "Calibri" };
@@ -293,10 +321,10 @@ export async function generateSubcontractorExcel(
     "Display", "Location", "Width (ft)", "Height (ft)", "Width (px)",
     "Height (px)", "Pitch (mm)", "Nits", "Environment", "Qty",
     "Service Type", "Mounting", "Max Power (W)", "Weight (lbs)",
-    "Special Requirements", "Confidence",
+    "Special Requirements", "Confidence", "Type", "Alt ID",
   ];
 
-  const detailWidths = [28, 20, 10, 10, 10, 10, 10, 10, 10, 6, 12, 16, 12, 12, 30, 10];
+  const detailWidths = [28, 20, 10, 10, 10, 10, 10, 10, 10, 6, 12, 16, 12, 12, 30, 10, 12, 10];
   detailWidths.forEach((w, i) => { detailSheet.getColumn(i + 1).width = w; });
 
   detailHeaders.forEach((h, i) => {
@@ -310,12 +338,12 @@ export async function generateSubcontractorExcel(
     r.getCell(1).value = spec.name;
     r.getCell(1).font = { bold: true, name: "Calibri" };
     r.getCell(2).value = spec.location || "—";
-    r.getCell(3).value = spec.widthFt;
-    r.getCell(4).value = spec.heightFt;
-    r.getCell(5).value = spec.widthPx;
-    r.getCell(6).value = spec.heightPx;
-    r.getCell(7).value = spec.pixelPitchMm;
-    r.getCell(8).value = spec.brightnessNits;
+    r.getCell(3).value = spec.widthFt != null ? spec.widthFt : "TBD";
+    r.getCell(4).value = spec.heightFt != null ? spec.heightFt : "TBD";
+    r.getCell(5).value = spec.widthPx != null ? spec.widthPx : "TBD";
+    r.getCell(6).value = spec.heightPx != null ? spec.heightPx : "TBD";
+    r.getCell(7).value = spec.pixelPitchMm != null ? spec.pixelPitchMm : "TBD";
+    r.getCell(8).value = spec.brightnessNits != null ? spec.brightnessNits : "TBD";
     r.getCell(9).value = spec.environment;
     r.getCell(10).value = spec.quantity;
     r.getCell(11).value = spec.serviceType || "—";
@@ -325,8 +353,18 @@ export async function generateSubcontractorExcel(
     r.getCell(15).value = spec.specialRequirements.join(", ") || "—";
     r.getCell(15).alignment = { wrapText: true };
     r.getCell(16).value = Math.round(spec.confidence * 100) / 100;
+    r.getCell(17).value = spec.isAlternate ? "Alternate" : "Base Bid";
+    r.getCell(17).alignment = { horizontal: "center" };
+    r.getCell(18).value = spec.alternateId || "";
+    r.getCell(18).alignment = { horizontal: "center" };
 
-    addStripeRow(r, 16, idx % 2 === 0);
+    if (spec.isAlternate) {
+      for (let i = 1; i <= 18; i++) {
+        r.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.AMBER_BG } };
+      }
+    } else {
+      addStripeRow(r, 18, idx % 2 === 0);
+    }
   });
 
   const buffer = await workbook.xlsx.writeBuffer();

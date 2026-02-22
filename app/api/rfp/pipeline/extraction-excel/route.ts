@@ -27,6 +27,7 @@ const COLORS = {
   MEDIUM_GRAY: "FFDEE2E6",
   EMERALD: "FF10B981",
   AMBER: "FFF59E0B",
+  AMBER_BG: "FFFFF8E1",
   RED: "FFEF4444",
 };
 
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Title
-    displaySheet.mergeCells("A1:L1");
+    displaySheet.mergeCells("A1:N1");
     const titleCell = displaySheet.getCell("A1");
     titleCell.value = `LED DISPLAY SPECIFICATIONS — ${projectName.toUpperCase()}`;
     titleCell.font = { size: 14, bold: true, color: { argb: COLORS.WHITE }, name: "Calibri" };
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
     if (project.venue) metaParts.push(`Venue: ${project.venue}`);
     if (project.location) metaParts.push(`Location: ${project.location}`);
     if (metaParts.length > 0) {
-      displaySheet.mergeCells("A2:L2");
+      displaySheet.mergeCells("A2:N2");
       const metaCell = displaySheet.getCell("A2");
       metaCell.value = metaParts.join("  |  ");
       metaCell.font = { size: 10, italic: true, color: { argb: "FF666666" }, name: "Calibri" };
@@ -103,12 +104,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Column widths
-    const displayCols = [4, 28, 22, 10, 10, 12, 12, 10, 8, 12, 14, 24];
+    const displayCols = [4, 28, 22, 10, 10, 12, 12, 10, 8, 12, 14, 24, 12, 10];
     displayCols.forEach((w, i) => { displaySheet.getColumn(i + 1).width = w; });
 
     // Headers
     const headerRow = 4;
-    const headers = ["#", "Display Name", "Location", "Width (ft)", "Height (ft)", "Pitch (mm)", "Nits", "Env", "Qty", "Service", "Mounting", "Special Requirements"];
+    const headers = ["#", "Display Name", "Location", "Width (ft)", "Height (ft)", "Pitch (mm)", "Nits", "Env", "Qty", "Service", "Mounting", "Special Requirements", "Type", "Alt ID"];
     const hr = displaySheet.getRow(headerRow);
     headers.forEach((h, i) => {
       hr.getCell(i + 1).value = h;
@@ -122,15 +123,17 @@ export async function POST(request: NextRequest) {
       r.getCell(1).value = idx + 1;
       r.getCell(2).value = s.name;
       r.getCell(3).value = s.location;
-      r.getCell(4).value = s.widthFt ?? "";
-      r.getCell(5).value = s.heightFt ?? "";
-      r.getCell(6).value = s.pixelPitchMm ?? "";
-      r.getCell(7).value = s.brightnessNits ?? "";
+      r.getCell(4).value = s.widthFt != null ? s.widthFt : "TBD";
+      r.getCell(5).value = s.heightFt != null ? s.heightFt : "TBD";
+      r.getCell(6).value = s.pixelPitchMm != null ? s.pixelPitchMm : "TBD";
+      r.getCell(7).value = s.brightnessNits != null ? s.brightnessNits : "TBD";
       r.getCell(8).value = s.environment;
       r.getCell(9).value = s.quantity;
       r.getCell(10).value = s.serviceType ?? "";
       r.getCell(11).value = s.mountingType ?? "";
       r.getCell(12).value = (s.specialRequirements || []).join(", ");
+      r.getCell(13).value = s.isAlternate ? "Alternate" : "Base Bid";
+      r.getCell(14).value = s.alternateId || "";
 
       r.font = { size: 10, name: "Calibri" };
       r.getCell(1).alignment = { horizontal: "center" };
@@ -139,7 +142,17 @@ export async function POST(request: NextRequest) {
       r.getCell(6).alignment = { horizontal: "right" };
       r.getCell(7).alignment = { horizontal: "right" };
       r.getCell(9).alignment = { horizontal: "center" };
-      stripeRow(r, displayCols.length, idx % 2 === 0);
+      r.getCell(13).alignment = { horizontal: "center" };
+      r.getCell(14).alignment = { horizontal: "center" };
+
+      if (s.isAlternate) {
+        // Amber background for alternate rows
+        for (let i = 1; i <= displayCols.length; i++) {
+          r.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.AMBER_BG } };
+        }
+      } else {
+        stripeRow(r, displayCols.length, idx % 2 === 0);
+      }
     });
 
     // ━━━ SHEET 2: Requirements ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -226,7 +239,7 @@ export async function POST(request: NextRequest) {
       ["Environment", project.isOutdoor ? "Outdoor" : "Indoor"],
       ["Union Labor", project.isUnionLabor ? "Yes" : "No"],
       ["Bond Required", project.bondRequired ? "Yes" : "No"],
-      ["LED Displays Found", `${specs.length}`],
+      ["LED Displays Found", `${specs.length} (${specs.filter(s => !s.isAlternate).length} base bid, ${specs.filter(s => s.isAlternate).length} alternates)`],
       ["Requirements Found", `${requirements.length}`],
       ["Total Pages Analyzed", `${analysis.pageCount || "N/A"}`],
       ["Relevant Pages", `${analysis.relevantPages || "N/A"}`],

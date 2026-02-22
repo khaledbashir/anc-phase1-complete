@@ -43,6 +43,8 @@ const COLORS = {
   RED_BG: "FFFCE4E4",
   GREEN: "FF28A745",
   AMBER: "FFFFC107",
+  AMBER_BG: "FFFFF8E1",
+  AMBER_HEADER: "FFCC8800",
 };
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -343,17 +345,17 @@ export async function generateRateCardExcel(
   summary.getRow(row).height = 28;
   row++;
 
-  // Data rows
-  let totalHardwareCost = 0;
-  let totalInstallCost = 0;
-  let totalCost = 0;
-  let totalHardwareSell = 0;
-  let totalServicesSell = 0;
-  let totalSell = 0;
+  // Split into base bid + alternates
+  const basePriced = pricedDisplays.filter((pd) => !pd.spec.isAlternate);
+  const altPriced = pricedDisplays.filter((pd) => pd.spec.isAlternate);
 
-  pricedDisplays.forEach((pd, idx) => {
+  // Helper to render a priced display row
+  function renderPricedRow(pd: PricedDisplay, idx: number, isAlt: boolean) {
     const r = summary.getRow(row);
-    r.getCell(1).value = pd.spec.name;
+    const displayLabel = isAlt && pd.spec.alternateId
+      ? `[Alt ${pd.spec.alternateId}] ${pd.spec.name}`
+      : pd.spec.name;
+    r.getCell(1).value = displayLabel;
     r.getCell(1).font = { bold: true, name: "Calibri" };
     r.getCell(2).value = pd.spec.pixelPitchMm != null ? `${pd.spec.pixelPitchMm}mm` : "—";
     r.getCell(2).alignment = { horizontal: "center" };
@@ -365,7 +367,6 @@ export async function generateRateCardExcel(
     r.getCell(4).value = pd.spec.quantity;
     r.getCell(4).alignment = { horizontal: "center" };
     if (dimsMissing) {
-      // Flag cost cells as needing dimensions
       [5, 6, 7, 8, 9, 10].forEach((c) => {
         r.getCell(c).value = "Dims Required";
         r.getCell(c).font = { color: { argb: "FFCC0000" }, italic: true, size: 9, name: "Calibri" };
@@ -395,62 +396,112 @@ export async function generateRateCardExcel(
     r.getCell(12).value = sourceLabel;
     r.getCell(12).alignment = { horizontal: "center" };
 
-    // Color code cost source
     if (pd.costSource === "subcontractor_quote") {
       r.getCell(12).font = { color: { argb: COLORS.GREEN }, bold: true, name: "Calibri" };
     }
 
-    addStripeRow(r, 12, idx % 2 === 0);
-
-    if (!dimsMissing) {
-      totalHardwareCost += pd.hardwareCost;
-      totalInstallCost += (pd.installCost + pd.pmCost + pd.engCost);
-      totalCost += pd.totalCost;
-      totalHardwareSell += pd.hardwareSellingPrice;
-      totalServicesSell += pd.servicesSellingPrice;
-      totalSell += pd.totalSellingPrice;
+    if (isAlt) {
+      for (let i = 1; i <= 12; i++) {
+        r.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.AMBER_BG } };
+      }
+    } else {
+      addStripeRow(r, 12, idx % 2 === 0);
     }
     row++;
+
+    return dimsMissing ? 0 : 1;
+  }
+
+  // Accumulators for base bid
+  let baseTotals = { hw: 0, inst: 0, cost: 0, hwSell: 0, svcSell: 0, sell: 0 };
+  let altTotals = { hw: 0, inst: 0, cost: 0, hwSell: 0, svcSell: 0, sell: 0 };
+
+  // Render base bid displays
+  basePriced.forEach((pd, idx) => {
+    const hasDims = renderPricedRow(pd, idx, false);
+    if (hasDims) {
+      baseTotals.hw += pd.hardwareCost;
+      baseTotals.inst += (pd.installCost + pd.pmCost + pd.engCost);
+      baseTotals.cost += pd.totalCost;
+      baseTotals.hwSell += pd.hardwareSellingPrice;
+      baseTotals.svcSell += pd.servicesSellingPrice;
+      baseTotals.sell += pd.totalSellingPrice;
+    }
   });
 
-  // Totals
+  // Base bid subtotal
   row++;
-  const totRow = summary.getRow(row);
-  totRow.getCell(1).value = "SUBTOTAL";
-  totRow.getCell(5).value = totalHardwareCost;
-  totRow.getCell(5).numFmt = FMT;
-  totRow.getCell(6).value = totalInstallCost;
-  totRow.getCell(6).numFmt = FMT;
-  totRow.getCell(7).value = totalCost;
-  totRow.getCell(7).numFmt = FMT;
-  totRow.getCell(8).value = totalHardwareSell;
-  totRow.getCell(8).numFmt = FMT;
-  totRow.getCell(9).value = totalServicesSell;
-  totRow.getCell(9).numFmt = FMT;
-  totRow.getCell(10).value = totalSell;
-  totRow.getCell(10).numFmt = FMT;
-  totRow.getCell(11).value = totalSell > 0 ? round2((totalSell - totalCost) / totalSell) : 0;
-  totRow.getCell(11).numFmt = PCT;
-  styleTotalRow(totRow, 12, COLORS.MEDIUM_GRAY);
+  const baseTotRow = summary.getRow(row);
+  baseTotRow.getCell(1).value = "BASE BID SUBTOTAL";
+  baseTotRow.getCell(5).value = baseTotals.hw; baseTotRow.getCell(5).numFmt = FMT;
+  baseTotRow.getCell(6).value = baseTotals.inst; baseTotRow.getCell(6).numFmt = FMT;
+  baseTotRow.getCell(7).value = baseTotals.cost; baseTotRow.getCell(7).numFmt = FMT;
+  baseTotRow.getCell(8).value = baseTotals.hwSell; baseTotRow.getCell(8).numFmt = FMT;
+  baseTotRow.getCell(9).value = baseTotals.svcSell; baseTotRow.getCell(9).numFmt = FMT;
+  baseTotRow.getCell(10).value = baseTotals.sell; baseTotRow.getCell(10).numFmt = FMT;
+  baseTotRow.getCell(11).value = baseTotals.sell > 0 ? round2((baseTotals.sell - baseTotals.cost) / baseTotals.sell) : 0;
+  baseTotRow.getCell(11).numFmt = PCT;
+  styleTotalRow(baseTotRow, 12, COLORS.MEDIUM_GRAY);
   row++;
 
-  // Bond row (optional)
+  // Alternates section (if any)
+  if (altPriced.length > 0) {
+    row++;
+    // Section header
+    summary.mergeCells(`A${row}:L${row}`);
+    const altHdr = summary.getCell(`A${row}`);
+    altHdr.value = `COST ALTERNATES (${altPriced.length} — not included in base total)`;
+    altHdr.font = { size: 11, bold: true, color: { argb: COLORS.WHITE }, name: "Calibri" };
+    altHdr.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.AMBER_HEADER } };
+    altHdr.alignment = { horizontal: "center", vertical: "middle" };
+    summary.getRow(row).height = 28;
+    row++;
+
+    altPriced.forEach((pd, idx) => {
+      const hasDims = renderPricedRow(pd, idx, true);
+      if (hasDims) {
+        altTotals.hw += pd.hardwareCost;
+        altTotals.inst += (pd.installCost + pd.pmCost + pd.engCost);
+        altTotals.cost += pd.totalCost;
+        altTotals.hwSell += pd.hardwareSellingPrice;
+        altTotals.svcSell += pd.servicesSellingPrice;
+        altTotals.sell += pd.totalSellingPrice;
+      }
+    });
+
+    // Alt subtotal
+    row++;
+    const altTotRow = summary.getRow(row);
+    altTotRow.getCell(1).value = "ALTERNATES SUBTOTAL";
+    altTotRow.getCell(5).value = altTotals.hw; altTotRow.getCell(5).numFmt = FMT;
+    altTotRow.getCell(6).value = altTotals.inst; altTotRow.getCell(6).numFmt = FMT;
+    altTotRow.getCell(7).value = altTotals.cost; altTotRow.getCell(7).numFmt = FMT;
+    altTotRow.getCell(8).value = altTotals.hwSell; altTotRow.getCell(8).numFmt = FMT;
+    altTotRow.getCell(9).value = altTotals.svcSell; altTotRow.getCell(9).numFmt = FMT;
+    altTotRow.getCell(10).value = altTotals.sell; altTotRow.getCell(10).numFmt = FMT;
+    altTotRow.getCell(11).value = altTotals.sell > 0 ? round2((altTotals.sell - altTotals.cost) / altTotals.sell) : 0;
+    altTotRow.getCell(11).numFmt = PCT;
+    styleTotalRow(altTotRow, 12, COLORS.AMBER_BG);
+    row++;
+  }
+
+  // Bond row (optional) — applies to base bid only
   if (includeBond) {
     const bondRow = summary.getRow(row);
     bondRow.getCell(1).value = `Performance Bond (${(BOND_RATE * 100).toFixed(1)}%)`;
-    bondRow.getCell(10).value = round2(totalSell * BOND_RATE);
+    bondRow.getCell(10).value = round2(baseTotals.sell * BOND_RATE);
     bondRow.getCell(10).numFmt = FMT;
     row++;
   }
 
-  // Grand total
+  // Grand total — base bid only
   row++;
   const grandRow = summary.getRow(row);
-  const grandTotal = totalSell + (includeBond ? round2(totalSell * BOND_RATE) : 0);
-  grandRow.getCell(1).value = "GRAND TOTAL";
+  const grandTotal = baseTotals.sell + (includeBond ? round2(baseTotals.sell * BOND_RATE) : 0);
+  grandRow.getCell(1).value = "GRAND TOTAL (Base Bid)";
   grandRow.getCell(10).value = grandTotal;
   grandRow.getCell(10).numFmt = FMT;
-  grandRow.getCell(11).value = totalSell > 0 ? round2((totalSell - totalCost) / totalSell) : 0;
+  grandRow.getCell(11).value = baseTotals.sell > 0 ? round2((baseTotals.sell - baseTotals.cost) / baseTotals.sell) : 0;
   grandRow.getCell(11).numFmt = PCT;
   grandRow.height = 28;
   for (let i = 1; i <= 12; i++) {
@@ -485,29 +536,50 @@ export async function generateRateCardExcel(
   });
   bdRow++;
 
-  pricedDisplays.forEach((pd, idx) => {
-    const r = breakdown.getRow(bdRow);
-    r.getCell(1).value = pd.spec.name;
-    r.getCell(1).font = { bold: true, name: "Calibri" };
-    r.getCell(2).value = pd.hardwareCost;
-    r.getCell(2).numFmt = FMT;
-    r.getCell(3).value = pd.installCost;
-    r.getCell(3).numFmt = FMT;
-    r.getCell(4).value = pd.pmCost;
-    r.getCell(4).numFmt = FMT;
-    r.getCell(5).value = pd.engCost;
-    r.getCell(5).numFmt = FMT;
-    r.getCell(6).value = pd.totalCost;
-    r.getCell(6).numFmt = FMT;
-    r.getCell(7).value = pd.blendedMarginPct;
-    r.getCell(7).numFmt = PCT;
-    r.getCell(7).alignment = { horizontal: "center" };
-    r.getCell(8).value = pd.totalSellingPrice;
-    r.getCell(8).numFmt = FMT;
+  // Render base bid first, then alternates
+  const bdBase = pricedDisplays.filter((pd) => !pd.spec.isAlternate);
+  const bdAlt = pricedDisplays.filter((pd) => pd.spec.isAlternate);
 
-    addStripeRow(r, 8, idx % 2 === 0);
+  function renderBdRow(pd: PricedDisplay, idx: number, isAlt: boolean) {
+    const r = breakdown.getRow(bdRow);
+    const label = isAlt && pd.spec.alternateId
+      ? `[Alt ${pd.spec.alternateId}] ${pd.spec.name}`
+      : pd.spec.name;
+    r.getCell(1).value = label;
+    r.getCell(1).font = { bold: true, name: "Calibri" };
+    r.getCell(2).value = pd.hardwareCost; r.getCell(2).numFmt = FMT;
+    r.getCell(3).value = pd.installCost; r.getCell(3).numFmt = FMT;
+    r.getCell(4).value = pd.pmCost; r.getCell(4).numFmt = FMT;
+    r.getCell(5).value = pd.engCost; r.getCell(5).numFmt = FMT;
+    r.getCell(6).value = pd.totalCost; r.getCell(6).numFmt = FMT;
+    r.getCell(7).value = pd.blendedMarginPct; r.getCell(7).numFmt = PCT;
+    r.getCell(7).alignment = { horizontal: "center" };
+    r.getCell(8).value = pd.totalSellingPrice; r.getCell(8).numFmt = FMT;
+
+    if (isAlt) {
+      for (let i = 1; i <= 8; i++) {
+        r.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.AMBER_BG } };
+      }
+    } else {
+      addStripeRow(r, 8, idx % 2 === 0);
+    }
     bdRow++;
-  });
+  }
+
+  bdBase.forEach((pd, idx) => renderBdRow(pd, idx, false));
+
+  if (bdAlt.length > 0) {
+    bdRow++;
+    breakdown.mergeCells(`A${bdRow}:H${bdRow}`);
+    const altSep = breakdown.getCell(`A${bdRow}`);
+    altSep.value = `COST ALTERNATES (${bdAlt.length})`;
+    altSep.font = { size: 11, bold: true, color: { argb: COLORS.WHITE }, name: "Calibri" };
+    altSep.fill = { type: "pattern", pattern: "solid", fgColor: { argb: COLORS.AMBER_HEADER } };
+    altSep.alignment = { horizontal: "center", vertical: "middle" };
+    bdRow++;
+
+    bdAlt.forEach((pd, idx) => renderBdRow(pd, idx, true));
+  }
 
   // ━━━ SHEET 3: Rate Card Audit ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

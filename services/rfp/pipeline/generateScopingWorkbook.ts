@@ -236,11 +236,14 @@ function computeDisplays(
     const pmCost = priced?.pmCost ?? round2(PM_BASE_FEE);
     const engCost = priced?.engCost ?? round2(ENG_BASE_FEE);
 
+    // Skip fixed costs if display has no dimensions (can't scope it)
+    const hasDimensions = areaSqFt > 0;
+
     // Travel (estimate)
-    const travelCost = 15000; // Standard ANC travel budget per zone
+    const travelCost = hasDimensions ? 15000 : 0;
 
     // Smart bundles
-    const sendingCardCost = SMART_BUNDLES.sendingCard;
+    const sendingCardCost = hasDimensions ? SMART_BUNDLES.sendingCard : 0;
     const sparePartsCost = round2(ledHardwareCost * SMART_BUNDLES.sparePartsPct);
     const signalCableCost = round2(SMART_BUNDLES.signalCablePerSqFt25 * (areaSqFt / 25));
     const isScoreboard = isCeiling;
@@ -306,9 +309,9 @@ export async function generateScopingWorkbook(
 ): Promise<{ buffer: Buffer; displays: ComputedDisplay[] }> {
   const {
     project,
-    specs,
+    specs: allSpecs,
     requirements = [],
-    pricedDisplays,
+    pricedDisplays: allPricedDisplays,
     zoneClass = "standard",
     installComplexity = "standard",
     includeBond = false,
@@ -328,8 +331,25 @@ export async function generateScopingWorkbook(
   const clientName = project.clientName || "Client";
   const today = new Date().toISOString().split("T")[0];
 
-  // Compute all display data
-  const displays = computeDisplays(specs, pricedDisplays, installComplexity);
+  // Split base bid vs alternates — budget sheets only see base bid
+  const baseSpecs = allSpecs.filter((s) => !s.isAlternate);
+  const altSpecs = allSpecs.filter((s) => s.isAlternate);
+
+  // Match pricedDisplays to base specs only
+  const basePricedDisplays = allPricedDisplays
+    ? allPricedDisplays.filter((pd) => !pd.spec.isAlternate)
+    : undefined;
+
+  // Compute base bid display data (used by all budget sheets)
+  const displays = computeDisplays(baseSpecs, basePricedDisplays, installComplexity);
+
+  // Compute alternate display data (for reference sheet only)
+  const altPricedDisplays = allPricedDisplays
+    ? allPricedDisplays.filter((pd) => pd.spec.isAlternate)
+    : undefined;
+  const altDisplays = altSpecs.length > 0
+    ? computeDisplays(altSpecs, altPricedDisplays, installComplexity)
+    : [];
 
   // Grand totals
   const grandCost = displays.reduce((s, d) => s + d.totalCost, 0);
@@ -368,6 +388,11 @@ export async function generateScopingWorkbook(
 
   // ─── CMS Template ───────────────────────────────────────────────────────
   buildCMS(wb, projectName);
+
+  // ─── Alternates (reference only — not in budget) ──────────────────────
+  if (altDisplays.length > 0) {
+    buildAlternatesSheet(wb, projectName, altDisplays);
+  }
 
   const buffer = await wb.xlsx.writeBuffer();
   return { buffer: buffer as unknown as Buffer, displays };
@@ -1467,4 +1492,69 @@ function buildCMS(
   subR.getCell(2).font = { bold: true, color: { argb: C.WHITE }, name: "Calibri" };
   subR.getCell(3).font = { bold: true, color: { argb: C.WHITE }, name: "Calibri" };
   subR.getCell(6).font = { bold: true, color: { argb: C.WHITE }, name: "Calibri" };
+}
+
+// ─── ALTERNATES REFERENCE SHEET ───────────────────────────────────────────
+
+function buildAlternatesSheet(
+  wb: ExcelJS.Workbook,
+  projectName: string,
+  altDisplays: ComputedDisplay[],
+): void {
+  const ws = wb.addWorksheet("Alternates", {
+    properties: { tabColor: { argb: C.AMBER_TAB } },
+  });
+
+  const colWidths = [10, 28, 20, 10, 10, 10, 10, 8, 14, 30];
+  colWidths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+
+  setTitle(ws, "J", `${projectName} — Cost Alternates (Reference Only)`);
+  setMeta(ws, "J", "These alternates are NOT included in the base bid budget. Shown for reference only.");
+
+  let row = 4;
+  const headers = ["Alt ID", "Display Name", "Location", "Width (ft)", "Height (ft)", "Pitch (mm)", "Env", "Qty", "Est. Cost", "Notes"];
+  headers.forEach((h, i) => {
+    const cell = ws.getCell(row, i + 1);
+    cell.value = h;
+    hdr(cell, C.AMBER_TAB);
+  });
+  ws.getRow(row).height = 28;
+  row++;
+
+  altDisplays.forEach((d, idx) => {
+    const r = ws.getRow(row);
+    r.getCell(1).value = d.spec.alternateId || `Alt ${idx + 1}`;
+    r.getCell(1).font = { bold: true, name: "Calibri" };
+    r.getCell(1).alignment = { horizontal: "center" };
+    r.getCell(2).value = d.spec.name;
+    r.getCell(3).value = d.spec.location || "—";
+    r.getCell(4).value = d.widthFt > 0 ? d.widthFt : "TBD";
+    r.getCell(4).alignment = { horizontal: "center" };
+    r.getCell(5).value = d.heightFt > 0 ? d.heightFt : "TBD";
+    r.getCell(5).alignment = { horizontal: "center" };
+    r.getCell(6).value = d.spec.pixelPitchMm != null ? `${d.spec.pixelPitchMm}mm` : "TBD";
+    r.getCell(6).alignment = { horizontal: "center" };
+    r.getCell(7).value = d.spec.environment;
+    r.getCell(7).alignment = { horizontal: "center" };
+    r.getCell(8).value = d.spec.quantity;
+    r.getCell(8).alignment = { horizontal: "center" };
+    r.getCell(9).value = d.totalCost > 0 ? d.totalCost : "TBD";
+    if (d.totalCost > 0) r.getCell(9).numFmt = FMT_USD;
+    r.getCell(10).value = d.spec.alternateDescription || d.spec.notes || "—";
+    r.getCell(10).alignment = { wrapText: true };
+
+    // Amber background for all rows
+    for (let i = 1; i <= 10; i++) {
+      r.getCell(i).fill = { type: "pattern", pattern: "solid", fgColor: { argb: C.AMBER_BG } };
+    }
+    row++;
+  });
+
+  // Footer note
+  row += 2;
+  ws.mergeCells(`A${row}:J${row}`);
+  const noteCell = ws.getCell(`A${row}`);
+  noteCell.value = "NOTE: These alternates are optional add-ons or substitute configurations. They are NOT included in the base bid budget totals.";
+  noteCell.font = { size: 10, italic: true, color: { argb: "FF666666" }, name: "Calibri" };
+  noteCell.alignment = { horizontal: "center", wrapText: true };
 }
