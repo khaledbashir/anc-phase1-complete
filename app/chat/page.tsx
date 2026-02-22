@@ -1,9 +1,38 @@
-export default function ChatPage() {
+"use client";
+
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
+
+const ANYTHINGLLM_URL = "https://basheer-anything-llm.prd42b.easypanel.host";
+
+/**
+ * Full-page AnythingLLM iframe.
+ *
+ * Usage:
+ *   /chat                          → loads default AnythingLLM view
+ *   /chat?workspace=client-slug    → loads specific workspace for a project
+ */
+function ChatFrame() {
+    const params = useSearchParams();
+    const workspace = params.get("workspace");
+
+    const src = workspace
+        ? `${ANYTHINGLLM_URL}/workspace/${workspace}`
+        : ANYTHINGLLM_URL;
+
     return (
         <iframe
-            src="https://basheer-anything-llm.prd42b.easypanel.host/"
+            src={src}
             className="w-full h-screen border-0"
             allow="clipboard-write; microphone"
         />
+    );
+}
+
+export default function ChatPage() {
+    return (
+        <Suspense fallback={<div className="w-full h-screen bg-[#1e1e2e]" />}>
+            <ChatFrame />
+        </Suspense>
     );
 }
