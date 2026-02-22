@@ -627,7 +627,7 @@ export default function RfpAnalyzerClient() {
                     className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
                   >
                     {downloading === "ratecard" ? <Loader2 className="w-3 h-3 animate-spin" /> : <DollarSign className="w-3 h-3" />}
-                    Download Rate Card
+                    Download Pricing
                   </button>
                   <button
                     onClick={handleExportExcel}
@@ -644,6 +644,40 @@ export default function RfpAnalyzerClient() {
               <div className="min-h-[400px]">
                 {resultsTab === "extraction" && (
                   <div className="p-5 space-y-6">
+                    {/* Pricing summary banner (auto-generated) */}
+                    {pricingPreview && (
+                      <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-4">
+                        <div className="flex items-center justify-between flex-wrap gap-3">
+                          <div className="flex items-center gap-3">
+                            <DollarSign className="w-5 h-5 text-emerald-600" />
+                            <div>
+                              <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+                                Estimated Total: {fmtUsd(pricingPreview.summary.totalSellingPrice)}
+                              </span>
+                              <span className="text-xs text-emerald-600 dark:text-emerald-400 ml-3">
+                                {pricingPreview.summary.displayCount} displays | {pricingPreview.summary.blendedMarginPct}% margin | Cost: {fmtUsd(pricingPreview.summary.totalCost)}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => setResultsTab("pricing")}
+                            className="text-xs text-emerald-700 dark:text-emerald-400 hover:underline font-medium"
+                          >
+                            View full pricing breakdown &rarr;
+                          </button>
+                        </div>
+                        <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-2">
+                          Auto-estimated from rate cards. Send to supplier for exact quotes, or download pricing Excel now.
+                        </p>
+                      </div>
+                    )}
+                    {loadingPricing && !pricingPreview && (
+                      <div className="bg-muted/50 border border-border rounded-lg p-4 flex items-center gap-3">
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        <span className="text-sm text-muted-foreground">Calculating estimated pricing from rate cards...</span>
+                      </div>
+                    )}
+
                     {/* LED specs table */}
                     <div>
                       <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -724,13 +758,13 @@ export default function RfpAnalyzerClient() {
 
                 {resultsTab === "pricing" && (
                   <div className="p-5 space-y-6">
-                    {/* Pipeline Steps */}
+                    {/* Workflow Steps */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Step 4: Subcontractor Excel */}
+                      {/* Step 1: Send to Supplier */}
                       <PipelineStep
-                        step={4}
-                        title="Subcontractor Excel"
-                        description="Download specs sheet to send for quoting"
+                        step={1}
+                        title="Send to Supplier"
+                        description="Download Excel to send to LG, Yaham, etc."
                         icon={FileSpreadsheet}
                         status="ready"
                         action={
@@ -749,13 +783,13 @@ export default function RfpAnalyzerClient() {
                         }
                       />
 
-                      {/* Step 5: Import Quote */}
+                      {/* Step 2: Import Response */}
                       <PipelineStep
-                        step={5}
-                        title="Quote Integration"
+                        step={2}
+                        title="Import Supplier Response"
                         description={quoteImportResult
-                          ? `${quoteImportResult.quotedCount}/${quoteImportResult.quotes.length} specs quoted`
-                          : "Import returned subcontractor quote"
+                          ? `${quoteImportResult.quotedCount}/${quoteImportResult.quotes.length} displays quoted`
+                          : "Upload their completed Excel back"
                         }
                         icon={Upload}
                         status={quoteImportResult ? "done" : "ready"}
@@ -768,7 +802,7 @@ export default function RfpAnalyzerClient() {
                             ) : (
                               <Upload className="w-4 h-4" />
                             )}
-                            {quoteImportResult ? "Re-import Quote" : "Import Quote Excel"}
+                            {quoteImportResult ? "Re-import" : "Upload Supplier Excel"}
                             <input
                               type="file"
                               accept=".xlsx,.xls"
@@ -779,11 +813,11 @@ export default function RfpAnalyzerClient() {
                         }
                       />
 
-                      {/* Step 6: Rate Card */}
+                      {/* Step 3: Final Pricing */}
                       <PipelineStep
-                        step={6}
-                        title="Rate Card Assembly"
-                        description="Generate final pricing Excel"
+                        step={3}
+                        title="Final Pricing"
+                        description={pricingPreview ? "Pricing ready — download below" : "Auto-generated from rate cards"}
                         icon={DollarSign}
                         status={pricingPreview ? "done" : "ready"}
                         action={
@@ -810,7 +844,7 @@ export default function RfpAnalyzerClient() {
                               ) : (
                                 <Download className="w-4 h-4" />
                               )}
-                              Download Rate Card
+                              Download Pricing Excel
                             </button>
                           </div>
                         }
@@ -964,12 +998,12 @@ export default function RfpAnalyzerClient() {
                       </div>
                     )}
 
-                    {/* Empty state — no quote yet */}
-                    {!pricingPreview && !loadingPricing && !quoteImportResult && (
+                    {/* Empty state — pricing loading */}
+                    {!pricingPreview && !loadingPricing && (
                       <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
                         <FileSpreadsheet className="w-12 h-12 opacity-30" />
-                        <p className="text-sm">Download the subcontractor Excel, fill in quotes, then import it back</p>
-                        <p className="text-xs">Or click Preview Pricing to see rate card estimates</p>
+                        <p className="text-sm">Pricing is auto-generated from your rate cards</p>
+                        <p className="text-xs">Import supplier quotes above to refine with exact costs</p>
                       </div>
                     )}
                   </div>
@@ -990,7 +1024,7 @@ export default function RfpAnalyzerClient() {
                     <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0A52EF]" />
                   )}
                   <span className="inline-block w-2 h-2 rounded-full mr-1.5 bg-[#0A52EF]" />
-                  Extraction
+                  What We Found
                   <span className="ml-1.5 text-[10px] text-muted-foreground">({result.screens.length} displays)</span>
                 </button>
                 <button
@@ -1005,7 +1039,7 @@ export default function RfpAnalyzerClient() {
                     <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#217346]" />
                   )}
                   <span className="inline-block w-2 h-2 rounded-full mr-1.5 bg-[#217346]" />
-                  Pricing
+                  Pricing & Quoting
                   {pricingPreview && (
                     <span className="ml-1.5 text-[10px] text-emerald-600">{fmtUsd(pricingPreview.summary.totalSellingPrice)}</span>
                   )}
