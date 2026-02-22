@@ -39,8 +39,6 @@ const mainMenuItems = [
 const toolsMenuItems = [
     { icon: MessageSquare, label: "Chat", href: "/chat", allowedRoles: null },
     { icon: Scan, label: "RFP Analyzer", href: "/tools/rfp-analyzer", allowedRoles: null },
-    { icon: FileSearch, label: "Analysis History", href: "/tools/rfp-analyzer/history", allowedRoles: null },
-    { icon: SlidersHorizontal, label: "RFP Triage", href: "/tools/pdf-triage", allowedRoles: null }, // All roles
     { icon: Calculator, label: "Estimator", href: "/estimator", allowedRoles: null },
     // Demo Lab hidden from nav — accessible via direct URL /demo
     // { icon: Sparkles, label: "Demo Lab", href: "/demo", allowedRoles: null },
