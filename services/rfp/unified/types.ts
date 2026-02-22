@@ -123,6 +123,36 @@ export interface ExtractedProjectInfo {
 }
 
 // ============================================================================
+// REQUIREMENTS EXTRACTION (Step 2: Key Points)
+// ============================================================================
+
+export type RequirementCategory =
+  | "compliance"    // NEMA ratings, UL listings, certifications
+  | "technical"     // IP video, resolution, color space, processing
+  | "deadline"      // Submission dates, milestones, completion dates
+  | "financial"     // Bond, insurance, payment terms
+  | "operational"   // Warranty, maintenance, spare parts, training
+  | "environmental" // Weather, IP rating, temperature range
+  | "other";
+
+export type RequirementStatus = "critical" | "verified" | "risk" | "info";
+
+export interface ExtractedRequirement {
+  /** Short description of the requirement */
+  description: string;
+  /** Category */
+  category: RequirementCategory;
+  /** Status/severity */
+  status: RequirementStatus;
+  /** Date if deadline-related */
+  date: string | null;
+  /** Source page(s) */
+  sourcePages: number[];
+  /** Direct quote from RFP */
+  rawText: string | null;
+}
+
+// ============================================================================
 // FULL ANALYSIS RESULT
 // ============================================================================
 

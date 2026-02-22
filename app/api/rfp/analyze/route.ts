@@ -199,39 +199,54 @@ export async function POST(request: NextRequest) {
           }
 
           let category: PageCategory = "unknown";
-          let relevance = 10;
+          let relevance = 5;
 
+          // Triage logic: STRICT. Only keep pages with clear LED signals.
+          // A 1380-page RFP has maybe 50-100 pages about LED displays.
           if (isDrawing) {
+            // Drawings only matter if nearby pages have LED content
+            // (we can't tell from text alone, so skip them unless LED keyword present)
             category = "drawing";
-            relevance = 50;
-          } else if (ledScore >= 2) {
+            relevance = ledScore >= 1 ? 60 : 10; // Only keep drawings that mention LED
+          } else if (ledScore >= 3) {
+            // Strong LED signal — definitely relevant
             category = "led_specs";
-            relevance = Math.min(100, 70 + ledScore * 5);
-          } else if (ledScore === 1) {
-            category = noiseScore === 0 ? "technical" : "unknown";
-            relevance = 40 + supportScore * 5;
-          } else if (supportScore >= 2 && noiseScore === 0) {
-            category = text.includes("scope of work") || text.includes("shall provide") ? "scope_of_work" : "technical";
-            relevance = 30 + supportScore * 5;
-          } else if (noiseScore >= 3) {
+            relevance = Math.min(100, 80 + ledScore * 3);
+          } else if (ledScore >= 2) {
+            // Moderate LED signal
+            category = "led_specs";
+            relevance = 65;
+          } else if (ledScore === 1 && supportScore >= 2 && noiseScore === 0) {
+            // Weak LED signal but supported by technical context
+            category = "technical";
+            relevance = 50;
+          } else if (noiseScore >= 2) {
+            // Noise — legal, insurance, boilerplate
             category = "legal";
             relevance = 5;
           } else if (textLength < 100) {
             category = "boilerplate";
             relevance = 5;
-          } else if (text.includes("scope of work") || text.includes("shall provide")) {
+          } else if (text.includes("11 06 60") || text.includes("11 63 10")) {
+            // Division 11 display sections — always relevant
+            category = "led_specs";
+            relevance = 90;
+          } else if ((text.includes("scope of work") || text.includes("shall provide")) && ledScore >= 1) {
+            // SOW pages but only if they mention LED
             category = "scope_of_work";
-            relevance = 35;
-          } else if (text.includes("cost") || text.includes("price") || text.includes("bid")) {
-            category = "cost_schedule";
-            relevance = 25;
+            relevance = 55;
+          } else {
+            // Everything else is noise
+            category = "unknown";
+            relevance = 5;
           }
 
           classifiedPages.push({ pageNumber: page.pageNumber, text: page.text, category, relevance, isDrawing });
         }
 
-        const relevantPages = classifiedPages.filter((p) => p.relevance >= 20);
-        const noisePages = classifiedPages.filter((p) => p.relevance < 20);
+        // Threshold: 40+ = relevant. This should yield ~50-100 pages from a 1380-page RFP.
+        const relevantPages = classifiedPages.filter((p) => p.relevance >= 40);
+        const noisePages = classifiedPages.filter((p) => p.relevance < 40);
 
         send("stage", {
           stage: "triaged",
