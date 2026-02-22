@@ -1,16 +1,28 @@
 /**
- * POST /api/rfp/analyze/upload — Save PDF to temp storage
+ * POST /api/rfp/analyze/upload — Chunked PDF upload
  *
- * Accepts a raw PDF binary body (not FormData) to avoid buffering
- * the entire file in memory. Filename passed via X-Filename header.
+ * Protocol:
+ *   1. Client sends chunks via POST with headers:
+ *      - X-Filename: original filename
+ *      - X-Session-Id: (optional on first chunk) session UUID
+ *      - X-Chunk-Index: 0-based chunk number
+ *      - X-Total-Chunks: total number of chunks
+ *      - Content-Type: application/octet-stream
+ *      - Body: raw chunk bytes (≤10MB each)
  *
- * Streams directly to disk for files of any size.
- * Returns a session ID + basic metadata.
+ *   2. Server appends each chunk to disk. On the LAST chunk,
+ *      runs pdfinfo and returns final metadata.
+ *
+ *   3. Response always includes { sessionId } so the client
+ *      can track the session across chunks.
+ *
+ * This approach keeps each request under 10MB — no OOM, no 502,
+ * no matter how large the PDF is.
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { mkdir } from "fs/promises";
-import { existsSync, createWriteStream, statSync } from "fs";
+import { mkdir, appendFile, stat as fsStat } from "fs/promises";
+import { existsSync } from "fs";
 import { randomUUID } from "crypto";
 import path from "path";
 
@@ -25,37 +37,42 @@ export async function POST(request: NextRequest) {
       await mkdir(UPLOAD_DIR, { recursive: true });
     }
 
-    const sessionId = randomUUID();
+    // Parse headers
     const filename = request.headers.get("x-filename") || "document.pdf";
+    const sessionId = request.headers.get("x-session-id") || randomUUID();
+    const chunkIndex = parseInt(request.headers.get("x-chunk-index") || "0", 10);
+    const totalChunks = parseInt(request.headers.get("x-total-chunks") || "1", 10);
+
     const filePath = path.join(UPLOAD_DIR, `${sessionId}.pdf`);
 
-    // Stream request body directly to disk — zero full-file buffering
-    const body = request.body;
-    if (!body) {
-      return NextResponse.json({ error: "No file body" }, { status: 400 });
+    // Read chunk body as ArrayBuffer → Buffer
+    const arrayBuf = await request.arrayBuffer();
+    const chunkBuffer = Buffer.from(arrayBuf);
+
+    if (chunkBuffer.length === 0 && totalChunks > 1) {
+      return NextResponse.json({ error: "Empty chunk" }, { status: 400 });
     }
 
-    const reader = body.getReader();
-    const writer = createWriteStream(filePath);
+    // Append chunk to file on disk
+    await appendFile(filePath, chunkBuffer);
 
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const canContinue = writer.write(value);
-        if (!canContinue) {
-          await new Promise<void>((resolve) => writer.once("drain", resolve));
-        }
-      }
-    } finally {
-      writer.end();
-      await new Promise<void>((resolve, reject) => {
-        writer.on("finish", resolve);
-        writer.on("error", reject);
+    const isLastChunk = chunkIndex >= totalChunks - 1;
+
+    // For intermediate chunks, just acknowledge
+    if (!isLastChunk) {
+      return NextResponse.json({
+        sessionId,
+        chunk: chunkIndex,
+        totalChunks,
+        status: "uploading",
       });
     }
 
-    const fileSize = statSync(filePath).size;
+    // ---- Last chunk: finalize ----
+
+    const fileInfo = await fsStat(filePath);
+    const fileSize = fileInfo.size;
+
     if (fileSize === 0) {
       return NextResponse.json({ error: "Empty file received" }, { status: 400 });
     }
@@ -63,7 +80,6 @@ export async function POST(request: NextRequest) {
     const sizeMb = (fileSize / 1024 / 1024).toFixed(1);
 
     // Get page count using pdfinfo (poppler-utils) — zero memory usage
-    // Never load a 631MB PDF into Node.js memory just to count pages
     let pageCount = 0;
     try {
       const { execFile } = await import("child_process");
@@ -83,6 +99,7 @@ export async function POST(request: NextRequest) {
       pageCount,
       sizeBytes: fileSize,
       sizeMb,
+      status: "complete",
     });
   } catch (err) {
     console.error("[/api/rfp/analyze/upload] Error:", err);

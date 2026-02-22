@@ -75,36 +75,56 @@ export default function RfpAnalyzerClient() {
     setResult(null);
 
     try {
-      // ------ Step 1: Upload file ------
-      // credentials: "omit" prevents auth cookies from being sent,
-      // which avoids 431 "Request Header Fields Too Large" from the proxy
+      // ------ Step 1: Chunked upload ------
+      // Split file into 10MB chunks so no single request is large enough to OOM.
+      // Each chunk is appended to disk on the server side.
+      const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB
       const sizeMbStr = (file.size / 1024 / 1024).toFixed(0);
-      setEvents([{ type: "stage", stage: "uploading", message: `Uploading ${file.name} (${sizeMbStr}MB)...` }]);
+      const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE));
 
       abortRef.current = new AbortController();
+      let sessionId = "";
+      let lastJson: any = null;
 
-      // Send raw binary body (not FormData) so the server can stream
-      // directly to disk without buffering the entire file in memory.
-      // Filename sent via header.
-      const uploadResponse = await fetch("/api/rfp/analyze/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/octet-stream",
-          "X-Filename": file.name,
-        },
-        body: file,
-        credentials: "omit",
-        signal: abortRef.current.signal,
-      });
+      for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, file.size);
+        const chunk = file.slice(start, end);
+        const pct = Math.round(((i + 1) / totalChunks) * 100);
 
-      if (!uploadResponse.ok) {
-        const errText = await uploadResponse.text();
-        let msg = `Upload failed (${uploadResponse.status})`;
-        try { msg = JSON.parse(errText)?.error || msg; } catch {}
-        throw new Error(msg);
+        setEvents([{
+          type: "stage",
+          stage: "uploading",
+          message: `Uploading ${file.name} (${sizeMbStr}MB) — ${pct}%`,
+        }]);
+
+        const res = await fetch("/api/rfp/analyze/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/octet-stream",
+            "X-Filename": file.name,
+            "X-Session-Id": sessionId || "",
+            "X-Chunk-Index": String(i),
+            "X-Total-Chunks": String(totalChunks),
+          },
+          body: chunk,
+          credentials: "omit",
+          signal: abortRef.current.signal,
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          let msg = `Upload failed at chunk ${i + 1}/${totalChunks} (${res.status})`;
+          try { msg = JSON.parse(errText)?.error || msg; } catch {}
+          throw new Error(msg);
+        }
+
+        lastJson = await res.json();
+        if (!sessionId) sessionId = lastJson.sessionId;
       }
 
-      const uploadRes: { sessionId: string; filename: string; pageCount: number; sizeMb: string } = await uploadResponse.json();
+      // Last chunk response contains final metadata (pageCount, sizeMb, etc.)
+      const uploadRes = lastJson as { sessionId: string; filename: string; pageCount: number; sizeMb: string };
 
       setFileInfo({ filename: uploadRes.filename, pageCount: uploadRes.pageCount, sizeMb: uploadRes.sizeMb });
       setEvents([{ type: "stage", stage: "uploaded", message: `Uploaded: ${uploadRes.pageCount.toLocaleString()} pages, ${uploadRes.sizeMb}MB` }]);
