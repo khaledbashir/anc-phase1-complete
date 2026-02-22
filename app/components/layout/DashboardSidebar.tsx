@@ -145,8 +145,8 @@ export default function DashboardSidebar() {
         <>
             <aside
                 className={cn(
-                    "h-screen border-r border-border bg-background flex flex-col z-50 transition-all duration-200 sticky top-0 overflow-hidden",
-                    expanded ? "w-56" : "w-16 md:w-[72px]",
+                    "h-screen border-r border-border bg-background flex flex-col z-50 transition-all duration-200 sticky top-0 overflow-hidden shrink-0",
+                    expanded ? "w-56" : "w-16",
                 )}
             >
                 {/* Logo + collapse toggle */}

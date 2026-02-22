@@ -37,20 +37,27 @@ const UPLOAD_DIR = "/tmp/rfp-uploads";
 // Keyword banks
 // ---------------------------------------------------------------------------
 
-const LED_KEYWORDS = [
-  "led", "display", "videoboard", "video board", "ribbon", "fascia",
-  "scoreboard", "pixel pitch", "nits", "brightness", "resolution",
-  "cabinet", "module", "11 06 60", "11 63 10", "display schedule",
-  "screen", "marquee", "dvled", "direct view", "viewing distance",
-  "division 11", "signage", "digital display", "av system", "audio visual",
-  "video wall", "media mesh", "transparent led", "led panel", "led screen",
+// STRONG LED signals — terms that ONLY appear on LED display pages
+const LED_STRONG = [
+  "led", "videoboard", "video board", "ribbon board", "fascia board",
+  "scoreboard", "pixel pitch", "nits", "brightness",
+  "dvled", "direct view", "viewing distance", "led panel", "led screen",
+  "video wall", "media mesh", "transparent led", "led display",
+  "11 06 60", "11 63 10", "display schedule",
+  "pixel", "candela", "led module", "led cabinet",
+];
+
+// WEAK LED signals — appear on LED pages BUT also on non-LED pages
+// Only count these if a STRONG signal is also present
+const LED_WEAK = [
+  "display", "screen", "marquee", "signage", "digital display",
+  "resolution", "cabinet", "module", "av system", "audio visual",
+  "division 11",
 ];
 
 const SUPPORTING_KEYWORDS = [
-  "electrical", "power distribution", "conduit", "raceway", "control system",
   "mounting", "structural", "steel frame", "rigging", "catenary",
-  "scope of work", "shall provide", "shall furnish", "shall install",
-  "cost", "price", "bid", "schedule of values",
+  "control system", "signal processing", "video processor",
 ];
 
 const NOISE_KEYWORDS = [
@@ -58,7 +65,10 @@ const NOISE_KEYWORDS = [
   "liquidated damages", "termination", "dispute", "arbitration",
   "terms and conditions", "general conditions", "table of contents",
   "appendix", "certification", "biography", "qualifications",
-  "references", "company profile",
+  "references", "company profile", "leed", "leed certification",
+  "fire alarm", "plumbing", "hvac", "mechanical", "elevator",
+  "landscaping", "concrete", "masonry", "roofing", "flooring",
+  "painting", "drywall", "insulation", "waterproofing",
 ];
 
 export async function POST(request: NextRequest) {
@@ -184,9 +194,16 @@ export async function POST(request: NextRequest) {
           const textLength = page.text.trim().length;
           const isDrawing = textLength < 150;
 
-          let ledScore = 0;
-          for (const kw of LED_KEYWORDS) {
-            if (text.includes(kw)) ledScore++;
+          // Count STRONG LED signals (terms that only appear on LED pages)
+          let strongLedScore = 0;
+          for (const kw of LED_STRONG) {
+            if (text.includes(kw)) strongLedScore++;
+          }
+
+          // Count WEAK LED signals (generic terms like "display", "screen")
+          let weakLedScore = 0;
+          for (const kw of LED_WEAK) {
+            if (text.includes(kw)) weakLedScore++;
           }
 
           let supportScore = 0;
@@ -202,42 +219,42 @@ export async function POST(request: NextRequest) {
           let category: PageCategory = "unknown";
           let relevance = 5;
 
-          // Triage logic: STRICT. Only keep pages with clear LED signals.
-          // A 1380-page RFP has maybe 50-100 pages about LED displays.
+          // STRICT triage. A 1380-page RFP has maybe 30-80 LED-relevant pages.
+          // We MUST filter aggressively or Mistral OCR costs go through the roof.
+          //
+          // Rule: only keep pages with STRONG LED signals.
+          // Generic words like "display" or "screen" alone don't count.
+
           if (isDrawing) {
-            // Drawings only matter if nearby pages have LED content
-            // (we can't tell from text alone, so skip them unless LED keyword present)
+            // Drawings: only keep if they mention LED-specific terms
             category = "drawing";
-            relevance = ledScore >= 1 ? 60 : 10; // Only keep drawings that mention LED
-          } else if (ledScore >= 3) {
-            // Strong LED signal — definitely relevant
+            relevance = strongLedScore >= 1 ? 70 : 5;
+          } else if (strongLedScore >= 3) {
+            // Multiple strong signals — definitely an LED spec page
             category = "led_specs";
-            relevance = Math.min(100, 80 + ledScore * 3);
-          } else if (ledScore >= 2) {
-            // Moderate LED signal
+            relevance = Math.min(100, 85 + strongLedScore * 3);
+          } else if (strongLedScore >= 2) {
+            // Two strong signals — very likely relevant
+            category = "led_specs";
+            relevance = 75;
+          } else if (strongLedScore >= 1 && weakLedScore >= 1) {
+            // One strong + one weak — likely relevant
             category = "led_specs";
             relevance = 65;
-          } else if (ledScore === 1 && supportScore >= 2 && noiseScore === 0) {
-            // Weak LED signal but supported by technical context
+          } else if (strongLedScore >= 1 && supportScore >= 1 && noiseScore === 0) {
+            // One strong + supporting technical context, no noise
             category = "technical";
-            relevance = 50;
+            relevance = 55;
           } else if (noiseScore >= 2) {
-            // Noise — legal, insurance, boilerplate
             category = "legal";
             relevance = 5;
           } else if (textLength < 100) {
             category = "boilerplate";
             relevance = 5;
-          } else if (text.includes("11 06 60") || text.includes("11 63 10")) {
-            // Division 11 display sections — always relevant
-            category = "led_specs";
-            relevance = 90;
-          } else if ((text.includes("scope of work") || text.includes("shall provide")) && ledScore >= 1) {
-            // SOW pages but only if they mention LED
-            category = "scope_of_work";
-            relevance = 55;
           } else {
-            // Everything else is noise
+            // No strong LED signal → noise. Period.
+            // This is the key change: weak signals alone (display, screen, module)
+            // do NOT qualify a page. There must be at least 1 STRONG signal.
             category = "unknown";
             relevance = 5;
           }
@@ -245,17 +262,29 @@ export async function POST(request: NextRequest) {
           classifiedPages.push({ pageNumber: page.pageNumber, text: page.text, category, relevance, isDrawing });
         }
 
-        // Threshold: 40+ = relevant. This should yield ~50-100 pages from a 1380-page RFP.
-        const relevantPages = classifiedPages.filter((p) => p.relevance >= 40);
-        const noisePages = classifiedPages.filter((p) => p.relevance < 40);
+        // Threshold: 50+ = relevant. STRICT. Should yield 30-80 pages from a 1380-page RFP.
+        const MAX_VISION_PAGES = 100; // Hard cap — never send more than this to Mistral
+        let relevantPages = classifiedPages
+          .filter((p) => p.relevance >= 50)
+          .sort((a, b) => b.relevance - a.relevance); // Best pages first
+
+        const totalRelevant = relevantPages.length;
+        if (relevantPages.length > MAX_VISION_PAGES) {
+          relevantPages = relevantPages.slice(0, MAX_VISION_PAGES);
+        }
+
+        const noisePages = classifiedPages.filter((p) => p.relevance < 50);
 
         send("stage", {
           stage: "triaged",
-          message: `Kept ${relevantPages.length} pages, filtered ${noisePages.length}`,
+          message: totalRelevant > MAX_VISION_PAGES
+            ? `Found ${totalRelevant} relevant pages, capped to top ${MAX_VISION_PAGES} by relevance`
+            : `Kept ${relevantPages.length} pages, filtered ${noisePages.length}`,
           relevant: relevantPages.length,
           noise: noisePages.length,
           led: relevantPages.filter((p) => p.category === "led_specs").length,
           drawings: relevantPages.filter((p) => p.isDrawing).length,
+          capped: totalRelevant > MAX_VISION_PAGES,
         });
 
         // =============================================================
