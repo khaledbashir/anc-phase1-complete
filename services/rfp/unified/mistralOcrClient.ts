@@ -1,22 +1,20 @@
 /**
- * Mistral OCR Client
+ * Mistral OCR Client — Direct API
  *
- * Calls the ocrrrr service (Next.js wrapper around Mistral OCR API).
- * Returns structured markdown + tables + images per page.
+ * Calls Mistral OCR API directly (https://api.mistral.ai/v1/ocr).
+ * No middleman service. Sends image as base64, gets structured markdown back.
  */
 
 // ---------------------------------------------------------------------------
-// URLs — Docker internal first, then external
+// Config
 // ---------------------------------------------------------------------------
 
-const OCRRRR_URLS = [
-  "http://ocrrrr:3000",
-  "http://basheer_ocrrrr:3000",
-  process.env.OCRRRR_URL || "https://basheer-ocrrrr.prd42b.easypanel.host",
-];
+const MISTRAL_API_BASE = process.env.MISTRAL_API_BASE_URL || "https://api.mistral.ai";
+const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || "";
+const MISTRAL_OCR_MODEL = process.env.MISTRAL_OCR_MODEL || "mistral-ocr-latest";
 
 // ---------------------------------------------------------------------------
-// Types (matches the ocrrrr service response shape)
+// Types
 // ---------------------------------------------------------------------------
 
 export interface MistralOcrPage {
@@ -41,131 +39,131 @@ export interface MistralOcrResult {
 }
 
 // ---------------------------------------------------------------------------
-// Extract document via Mistral OCR
-// ---------------------------------------------------------------------------
-
-export async function extractWithMistral(
-  buffer: Buffer,
-  filename: string,
-): Promise<MistralOcrResult> {
-  const form = new FormData();
-  const blob = new Blob([buffer], { type: guessMime(filename) });
-  form.append("file", blob, filename);
-
-  let lastError: Error | null = null;
-
-  for (const base of OCRRRR_URLS) {
-    try {
-      const controller = new AbortController();
-      // 5 min timeout for large PDFs (Mistral processes page-by-page)
-      const timer = setTimeout(() => controller.abort(), 300_000);
-
-      const res = await fetch(`${base}/api/extract`, {
-        method: "POST",
-        body: form,
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Mistral OCR ${res.status}: ${text.slice(0, 300)}`);
-      }
-
-      const json = await res.json();
-
-      // The ocrrrr service returns { extraction: {...}, data: {...} } on POST
-      const data: MistralOcrResult = json.data || json;
-
-      if (!data.pages || data.pages.length === 0) {
-        return {
-          pages: [],
-          model: "mistral-ocr-latest",
-          document_annotation: null,
-          usage_info: null,
-        };
-      }
-
-      return data;
-    } catch (err: any) {
-      lastError = err;
-      if (base !== OCRRRR_URLS[OCRRRR_URLS.length - 1]) {
-        console.warn(`[MistralOCR] ${base} failed: ${err.message}`);
-      }
-    }
-  }
-
-  throw new Error(
-    `Mistral OCR extraction failed (all endpoints): ${lastError?.message || "unknown"}`,
-  );
-}
-
-// ---------------------------------------------------------------------------
 // Extract a SINGLE page IMAGE — vision model actually SEES the page
+// This is the main function used by the pipeline.
 // ---------------------------------------------------------------------------
 
 export async function extractSinglePage(
   imagePath: string,
   pageNumber: number,
 ): Promise<MistralOcrPage> {
-  const { readFile: rf } = await import("fs/promises");
-  const imageBuffer = await rf(imagePath);
-
-  const filename = `page-${pageNumber}.jpg`;
-  const form = new FormData();
-  const blob = new Blob([imageBuffer], { type: "image/jpeg" });
-  form.append("file", blob, filename);
-
-  let lastError: Error | null = null;
-
-  for (const base of OCRRRR_URLS) {
-    try {
-      const controller = new AbortController();
-      // 60s per single page — should be plenty
-      const timer = setTimeout(() => controller.abort(), 60_000);
-
-      const res = await fetch(`${base}/api/extract`, {
-        method: "POST",
-        body: form,
-        signal: controller.signal,
-      });
-      clearTimeout(timer);
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Mistral OCR ${res.status}: ${text.slice(0, 200)}`);
-      }
-
-      const json = await res.json();
-      const data: MistralOcrResult = json.data || json;
-
-      if (!data.pages || data.pages.length === 0) {
-        // Vision model returned nothing — page might be blank or unreadable
-        return {
-          index: 0,
-          markdown: "",
-          images: [],
-          tables: [],
-          hyperlinks: [],
-          header: null,
-          footer: null,
-          dimensions: { dpi: 0, height: 0, width: 0 },
-        };
-      }
-
-      // Return the first (and only) page result
-      return data.pages[0];
-    } catch (err: any) {
-      lastError = err;
-      if (base !== OCRRRR_URLS[OCRRRR_URLS.length - 1]) {
-        console.warn(`[MistralOCR] page ${pageNumber} — ${base} failed: ${err.message}`);
-      }
-    }
+  if (!MISTRAL_API_KEY) {
+    throw new Error("MISTRAL_API_KEY not set — cannot call Mistral OCR");
   }
 
-  throw new Error(
-    `Mistral OCR page ${pageNumber} failed: ${lastError?.message || "unknown"}`,
-  );
+  const { readFile } = await import("fs/promises");
+  const imageBuffer = await readFile(imagePath);
+  const base64 = imageBuffer.toString("base64");
+  const dataUrl = `data:image/jpeg;base64,${base64}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60_000); // 60s per page
+
+  try {
+    const res = await fetch(`${MISTRAL_API_BASE}/v1/ocr`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${MISTRAL_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MISTRAL_OCR_MODEL,
+        document: {
+          type: "image_url",
+          image_url: dataUrl,
+        },
+        include_image_base64: false,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Mistral OCR ${res.status}: ${text.slice(0, 300)}`);
+    }
+
+    const data: MistralOcrResult = await res.json();
+
+    if (!data.pages || data.pages.length === 0) {
+      return {
+        index: 0,
+        markdown: "",
+        images: [],
+        tables: [],
+        hyperlinks: [],
+        header: null,
+        footer: null,
+        dimensions: { dpi: 0, height: 0, width: 0 },
+      };
+    }
+
+    return data.pages[0];
+  } catch (err: any) {
+    clearTimeout(timer);
+    throw new Error(`Mistral OCR page ${pageNumber} failed: ${err.message}`);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Extract full document via Mistral OCR (for smaller PDFs)
+// ---------------------------------------------------------------------------
+
+export async function extractWithMistral(
+  buffer: Buffer,
+  filename: string,
+): Promise<MistralOcrResult> {
+  if (!MISTRAL_API_KEY) {
+    throw new Error("MISTRAL_API_KEY not set — cannot call Mistral OCR");
+  }
+
+  const base64 = buffer.toString("base64");
+  const mime = guessMime(filename);
+  const dataUrl = `data:${mime};base64,${base64}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 300_000); // 5 min for full docs
+
+  try {
+    const res = await fetch(`${MISTRAL_API_BASE}/v1/ocr`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${MISTRAL_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MISTRAL_OCR_MODEL,
+        document: {
+          type: "image_url",
+          image_url: dataUrl,
+        },
+        include_image_base64: false,
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Mistral OCR ${res.status}: ${text.slice(0, 300)}`);
+    }
+
+    const data: MistralOcrResult = await res.json();
+
+    if (!data.pages || data.pages.length === 0) {
+      return {
+        pages: [],
+        model: MISTRAL_OCR_MODEL,
+        document_annotation: null,
+        usage_info: null,
+      };
+    }
+
+    return data;
+  } catch (err: any) {
+    clearTimeout(timer);
+    throw new Error(`Mistral OCR extraction failed: ${err.message}`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -177,20 +175,23 @@ export async function mistralOcrHealthCheck(): Promise<{
   url?: string;
   error?: string;
 }> {
-  for (const base of OCRRRR_URLS) {
-    try {
-      const res = await fetch(`${base}/api/extract`, {
-        method: "GET",
-        signal: AbortSignal.timeout(5_000),
-      });
-      if (res.ok) {
-        return { ok: true, url: base };
-      }
-    } catch {
-      // try next
-    }
+  if (!MISTRAL_API_KEY) {
+    return { ok: false, error: "MISTRAL_API_KEY not configured" };
   }
-  return { ok: false, error: "All Mistral OCR endpoints unreachable" };
+
+  try {
+    // Simple models list call to verify the key works
+    const res = await fetch(`${MISTRAL_API_BASE}/v1/models`, {
+      headers: { Authorization: `Bearer ${MISTRAL_API_KEY}` },
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (res.ok) {
+      return { ok: true, url: MISTRAL_API_BASE };
+    }
+    return { ok: false, error: `Mistral API returned ${res.status}` };
+  } catch (err: any) {
+    return { ok: false, error: err.message };
+  }
 }
 
 // ---------------------------------------------------------------------------
