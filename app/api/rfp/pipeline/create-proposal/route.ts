@@ -1,0 +1,204 @@
+/**
+ * POST /api/rfp/pipeline/create-proposal
+ *
+ * Bridge: RFP Analysis → Proposal
+ *
+ * Takes an RfpAnalysis ID, creates a workspace + proposal with
+ * all extracted LED specs pre-filled as ScreenConfigs with full
+ * cost breakdowns from the estimator.
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { calculateProposalAudit, ScreenInput } from "@/lib/estimator";
+import { findClientLogo } from "@/lib/brand-discovery";
+import { provisionProjectWorkspace } from "@/lib/anything-llm";
+import { logActivity } from "@/services/proposal/server/activityLogService";
+
+export const maxDuration = 30;
+
+interface CreateFromRfpRequest {
+  analysisId: string;
+  userEmail: string;
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body: CreateFromRfpRequest = await request.json();
+
+    if (!body.analysisId || !body.userEmail) {
+      return NextResponse.json(
+        { error: "Missing analysisId or userEmail" },
+        { status: 400 },
+      );
+    }
+
+    // 1. Load the RFP analysis
+    const analysis = await prisma.rfpAnalysis.findUnique({
+      where: { id: body.analysisId },
+    });
+
+    if (!analysis) {
+      return NextResponse.json(
+        { error: "RFP Analysis not found" },
+        { status: 404 },
+      );
+    }
+
+    const screens = (analysis.screens as any[]) || [];
+    const project = (analysis.project as any) || {};
+
+    if (screens.length === 0) {
+      return NextResponse.json(
+        { error: "No LED displays found in this analysis" },
+        { status: 400 },
+      );
+    }
+
+    // 2. Transform ExtractedLEDSpec[] → ScreenInput[]
+    const screenInputs: ScreenInput[] = screens.map((spec: any) => ({
+      name: spec.name || "Unnamed Display",
+      productType: spec.environment === "outdoor" ? "Outdoor LED" : "Indoor LED",
+      widthFt: spec.widthFt ?? spec.width_ft ?? 0,
+      heightFt: spec.heightFt ?? spec.height_ft ?? 0,
+      quantity: spec.quantity ?? 1,
+      pitchMm: spec.pixelPitchMm ?? spec.pixel_pitch_mm ?? undefined,
+      serviceType: spec.serviceType ?? spec.service_type ?? undefined,
+      desiredMargin: 0.25, // Default 25% margin
+    }));
+
+    // 3. Run cost estimator
+    const audit = calculateProposalAudit(screenInputs);
+
+    // 4. Determine project metadata
+    const clientName = project.clientName || project.client_name || analysis.clientName || "New Client";
+    const projectName = project.projectName || project.project_name || analysis.projectName || `${clientName} LED Project`;
+    const venue = project.venue || analysis.venue || null;
+    const location = project.location || analysis.location || null;
+
+    // 5. Find client logo
+    const clientLogo = await findClientLogo(clientName);
+
+    // 6. Create workspace
+    const workspace = await prisma.workspace.create({
+      data: {
+        name: projectName,
+        clientLogo,
+        users: {
+          connectOrCreate: {
+            where: { email: body.userEmail },
+            create: { email: body.userEmail },
+          },
+        },
+      },
+    });
+
+    // 7. Create proposal with nested screens + line items
+    const proposal = await prisma.proposal.create({
+      data: {
+        workspaceId: workspace.id,
+        clientName,
+        clientLogo,
+        venue,
+        clientAddress: location,
+        status: "DRAFT",
+        calculationMode: "INTELLIGENCE",
+        source: "rfp_analysis",
+        embeddingStatus: "complete",
+        aiWorkspaceSlug: analysis.aiWorkspaceSlug,
+        internalAudit: JSON.stringify(audit.internalAudit),
+        clientSummary: JSON.stringify(audit.clientSummary),
+        screens: {
+          create: audit.internalAudit.perScreen.map((screenAudit, idx) => {
+            const input = screenInputs[idx];
+            const spec = screens[idx];
+            const desiredMargin = input.desiredMargin ?? 0.25;
+            const li = screenAudit.breakdown;
+
+            const lineItemsData = [
+              { category: "Hardware", cost: Number(li.hardware), margin: desiredMargin, price: round(li.hardware * (1 + desiredMargin)) },
+              { category: "Structure", cost: Number(li.structure), margin: desiredMargin, price: round(li.structure * (1 + desiredMargin)) },
+              { category: "Install", cost: Number(li.install), margin: desiredMargin, price: round(li.install * (1 + desiredMargin)) },
+              { category: "Power", cost: Number(li.power), margin: desiredMargin, price: round(li.power * (1 + desiredMargin)) },
+              { category: "Shipping", cost: Number(li.shipping), margin: desiredMargin, price: round(li.shipping * (1 + desiredMargin)) },
+              { category: "Labor", cost: Number(li.labor), margin: desiredMargin, price: round(li.labor * (1 + desiredMargin)) },
+              { category: "PM", cost: Number(li.pm), margin: desiredMargin, price: round(li.pm * (1 + desiredMargin)) },
+              { category: "General Conditions", cost: Number(li.generalConditions), margin: desiredMargin, price: round(li.generalConditions * (1 + desiredMargin)) },
+              { category: "Travel", cost: Number(li.travel), margin: desiredMargin, price: round(li.travel * (1 + desiredMargin)) },
+              { category: "Submittals", cost: Number(li.submittals), margin: desiredMargin, price: round(li.submittals * (1 + desiredMargin)) },
+              { category: "Engineering", cost: Number(li.engineering), margin: desiredMargin, price: round(li.engineering * (1 + desiredMargin)) },
+              { category: "Permits", cost: Number(li.permits), margin: desiredMargin, price: round(li.permits * (1 + desiredMargin)) },
+              { category: "CMS", cost: Number(li.cms), margin: desiredMargin, price: round(li.cms * (1 + desiredMargin)) },
+              { category: "Bond", cost: Number(li.bondCost), margin: 0, price: Number(li.bondCost) },
+              { category: "ANC Margin", cost: 0, margin: 0, price: Number(li.ancMargin) },
+            ];
+
+            return {
+              name: screenAudit.name,
+              externalName: spec?.location || spec?.externalName || null,
+              pixelPitch: input.pitchMm ?? 0,
+              width: input.widthFt ?? 0,
+              height: input.heightFt ?? 0,
+              brightness: spec?.brightnessNits ?? spec?.brightness_nits ?? null,
+              quantity: input.quantity ?? 1,
+              serviceType: input.serviceType ?? null,
+              lineItems: {
+                create: lineItemsData.map((item) => ({
+                  category: item.category,
+                  cost: item.cost,
+                  margin: item.margin,
+                  price: item.price,
+                })),
+              },
+            };
+          }),
+        },
+      },
+      include: {
+        screens: { include: { lineItems: true } },
+      },
+    });
+
+    // 8. Log activity
+    logActivity(
+      proposal.id,
+      "created",
+      `Proposal auto-created from RFP analysis (${screens.length} displays extracted from ${analysis.filename})`,
+      null,
+      { source: "rfp_analysis", analysisId: body.analysisId, displayCount: screens.length },
+    );
+
+    // 9. Provision AnythingLLM workspace (non-blocking)
+    if (!analysis.aiWorkspaceSlug) {
+      provisionProjectWorkspace(clientName, proposal.id)
+        .then(async (slug) => {
+          if (!slug) return;
+          await prisma.proposal.update({
+            where: { id: proposal.id },
+            data: { aiWorkspaceSlug: slug },
+          });
+        })
+        .catch((e) => console.error("[create-proposal] AI provisioning failed:", e));
+    }
+
+    return NextResponse.json(
+      {
+        ok: true,
+        proposalId: proposal.id,
+        workspaceId: workspace.id,
+        screenCount: screens.length,
+      },
+      { status: 201 },
+    );
+  } catch (error: any) {
+    console.error("[create-proposal] Error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to create proposal" },
+      { status: 500 },
+    );
+  }
+}
+
+function round(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}

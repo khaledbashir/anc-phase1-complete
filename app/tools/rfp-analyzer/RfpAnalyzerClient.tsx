@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import UploadZone, { type PipelineEvent } from "./_components/UploadZone";
 import SpecsTable from "./_components/SpecsTable";
 import RequirementsTable from "./_components/RequirementsTable";
@@ -93,6 +94,7 @@ type Phase = "upload" | "processing" | "results";
 // ==========================================================================
 
 export default function RfpAnalyzerClient() {
+  const { data: session } = useSession();
   const [phase, setPhase] = useState<Phase>("upload");
   const [events, setEvents] = useState<PipelineEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -446,6 +448,34 @@ export default function RfpAnalyzerClient() {
     }
   };
 
+  // ========================================================================
+  // Create Proposal from RFP extraction
+  // ========================================================================
+
+  const handleCreateProposal = async () => {
+    if (!result?.id || !session?.user?.email) return;
+    setDownloading("creating");
+    try {
+      const res = await fetch("/api/rfp/pipeline/create-proposal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          analysisId: result.id,
+          userEmail: session.user.email,
+        }),
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || `Failed (${res.status})`);
+      }
+      const data = await res.json();
+      window.location.href = `/projects/${data.proposalId}`;
+    } catch (err: any) {
+      setError(err.message);
+      setDownloading(null);
+    }
+  };
+
   const handleDownloadRateCard = async () => {
     if (!result?.id) return;
     setDownloading("ratecard");
@@ -739,6 +769,14 @@ export default function RfpAnalyzerClient() {
                   >
                     {downloading === "extraction" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
                     Specs .xlsx
+                  </button>
+                  <button
+                    onClick={handleCreateProposal}
+                    disabled={downloading === "creating" || !result?.id || !session?.user?.email}
+                    className="flex items-center gap-1 px-3 py-1 bg-[#0A52EF] text-white hover:bg-[#0941c3] rounded text-[10px] font-bold transition-colors disabled:opacity-50 shadow-sm ml-1"
+                  >
+                    {downloading === "creating" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                    Create Proposal
                   </button>
                 </div>
               </div>
