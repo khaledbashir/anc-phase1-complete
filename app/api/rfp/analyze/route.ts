@@ -475,21 +475,42 @@ export async function POST(request: NextRequest) {
             message: `AI extracting LED specs from ${analyzedPages.length} pages...`,
           });
 
-          const result = await extractLEDSpecsBatched(
-            analyzedPages,
-            (batch, totalBatches) => {
-              send("progress", {
-                stage: "extracting",
-                current: batch,
-                total: totalBatches,
-                message: `Extraction batch ${batch}/${totalBatches}...`,
-              });
-            },
-          );
+          // Heartbeat keeps SSE alive during long Mistral batch calls (up to 2min each).
+          // Without this, EasyPanel's reverse proxy may close the idle connection.
+          let heartbeatBatch = 0;
+          let heartbeatTotal = 0;
+          const heartbeat = setInterval(() => {
+            send("progress", {
+              stage: "extracting",
+              current: heartbeatBatch,
+              total: heartbeatTotal,
+              message: heartbeatBatch > 0
+                ? `Extraction batch ${heartbeatBatch}/${heartbeatTotal} — still processing...`
+                : "AI extraction in progress...",
+            });
+          }, 15_000);
 
-          screens = result.screens;
-          projectInfo = result.project;
-          requirements = result.requirements;
+          try {
+            const result = await extractLEDSpecsBatched(
+              analyzedPages,
+              (batch, totalBatches) => {
+                heartbeatBatch = batch;
+                heartbeatTotal = totalBatches;
+                send("progress", {
+                  stage: "extracting",
+                  current: batch,
+                  total: totalBatches,
+                  message: `Extraction batch ${batch}/${totalBatches}...`,
+                });
+              },
+            );
+
+            screens = result.screens;
+            projectInfo = result.project;
+            requirements = result.requirements;
+          } finally {
+            clearInterval(heartbeat);
+          }
 
           send("stage", {
             stage: "extracted",
