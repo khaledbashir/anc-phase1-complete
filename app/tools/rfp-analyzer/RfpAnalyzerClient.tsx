@@ -25,6 +25,7 @@ import {
   Loader2,
   History,
   MessageSquare,
+  ImageIcon,
 } from "lucide-react";
 
 // ==========================================================================
@@ -105,6 +106,8 @@ export default function RfpAnalyzerClient() {
   const [quoteImportResult, setQuoteImportResult] = useState<any>(null);
   const [pricingPreview, setPricingPreview] = useState<PricingPreview | null>(null);
   const [loadingPricing, setLoadingPricing] = useState(false);
+  const [resultsTab, setResultsTab] = useState<"extraction" | "pricing">("extraction");
+  const [drawingUpload, setDrawingUpload] = useState<{ uploading: boolean; results: Array<{ filename: string; pages: number }> }>({ uploading: false, results: [] });
 
   // ========================================================================
   // Upload → auto-pipeline (one SSE stream, fully automatic)
@@ -277,6 +280,9 @@ export default function RfpAnalyzerClient() {
       if (!res.ok) throw new Error(`Import failed (${res.status})`);
       const data = await res.json();
       setQuoteImportResult(data);
+      // Auto-trigger pricing preview after import + switch to Pricing tab
+      setResultsTab("pricing");
+      autoPreviewPricing(data.quotes || []);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -299,6 +305,30 @@ export default function RfpAnalyzerClient() {
         body: JSON.stringify({
           analysisId: result.id,
           quotes: quoteImportResult?.quotes || [],
+          includeBond: result.project.bondRequired,
+        }),
+      });
+      if (!res.ok) throw new Error(`Pricing failed (${res.status})`);
+      const data = await res.json();
+      setPricingPreview(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoadingPricing(false);
+    }
+  };
+
+  // Auto-trigger pricing after quote import (accepts quotes directly so we don't depend on stale state)
+  const autoPreviewPricing = async (quotes: any[]) => {
+    if (!result?.id) return;
+    setLoadingPricing(true);
+    try {
+      const res = await fetch("/api/rfp/pipeline/pricing-preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          analysisId: result.id,
+          quotes,
           includeBond: result.project.bondRequired,
         }),
       });
@@ -386,6 +416,41 @@ export default function RfpAnalyzerClient() {
     setResult(null);
     setQuoteImportResult(null);
     setPricingPreview(null);
+    setResultsTab("extraction");
+    setDrawingUpload({ uploading: false, results: [] });
+  };
+
+  // ========================================================================
+  // Upload supplementary drawings
+  // ========================================================================
+
+  const handleUploadDrawings = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !result?.id) return;
+    setDrawingUpload((prev) => ({ ...prev, uploading: true }));
+
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("analysisId", result.id);
+        const res = await fetch("/api/rfp/analyze/drawings", {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) throw new Error(`Failed (${res.status})`);
+        const data = await res.json();
+        setDrawingUpload((prev) => ({
+          ...prev,
+          results: [...prev.results, { filename: data.filename, pages: data.pagesProcessed }],
+        }));
+      } catch (err: any) {
+        setError(`Drawing upload failed: ${err.message}`);
+      }
+    }
+
+    setDrawingUpload((prev) => ({ ...prev, uploading: false }));
+    e.target.value = "";
   };
 
   // ========================================================================
@@ -414,15 +479,6 @@ export default function RfpAnalyzerClient() {
               <History className="w-4 h-4" />
               History
             </Link>
-            {phase === "results" && result && (
-              <button
-                onClick={handleExportTsv}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </button>
-            )}
             {phase !== "upload" && (
               <button
                 onClick={handleReset}
@@ -457,8 +513,12 @@ export default function RfpAnalyzerClient() {
         )}
 
         {/* ============ RESULTS ============ */}
-        {phase === "results" && result && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out space-y-8">
+        {phase === "results" && result && (() => {
+          const requirements = result.requirements || [];
+          const criticalReqs = requirements.filter((r) => r.status === "critical").length;
+
+          return (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out space-y-6">
             {/* Error banner */}
             {error && (
               <div className="p-4 border border-destructive/20 bg-destructive/10 rounded-xl">
@@ -479,8 +539,14 @@ export default function RfpAnalyzerClient() {
               />
               <StatCard icon={FileText} label="Noise Filtered" value={result.stats.noisePages.toString()} sub="auto-removed" />
               <StatCard icon={Monitor} label="LED Displays" value={result.stats.specsFound.toString()} accent="text-primary" />
+              <StatCard
+                icon={AlertTriangle}
+                label="Requirements"
+                value={requirements.length.toString()}
+                sub={criticalReqs > 0 ? `${criticalReqs} critical` : undefined}
+                accent={criticalReqs > 0 ? "text-red-500" : undefined}
+              />
               <StatCard icon={Clock} label="Processing Time" value={`${(result.stats.processingTimeMs / 1000).toFixed(1)}s`} />
-              <StatCard icon={Zap} label="Drawings Detected" value={result.stats.drawingPages.toString()} />
             </div>
 
             {/* Project info */}
@@ -528,256 +594,414 @@ export default function RfpAnalyzerClient() {
               </div>
             )}
 
-            {/* Requirements table */}
-            {result.requirements && result.requirements.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-amber-500" />
-                  Requirements & Key Points ({result.requirements.length})
-                </h3>
-                <RequirementsTable requirements={result.requirements} />
-              </div>
-            )}
-
-            {/* Triage minimap */}
-            {result.triage.length > 0 && (
-              <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="text-sm font-semibold text-foreground mb-3">
-                  Page Triage Map ({result.triage.length} pages)
-                </h3>
-                <TriageMinimap triage={result.triage} />
-              </div>
-            )}
-
-            {/* LED specs table */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <Monitor className="w-5 h-5 text-primary" />
-                  Extracted LED Displays ({result.screens.length})
-                </h3>
-              </div>
-              <SpecsTable specs={result.screens} />
-            </div>
-
-            {/* ============ PIPELINE ACTIONS (Steps 4-6) ============ */}
-            {result.id && result.screens.length > 0 && (
-              <div className="bg-card border-2 border-primary/20 rounded-xl p-6 space-y-6">
-                <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-primary" />
-                  RFP-to-Proposal Pipeline
-                </h3>
-
-                {/* Step indicators */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Step 4: Subcontractor Excel */}
-                  <PipelineStep
-                    step={4}
-                    title="Subcontractor Excel"
-                    description="Download specs sheet to send for quoting"
-                    icon={FileSpreadsheet}
-                    status="ready"
-                    action={
-                      <button
-                        onClick={handleDownloadSubcontractorExcel}
-                        disabled={downloading === "subcontractor"}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                      >
-                        {downloading === "subcontractor" ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Download className="w-4 h-4" />
-                        )}
-                        Download Quote Request
-                      </button>
-                    }
-                  />
-
-                  {/* Step 5: Import Quote */}
-                  <PipelineStep
-                    step={5}
-                    title="Quote Integration"
-                    description={quoteImportResult
-                      ? `${quoteImportResult.quotedCount}/${quoteImportResult.quotes.length} specs quoted`
-                      : "Import returned subcontractor quote"
-                    }
-                    icon={Upload}
-                    status={quoteImportResult ? "done" : "ready"}
-                    action={
-                      <label className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-sm font-medium cursor-pointer transition-colors">
-                        {downloading === "importing" ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : quoteImportResult ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                        ) : (
-                          <Upload className="w-4 h-4" />
-                        )}
-                        {quoteImportResult ? "Re-import Quote" : "Import Quote Excel"}
-                        <input
-                          type="file"
-                          accept=".xlsx,.xls"
-                          onChange={handleImportQuote}
-                          className="hidden"
-                        />
-                      </label>
-                    }
-                  />
-
-                  {/* Step 6: Rate Card */}
-                  <PipelineStep
-                    step={6}
-                    title="Rate Card Assembly"
-                    description="Generate final pricing Excel"
-                    icon={DollarSign}
-                    status={pricingPreview ? "done" : "ready"}
-                    action={
-                      <div className="space-y-2">
-                        <button
-                          onClick={handlePreviewPricing}
-                          disabled={loadingPricing}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
-                        >
-                          {loadingPricing ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <DollarSign className="w-4 h-4" />
-                          )}
-                          Preview Pricing
-                        </button>
-                        <button
-                          onClick={handleDownloadRateCard}
-                          disabled={downloading === "ratecard"}
-                          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-                        >
-                          {downloading === "ratecard" ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Download className="w-4 h-4" />
-                          )}
-                          Download Rate Card
-                        </button>
-                      </div>
-                    }
-                  />
+            {/* ============ TABBED VIEW: Extraction | Pricing ============ */}
+            <div className="bg-white dark:bg-zinc-900 rounded-lg border border-border overflow-hidden shadow-sm">
+              {/* Excel-style title bar */}
+              <div className="flex items-center justify-between px-3 py-1.5 bg-[#217346] text-white text-xs shrink-0">
+                <div className="flex items-center gap-2">
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                  <span className="font-medium truncate max-w-[400px]">
+                    {result.project.projectName || result.project.venue || fileInfo?.filename || "RFP Analysis"}
+                  </span>
                 </div>
+                <div className="flex items-center gap-2">
+                  {result.aiWorkspaceSlug && (
+                    <Link
+                      href={`/chat?workspace=${result.aiWorkspaceSlug}`}
+                      target="_blank"
+                      className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors"
+                    >
+                      <MessageSquare className="w-3 h-3" />
+                      Verify with AI
+                    </Link>
+                  )}
+                  <button
+                    onClick={handleExportTsv}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors"
+                  >
+                    <Download className="w-3 h-3" />
+                    Export .tsv
+                  </button>
+                </div>
+              </div>
 
-                {/* Quote import result */}
-                {quoteImportResult && (
-                  <div className="bg-muted/50 rounded-lg p-4 text-sm">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                      <span className="font-medium">Quote Imported: {quoteImportResult.filename}</span>
+              {/* Tab content area */}
+              <div className="min-h-[400px]">
+                {resultsTab === "extraction" && (
+                  <div className="p-5 space-y-6">
+                    {/* LED specs table */}
+                    <div>
+                      <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                        <Monitor className="w-4 h-4 text-primary" />
+                        Extracted LED Displays ({result.screens.length})
+                      </h3>
+                      <SpecsTable specs={result.screens} />
                     </div>
-                    <div className="flex gap-4 text-muted-foreground">
-                      <span>{quoteImportResult.quotedCount} quoted</span>
-                      <span>{quoteImportResult.missingCount} missing</span>
-                    </div>
-                    {quoteImportResult.warnings?.length > 0 && (
-                      <div className="mt-2 space-y-1">
-                        {quoteImportResult.warnings.map((w: string, i: number) => (
-                          <div key={i} className="flex items-start gap-1.5 text-amber-600">
-                            <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
-                            <span className="text-xs">{w}</span>
+
+                    {/* Requirements table */}
+                    {requirements.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-amber-500" />
+                          Requirements & Key Points ({requirements.length})
+                          {criticalReqs > 0 && (
+                            <span className="px-1.5 py-0.5 bg-red-500/10 text-red-500 text-[10px] font-bold rounded-full">
+                              {criticalReqs} critical
+                            </span>
+                          )}
+                        </h3>
+                        <RequirementsTable requirements={requirements} />
+                      </div>
+                    )}
+
+                    {/* Triage minimap */}
+                    {result.triage.length > 0 && (
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground mb-3">
+                          Page Triage Map ({result.triage.length} pages)
+                        </h3>
+                        <TriageMinimap triage={result.triage} />
+                      </div>
+                    )}
+
+                    {/* Upload supplementary drawings */}
+                    {result.id && (
+                      <div className="border border-dashed border-border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <span className="text-sm font-medium">Supplementary Drawings</span>
+                              <p className="text-xs text-muted-foreground">Upload separate drawing/spec files (PDF, PNG, JPG) — max 20 pages each</p>
+                            </div>
                           </div>
-                        ))}
+                          <label className="flex items-center gap-2 px-3 py-1.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium cursor-pointer transition-colors shrink-0">
+                            {drawingUpload.uploading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Upload className="w-3.5 h-3.5" />
+                            )}
+                            {drawingUpload.uploading ? "Processing..." : "Upload Drawings"}
+                            <input
+                              type="file"
+                              accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp"
+                              multiple
+                              onChange={handleUploadDrawings}
+                              disabled={drawingUpload.uploading}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                        {drawingUpload.results.length > 0 && (
+                          <div className="mt-3 space-y-1">
+                            {drawingUpload.results.map((r, i) => (
+                              <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
+                                <span>{r.filename} — {r.pages} page(s) processed</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Pricing preview */}
-                {pricingPreview && (
-                  <div className="space-y-4">
-                    {/* Summary cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <span className="text-xs text-muted-foreground block">Total Cost</span>
-                        <span className="text-lg font-bold">${pricingPreview.summary.totalCost.toLocaleString()}</span>
-                      </div>
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <span className="text-xs text-muted-foreground block">Total Selling</span>
-                        <span className="text-lg font-bold">${pricingPreview.summary.totalSellingPrice.toLocaleString()}</span>
-                      </div>
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <span className="text-xs text-muted-foreground block">Total Margin</span>
-                        <span className="text-lg font-bold text-emerald-600">${pricingPreview.summary.totalMargin.toLocaleString()}</span>
-                      </div>
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <span className="text-xs text-muted-foreground block">Blended Margin</span>
-                        <span className="text-lg font-bold text-emerald-600">{pricingPreview.summary.blendedMarginPct}%</span>
-                      </div>
+                {resultsTab === "pricing" && (
+                  <div className="p-5 space-y-6">
+                    {/* Pipeline Steps */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {/* Step 4: Subcontractor Excel */}
+                      <PipelineStep
+                        step={4}
+                        title="Subcontractor Excel"
+                        description="Download specs sheet to send for quoting"
+                        icon={FileSpreadsheet}
+                        status="ready"
+                        action={
+                          <button
+                            onClick={handleDownloadSubcontractorExcel}
+                            disabled={downloading === "subcontractor"}
+                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                          >
+                            {downloading === "subcontractor" ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Download className="w-4 h-4" />
+                            )}
+                            Download Quote Request
+                          </button>
+                        }
+                      />
+
+                      {/* Step 5: Import Quote */}
+                      <PipelineStep
+                        step={5}
+                        title="Quote Integration"
+                        description={quoteImportResult
+                          ? `${quoteImportResult.quotedCount}/${quoteImportResult.quotes.length} specs quoted`
+                          : "Import returned subcontractor quote"
+                        }
+                        icon={Upload}
+                        status={quoteImportResult ? "done" : "ready"}
+                        action={
+                          <label className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-sm font-medium cursor-pointer transition-colors">
+                            {downloading === "importing" ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : quoteImportResult ? (
+                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                            ) : (
+                              <Upload className="w-4 h-4" />
+                            )}
+                            {quoteImportResult ? "Re-import Quote" : "Import Quote Excel"}
+                            <input
+                              type="file"
+                              accept=".xlsx,.xls"
+                              onChange={handleImportQuote}
+                              className="hidden"
+                            />
+                          </label>
+                        }
+                      />
+
+                      {/* Step 6: Rate Card */}
+                      <PipelineStep
+                        step={6}
+                        title="Rate Card Assembly"
+                        description="Generate final pricing Excel"
+                        icon={DollarSign}
+                        status={pricingPreview ? "done" : "ready"}
+                        action={
+                          <div className="space-y-2">
+                            <button
+                              onClick={handlePreviewPricing}
+                              disabled={loadingPricing}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+                            >
+                              {loadingPricing ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <DollarSign className="w-4 h-4" />
+                              )}
+                              {pricingPreview ? "Refresh Pricing" : "Preview Pricing"}
+                            </button>
+                            <button
+                              onClick={handleDownloadRateCard}
+                              disabled={downloading === "ratecard"}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                            >
+                              {downloading === "ratecard" ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Download className="w-4 h-4" />
+                              )}
+                              Download Rate Card
+                            </button>
+                          </div>
+                        }
+                      />
                     </div>
 
-                    {/* Per-display pricing table */}
-                    <div className="border border-border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="bg-muted/50 border-b border-border">
-                            <th className="text-left px-4 py-2 font-medium text-muted-foreground">Display</th>
-                            <th className="text-right px-4 py-2 font-medium text-muted-foreground">Area</th>
-                            <th className="text-right px-4 py-2 font-medium text-muted-foreground">HW Cost</th>
-                            <th className="text-right px-4 py-2 font-medium text-muted-foreground">Total Cost</th>
-                            <th className="text-right px-4 py-2 font-medium text-muted-foreground">Selling</th>
-                            <th className="text-center px-4 py-2 font-medium text-muted-foreground">Margin</th>
-                            <th className="text-center px-4 py-2 font-medium text-muted-foreground">Source</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pricingPreview.displays.map((d, i) => (
-                            <tr key={i} className="border-b border-border last:border-0 hover:bg-muted/30">
-                              <td className="px-4 py-2">
-                                <span className="font-medium">{d.name}</span>
-                                {d.matchedProduct && (
-                                  <span className="block text-xs text-muted-foreground">
-                                    {d.matchedProduct.manufacturer} {d.matchedProduct.model} ({d.matchedProduct.fitScore}% fit)
-                                  </span>
-                                )}
-                              </td>
-                              <td className="px-4 py-2 text-right font-mono">{d.areaSqFt} sqft</td>
-                              <td className="px-4 py-2 text-right font-mono">${d.hardwareCost.toLocaleString()}</td>
-                              <td className="px-4 py-2 text-right font-mono">${d.totalCost.toLocaleString()}</td>
-                              <td className="px-4 py-2 text-right font-mono font-bold">${d.totalSellingPrice.toLocaleString()}</td>
-                              <td className="px-4 py-2 text-center">
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                                  d.blendedMarginPct >= 0.25 ? "bg-emerald-100 text-emerald-700" :
-                                  d.blendedMarginPct >= 0.15 ? "bg-amber-100 text-amber-700" :
-                                  "bg-red-100 text-red-700"
-                                }`}>
-                                  {(d.blendedMarginPct * 100).toFixed(1)}%
-                                </span>
-                              </td>
-                              <td className="px-4 py-2 text-center">
-                                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                  d.costSource === "subcontractor_quote"
-                                    ? "bg-emerald-100 text-emerald-700"
-                                    : "bg-muted text-muted-foreground"
-                                }`}>
-                                  {d.costSource === "subcontractor_quote" ? "Quote" : d.costSource === "rate_card" ? "Rate Card" : "Match"}
-                                </span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    {/* Quote import result */}
+                    {quoteImportResult && (
+                      <div className="bg-muted/50 rounded-lg p-4 text-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <span className="font-medium">Quote Imported: {quoteImportResult.filename}</span>
+                        </div>
+                        <div className="flex gap-4 text-muted-foreground">
+                          <span>{quoteImportResult.quotedCount} quoted</span>
+                          <span>{quoteImportResult.missingCount} missing</span>
+                        </div>
+                        {quoteImportResult.warnings?.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {quoteImportResult.warnings.map((w: string, i: number) => (
+                              <div key={i} className="flex items-start gap-1.5 text-amber-600">
+                                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                                <span className="text-xs">{w}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Loading state */}
+                    {loadingPricing && !pricingPreview && (
+                      <div className="flex items-center justify-center py-12 text-muted-foreground gap-3">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="text-sm">Calculating pricing with rate card + quotes...</span>
+                      </div>
+                    )}
+
+                    {/* Excel-style pricing table */}
+                    {pricingPreview && (
+                      <div className="space-y-4">
+                        {/* Summary cards */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <span className="text-xs text-muted-foreground block">Total Cost</span>
+                            <span className="text-lg font-bold font-mono">{fmtUsd(pricingPreview.summary.totalCost)}</span>
+                          </div>
+                          <div className="bg-muted/50 rounded-lg p-3">
+                            <span className="text-xs text-muted-foreground block">Total Selling</span>
+                            <span className="text-lg font-bold font-mono">{fmtUsd(pricingPreview.summary.totalSellingPrice)}</span>
+                          </div>
+                          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3">
+                            <span className="text-xs text-muted-foreground block">Total Margin</span>
+                            <span className="text-lg font-bold font-mono text-emerald-600">{fmtUsd(pricingPreview.summary.totalMargin)}</span>
+                          </div>
+                          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3">
+                            <span className="text-xs text-muted-foreground block">Blended Margin</span>
+                            <span className="text-lg font-bold font-mono text-emerald-600">{pricingPreview.summary.blendedMarginPct}%</span>
+                          </div>
+                        </div>
+
+                        {/* Excel-style table */}
+                        <div className="border border-border rounded-lg overflow-hidden">
+                          {/* Column letter header (Excel style) */}
+                          <div className="flex border-b border-border bg-zinc-50 dark:bg-zinc-800">
+                            <div className="w-8 shrink-0 border-r border-border" />
+                            {["A", "B", "C", "D", "E", "F", "G"].map((letter) => (
+                              <div key={letter} className="flex-1 min-w-[90px] px-2 py-0.5 text-center text-[10px] font-medium text-muted-foreground border-r border-border last:border-r-0">
+                                {letter}
+                              </div>
+                            ))}
+                          </div>
+
+                          <table className="w-full border-collapse text-xs">
+                            <thead>
+                              <tr className="bg-[#0A52EF]/5 dark:bg-[#0A52EF]/10">
+                                <th className="w-8 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800 font-normal">1</th>
+                                <th className="text-left px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">DISPLAY</th>
+                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">AREA</th>
+                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">HW COST</th>
+                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">TOTAL COST</th>
+                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">SELL PRICE</th>
+                                <th className="text-center px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">MARGIN %</th>
+                                <th className="text-center px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-b border-border">SOURCE</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {pricingPreview.displays.map((d, i) => (
+                                <tr key={i} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
+                                  <td className="w-8 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
+                                    {i + 2}
+                                  </td>
+                                  <td className="px-2 py-1.5 border-r border-b border-border">
+                                    <span className="font-semibold">{d.name}</span>
+                                    {d.matchedProduct && (
+                                      <span className="block text-[10px] text-muted-foreground">
+                                        {d.matchedProduct.manufacturer} {d.matchedProduct.model} ({d.matchedProduct.fitScore}% fit)
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td className="px-2 py-1.5 text-right font-mono border-r border-b border-border">{d.areaSqFt} sqft</td>
+                                  <td className="px-2 py-1.5 text-right font-mono border-r border-b border-border">{fmtUsd(d.hardwareCost)}</td>
+                                  <td className="px-2 py-1.5 text-right font-mono border-r border-b border-border">{fmtUsd(d.totalCost)}</td>
+                                  <td className="px-2 py-1.5 text-right font-mono font-semibold border-r border-b border-border">{fmtUsd(d.totalSellingPrice)}</td>
+                                  <td className="px-2 py-1.5 text-center border-r border-b border-border">
+                                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                                      d.blendedMarginPct >= 0.25 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
+                                      d.blendedMarginPct >= 0.15 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                                      "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                    }`}>
+                                      {(d.blendedMarginPct * 100).toFixed(1)}%
+                                    </span>
+                                  </td>
+                                  <td className="px-2 py-1.5 text-center border-b border-border">
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                      d.costSource === "subcontractor_quote"
+                                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                                        : "bg-muted text-muted-foreground"
+                                    }`}>
+                                      {d.costSource === "subcontractor_quote" ? "Quote" : d.costSource === "rate_card" ? "Rate Card" : "Match"}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                              {/* Totals row */}
+                              <tr className="bg-emerald-50 dark:bg-emerald-900/20 font-semibold">
+                                <td className="w-8 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
+                                  {pricingPreview.displays.length + 2}
+                                </td>
+                                <td className="px-2 py-2 border-r border-b border-border text-[11px]">
+                                  PROJECT TOTAL ({pricingPreview.summary.displayCount} displays)
+                                </td>
+                                <td className="border-r border-b border-border" />
+                                <td className="border-r border-b border-border" />
+                                <td className="px-2 py-2 text-right font-mono border-r border-b border-border bg-yellow-100 dark:bg-yellow-900/30">
+                                  {fmtUsd(pricingPreview.summary.totalCost)}
+                                </td>
+                                <td className="px-2 py-2 text-right font-mono border-r border-b border-border bg-yellow-100 dark:bg-yellow-900/30">
+                                  {fmtUsd(pricingPreview.summary.totalSellingPrice)}
+                                </td>
+                                <td className="px-2 py-2 text-center border-r border-b border-border bg-yellow-100 dark:bg-yellow-900/30">
+                                  <span className="text-[10px] font-bold">{pricingPreview.summary.blendedMarginPct}%</span>
+                                </td>
+                                <td className="px-2 py-2 text-center border-b border-border text-[10px] text-muted-foreground">
+                                  {pricingPreview.summary.quotedCount}Q / {pricingPreview.summary.rateCardCount}RC
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Empty state — no quote yet */}
+                    {!pricingPreview && !loadingPricing && !quoteImportResult && (
+                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
+                        <FileSpreadsheet className="w-12 h-12 opacity-30" />
+                        <p className="text-sm">Download the subcontractor Excel, fill in quotes, then import it back</p>
+                        <p className="text-xs">Or click Preview Pricing to see rate card estimates</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-            )}
+
+              {/* Sheet tabs (Excel style) */}
+              <div className="flex items-end border-t border-border bg-zinc-50 dark:bg-zinc-800 shrink-0">
+                <button
+                  onClick={() => setResultsTab("extraction")}
+                  className={`px-4 py-1.5 text-[11px] font-medium border-r border-border whitespace-nowrap transition-colors relative ${
+                    resultsTab === "extraction"
+                      ? "bg-white dark:bg-zinc-900 text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                  }`}
+                >
+                  {resultsTab === "extraction" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0A52EF]" />
+                  )}
+                  <span className="inline-block w-2 h-2 rounded-full mr-1.5 bg-[#0A52EF]" />
+                  Extraction
+                  <span className="ml-1.5 text-[10px] text-muted-foreground">({result.screens.length} displays)</span>
+                </button>
+                <button
+                  onClick={() => setResultsTab("pricing")}
+                  className={`px-4 py-1.5 text-[11px] font-medium border-r border-border whitespace-nowrap transition-colors relative ${
+                    resultsTab === "pricing"
+                      ? "bg-white dark:bg-zinc-900 text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                  }`}
+                >
+                  {resultsTab === "pricing" && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#217346]" />
+                  )}
+                  <span className="inline-block w-2 h-2 rounded-full mr-1.5 bg-[#217346]" />
+                  Pricing
+                  {pricingPreview && (
+                    <span className="ml-1.5 text-[10px] text-emerald-600">{fmtUsd(pricingPreview.summary.totalSellingPrice)}</span>
+                  )}
+                  {loadingPricing && <Loader2 className="inline w-3 h-3 ml-1.5 animate-spin" />}
+                </button>
+              </div>
+            </div>
 
             {/* Link to saved analysis */}
             {result.id && (
               <div className="flex items-center justify-center gap-4 pt-2">
-                {result.aiWorkspaceSlug && (
-                  <Link
-                    href={`/chat?workspace=${result.aiWorkspaceSlug}`}
-                    target="_blank"
-                    className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                  >
-                    <MessageSquare className="w-3.5 h-3.5" />
-                    Verify with AI Chat
-                  </Link>
-                )}
                 <Link
                   href={`/tools/rfp-analyzer/history/${result.id}`}
                   className="text-xs text-muted-foreground hover:text-primary transition-colors"
@@ -787,7 +1011,8 @@ export default function RfpAnalyzerClient() {
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
       </main>
     </div>
   );
@@ -853,6 +1078,9 @@ function PipelineStep({ step, title, description, icon: Icon, status, action }: 
 // ==========================================================================
 // Triage Minimap
 // ==========================================================================
+
+const fmtUsd = (n: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(n);
 
 const CAT_COLORS: Record<string, string> = {
   led_specs: "bg-emerald-500",
