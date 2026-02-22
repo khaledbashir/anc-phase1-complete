@@ -11,13 +11,16 @@
  */
 
 import { NextRequest } from "next/server";
-import { readFile, stat } from "fs/promises";
+import { stat } from "fs/promises";
 import { existsSync } from "fs";
 import path from "path";
-import { extractText } from "@/services/kreuzberg/kreuzbergClient";
+import { execFile } from "child_process";
+import { promisify } from "util";
 import { extractSinglePage } from "@/services/rfp/unified/mistralOcrClient";
 import { extractLEDSpecsBatched } from "@/services/rfp/unified/specExtractor";
 import { convertPageToImage } from "@/services/rfp/unified/pdfToImages";
+
+const execFileAsync = promisify(execFile);
 import type {
   AnalyzedPage,
   ExtractedLEDSpec,
@@ -96,22 +99,67 @@ export async function POST(request: NextRequest) {
         const sizeMb = (fileStat.size / 1024 / 1024).toFixed(1);
 
         // =============================================================
-        // STEP 2: Kreuzberg OCR — fast text (ALL pages, cheap)
-        // Buffer is loaded here, sent to Kreuzberg, then GC'd.
+        // STEP 2: Local pdftotext — extract text from ALL pages
+        // Uses poppler-utils CLI, reads from disk, zero memory in Node.js.
+        // No network transfer (unlike Kreuzberg which chokes on 631MB).
         // =============================================================
         send("stage", {
           stage: "ocr",
           message: `Extracting text from all pages (${sizeMb}MB)...`,
         });
 
-        const pdfBuffer = await readFile(filePath);
-        const ocrResult = await extractText(pdfBuffer, body.filename || "document.pdf");
+        // Get page count
+        let totalPages = 0;
+        try {
+          const { stdout: info } = await execFileAsync("pdfinfo", [filePath], { timeout: 30_000 });
+          const match = info.match(/Pages:\s+(\d+)/);
+          totalPages = match ? parseInt(match[1], 10) : 0;
+        } catch {
+          totalPages = 0;
+        }
+
+        if (totalPages === 0) {
+          send("error", { message: "Could not read PDF page count" });
+          return;
+        }
+
+        // Extract text per page using pdftotext (poppler-utils)
+        // -f N -l N = single page, - = stdout
+        const ocrPages: Array<{ pageNumber: number; text: string }> = [];
+        let totalChars = 0;
+
+        for (let p = 1; p <= totalPages; p++) {
+          try {
+            const { stdout: pageText } = await execFileAsync(
+              "pdftotext",
+              ["-f", String(p), "-l", String(p), "-layout", filePath, "-"],
+              { timeout: 10_000, maxBuffer: 1024 * 1024 }, // 1MB per page max
+            );
+            ocrPages.push({ pageNumber: p, text: pageText });
+            totalChars += pageText.length;
+          } catch {
+            // Page failed — push empty (will be filtered as low-relevance)
+            ocrPages.push({ pageNumber: p, text: "" });
+          }
+
+          // Progress every 100 pages
+          if (p % 100 === 0 || p === totalPages) {
+            send("progress", {
+              stage: "ocr",
+              current: p,
+              total: totalPages,
+              message: `Text extraction: ${p.toLocaleString()}/${totalPages.toLocaleString()} pages`,
+            });
+          }
+        }
+
+        const ocrResult = { totalPages, text: "", pages: ocrPages };
 
         send("stage", {
           stage: "ocr_done",
-          message: `${ocrResult.totalPages.toLocaleString()} pages scanned`,
-          totalPages: ocrResult.totalPages,
-          totalChars: ocrResult.text.length,
+          message: `${totalPages.toLocaleString()} pages scanned`,
+          totalPages,
+          totalChars,
         });
 
         // =============================================================
