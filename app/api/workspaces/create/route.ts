@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { provisionProjectWorkspace } from "@/lib/anything-llm";
 import { findClientLogo } from "@/lib/brand-discovery";
+import { ensureAnythingLlmUser, assignWorkspaceToUser } from "@/services/anythingllm/userProvisioner";
 
 export interface CreateWorkspaceRequest {
   name: string;
@@ -128,6 +129,16 @@ export async function POST(request: NextRequest) {
           where: { id: proposal.id },
           data: { aiWorkspaceSlug: slug },
         });
+      }
+
+      // Assign workspace to the creating user's AnythingLLM account
+      const user = await prisma.user.findUnique({
+        where: { email: body.userEmail },
+        select: { id: true, anythingLlmUserId: true },
+      });
+      if (user) {
+        const almId = user.anythingLlmUserId ?? await ensureAnythingLlmUser(user.id, body.userEmail);
+        if (almId) await assignWorkspaceToUser(slug, almId);
       }
     }).catch((e) => console.error("[Workspace/Create] AI provisioning failed:", e));
 

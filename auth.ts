@@ -4,6 +4,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { authConfig } from "./auth.config";
+import { ensureAnythingLlmUser } from "@/services/anythingllm/userProvisioner";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
@@ -28,6 +29,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           user.passwordHash
         );
         if (!ok) return null;
+
+        // Auto-provision AnythingLLM account (non-blocking — don't slow login)
+        ensureAnythingLlmUser(user.id, user.email).catch((e) =>
+          console.error("[Auth] ALM user provision failed:", e),
+        );
+
         return {
           id: user.id,
           name: user.name ?? undefined,

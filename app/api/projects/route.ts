@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { provisionProjectWorkspace } from "@/lib/anything-llm";
+import { assignWorkspaceToUser } from "@/services/anythingllm/userProvisioner";
+import { auth } from "@/auth";
 
 import { prisma } from "@/lib/prisma";
 
@@ -267,6 +269,18 @@ export async function POST(req: NextRequest) {
                 data: { aiWorkspaceSlug },
             });
             project.aiWorkspaceSlug = aiWorkspaceSlug;
+
+            // Assign workspace to the creating user
+            const session = await auth();
+            if (session?.user?.id) {
+                const user = await prisma.user.findUnique({
+                    where: { id: session.user.id },
+                    select: { anythingLlmUserId: true },
+                });
+                if (user?.anythingLlmUserId) {
+                    await assignWorkspaceToUser(aiWorkspaceSlug, user.anythingLlmUserId).catch(() => {});
+                }
+            }
         } else {
             warnings.push("AI workspace creation failed — project created without AI features");
         }

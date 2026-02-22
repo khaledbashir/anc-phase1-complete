@@ -11,6 +11,7 @@
  */
 
 import { ANYTHING_LLM_BASE_URL, ANYTHING_LLM_KEY } from "@/lib/variables";
+import { assignWorkspaceToUser } from "@/services/anythingllm/userProvisioner";
 import type { AnalyzedPage } from "./types";
 
 // ---------------------------------------------------------------------------
@@ -22,6 +23,7 @@ export async function provisionRfpWorkspace(opts: {
   projectName: string | null;
   venue: string | null;
   relevantPages: AnalyzedPage[];
+  anythingLlmUserId?: number | null; // If provided, workspace is assigned to this user
 }): Promise<string | null> {
   if (!ANYTHING_LLM_BASE_URL || !ANYTHING_LLM_KEY) {
     console.warn("[RFP Workspace] AnythingLLM not configured — skipping");
@@ -135,6 +137,13 @@ export async function provisionRfpWorkspace(opts: {
       } catch (err: any) {
         console.error("[RFP Workspace] Embedding failed:", err.message);
       }
+    }
+
+    // 5. Assign workspace to uploading user (so they only see their own)
+    if (opts.anythingLlmUserId) {
+      await assignWorkspaceToUser(slug, opts.anythingLlmUserId).catch((e) =>
+        console.error("[RFP Workspace] User assignment failed:", e),
+      );
     }
 
     return slug;

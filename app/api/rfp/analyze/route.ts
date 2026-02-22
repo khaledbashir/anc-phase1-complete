@@ -20,7 +20,9 @@ import { extractSinglePage } from "@/services/rfp/unified/mistralOcrClient";
 import { extractLEDSpecsBatched } from "@/services/rfp/unified/specExtractor";
 import { convertPageToImage } from "@/services/rfp/unified/pdfToImages";
 import { provisionRfpWorkspace } from "@/services/rfp/unified/rfpWorkspaceProvisioner";
+import { ensureAnythingLlmUser } from "@/services/anythingllm/userProvisioner";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 const execFileAsync = promisify(execFile);
 import type {
@@ -73,6 +75,13 @@ const NOISE_KEYWORDS = [
 ];
 
 export async function POST(request: NextRequest) {
+  // Resolve authenticated user's AnythingLLM ID
+  let anythingLlmUserId: number | null = null;
+  const session = await auth();
+  if (session?.user?.id && session?.user?.email) {
+    anythingLlmUserId = await ensureAnythingLlmUser(session.user.id, session.user.email).catch(() => null);
+  }
+
   let body: { sessionId: string; filename?: string };
   try {
     body = await request.json();
@@ -485,6 +494,7 @@ export async function POST(request: NextRequest) {
               projectName: finalProject.projectName,
               venue: finalProject.venue,
               relevantPages: mistralPages,
+              anythingLlmUserId,
             });
 
             if (aiWorkspaceSlug) {
