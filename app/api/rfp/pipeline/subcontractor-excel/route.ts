@@ -1,9 +1,15 @@
 /**
  * POST /api/rfp/pipeline/subcontractor-excel
  *
- * Step 4: Generate subcontractor quote request Excel from an RFP analysis.
+ * Generate subcontractor quote request Excel from an RFP analysis.
  *
- * Body: { analysisId: string, requestedBy?: string, dueDate?: string, notes?: string }
+ * Body: {
+ *   analysisId: string,
+ *   specs?: ExtractedLEDSpec[],  // Optional override — user-edited specs from preview
+ *   requestedBy?: string,
+ *   dueDate?: string,
+ *   notes?: string,
+ * }
  * Returns: Excel file download
  */
 
@@ -15,7 +21,7 @@ import type { ExtractedLEDSpec, ExtractedProjectInfo } from "@/services/rfp/unif
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { analysisId, requestedBy, dueDate, notes } = body;
+    const { analysisId, specs: overrideSpecs, requestedBy, dueDate, notes } = body;
 
     if (!analysisId) {
       return NextResponse.json({ error: "analysisId is required" }, { status: 400 });
@@ -27,7 +33,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Analysis not found" }, { status: 404 });
     }
 
-    const screens = (analysis.screens as unknown as ExtractedLEDSpec[]) || [];
+    // Use override specs (from editable preview) or fall back to DB
+    const screens = (overrideSpecs as ExtractedLEDSpec[]) || (analysis.screens as unknown as ExtractedLEDSpec[]) || [];
     const project = (analysis.project as unknown as ExtractedProjectInfo) || {};
 
     if (screens.length === 0) {

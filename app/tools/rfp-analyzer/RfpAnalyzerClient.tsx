@@ -108,6 +108,8 @@ export default function RfpAnalyzerClient() {
   const [loadingPricing, setLoadingPricing] = useState(false);
   const [resultsTab, setResultsTab] = useState<"extraction" | "pricing">("extraction");
   const [drawingUpload, setDrawingUpload] = useState<{ uploading: boolean; results: Array<{ filename: string; pages: number }> }>({ uploading: false, results: [] });
+  const [quotePreviewOpen, setQuotePreviewOpen] = useState(false);
+  const [editableSpecs, setEditableSpecs] = useState<ExtractedLEDSpec[]>([]);
 
   // ========================================================================
   // Auto-run pricing when extraction completes (no manual step needed)
@@ -245,17 +247,37 @@ export default function RfpAnalyzerClient() {
   }, []);
 
   // ========================================================================
-  // Pipeline Step 4: Download Subcontractor Excel
+  // Quote Preview: open editable preview before downloading
+  // ========================================================================
+
+  const openQuotePreview = () => {
+    if (!result) return;
+    setEditableSpecs(result.screens.map((s) => ({ ...s })));
+    setQuotePreviewOpen(true);
+    setResultsTab("pricing");
+  };
+
+  const updateEditableSpec = (index: number, field: keyof ExtractedLEDSpec, value: any) => {
+    setEditableSpecs((prev) => prev.map((s, i) => i === index ? { ...s, [field]: value } : s));
+  };
+
+  const removeEditableSpec = (index: number) => {
+    setEditableSpecs((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // ========================================================================
+  // Download Subcontractor Excel (uses edited specs if preview was open)
   // ========================================================================
 
   const handleDownloadSubcontractorExcel = async () => {
     if (!result?.id) return;
     setDownloading("subcontractor");
     try {
+      const specsToSend = quotePreviewOpen && editableSpecs.length > 0 ? editableSpecs : undefined;
       const res = await fetch("/api/rfp/pipeline/subcontractor-excel", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ analysisId: result.id }),
+        body: JSON.stringify({ analysisId: result.id, specs: specsToSend }),
       });
       if (!res.ok) throw new Error(`Failed (${res.status})`);
       const blob = await res.blob();
@@ -265,6 +287,7 @@ export default function RfpAnalyzerClient() {
       a.download = res.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "Quote_Request.xlsx";
       a.click();
       URL.revokeObjectURL(url);
+      setQuotePreviewOpen(false);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -424,6 +447,8 @@ export default function RfpAnalyzerClient() {
     setPricingPreview(null);
     setResultsTab("extraction");
     setDrawingUpload({ uploading: false, results: [] });
+    setQuotePreviewOpen(false);
+    setEditableSpecs([]);
   };
 
   // ========================================================================
@@ -764,22 +789,32 @@ export default function RfpAnalyzerClient() {
                       <PipelineStep
                         step={1}
                         title="Send to Supplier"
-                        description="Download Excel to send to LG, Yaham, etc."
+                        description={quotePreviewOpen ? "Review specs below, then download" : "Review & download Excel for quoting"}
                         icon={FileSpreadsheet}
-                        status="ready"
+                        status={quotePreviewOpen ? "done" : "ready"}
                         action={
-                          <button
-                            onClick={handleDownloadSubcontractorExcel}
-                            disabled={downloading === "subcontractor"}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                          >
-                            {downloading === "subcontractor" ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Download className="w-4 h-4" />
-                            )}
-                            Download Quote Request
-                          </button>
+                          quotePreviewOpen ? (
+                            <button
+                              onClick={handleDownloadSubcontractorExcel}
+                              disabled={downloading === "subcontractor" || editableSpecs.length === 0}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                            >
+                              {downloading === "subcontractor" ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Download className="w-4 h-4" />
+                              )}
+                              Download ({editableSpecs.length} displays)
+                            </button>
+                          ) : (
+                            <button
+                              onClick={openQuotePreview}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+                            >
+                              <FileSpreadsheet className="w-4 h-4" />
+                              Review & Download
+                            </button>
+                          )
                         }
                       />
 
@@ -850,6 +885,117 @@ export default function RfpAnalyzerClient() {
                         }
                       />
                     </div>
+
+                    {/* Editable quote preview */}
+                    {quotePreviewOpen && editableSpecs.length > 0 && (
+                      <div className="border border-primary/20 rounded-lg overflow-hidden">
+                        <div className="flex items-center justify-between px-4 py-2 bg-primary/5 border-b border-primary/10">
+                          <span className="text-sm font-semibold text-primary">
+                            Review Quote Request ({editableSpecs.length} displays)
+                          </span>
+                          <button
+                            onClick={() => setQuotePreviewOpen(false)}
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            Close preview
+                          </button>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full border-collapse text-xs">
+                            <thead>
+                              <tr className="bg-zinc-100 dark:bg-zinc-800">
+                                <th className="text-left px-3 py-2 font-semibold border-b border-border w-[200px]">Display Name</th>
+                                <th className="text-left px-3 py-2 font-semibold border-b border-border w-[160px]">Location</th>
+                                <th className="text-right px-3 py-2 font-semibold border-b border-border w-[70px]">W (ft)</th>
+                                <th className="text-right px-3 py-2 font-semibold border-b border-border w-[70px]">H (ft)</th>
+                                <th className="text-right px-3 py-2 font-semibold border-b border-border w-[70px]">Pitch</th>
+                                <th className="text-center px-3 py-2 font-semibold border-b border-border w-[50px]">Qty</th>
+                                <th className="text-left px-3 py-2 font-semibold border-b border-border">Notes for Supplier</th>
+                                <th className="text-center px-3 py-2 font-semibold border-b border-border w-[40px]"></th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {editableSpecs.map((spec, idx) => (
+                                <tr key={idx} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
+                                  <td className="px-1 py-1 border-b border-border">
+                                    <input
+                                      type="text"
+                                      value={spec.name}
+                                      onChange={(e) => updateEditableSpec(idx, "name", e.target.value)}
+                                      className="w-full px-2 py-1 text-xs bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1 border-b border-border">
+                                    <input
+                                      type="text"
+                                      value={spec.location}
+                                      onChange={(e) => updateEditableSpec(idx, "location", e.target.value)}
+                                      className="w-full px-2 py-1 text-xs bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1 border-b border-border">
+                                    <input
+                                      type="number"
+                                      value={spec.widthFt ?? ""}
+                                      onChange={(e) => updateEditableSpec(idx, "widthFt", e.target.value ? parseFloat(e.target.value) : null)}
+                                      className="w-full px-2 py-1 text-xs text-right bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded font-mono"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1 border-b border-border">
+                                    <input
+                                      type="number"
+                                      value={spec.heightFt ?? ""}
+                                      onChange={(e) => updateEditableSpec(idx, "heightFt", e.target.value ? parseFloat(e.target.value) : null)}
+                                      className="w-full px-2 py-1 text-xs text-right bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded font-mono"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1 border-b border-border">
+                                    <input
+                                      type="number"
+                                      value={spec.pixelPitchMm ?? ""}
+                                      onChange={(e) => updateEditableSpec(idx, "pixelPitchMm", e.target.value ? parseFloat(e.target.value) : null)}
+                                      className="w-full px-2 py-1 text-xs text-right bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded font-mono"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1 border-b border-border">
+                                    <input
+                                      type="number"
+                                      value={spec.quantity}
+                                      onChange={(e) => updateEditableSpec(idx, "quantity", parseInt(e.target.value) || 1)}
+                                      className="w-full px-2 py-1 text-xs text-center bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded font-mono"
+                                      min={1}
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1 border-b border-border">
+                                    <input
+                                      type="text"
+                                      value={spec.notes ?? ""}
+                                      onChange={(e) => updateEditableSpec(idx, "notes", e.target.value || null)}
+                                      placeholder="Add note..."
+                                      className="w-full px-2 py-1 text-xs bg-transparent border border-transparent hover:border-border focus:border-primary focus:outline-none rounded text-muted-foreground placeholder:text-muted-foreground/50"
+                                    />
+                                  </td>
+                                  <td className="px-1 py-1 border-b border-border text-center">
+                                    <button
+                                      onClick={() => removeEditableSpec(idx)}
+                                      className="text-muted-foreground hover:text-red-500 transition-colors p-1"
+                                      title="Remove from quote"
+                                    >
+                                      &times;
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {editableSpecs.length === 0 && (
+                          <div className="p-6 text-center text-muted-foreground text-sm">
+                            All displays removed. Close preview to reset.
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Quote import result */}
                     {quoteImportResult && (
