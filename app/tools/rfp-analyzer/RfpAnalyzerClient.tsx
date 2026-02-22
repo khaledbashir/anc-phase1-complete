@@ -677,11 +677,15 @@ export default function RfpAnalyzerClient() {
       <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border py-4 px-6 xl:px-8">
         <div className="flex items-center justify-between max-w-[1600px] mx-auto">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">RFP Analyzer</h1>
+            <h1 className="text-2xl font-bold text-foreground">
+              {phase === "upload" ? "New RFP" : phase === "processing" ? "Reading your RFP..." : result?.project?.projectName || "RFP Analysis"}
+            </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {fileInfo
+              {phase === "upload"
+                ? "Drop your RFP and let the AI do the heavy lifting"
+                : fileInfo
                 ? `${fileInfo.filename} — ${fileInfo.pageCount.toLocaleString()} pages, ${fileInfo.sizeMb}MB`
-                : "Upload an RFP PDF — we handle the rest"
+                : ""
               }
             </p>
           </div>
@@ -1444,7 +1448,7 @@ export default function RfpAnalyzerClient() {
                     <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#0A52EF]" />
                   )}
                   <span className="inline-block w-2 h-2 rounded-full mr-1.5 bg-[#0A52EF]" />
-                  What We Found
+                  What&apos;s Inside
                   <span className="ml-1.5 text-[10px] text-muted-foreground">({result.screens.length} displays)</span>
                 </button>
                 <button
@@ -1459,7 +1463,7 @@ export default function RfpAnalyzerClient() {
                     <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-[#217346]" />
                   )}
                   <span className="inline-block w-2 h-2 rounded-full mr-1.5 bg-[#217346]" />
-                  Pricing & Quoting
+                  Estimate
                   {pricingPreview && (
                     <span className="ml-1.5 text-[10px] text-emerald-600">{fmtUsd(pricingPreview.summary.totalSellingPrice)}</span>
                   )}
@@ -1549,11 +1553,11 @@ function PipelineStep({ step, title, description, status, action }: {
 // ==========================================================================
 
 const PIPELINE_STAGES = [
-  { id: "upload", label: "Upload RFP", icon: Upload, sub: "Drop your PDF" },
-  { id: "extract", label: "AI Extraction", icon: Monitor, sub: "Specs & requirements" },
-  { id: "review", label: "Review & Select", icon: FileText, sub: "Documents & displays" },
-  { id: "price", label: "Price & Quote", icon: DollarSign, sub: "Rate card & budget" },
-  { id: "proposal", label: "Create Proposal", icon: Plus, sub: "Ready to send" },
+  { id: "upload", label: "RFP In", icon: Upload, sub: "Drop your document" },
+  { id: "extract", label: "AI Reads It", icon: Monitor, sub: "Pulling specs & requirements" },
+  { id: "review", label: "What's Inside", icon: FileText, sub: "Displays, requirements, docs" },
+  { id: "price", label: "Estimate", icon: DollarSign, sub: "Rate card, scoping, subs" },
+  { id: "proposal", label: "Proposal", icon: ArrowRight, sub: "Build & send" },
 ] as const;
 
 function PipelineStepper({
@@ -1642,7 +1646,10 @@ function PipelineStepper({
                 <div className="text-left hidden sm:block">
                   <div className="text-[11px] font-semibold leading-tight">{stage.label}</div>
                   <div className="text-[9px] opacity-70 leading-tight">
-                    {status === "done" && idx === 1 ? `${specsFound} displays` : stage.sub}
+                    {status === "done" && idx === 0 ? "Uploaded"
+                      : status === "done" && idx === 1 ? `Found ${specsFound} displays`
+                      : status === "done" && idx === 2 ? "Reviewed"
+                      : stage.sub}
                   </div>
                 </div>
               </button>
