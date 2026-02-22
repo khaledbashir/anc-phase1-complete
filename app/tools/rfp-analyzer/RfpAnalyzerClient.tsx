@@ -403,6 +403,34 @@ export default function RfpAnalyzerClient() {
     }
   };
 
+  const handleDownloadScopingWorkbook = async () => {
+    if (!result?.id) return;
+    setDownloading("scoping");
+    try {
+      const res = await fetch("/api/rfp/pipeline/scoping-workbook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          analysisId: result.id,
+          quotes: quoteImportResult?.quotes || [],
+          includeBond: result.project.bondRequired,
+        }),
+      });
+      if (!res.ok) throw new Error(`Failed (${res.status})`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.headers.get("Content-Disposition")?.split("filename=")[1]?.replace(/"/g, "") || "Scoping_Workbook.xlsx";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   const handleDownloadRateCard = async () => {
     if (!result?.id) return;
     setDownloading("ratecard");
@@ -674,12 +702,20 @@ export default function RfpAnalyzerClient() {
                     </Link>
                   )}
                   <button
+                    onClick={handleDownloadScopingWorkbook}
+                    disabled={downloading === "scoping" || !result?.id}
+                    className="flex items-center gap-1 px-2.5 py-1 bg-white text-[#217346] hover:bg-white/90 rounded text-[10px] font-bold transition-colors disabled:opacity-50 shadow-sm"
+                  >
+                    {downloading === "scoping" ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />}
+                    Full Scoping Workbook
+                  </button>
+                  <button
                     onClick={handleDownloadRateCard}
                     disabled={downloading === "ratecard" || !result?.id}
                     className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
                   >
                     {downloading === "ratecard" ? <Loader2 className="w-3 h-3 animate-spin" /> : <DollarSign className="w-3 h-3" />}
-                    Download Pricing
+                    Rate Card
                   </button>
                   <button
                     onClick={handleExportExcel}
@@ -687,7 +723,7 @@ export default function RfpAnalyzerClient() {
                     className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
                   >
                     {downloading === "extraction" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                    Export .xlsx
+                    Specs .xlsx
                   </button>
                 </div>
               </div>
@@ -885,29 +921,35 @@ export default function RfpAnalyzerClient() {
                         action={
                           <div className="space-y-2">
                             <button
-                              onClick={handlePreviewPricing}
-                              disabled={loadingPricing}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+                              onClick={handleDownloadScopingWorkbook}
+                              disabled={downloading === "scoping" || !result?.id}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#217346] text-white rounded-lg text-sm font-bold hover:bg-[#1a5c38] disabled:opacity-50 transition-colors shadow-sm"
                             >
-                              {loadingPricing ? (
+                              {downloading === "scoping" ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <DollarSign className="w-4 h-4" />
+                                <FileSpreadsheet className="w-4 h-4" />
                               )}
-                              {pricingPreview ? "Refresh Pricing" : "Preview Pricing"}
+                              Full Scoping Workbook
                             </button>
-                            <button
-                              onClick={handleDownloadRateCard}
-                              disabled={downloading === "ratecard"}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-                            >
-                              {downloading === "ratecard" ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Download className="w-4 h-4" />
-                              )}
-                              Download Pricing Excel
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handlePreviewPricing}
+                                disabled={loadingPricing}
+                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium disabled:opacity-50 transition-colors"
+                              >
+                                {loadingPricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <DollarSign className="w-3.5 h-3.5" />}
+                                {pricingPreview ? "Refresh" : "Preview"}
+                              </button>
+                              <button
+                                onClick={handleDownloadRateCard}
+                                disabled={downloading === "ratecard"}
+                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium disabled:opacity-50 transition-colors"
+                              >
+                                {downloading === "ratecard" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                                Rate Card
+                              </button>
+                            </div>
                           </div>
                         }
                       />
