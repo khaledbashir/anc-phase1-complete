@@ -24,6 +24,7 @@ import {
   Calendar,
   Loader2,
   History,
+  MessageSquare,
 } from "lucide-react";
 
 // ==========================================================================
@@ -34,6 +35,7 @@ interface AnalysisResult {
   id: string | null;
   screens: ExtractedLEDSpec[];
   requirements?: ExtractedRequirement[];
+  aiWorkspaceSlug?: string | null;
   project: {
     clientName: string | null;
     projectName: string | null;
@@ -765,7 +767,17 @@ export default function RfpAnalyzerClient() {
 
             {/* Link to saved analysis */}
             {result.id && (
-              <div className="text-center pt-2">
+              <div className="flex items-center justify-center gap-4 pt-2">
+                {result.aiWorkspaceSlug && (
+                  <Link
+                    href={`/chat?workspace=${result.aiWorkspaceSlug}`}
+                    target="_blank"
+                    className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    Verify with AI Chat
+                  </Link>
+                )}
                 <Link
                   href={`/tools/rfp-analyzer/history/${result.id}`}
                   className="text-xs text-muted-foreground hover:text-primary transition-colors"

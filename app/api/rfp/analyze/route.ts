@@ -19,6 +19,7 @@ import { promisify } from "util";
 import { extractSinglePage } from "@/services/rfp/unified/mistralOcrClient";
 import { extractLEDSpecsBatched } from "@/services/rfp/unified/specExtractor";
 import { convertPageToImage } from "@/services/rfp/unified/pdfToImages";
+import { provisionRfpWorkspace } from "@/services/rfp/unified/rfpWorkspaceProvisioner";
 import { prisma } from "@/lib/prisma";
 
 const execFileAsync = promisify(execFile);
@@ -467,6 +468,36 @@ export async function POST(request: NextRequest) {
           console.error("[Pipeline] Failed to save to DB:", dbErr.message);
         }
 
+        // =============================================================
+        // STEP 7: Provision AnythingLLM workspace for verification chat
+        // Non-blocking — don't delay the response. Updates DB in background.
+        // =============================================================
+        let aiWorkspaceSlug: string | null = null;
+        if (analysisId && mistralPages.length > 0) {
+          send("stage", {
+            stage: "provisioning_workspace",
+            message: "Creating AI verification workspace...",
+          });
+
+          try {
+            aiWorkspaceSlug = await provisionRfpWorkspace({
+              analysisId,
+              projectName: finalProject.projectName,
+              venue: finalProject.venue,
+              relevantPages: mistralPages,
+            });
+
+            if (aiWorkspaceSlug) {
+              await prisma.rfpAnalysis.update({
+                where: { id: analysisId },
+                data: { aiWorkspaceSlug },
+              });
+            }
+          } catch (wsErr: any) {
+            console.error("[Pipeline] Workspace provisioning failed:", wsErr.message);
+          }
+        }
+
         send("complete", {
           result: {
             id: analysisId,
@@ -476,6 +507,7 @@ export async function POST(request: NextRequest) {
             pages: mistralPages,
             stats: finalStats,
             triage: triageData,
+            aiWorkspaceSlug,
           },
         });
 

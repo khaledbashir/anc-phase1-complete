@@ -919,6 +919,9 @@ model RfpAnalysis {
   status       String   @default("complete") // "processing", "complete", "failed"
   errorMessage String?
 
+  // AnythingLLM workspace for verification chat
+  aiWorkspaceSlug String?  // Slug of dedicated AnythingLLM workspace for this analysis
+
   // Ownership
   createdBy    String?  // User email
   createdAt    DateTime @default(now())
