@@ -349,42 +349,9 @@ export default function EstimatorStudio({
                             </button>
                         </>
                     )}
-                    <ToolDescription
-                        label="Auto-RFP Response"
-                        description="AI reads the RFP, extracts every screen requirement, matches products from the catalog, and pre-fills the estimator with all displays."
-                        whenToUse="When you have an RFP uploaded to this project's workspace. Click to extract and auto-populate all screens."
-                        benefit="Turns a 2500-page RFP into a populated estimate in 30 seconds."
-                    >
-                        <button
-                            onClick={() => setAutoRfpOpen((v) => !v)}
-                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
-                                autoRfpOpen
-                                    ? "bg-[#0A52EF] text-white"
-                                    : "border border-[#0A52EF]/30 text-[#0A52EF] hover:bg-[#0A52EF]/5"
-                            }`}
-                        >
-                            <Zap className="w-3 h-3" />
-                            Auto-RFP
-                        </button>
-                    </ToolDescription>
-                    <ToolDescription
-                        label="3D Arena Preview"
-                        description="Live 3D visualization of the arena showing which LED zones correspond to your configured displays. Zones light up as you add displays to the estimate."
-                        whenToUse="After adding one or more displays. See your proposal come to life in 3D."
-                        benefit="Helps clients visualize the venue and closes deals faster."
-                    >
-                        <button
-                            onClick={() => setVenueOpen((v) => !v)}
-                            className={`flex items-center gap-1 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
-                                venueOpen
-                                    ? "bg-[#0A52EF] text-white"
-                                    : "border border-border text-muted-foreground hover:bg-muted"
-                            }`}
-                        >
-                            <Box className="w-3 h-3" />
-                            3D
-                        </button>
-                    </ToolDescription>
+                    {/* Auto-RFP and 3D Arena hidden — reserved for Phase 2 */}
+                    <div className="w-px h-5 bg-border mx-0.5" />
+                    <span className="text-[9px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 uppercase tracking-wider whitespace-nowrap">Phase 2 Demo</span>
                     <ToolDescription
                         label="Smart Assembly Bundle"
                         description="Auto-suggests hidden line items you might forget: video processors, receiving cards, spare modules, mounting brackets, cable kits, and more."
