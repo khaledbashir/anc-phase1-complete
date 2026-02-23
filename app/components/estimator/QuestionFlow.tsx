@@ -13,7 +13,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2, Building2, Monitor, DollarSign, Sparkles, Ruler, ArrowUpDown, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2, Building2, Monitor, DollarSign, Sparkles, Ruler, ArrowUpDown, Wand2, PenLine, Zap, Trophy, Music, GraduationCap, Landmark } from "lucide-react";
 import {
     PROJECT_QUESTIONS,
     DISPLAY_QUESTIONS,
@@ -40,6 +40,7 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
     const [phase, setPhase] = useState<"project" | "display" | "financial" | "complete">("project");
     const [displayIndex, setDisplayIndex] = useState(0);
     const [aiMode, setAiMode] = useState(false);
+    const [manualChosen, setManualChosen] = useState(false);
     const [aiDescription, setAiDescription] = useState("");
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState("");
@@ -274,20 +275,29 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
 
     return (
         <div ref={containerRef} className="h-full flex flex-col">
-            {/* Stage indicator */}
-            <div className="shrink-0 px-6 pt-4 pb-2">
-                <StageIndicator
-                    phase={phase}
-                    displayIndex={displayIndex}
-                    displayCount={Math.max(answers.displays.length, 1)}
-                    progress={progress}
-                />
-            </div>
+            {/* Stage indicator — hidden on landing screen */}
+            {!(phase === "project" && currentStep === 0 && !aiMode && !manualChosen) && (
+                <div className="shrink-0 px-6 pt-4 pb-2">
+                    <StageIndicator
+                        phase={phase}
+                        displayIndex={displayIndex}
+                        displayCount={Math.max(answers.displays.length, 1)}
+                        progress={progress}
+                    />
+                </div>
+            )}
 
             {/* Question area */}
             <div className="flex-1 flex flex-col items-center justify-start px-8 py-12 overflow-y-auto">
-                {/* AI Quick Estimate mode */}
-                {aiMode ? (
+                {/* ===== LANDING SCREEN — shown on first visit (project step 0, not in AI mode, not manual) ===== */}
+                {phase === "project" && currentStep === 0 && !aiMode && !manualChosen ? (
+                    <LandingScreen
+                        onChooseAi={() => setAiMode(true)}
+                        onChooseManual={() => setManualChosen(true)}
+                        onQuickStart={(desc) => { setAiDescription(desc); setAiMode(true); }}
+                    />
+                ) : aiMode ? (
+                    /* ===== AI MODE — describe project, AI fills form ===== */
                     <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
                         <div className="flex items-center gap-2 mb-3">
                             <Wand2 className="w-4 h-4 text-[#0A52EF]" />
@@ -297,7 +307,7 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
                             Describe your project
                         </h2>
                         <p className="text-sm text-muted-foreground mb-6">
-                            Tell us about the venue, displays, and requirements. AI will fill in the form for you.
+                            Tell us about the venue, displays, and requirements. AI will extract everything and fill in the form.
                         </p>
                         <textarea
                             value={aiDescription}
@@ -331,7 +341,7 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
                                 ) : (
                                     <>
                                         <Sparkles className="w-4 h-4" />
-                                        Fill Form with AI
+                                        Generate Estimate
                                     </>
                                 )}
                             </button>
@@ -340,7 +350,7 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
                                 disabled={aiLoading}
                                 className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
                             >
-                                Fill manually instead
+                                Back
                             </button>
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-3">
@@ -348,24 +358,8 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
                         </p>
                     </div>
                 ) : (
+                /* ===== STANDARD QUESTION FLOW ===== */
                 <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-300" key={`${phase}-${displayIndex}-${currentStep}`}>
-                    {/* AI Quick button — show on first project question */}
-                    {phase === "project" && currentStep === 0 && (
-                        <button
-                            onClick={() => setAiMode(true)}
-                            className="w-full mb-6 flex items-center gap-3 px-4 py-3 rounded-lg border-2 border-dashed border-[#0A52EF]/30 hover:border-[#0A52EF]/60 hover:bg-[#0A52EF]/5 transition-all group"
-                        >
-                            <div className="w-8 h-8 rounded-full bg-[#0A52EF]/10 group-hover:bg-[#0A52EF]/20 flex items-center justify-center transition-colors">
-                                <Wand2 className="w-4 h-4 text-[#0A52EF]" />
-                            </div>
-                            <div className="text-left">
-                                <div className="text-sm font-medium text-foreground">Describe your project</div>
-                                <div className="text-xs text-muted-foreground">Let AI fill in the form from a plain-English description</div>
-                            </div>
-                            <ArrowRight className="w-4 h-4 text-muted-foreground ml-auto group-hover:text-[#0A52EF] transition-colors" />
-                        </button>
-                    )}
-
                     {/* Question number */}
                     <div className="flex items-center gap-2 mb-3">
                         <span className="text-xs font-bold text-[#0A52EF]">
@@ -434,23 +428,183 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
                 )}
             </div>
 
-            {/* Bottom nav */}
-            <div className="shrink-0 px-6 py-3 border-t border-border flex items-center justify-between">
+            {/* Bottom nav — hidden on landing screen */}
+            {!(phase === "project" && currentStep === 0 && !aiMode && !manualChosen) && (
+                <div className="shrink-0 px-6 py-3 border-t border-border flex items-center justify-between">
+                    <button
+                        onClick={() => {
+                            // If on first question in manual mode, go back to landing
+                            if (phase === "project" && currentStep === 0 && manualChosen) {
+                                setManualChosen(false);
+                            } else {
+                                goBack();
+                            }
+                        }}
+                        disabled={false}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+                    >
+                        <ChevronUp className="w-3.5 h-3.5" />
+                        Back
+                    </button>
+                    <button
+                        onClick={goNext}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        Skip
+                        <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ============================================================================
+// LANDING SCREEN — AI-first hero with quick-start presets
+// ============================================================================
+
+const QUICK_START_SCENARIOS = [
+    {
+        icon: Trophy,
+        label: "NBA Arena Package",
+        description: "Main scoreboard + ribbons + fascia",
+        prompt: "NBA arena needs a 20x12ft center-hung main scoreboard at 4mm, two 120x3ft ribbon boards at 6mm around the upper bowl, and two 40x4ft fascia boards at 4mm on the suite level. Indoor, new install, non-union.",
+    },
+    {
+        icon: Trophy,
+        label: "NFL Stadium",
+        description: "End zone boards + ribbon + marquee",
+        prompt: "NFL stadium needs two 50x30ft end zone video boards at 10mm, a 1200x3ft continuous ribbon board at 10mm around the upper deck, and a 40x8ft outdoor marquee at 16mm at the main entrance. Outdoor, new install, union labor.",
+    },
+    {
+        icon: Music,
+        label: "Concert Venue",
+        description: "Stage backdrop + side screens",
+        prompt: "Concert venue needs a 30x18ft main stage backdrop display at 3.9mm and two 12x20ft side IMAG screens at 3.9mm. Indoor, new install, union labor required.",
+    },
+    {
+        icon: GraduationCap,
+        label: "College Gymnasium",
+        description: "Scoreboard + auxiliary boards",
+        prompt: "College gymnasium needs a 16x9ft main scoreboard at 4mm on the end wall, two 20x3ft auxiliary stat boards at 4mm on the side walls. Indoor, new install, non-union.",
+    },
+    {
+        icon: Landmark,
+        label: "Corporate Lobby",
+        description: "Fine-pitch indoor display",
+        prompt: "Corporate headquarters lobby needs a 12x7ft fine-pitch LED video wall at 1.5mm, wall-mounted. Indoor, new install, non-union.",
+    },
+    {
+        icon: Trophy,
+        label: "MLS Stadium",
+        description: "Main board + ribbon + concourse",
+        prompt: "MLS soccer stadium needs a 40x20ft main scoreboard at 6mm, a 600x3ft ribbon board at 10mm around the perimeter, and four 8x5ft concourse displays at 2.5mm. Outdoor stadium, new install, non-union.",
+    },
+] as const;
+
+function LandingScreen({
+    onChooseAi,
+    onChooseManual,
+    onQuickStart,
+}: {
+    onChooseAi: () => void;
+    onChooseManual: () => void;
+    onQuickStart: (description: string) => void;
+}) {
+    return (
+        <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Hero */}
+            <div className="text-center mb-10">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0A52EF]/5 border border-[#0A52EF]/15 mb-4">
+                    <Zap className="w-3.5 h-3.5 text-[#0A52EF]" />
+                    <span className="text-xs font-semibold text-[#0A52EF]">ANC LED Estimator</span>
+                </div>
+                <h1 className="text-3xl font-bold text-foreground mb-2 tracking-tight">
+                    How do you want to build this estimate?
+                </h1>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                    Let AI do the heavy lifting, or fill out the form step by step.
+                </p>
+            </div>
+
+            {/* Two-path choice */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+                {/* AI Path — Primary */}
                 <button
-                    onClick={goBack}
-                    disabled={phase === "project" && currentStep === 0}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 transition-colors"
+                    onClick={onChooseAi}
+                    className="group relative text-left p-5 rounded-xl border-2 border-[#0A52EF]/30 hover:border-[#0A52EF] bg-gradient-to-br from-[#0A52EF]/[0.03] to-[#0A52EF]/[0.08] hover:from-[#0A52EF]/[0.05] hover:to-[#0A52EF]/[0.12] transition-all duration-200 hover:shadow-lg hover:shadow-[#0A52EF]/10"
                 >
-                    <ChevronUp className="w-3.5 h-3.5" />
-                    Back
+                    <div className="absolute top-3 right-3">
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-white bg-[#0A52EF] px-2 py-0.5 rounded-full">
+                            Recommended
+                        </span>
+                    </div>
+                    <div className="w-10 h-10 rounded-lg bg-[#0A52EF]/10 group-hover:bg-[#0A52EF]/20 flex items-center justify-center mb-3 transition-colors">
+                        <Wand2 className="w-5 h-5 text-[#0A52EF]" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-1">AI Quick Estimate</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        Describe the project in plain English. AI extracts client info, displays, dimensions, and fills the entire form in seconds.
+                    </p>
+                    <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-[#0A52EF] group-hover:gap-2.5 transition-all">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        Start with AI
+                        <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
                 </button>
+
+                {/* Manual Path — Secondary */}
                 <button
-                    onClick={goNext}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={onChooseManual}
+                    className="group text-left p-5 rounded-xl border-2 border-border hover:border-foreground/20 transition-all duration-200 hover:shadow-md"
                 >
-                    Skip
-                    <ChevronDown className="w-3.5 h-3.5" />
+                    <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center mb-3 group-hover:bg-accent/80 transition-colors">
+                        <PenLine className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-foreground mb-1">Manual Entry</h3>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                        Walk through each question one at a time. Full control over every field — client, displays, dimensions, financials.
+                    </p>
+                    <div className="mt-3 flex items-center gap-1.5 text-xs font-medium text-muted-foreground group-hover:text-foreground group-hover:gap-2.5 transition-all">
+                        <PenLine className="w-3.5 h-3.5" />
+                        Fill form manually
+                        <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
                 </button>
+            </div>
+
+            {/* Quick-start presets */}
+            <div>
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                        Quick Start — Click a scenario
+                    </span>
+                    <div className="h-px flex-1 bg-border" />
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {QUICK_START_SCENARIOS.map((scenario) => {
+                        const Icon = scenario.icon;
+                        return (
+                            <button
+                                key={scenario.label}
+                                onClick={() => onQuickStart(scenario.prompt)}
+                                className="group text-left px-3 py-2.5 rounded-lg border border-border hover:border-[#0A52EF]/40 hover:bg-[#0A52EF]/[0.03] transition-all duration-150"
+                            >
+                                <div className="flex items-start gap-2">
+                                    <Icon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-[#0A52EF] mt-0.5 shrink-0 transition-colors" />
+                                    <div className="min-w-0">
+                                        <div className="text-xs font-medium text-foreground truncate">{scenario.label}</div>
+                                        <div className="text-[10px] text-muted-foreground leading-snug">{scenario.description}</div>
+                                    </div>
+                                </div>
+                            </button>
+                        );
+                    })}
+                </div>
+                <p className="text-center text-[10px] text-muted-foreground mt-3">
+                    Clicking a scenario pre-fills the AI description — you can edit before submitting
+                </p>
             </div>
         </div>
     );
