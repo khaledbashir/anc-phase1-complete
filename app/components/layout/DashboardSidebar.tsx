@@ -44,6 +44,7 @@ interface NavItem {
     soon?: boolean;
     beta?: boolean;
     demoPhase?: string;
+    hidden?: boolean;
     children?: NavChild[];
 }
 
@@ -55,16 +56,17 @@ interface NavChild {
 
 const mainMenuItems: NavItem[] = [
     { icon: LayoutGrid, label: "Projects", href: "/projects", allowedRoles: null },
-    { icon: Kanban, label: "Pipeline", href: "/pipeline", allowedRoles: null },
+    { icon: Kanban, label: "Pipeline", href: "/pipeline", allowedRoles: null, hidden: true },
 ];
 
 const toolsMenuItems: NavItem[] = [
-    { icon: MessageSquare, label: "Chat", href: "/chat", allowedRoles: null },
+    { icon: MessageSquare, label: "Chat", href: "/chat", allowedRoles: null, hidden: true },
     {
         icon: Scan,
         label: "RFP Analyzer",
         href: "/tools/rfp-analyzer",
         allowedRoles: null,
+        hidden: true,
         children: [
             { label: "History", href: "/tools/rfp-analyzer/history", icon: History },
         ],
@@ -177,7 +179,7 @@ export default function DashboardSidebar() {
                 <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     {/* Main */}
                     <NavSection label="Main" expanded={expanded}>
-                        {mainMenuItems.map((item) => (
+                        {mainMenuItems.filter((i) => !i.hidden).map((item) => (
                             <NavItemRow
                                 key={item.label}
                                 item={item}
@@ -194,7 +196,7 @@ export default function DashboardSidebar() {
 
                     {/* Tools */}
                     <NavSection label="Tools" expanded={expanded}>
-                        {toolsMenuItems.map((item) => (
+                        {toolsMenuItems.filter((i) => !i.hidden).map((item) => (
                             <NavItemRow
                                 key={item.label}
                                 item={item}
