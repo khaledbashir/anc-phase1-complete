@@ -83,6 +83,8 @@ export interface PricedDisplay {
   leadTimeWeeks: number | null;
   /** Cost source */
   costSource: "subcontractor_quote" | "rate_card" | "product_match";
+  /** Rate card estimate (always computed, even when quote is used — for delta comparison) */
+  rateCardEstimate: number | null;
 }
 
 export interface RateCardExcelOptions {
@@ -153,6 +155,14 @@ async function priceDisplay(
   // Determine hardware cost
   let hardwareCost = 0;
   let costSource: PricedDisplay["costSource"] = "rate_card";
+  let rateCardEstimate: number | null = null;
+
+  // Always compute rate card estimate for delta comparison
+  const pitchKey = spec.pixelPitchMm != null ? String(spec.pixelPitchMm) : null;
+  const ratePerSqFt = pitchKey ? LED_COST_PER_SQFT_BY_PITCH[pitchKey] : null;
+  if (ratePerSqFt && ratePerSqFt > 0) {
+    rateCardEstimate = round2(ratePerSqFt * areaSqFt * spec.quantity);
+  }
 
   if (quote?.costPerSqFt != null) {
     // Priority 1: Subcontractor quote
@@ -160,11 +170,8 @@ async function priceDisplay(
     costSource = "subcontractor_quote";
   } else {
     // Priority 2: Rate card by pitch
-    const pitchKey = spec.pixelPitchMm != null ? String(spec.pixelPitchMm) : null;
-    const ratePerSqFt = pitchKey ? LED_COST_PER_SQFT_BY_PITCH[pitchKey] : null;
-
-    if (ratePerSqFt && ratePerSqFt > 0) {
-      hardwareCost = round2(ratePerSqFt * areaSqFt * spec.quantity);
+    if (rateCardEstimate != null) {
+      hardwareCost = rateCardEstimate;
       costSource = "rate_card";
     } else {
       // Priority 3: Product match
@@ -262,6 +269,7 @@ async function priceDisplay(
     blendedMarginPct,
     leadTimeWeeks: quote?.leadTimeWeeks ?? null,
     costSource,
+    rateCardEstimate,
   };
 }
 

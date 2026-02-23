@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
         totalSellingPrice: pd.totalSellingPrice,
         blendedMarginPct: pd.blendedMarginPct,
         costSource: pd.costSource,
+        rateCardEstimate: pd.rateCardEstimate,
         leadTimeWeeks: pd.leadTimeWeeks,
         matchedProduct: pd.match ? {
           manufacturer: pd.match.module.manufacturer,

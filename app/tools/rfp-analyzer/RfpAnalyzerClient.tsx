@@ -6,6 +6,8 @@ import { useSession } from "next-auth/react";
 import UploadZone, { type PipelineEvent } from "./_components/UploadZone";
 import SpecsTable from "./_components/SpecsTable";
 import RequirementsTable from "./_components/RequirementsTable";
+import PriceDelta from "./_components/PriceDelta";
+import PipelineCheckpoint from "./_components/PipelineCheckpoint";
 import dynamic from "next/dynamic";
 
 const PdfSplitPanel = dynamic(() => import("./_components/PdfSplitPanel"), { ssr: false });
@@ -97,6 +99,7 @@ interface PricingPreview {
     totalSellingPrice: number;
     blendedMarginPct: number;
     costSource: string;
+    rateCardEstimate: number | null;
     matchedProduct: { manufacturer: string; model: string; fitScore: number } | null;
   }>;
   summary: {
@@ -916,6 +919,11 @@ export default function RfpAnalyzerClient() {
                         setShowPdfPanel(true);
                       }}
                     />
+                    <PipelineCheckpoint
+                      unconfirmedCount={result.screens.filter((s) => s.confidence < 0.8).length}
+                      onProceed={() => setResultsTab("estimate")}
+                      nextStageLabel="Proceed to Estimate"
+                    />
                   </div>
                 )}
 
@@ -928,6 +936,13 @@ export default function RfpAnalyzerClient() {
                         <Shield className="w-8 h-8 mx-auto mb-2 opacity-30" />
                         <p className="text-xs">No requirements extracted from this RFP.</p>
                       </div>
+                    )}
+                    {requirements.length > 0 && (
+                      <PipelineCheckpoint
+                        unconfirmedCount={requirements.filter((r) => r.priority === "critical").length}
+                        onProceed={() => setResultsTab("documents")}
+                        nextStageLabel="Review Page Triage"
+                      />
                     )}
                   </div>
                 )}
@@ -1367,7 +1382,14 @@ export default function RfpAnalyzerClient() {
                                     )}
                                   </td>
                                   <td className="px-2 py-1.5 text-right font-mono border-r border-b border-border">{d.areaSqFt} sqft</td>
-                                  <td className="px-2 py-1.5 text-right font-mono border-r border-b border-border">{fmtUsd(d.hardwareCost)}</td>
+                                  <td className="px-2 py-1.5 text-right border-r border-b border-border">
+                                    <span className="font-mono">{fmtUsd(d.hardwareCost)}</span>
+                                    {d.costSource === "subcontractor_quote" && d.rateCardEstimate != null && d.rateCardEstimate > 0 && (
+                                      <span className="block mt-0.5">
+                                        <PriceDelta quotePrice={d.hardwareCost} estimatePrice={d.rateCardEstimate} />
+                                      </span>
+                                    )}
+                                  </td>
                                   <td className="px-2 py-1.5 text-right font-mono border-r border-b border-border">{fmtUsd(d.totalCost)}</td>
                                   <td className="px-2 py-1.5 text-right font-mono font-semibold border-r border-b border-border">{fmtUsd(d.totalSellingPrice)}</td>
                                   <td className="px-2 py-1.5 text-center border-r border-b border-border">
