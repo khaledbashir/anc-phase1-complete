@@ -1,12 +1,51 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { Component, useEffect, useState, useCallback } from "react";
 import { Viewer, Worker, SpecialZoomLevel } from "@react-pdf-viewer/core";
 import { pageNavigationPlugin } from "@react-pdf-viewer/page-navigation";
-import { FileText, X, ChevronLeft, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
+import { FileText, X, ChevronLeft, ChevronRight, Maximize2, Minimize2, AlertTriangle } from "lucide-react";
 
 import "@react-pdf-viewer/core/lib/styles/index.css";
 import "@react-pdf-viewer/page-navigation/lib/styles/index.css";
+
+// ---------------------------------------------------------------------------
+// ErrorBoundary — catches render crashes from corrupted PDFs / OOM
+// ---------------------------------------------------------------------------
+
+interface EBProps { children: React.ReactNode; onClose?: () => void }
+interface EBState { hasError: boolean; message: string }
+
+class PdfErrorBoundary extends Component<EBProps, EBState> {
+  constructor(props: EBProps) {
+    super(props);
+    this.state = { hasError: false, message: "" };
+  }
+  static getDerivedStateFromError(error: Error): EBState {
+    return { hasError: true, message: error.message || "Unknown error" };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-muted-foreground bg-muted/30 p-6 gap-3">
+          <AlertTriangle className="w-8 h-8 text-amber-500 opacity-60" />
+          <p className="text-xs font-medium text-center">Preview unavailable</p>
+          <p className="text-[10px] text-center max-w-[200px]">
+            File may be corrupted or too large to render. Text extraction still completed.
+          </p>
+          {this.props.onClose && (
+            <button
+              onClick={this.props.onClose}
+              className="mt-2 px-3 py-1 text-[10px] border border-border rounded hover:bg-muted transition-colors"
+            >
+              Close panel
+            </button>
+          )}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Props
@@ -125,14 +164,16 @@ export default function PdfSplitPanel({ pdfUrl, activePage, onClose }: PdfSplitP
 
       {/* PDF Viewer */}
       <div className="flex-1 overflow-hidden">
-        <Worker workerUrl={`https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`}>
-          <Viewer
-            fileUrl={pdfUrl}
-            plugins={[pageNavInstance]}
-            defaultScale={SpecialZoomLevel.PageWidth}
-            onDocumentLoad={handleDocumentLoad}
-          />
-        </Worker>
+        <PdfErrorBoundary onClose={onClose}>
+          <Worker workerUrl={`https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`}>
+            <Viewer
+              fileUrl={pdfUrl}
+              plugins={[pageNavInstance]}
+              defaultScale={SpecialZoomLevel.PageWidth}
+              onDocumentLoad={handleDocumentLoad}
+            />
+          </Worker>
+        </PdfErrorBoundary>
       </div>
     </div>
   );

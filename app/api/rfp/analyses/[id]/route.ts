@@ -36,11 +36,18 @@ export async function PATCH(
   const { id } = await params;
   const body = await request.json();
 
-  // Only allow updating safe fields
-  const allowed = ["projectName", "clientName", "venue", "location"];
-  const data: Record<string, string> = {};
-  for (const key of allowed) {
+  // Allow updating safe fields
+  const stringFields = ["projectName", "clientName", "venue", "location"];
+  const jsonFields = ["screens", "requirements"];
+  const data: Record<string, any> = {};
+
+  for (const key of stringFields) {
     if (key in body && typeof body[key] === "string") {
+      data[key] = body[key];
+    }
+  }
+  for (const key of jsonFields) {
+    if (key in body && Array.isArray(body[key])) {
       data[key] = body[key];
     }
   }

@@ -146,6 +146,30 @@ export default function RfpAnalyzerClient() {
   const [enabledCategories, setEnabledCategories] = useState<Set<string>>(new Set());
   const [reEmbedding, setReEmbedding] = useState(false);
   const [reEmbedResult, setReEmbedResult] = useState<string | null>(null);
+  // Auto-save for spec edits
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced auto-save: patches screens to DB 2s after last edit
+  const autoSaveSpecs = useCallback((specs: ExtractedLEDSpec[], analysisId: string | null) => {
+    if (!analysisId) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    setAutoSaveStatus("saving");
+    autoSaveTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/rfp/analyses/${analysisId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ screens: specs }),
+        });
+        setAutoSaveStatus(res.ok ? "saved" : "error");
+        // Reset "saved" indicator after 3s
+        if (res.ok) setTimeout(() => setAutoSaveStatus("idle"), 3000);
+      } catch {
+        setAutoSaveStatus("error");
+      }
+    }, 2000);
+  }, []);
 
   // ========================================================================
   // Auto-run pricing when extraction completes (no manual step needed)
@@ -913,12 +937,20 @@ export default function RfpAnalyzerClient() {
                         // Update result.screens in place for downstream use
                         result.screens = updated;
                         setEditableSpecs(updated);
+                        autoSaveSpecs(updated, result.id);
                       }}
                       onSourceClick={(pg) => {
                         setPdfViewerPage(pg);
                         setShowPdfPanel(true);
                       }}
                     />
+                    {autoSaveStatus !== "idle" && (
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        {autoSaveStatus === "saving" && <><Loader2 className="w-3 h-3 animate-spin" /> Saving...</>}
+                        {autoSaveStatus === "saved" && <><CheckCircle2 className="w-3 h-3 text-emerald-500" /> Saved</>}
+                        {autoSaveStatus === "error" && <><AlertTriangle className="w-3 h-3 text-red-500" /> Save failed</>}
+                      </div>
+                    )}
                     <PipelineCheckpoint
                       unconfirmedCount={result.screens.filter((s) => s.confidence < 0.8).length}
                       onProceed={() => setResultsTab("estimate")}
