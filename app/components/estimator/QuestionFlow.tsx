@@ -13,7 +13,7 @@
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2, Building2, Monitor, DollarSign, Sparkles, Ruler, ArrowUpDown, Wand2, PenLine, Zap, Trophy, Music, GraduationCap, Landmark } from "lucide-react";
+import { ChevronDown, ChevronUp, Plus, Check, ArrowRight, Package, Loader2, Building2, Monitor, DollarSign, Sparkles, Ruler, ArrowUpDown, Wand2, PenLine, Zap, Trophy, Music, GraduationCap, Landmark, Brain, MapPin, Eye, ChevronRight, RotateCcw } from "lucide-react";
 import {
     PROJECT_QUESTIONS,
     DISPLAY_QUESTIONS,
@@ -44,62 +44,124 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
     const [aiDescription, setAiDescription] = useState("");
     const [aiLoading, setAiLoading] = useState(false);
     const [aiError, setAiError] = useState("");
+    // Streaming reasoning state
+    const [aiPhase, setAiPhase] = useState<"input" | "reasoning" | "preview">("input");
+    const [reasoningText, setReasoningText] = useState("");
+    const [extractedData, setExtractedData] = useState<{ answers: Record<string, any>; displays: any[] } | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const reasoningEndRef = useRef<HTMLDivElement>(null);
 
-    // AI Quick Estimate — describe your project, AI fills the form
-    const handleAiQuickEstimate = useCallback(async () => {
+    // Auto-scroll reasoning panel as text streams in
+    useEffect(() => {
+        if (aiPhase === "reasoning" && reasoningEndRef.current) {
+            reasoningEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+        }
+    }, [reasoningText, aiPhase]);
+
+    // AI Streaming Estimate — uses GLM-5 reasoning model
+    const handleAiReasonEstimate = useCallback(async () => {
         if (!aiDescription.trim() || aiDescription.trim().length < 10) {
             setAiError("Please describe the project in at least 10 characters.");
             return;
         }
         setAiLoading(true);
         setAiError("");
+        setReasoningText("");
+        setExtractedData(null);
+        setAiPhase("reasoning");
+
         try {
-            const res = await fetch("/api/estimator/ai-quick", {
+            const res = await fetch("/api/estimator/ai-reason", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ description: aiDescription.trim() }),
             });
-            const data = await res.json();
+
             if (!res.ok) {
-                throw new Error(data.error || "AI extraction failed");
+                const data = await res.json();
+                throw new Error(data.error || "AI reasoning failed");
             }
-            // Merge AI-extracted answers into current state
-            const next = { ...answers };
-            if (data.answers.clientName) next.clientName = data.answers.clientName;
-            if (data.answers.projectName) next.projectName = data.answers.projectName;
-            if (data.answers.location) next.location = data.answers.location;
-            if (data.answers.docType) next.docType = data.answers.docType;
-            if (data.answers.currency) next.currency = data.answers.currency;
-            if (typeof data.answers.isIndoor === "boolean") next.isIndoor = data.answers.isIndoor;
-            if (typeof data.answers.isNewInstall === "boolean") next.isNewInstall = data.answers.isNewInstall;
-            if (typeof data.answers.isUnion === "boolean") next.isUnion = data.answers.isUnion;
-            // Merge displays
-            if (Array.isArray(data.displays) && data.displays.length > 0) {
-                next.displays = data.displays.map((d: any) => ({
-                    ...getDefaultDisplayAnswers(),
-                    displayName: d.displayName || "",
-                    displayType: d.displayType || "custom",
-                    locationType: d.locationType || "wall",
-                    widthFt: d.widthFt || 0,
-                    heightFt: d.heightFt || 0,
-                    pixelPitch: String(d.pixelPitch || "4"),
-                    installComplexity: d.installComplexity || "standard",
-                    serviceType: d.serviceType || "Front/Rear",
-                    isReplacement: Boolean(d.isReplacement),
-                }));
+
+            const reader = res.body?.getReader();
+            if (!reader) throw new Error("No stream body");
+
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed || !trimmed.startsWith("data: ")) continue;
+
+                    try {
+                        const chunk = JSON.parse(trimmed.slice(6));
+
+                        if (chunk.type === "reasoning") {
+                            setReasoningText((prev) => prev + chunk.text);
+                        } else if (chunk.type === "extraction") {
+                            setExtractedData({ answers: chunk.answers, displays: chunk.displays });
+                            setAiPhase("preview");
+                        } else if (chunk.type === "error") {
+                            throw new Error(chunk.message);
+                        } else if (chunk.type === "done") {
+                            // Stream complete
+                        }
+                    } catch (parseErr) {
+                        // Skip malformed chunks
+                        if (parseErr instanceof Error && parseErr.message !== "done") {
+                            throw parseErr;
+                        }
+                    }
+                }
             }
-            onChange(next);
-            // Jump to financial phase (project + displays filled)
-            setAiMode(false);
-            setPhase("financial");
-            setCurrentStep(0);
         } catch (err) {
-            setAiError(err instanceof Error ? err.message : "AI extraction failed");
+            setAiError(err instanceof Error ? err.message : "AI reasoning failed");
+            setAiPhase("input");
         } finally {
             setAiLoading(false);
         }
-    }, [aiDescription, answers, onChange]);
+    }, [aiDescription]);
+
+    // Apply extracted data to form
+    const applyExtraction = useCallback(() => {
+        if (!extractedData) return;
+        const next = { ...answers };
+        const a = extractedData.answers;
+        if (a.clientName) next.clientName = a.clientName;
+        if (a.projectName) next.projectName = a.projectName;
+        if (a.location) next.location = a.location;
+        if (a.docType) next.docType = a.docType;
+        if (a.currency) next.currency = a.currency;
+        if (typeof a.isIndoor === "boolean") next.isIndoor = a.isIndoor;
+        if (typeof a.isNewInstall === "boolean") next.isNewInstall = a.isNewInstall;
+        if (typeof a.isUnion === "boolean") next.isUnion = a.isUnion;
+        if (Array.isArray(extractedData.displays) && extractedData.displays.length > 0) {
+            next.displays = extractedData.displays.map((d: any) => ({
+                ...getDefaultDisplayAnswers(),
+                displayName: d.displayName || "",
+                displayType: d.displayType || "custom",
+                locationType: d.locationType || "wall",
+                widthFt: d.widthFt || 0,
+                heightFt: d.heightFt || 0,
+                pixelPitch: String(d.pixelPitch || "4"),
+                installComplexity: d.installComplexity || "standard",
+                serviceType: d.serviceType || "Front/Rear",
+                isReplacement: Boolean(d.isReplacement),
+            }));
+        }
+        onChange(next);
+        setAiMode(false);
+        setAiPhase("input");
+        setPhase("financial");
+        setCurrentStep(0);
+    }, [extractedData, answers, onChange]);
 
     // Build the flat question list for current state
     const questions = getQuestionList(phase, displayIndex);
@@ -297,65 +359,241 @@ export default function QuestionFlow({ answers, onChange, onComplete, productSpe
                         onQuickStart={(desc) => { setAiDescription(desc); setAiMode(true); }}
                     />
                 ) : aiMode ? (
-                    /* ===== AI MODE — describe project, AI fills form ===== */
-                    <div className="w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-300">
-                        <div className="flex items-center gap-2 mb-3">
-                            <Wand2 className="w-4 h-4 text-[#0A52EF]" />
-                            <span className="text-xs font-bold text-[#0A52EF]">AI Quick Estimate</span>
+                    /* ===== AI MODE — three phases: input → reasoning → preview ===== */
+                    <div className="w-full max-w-2xl animate-in fade-in slide-in-from-bottom-4 duration-300">
+                        {/* Phase indicator */}
+                        <div className="flex items-center gap-2 mb-5">
+                            <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold", aiPhase === "input" ? "bg-[#0A52EF] text-white" : "bg-[#0A52EF]/10 text-[#0A52EF]")}>
+                                <Wand2 className="w-3 h-3" /> Describe
+                            </div>
+                            <ChevronRight className="w-3 h-3 text-muted-foreground/40" />
+                            <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold", aiPhase === "reasoning" ? "bg-[#0A52EF] text-white" : aiPhase === "preview" ? "bg-[#0A52EF]/10 text-[#0A52EF]" : "text-muted-foreground/40")}>
+                                <Brain className="w-3 h-3" /> Reasoning
+                            </div>
+                            <ChevronRight className="w-3 h-3 text-muted-foreground/40" />
+                            <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold", aiPhase === "preview" ? "bg-[#0A52EF] text-white" : "text-muted-foreground/40")}>
+                                <Eye className="w-3 h-3" /> Review
+                            </div>
                         </div>
-                        <h2 className="text-2xl font-semibold text-foreground mb-1 leading-tight">
-                            Describe your project
-                        </h2>
-                        <p className="text-sm text-muted-foreground mb-6">
-                            Tell us about the venue, displays, and requirements. AI will extract everything and fill in the form.
-                        </p>
-                        <textarea
-                            value={aiDescription}
-                            onChange={(e) => setAiDescription(e.target.value)}
-                            placeholder="e.g., Indiana Fever at Gainbridge Fieldhouse needs a new 20x12 main scoreboard at 4mm, two 100x3 ribbon boards at 6mm around the concourse, and a 30x6 marquee at 10mm for the entrance. Indoor, new install, union labor required."
-                            rows={5}
-                            autoFocus
-                            disabled={aiLoading}
-                            className="w-full bg-transparent border-2 border-border focus:border-[#0A52EF] rounded-lg outline-none text-sm py-3 px-4 transition-colors placeholder:text-muted-foreground/40 resize-none disabled:opacity-50"
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                                    e.preventDefault();
-                                    handleAiQuickEstimate();
-                                }
-                            }}
-                        />
-                        {aiError && (
-                            <p className="text-xs text-destructive mt-2">{aiError}</p>
-                        )}
-                        <div className="mt-4 flex items-center gap-3">
-                            <button
-                                onClick={handleAiQuickEstimate}
-                                disabled={aiLoading || aiDescription.trim().length < 10}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-[#0A52EF] text-white hover:bg-[#0A52EF]/90 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
-                                {aiLoading ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Extracting...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="w-4 h-4" />
-                                        Generate Estimate
-                                    </>
+
+                        {/* ── INPUT PHASE ── */}
+                        {aiPhase === "input" && (
+                            <>
+                                <h2 className="text-2xl font-semibold text-foreground mb-1 leading-tight">
+                                    Describe your project
+                                </h2>
+                                <p className="text-sm text-muted-foreground mb-6">
+                                    Tell us about the venue, displays, and requirements. AI will reason through the details and show you exactly what it finds.
+                                </p>
+                                <textarea
+                                    value={aiDescription}
+                                    onChange={(e) => setAiDescription(e.target.value)}
+                                    placeholder="e.g., Indiana Fever at Gainbridge Fieldhouse needs a new 20x12 main scoreboard at 4mm, two 100x3 ribbon boards at 6mm around the concourse, and a 30x6 marquee at 10mm for the entrance. Indoor, new install, union labor required."
+                                    rows={5}
+                                    autoFocus
+                                    disabled={aiLoading}
+                                    className="w-full bg-transparent border-2 border-border focus:border-[#0A52EF] rounded-lg outline-none text-sm py-3 px-4 transition-colors placeholder:text-muted-foreground/40 resize-none disabled:opacity-50"
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                                            e.preventDefault();
+                                            handleAiReasonEstimate();
+                                        }
+                                    }}
+                                />
+                                {aiError && (
+                                    <p className="text-xs text-destructive mt-2">{aiError}</p>
                                 )}
-                            </button>
-                            <button
-                                onClick={() => { setAiMode(false); setAiError(""); }}
-                                disabled={aiLoading}
-                                className="text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-                            >
-                                Back
-                            </button>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-3">
-                            <kbd className="px-1 py-0.5 bg-accent rounded text-[10px]">Ctrl+Enter</kbd> to submit
-                        </p>
+                                <div className="mt-4 flex items-center gap-3">
+                                    <button
+                                        onClick={handleAiReasonEstimate}
+                                        disabled={aiLoading || aiDescription.trim().length < 10}
+                                        className="flex items-center gap-2 px-5 py-2.5 bg-[#0A52EF] text-white hover:bg-[#0A52EF]/90 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                    >
+                                        <Sparkles className="w-4 h-4" />
+                                        Analyze with AI
+                                    </button>
+                                    <button
+                                        onClick={() => { setAiMode(false); setAiError(""); setAiPhase("input"); }}
+                                        className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        Back
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-muted-foreground mt-3">
+                                    <kbd className="px-1 py-0.5 bg-accent rounded text-[10px]">Ctrl+Enter</kbd> to submit
+                                </p>
+                            </>
+                        )}
+
+                        {/* ── REASONING PHASE ── */}
+                        {aiPhase === "reasoning" && (
+                            <>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Brain className="w-4 h-4 text-[#0A52EF] animate-pulse" />
+                                    <h2 className="text-lg font-semibold text-foreground">
+                                        Analyzing your project...
+                                    </h2>
+                                </div>
+
+                                {/* User's description — collapsed */}
+                                <div className="mb-4 px-3 py-2 rounded-lg bg-accent/50 border border-border">
+                                    <p className="text-xs text-muted-foreground line-clamp-2">{aiDescription}</p>
+                                </div>
+
+                                {/* Streaming reasoning text */}
+                                <div className="rounded-lg border border-[#0A52EF]/20 bg-[#0A52EF]/[0.02] p-4 max-h-[50vh] overflow-y-auto">
+                                    <div className="text-[10px] font-semibold uppercase tracking-widest text-[#0A52EF]/60 mb-2 flex items-center gap-1.5">
+                                        <Brain className="w-3 h-3" />
+                                        AI Reasoning
+                                    </div>
+                                    <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap font-mono">
+                                        {reasoningText || (
+                                            <span className="text-muted-foreground italic">Thinking...</span>
+                                        )}
+                                        {aiLoading && (
+                                            <span className="inline-block w-2 h-4 bg-[#0A52EF] ml-0.5 animate-pulse rounded-sm" />
+                                        )}
+                                    </div>
+                                    <div ref={reasoningEndRef} />
+                                </div>
+
+                                {aiError && (
+                                    <div className="mt-3">
+                                        <p className="text-xs text-destructive">{aiError}</p>
+                                        <button
+                                            onClick={() => { setAiError(""); setAiPhase("input"); }}
+                                            className="mt-2 text-xs text-[#0A52EF] hover:underline"
+                                        >
+                                            Try again
+                                        </button>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* ── PREVIEW PHASE — extraction summary + apply ── */}
+                        {aiPhase === "preview" && extractedData && (
+                            <>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <Check className="w-4 h-4 text-emerald-600" />
+                                    <h2 className="text-lg font-semibold text-foreground">
+                                        Here&apos;s what AI found
+                                    </h2>
+                                </div>
+                                <p className="text-xs text-muted-foreground mb-4">
+                                    Review the extraction below, then click Apply to fill the estimator form.
+                                </p>
+
+                                {/* Collapsible reasoning */}
+                                {reasoningText && (
+                                    <details className="mb-4 group">
+                                        <summary className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1.5">
+                                            <Brain className="w-3 h-3" />
+                                            View AI reasoning
+                                            <ChevronRight className="w-3 h-3 group-open:rotate-90 transition-transform" />
+                                        </summary>
+                                        <div className="mt-2 rounded-lg border border-border bg-accent/30 p-3 max-h-40 overflow-y-auto">
+                                            <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap font-mono">
+                                                {reasoningText}
+                                            </p>
+                                        </div>
+                                    </details>
+                                )}
+
+                                {/* Project info */}
+                                <div className="rounded-lg border border-border bg-white p-4 mb-3 space-y-2">
+                                    <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                                        Project Details
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-xs">
+                                        {extractedData.answers.clientName && (
+                                            <div>
+                                                <span className="text-muted-foreground">Client:</span>{" "}
+                                                <span className="font-medium">{extractedData.answers.clientName}</span>
+                                            </div>
+                                        )}
+                                        {extractedData.answers.projectName && (
+                                            <div>
+                                                <span className="text-muted-foreground">Project:</span>{" "}
+                                                <span className="font-medium">{extractedData.answers.projectName}</span>
+                                            </div>
+                                        )}
+                                        {extractedData.answers.location && (
+                                            <div>
+                                                <span className="text-muted-foreground">Location:</span>{" "}
+                                                <span className="font-medium">{extractedData.answers.location}</span>
+                                            </div>
+                                        )}
+                                        {typeof extractedData.answers.isIndoor === "boolean" && (
+                                            <div>
+                                                <span className="text-muted-foreground">Environment:</span>{" "}
+                                                <span className="font-medium">{extractedData.answers.isIndoor ? "Indoor" : "Outdoor"}</span>
+                                            </div>
+                                        )}
+                                        {typeof extractedData.answers.isNewInstall === "boolean" && (
+                                            <div>
+                                                <span className="text-muted-foreground">Install:</span>{" "}
+                                                <span className="font-medium">{extractedData.answers.isNewInstall ? "New" : "Replacement"}</span>
+                                            </div>
+                                        )}
+                                        {typeof extractedData.answers.isUnion === "boolean" && (
+                                            <div>
+                                                <span className="text-muted-foreground">Labor:</span>{" "}
+                                                <span className="font-medium">{extractedData.answers.isUnion ? "Union" : "Non-union"}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Displays */}
+                                {extractedData.displays.length > 0 && (
+                                    <div className="rounded-lg border border-border bg-white p-4 mb-4 space-y-2">
+                                        <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">
+                                            {extractedData.displays.length} Display{extractedData.displays.length > 1 ? "s" : ""} Detected
+                                        </div>
+                                        <div className="space-y-2">
+                                            {extractedData.displays.map((d: any, i: number) => (
+                                                <div key={i} className="flex items-start gap-3 px-3 py-2 rounded-md bg-accent/40">
+                                                    <div className="w-6 h-6 rounded-full bg-[#0A52EF]/10 flex items-center justify-center shrink-0 mt-0.5">
+                                                        <Monitor className="w-3 h-3 text-[#0A52EF]" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="text-xs font-semibold text-foreground">{d.displayName}</div>
+                                                        <div className="text-[10px] text-muted-foreground flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                                                            <span>{d.widthFt}×{d.heightFt} ft</span>
+                                                            <span>{d.pixelPitch}mm</span>
+                                                            <span>{(d.displayType || "custom").replace(/_|-/g, " ")}</span>
+                                                            <span>{d.installComplexity}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-[10px] text-muted-foreground shrink-0 text-right">
+                                                        {(d.widthFt * d.heightFt).toFixed(0)} sqft
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Action buttons */}
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={applyExtraction}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-[#0A52EF] text-white hover:bg-[#0A52EF]/90 rounded-lg text-sm font-semibold transition-colors shadow-sm shadow-[#0A52EF]/20"
+                                    >
+                                        <Check className="w-4 h-4" />
+                                        Apply to Estimate
+                                    </button>
+                                    <button
+                                        onClick={() => { setAiPhase("input"); setReasoningText(""); setExtractedData(null); }}
+                                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                    >
+                                        <RotateCcw className="w-3.5 h-3.5" />
+                                        Try again
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 ) : (
                 /* ===== STANDARD QUESTION FLOW ===== */
