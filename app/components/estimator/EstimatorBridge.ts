@@ -10,40 +10,11 @@ import type { EstimatorAnswers, DisplayAnswers } from "./questions";
 import { calculateBundle, type BundleItem, type BundleResult, CATEGORY_LABELS } from "@/services/estimator/bundleRules";
 
 // ============================================================================
-// TYPES — Sheet data for ExcelPreview
+// TYPES — Sheet data for ExcelPreview (re-exported from shared workbookTypes)
 // ============================================================================
 
-export interface SheetCell {
-    value: string | number;
-    bold?: boolean;
-    header?: boolean;
-    currency?: boolean;
-    percent?: boolean;
-    highlight?: boolean;
-    formula?: string;
-    align?: "left" | "center" | "right";
-    span?: number;
-}
-
-export interface SheetRow {
-    cells: SheetCell[];
-    isHeader?: boolean;
-    isSeparator?: boolean;
-    isTotal?: boolean;
-}
-
-export interface SheetTab {
-    name: string;
-    color: string;
-    columns: string[];
-    rows: SheetRow[];
-    active?: boolean;
-}
-
-export interface ExcelPreviewData {
-    fileName: string;
-    sheets: SheetTab[];
-}
+export type { SheetCell, SheetRow, SheetTab, WorkbookData as ExcelPreviewData } from "@/app/components/reusables/workbookTypes";
+import type { SheetCell, SheetRow, SheetTab, WorkbookData as ExcelPreviewData } from "@/app/components/reusables/workbookTypes";
 
 // ============================================================================
 // CONSTANTS — From validated rate card

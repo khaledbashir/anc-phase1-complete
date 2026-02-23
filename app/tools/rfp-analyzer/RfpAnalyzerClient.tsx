@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import UploadZone, { type PipelineEvent } from "./_components/UploadZone";
-import SpecsTable from "./_components/SpecsTable";
-import RequirementsTable from "./_components/RequirementsTable";
-import PriceDelta from "./_components/PriceDelta";
 import PipelineCheckpoint from "./_components/PipelineCheckpoint";
+import { buildRfpWorkbook } from "./_components/rfpWorkbookBuilder";
+import WorkbookShell from "@/app/components/reusables/WorkbookShell";
 import dynamic from "next/dynamic";
 
 const PdfSplitPanel = dynamic(() => import("./_components/PdfSplitPanel"), { ssr: false });
@@ -91,10 +90,14 @@ interface AnalysisResult {
 interface PricingPreview {
   displays: Array<{
     name: string;
+    location?: string;
     pixelPitch: number | null;
     areaSqFt: number;
     quantity: number;
     hardwareCost: number;
+    installCost?: number;
+    pmCost?: number;
+    engCost?: number;
     totalCost: number;
     totalSellingPrice: number;
     blendedMarginPct: number;
@@ -170,6 +173,27 @@ export default function RfpAnalyzerClient() {
       }
     }, 2000);
   }, []);
+
+  // ========================================================================
+  // Workbook data — computed from state for WorkbookShell rendering
+  // ========================================================================
+
+  const requirements = result?.requirements || [];
+  const workbookData = useMemo(() => {
+    if (!result) return { fileName: "RFP Analysis", sheets: [] };
+    return buildRfpWorkbook({
+      project: result.project,
+      screens: result.screens,
+      requirements,
+      triage: result.triage || [],
+      pricingDisplays: pricingPreview?.displays || [],
+      pricingSummary: pricingPreview?.summary || null,
+      onSourcePageClick: (pg) => {
+        setPdfViewerPage(pg);
+        setShowPdfPanel(true);
+      },
+    });
+  }, [result, pricingPreview, requirements]);
 
   // ========================================================================
   // Auto-run pricing when extraction completes (no manual step needed)
@@ -785,8 +809,7 @@ export default function RfpAnalyzerClient() {
 
         {/* ============ RESULTS ============ */}
         {phase === "results" && result && (() => {
-          const requirements = result.requirements || [];
-          const criticalReqs = requirements.filter((r) => r.status === "critical").length;
+          const criticalReqs = requirements.filter((r) => r.priority === "critical").length;
 
           return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 ease-out space-y-6">
@@ -825,125 +848,91 @@ export default function RfpAnalyzerClient() {
               <ProjectInfoCard project={result.project} />
             )}
 
-            {/* ============ TABBED VIEW: Extraction | Pricing ============ */}
+            {/* ============ WORKBOOK VIEW ============ */}
             <div className="flex gap-3">
             {/* Left: Workbook */}
-            <div className={`bg-white dark:bg-zinc-900 rounded-lg border border-border overflow-hidden shadow-sm ${
-              showPdfPanel && pdfBlobUrl ? "flex-1 min-w-0" : "w-full"
-            }`}>
-              {/* Excel-style title bar */}
-              <div className="flex items-center justify-between px-3 py-1.5 bg-[#217346] text-white text-xs shrink-0">
-                <div className="flex items-center gap-2">
-                  <FileSpreadsheet className="w-3.5 h-3.5" />
-                  <span className="font-medium truncate max-w-[400px]">
-                    {result.project.projectName || result.project.venue || fileInfo?.filename || "RFP Analysis"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {result.aiWorkspaceSlug && (
-                    <Link
-                      href={`/chat?workspace=${result.aiWorkspaceSlug}`}
-                      target="_blank"
-                      className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors"
-                    >
-                      <MessageSquare className="w-3 h-3" />
-                      Cross-Check
-                    </Link>
-                  )}
-                  <button
-                    onClick={handleDownloadScopingWorkbook}
-                    disabled={downloading === "scoping" || !result?.id}
-                    className="flex items-center gap-1 px-2.5 py-1 bg-white text-[#217346] hover:bg-white/90 rounded text-[10px] font-bold transition-colors disabled:opacity-50 shadow-sm"
-                  >
-                    {downloading === "scoping" ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileSpreadsheet className="w-3 h-3" />}
-                    Full Scoping Workbook
-                  </button>
-                  <button
-                    onClick={handleDownloadRateCard}
-                    disabled={downloading === "ratecard" || !result?.id}
-                    className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
-                  >
-                    {downloading === "ratecard" ? <Loader2 className="w-3 h-3 animate-spin" /> : <DollarSign className="w-3 h-3" />}
-                    Rate Card
-                  </button>
-                  <button
-                    onClick={handleExportExcel}
-                    disabled={downloading === "extraction"}
-                    className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
-                  >
-                    {downloading === "extraction" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                    Specs .xlsx
-                  </button>
-                  <button
-                    onClick={handleCreateProposal}
-                    disabled={downloading === "creating" || !result?.id || !session?.user?.email}
-                    className="flex items-center gap-1 px-3 py-1 bg-[#0A52EF] text-white hover:bg-[#0941c3] rounded text-[10px] font-bold transition-colors disabled:opacity-50 shadow-sm ml-1"
-                  >
-                    {downloading === "creating" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
-                    Create Proposal
-                  </button>
-                  {pdfBlobUrl && (
+            <div className={showPdfPanel && pdfBlobUrl ? "flex-1 min-w-0" : "w-full"}>
+              <WorkbookShell
+                data={workbookData}
+                editable
+                onCellEdit={(sheetIdx, rowIdx, colIdx, value) => {
+                  // Only LED Cost Sheet (index 0) is editable
+                  if (sheetIdx !== 0) return;
+                  const spec = { ...result.screens[rowIdx] };
+                  // Map column indices to spec fields
+                  const fieldMap: Record<number, string> = { 0: "name", 3: "widthFt", 4: "heightFt", 7: "quantity" };
+                  const field = fieldMap[colIdx];
+                  if (!field) return;
+                  if (field === "name") {
+                    (spec as any)[field] = value;
+                  } else {
+                    (spec as any)[field] = parseFloat(value) || null;
+                  }
+                  const updated = [...result.screens];
+                  updated[rowIdx] = spec;
+                  result.screens = updated;
+                  setEditableSpecs(updated);
+                  autoSaveSpecs(updated, result.id);
+                }}
+                onCellClick={(sheetIdx, rowIdx, colIdx) => {
+                  // Cell click handlers are wired via onClick on individual cells
+                }}
+                onExport={handleDownloadScopingWorkbook}
+                exporting={downloading === "scoping"}
+                actions={
+                  <>
+                    {result.aiWorkspaceSlug && (
+                      <Link
+                        href={`/chat?workspace=${result.aiWorkspaceSlug}`}
+                        target="_blank"
+                        className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors"
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        Cross-Check
+                      </Link>
+                    )}
                     <button
-                      onClick={() => setShowPdfPanel(!showPdfPanel)}
-                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ml-1 ${
-                        showPdfPanel
-                          ? "bg-white text-[#217346]"
-                          : "bg-white/20 hover:bg-white/30 text-white"
-                      }`}
-                      title={showPdfPanel ? "Hide PDF" : "Show PDF"}
+                      onClick={handleDownloadRateCard}
+                      disabled={downloading === "ratecard" || !result?.id}
+                      className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
                     >
-                      {showPdfPanel ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      PDF
+                      {downloading === "ratecard" ? <Loader2 className="w-3 h-3 animate-spin" /> : <DollarSign className="w-3 h-3" />}
+                      Rate Card
                     </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Tab content area */}
-              <div className="min-h-[400px]">
-                {/* ── LED Displays ── */}
-                {resultsTab === "displays" && (
-                  <div className="p-5 space-y-4">
-                    {/* Pricing inline bar */}
-                    {pricingPreview && (
-                      <div className="flex items-center justify-between gap-4 px-4 py-2.5 bg-zinc-50 dark:bg-zinc-800 border border-border rounded-lg">
-                        <div className="flex items-center gap-4 text-xs">
-                          <DollarSign className="w-4 h-4 text-[#217346] shrink-0" />
-                          <span className="font-bold text-foreground">
-                            {fmtUsd(pricingPreview.summary.totalSellingPrice)}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {pricingPreview.summary.displayCount} displays · {pricingPreview.summary.blendedMarginPct}% margin · Cost {fmtUsd(pricingPreview.summary.totalCost)}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => setResultsTab("estimate")}
-                          className="text-[10px] text-primary hover:underline font-medium shrink-0"
-                        >
-                          Full breakdown &rarr;
-                        </button>
-                      </div>
+                    <button
+                      onClick={handleExportExcel}
+                      disabled={downloading === "extraction"}
+                      className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
+                    >
+                      {downloading === "extraction" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                      Specs .xlsx
+                    </button>
+                    <button
+                      onClick={handleCreateProposal}
+                      disabled={downloading === "creating" || !result?.id || !session?.user?.email}
+                      className="flex items-center gap-1 px-3 py-1 bg-[#0A52EF] text-white hover:bg-[#0941c3] rounded text-[10px] font-bold transition-colors disabled:opacity-50 shadow-sm ml-1"
+                    >
+                      {downloading === "creating" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                      Create Proposal
+                    </button>
+                    {pdfBlobUrl && (
+                      <button
+                        onClick={() => setShowPdfPanel(!showPdfPanel)}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ml-1 ${
+                          showPdfPanel
+                            ? "bg-white text-[#217346]"
+                            : "bg-white/20 hover:bg-white/30 text-white"
+                        }`}
+                        title={showPdfPanel ? "Hide PDF" : "Show PDF"}
+                      >
+                        {showPdfPanel ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                        PDF
+                      </button>
                     )}
-                    {loadingPricing && !pricingPreview && (
-                      <div className="bg-muted/50 border border-border rounded-lg p-4 flex items-center gap-3">
-                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                        <span className="text-sm text-muted-foreground">Calculating estimated pricing from rate cards...</span>
-                      </div>
-                    )}
-                    <SpecsTable
-                      specs={result.screens}
-                      editable
-                      onSpecsChange={(updated) => {
-                        // Update result.screens in place for downstream use
-                        result.screens = updated;
-                        setEditableSpecs(updated);
-                        autoSaveSpecs(updated, result.id);
-                      }}
-                      onSourceClick={(pg) => {
-                        setPdfViewerPage(pg);
-                        setShowPdfPanel(true);
-                      }}
-                    />
+                  </>
+                }
+                footer={
+                  <div className="px-4 py-2 space-y-2">
                     {autoSaveStatus !== "idle" && (
                       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                         {autoSaveStatus === "saving" && <><Loader2 className="w-3 h-3 animate-spin" /> Saving...</>}
@@ -953,581 +942,14 @@ export default function RfpAnalyzerClient() {
                     )}
                     <PipelineCheckpoint
                       unconfirmedCount={result.screens.filter((s) => s.confidence < 0.8).length}
-                      onProceed={() => setResultsTab("estimate")}
-                      nextStageLabel="Proceed to Estimate"
+                      onProceed={() => {/* tab switching handled by WorkbookShell */}}
+                      nextStageLabel="Review Complete"
                     />
                   </div>
-                )}
+                }
+              />
 
-                {/* ── Requirements ── */}
-                {resultsTab === "requirements" && (
-                  <div className="p-5">
-                    <RequirementsTable requirements={requirements} />
-                    {requirements.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Shield className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                        <p className="text-xs">No requirements extracted from this RFP.</p>
-                      </div>
-                    )}
-                    {requirements.length > 0 && (
-                      <PipelineCheckpoint
-                        unconfirmedCount={requirements.filter((r) => r.priority === "critical").length}
-                        onProceed={() => setResultsTab("documents")}
-                        nextStageLabel="Review Page Triage"
-                      />
-                    )}
-                  </div>
-                )}
-
-                {/* ── Page Triage / Documents ── */}
-                {resultsTab === "documents" && (
-                  <div className="p-5 space-y-4">
-                    {result.triage.length > 0 && (
-                      <DocumentBrowser
-                        triage={result.triage}
-                        hasPages={!!result.pages?.length}
-                        enabledCategories={enabledCategories}
-                        onToggle={toggleCategory}
-                        onReEmbed={handleReEmbed}
-                        reEmbedding={reEmbedding}
-                        reEmbedResult={reEmbedResult}
-                        hasWorkspace={!!result.aiWorkspaceSlug}
-                      />
-                    )}
-                    {/* Upload supplementary drawings */}
-                    {result.id && (
-                      <div className="flex items-center justify-between px-4 py-2.5 border border-dashed border-border rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <ImageIcon className="w-3.5 h-3.5 text-muted-foreground" />
-                          <span className="text-xs font-medium">Supplementary Drawings</span>
-                          <span className="text-[10px] text-muted-foreground">PDF, PNG, JPG — max 20 pages each</span>
-                          {drawingUpload.results.length > 0 && (
-                            <span className="text-[10px] text-[#217346] font-medium ml-1">
-                              {drawingUpload.results.length} uploaded
-                            </span>
-                          )}
-                        </div>
-                        <label className="flex items-center gap-1.5 px-2.5 py-1 border border-border hover:bg-muted text-foreground rounded text-xs font-medium cursor-pointer transition-colors shrink-0">
-                          {drawingUpload.uploading ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <Upload className="w-3 h-3" />
-                          )}
-                          {drawingUpload.uploading ? "Processing..." : "Upload"}
-                          <input
-                            type="file"
-                            accept=".pdf,.png,.jpg,.jpeg,.tiff,.bmp"
-                            multiple
-                            onChange={handleUploadDrawings}
-                            disabled={drawingUpload.uploading}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Custom user tabs ── */}
-                {customTabs.map((tab) => resultsTab === tab.id && (
-                  <div key={tab.id} className="p-5">
-                    <textarea
-                      value={tab.content}
-                      onChange={(e) => setCustomTabs((prev) =>
-                        prev.map((t) => t.id === tab.id ? { ...t, content: e.target.value } : t)
-                      )}
-                      placeholder="Type your notes here..."
-                      className="w-full min-h-[300px] bg-transparent text-sm font-mono text-foreground resize-none focus:outline-none placeholder:text-muted-foreground/40"
-                    />
-                  </div>
-                ))}
-
-                {resultsTab === "estimate" && (
-                  <div className="p-5 space-y-6">
-                    {/* Workflow Steps */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      {/* Step 1: Send to Supplier */}
-                      <PipelineStep
-                        step={1}
-                        title="Send to Supplier"
-                        description={quotePreviewOpen ? "Review specs below, then download" : "Review & download Excel for quoting"}
-                        icon={FileSpreadsheet}
-                        status={quotePreviewOpen ? "done" : "ready"}
-                        action={
-                          quotePreviewOpen ? (
-                            <button
-                              onClick={handleDownloadSubcontractorExcel}
-                              disabled={downloading === "subcontractor" || editableSpecs.length === 0}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors"
-                            >
-                              {downloading === "subcontractor" ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Download className="w-4 h-4" />
-                              )}
-                              Download ({editableSpecs.length} displays)
-                            </button>
-                          ) : (
-                            <button
-                              onClick={openQuotePreview}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-                            >
-                              <FileSpreadsheet className="w-4 h-4" />
-                              Review & Download
-                            </button>
-                          )
-                        }
-                      />
-
-                      {/* Step 2: Import Response */}
-                      <PipelineStep
-                        step={2}
-                        title="Import Supplier Response"
-                        description={quoteImportResult
-                          ? `${quoteImportResult.quotedCount}/${quoteImportResult.quotes.length} displays quoted`
-                          : "Upload their completed Excel back"
-                        }
-                        icon={Upload}
-                        status={quoteImportResult ? "done" : "ready"}
-                        action={
-                          <label className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-sm font-medium cursor-pointer transition-colors">
-                            {downloading === "importing" ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : quoteImportResult ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                            ) : (
-                              <Upload className="w-4 h-4" />
-                            )}
-                            {quoteImportResult ? "Re-import" : "Upload Supplier Excel"}
-                            <input
-                              type="file"
-                              accept=".xlsx,.xls"
-                              onChange={handleImportQuote}
-                              className="hidden"
-                            />
-                          </label>
-                        }
-                      />
-
-                      {/* Step 3: Final Pricing */}
-                      <PipelineStep
-                        step={3}
-                        title="Final Pricing"
-                        description={pricingPreview ? "Pricing ready — download below" : "Auto-generated from rate cards"}
-                        icon={DollarSign}
-                        status={pricingPreview ? "done" : "ready"}
-                        action={
-                          <div className="space-y-2">
-                            <button
-                              onClick={handleDownloadScopingWorkbook}
-                              disabled={downloading === "scoping" || !result?.id}
-                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#217346] text-white rounded-lg text-sm font-bold hover:bg-[#1a5c38] disabled:opacity-50 transition-colors shadow-sm"
-                            >
-                              {downloading === "scoping" ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <FileSpreadsheet className="w-4 h-4" />
-                              )}
-                              Full Scoping Workbook
-                            </button>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={handlePreviewPricing}
-                                disabled={loadingPricing}
-                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium disabled:opacity-50 transition-colors"
-                              >
-                                {loadingPricing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <DollarSign className="w-3.5 h-3.5" />}
-                                {pricingPreview ? "Refresh" : "Preview"}
-                              </button>
-                              <button
-                                onClick={handleDownloadRateCard}
-                                disabled={downloading === "ratecard"}
-                                className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-medium disabled:opacity-50 transition-colors"
-                              >
-                                {downloading === "ratecard" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                                Rate Card
-                              </button>
-                            </div>
-                          </div>
-                        }
-                      />
-                    </div>
-
-                    {/* Editable quote preview — ExcelPreview style */}
-                    {quotePreviewOpen && (
-                      <div className="bg-white dark:bg-zinc-900 rounded-lg border border-border overflow-hidden shadow-sm">
-                        {/* Green title bar (matches estimator) */}
-                        <div className="flex items-center justify-between px-3 py-1.5 bg-[#217346] text-white text-xs shrink-0">
-                          <div className="flex items-center gap-2">
-                            <FileSpreadsheet className="w-3.5 h-3.5" />
-                            <span className="font-medium truncate max-w-[300px]">
-                              Quote Request — {result.project.projectName || result.project.venue || "LED Displays"}
-                            </span>
-                            <span className="text-white/60">({editableSpecs.length} displays)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={handleDownloadSubcontractorExcel}
-                              disabled={downloading === "subcontractor" || editableSpecs.length === 0}
-                              className="flex items-center gap-1 px-2 py-0.5 bg-white/20 hover:bg-white/30 rounded text-[10px] font-medium transition-colors disabled:opacity-50"
-                            >
-                              {downloading === "subcontractor" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                              Export .xlsx
-                            </button>
-                            <button
-                              onClick={() => setQuotePreviewOpen(false)}
-                              className="px-1.5 py-0.5 bg-white/10 hover:bg-white/20 rounded text-[10px] transition-colors"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Column letters (Excel style) */}
-                        <div className="flex border-b border-border bg-zinc-50 dark:bg-zinc-800 shrink-0">
-                          <div className="w-10 shrink-0 border-r border-border" />
-                          {["A", "B", "C", "D", "E", "F", "G"].map((letter) => (
-                            <div key={letter} className="flex-1 min-w-[80px] px-2 py-0.5 text-center text-[10px] font-medium text-muted-foreground border-r border-border last:border-r-0">
-                              {letter}
-                            </div>
-                          ))}
-                          <div className="w-10 shrink-0" />
-                        </div>
-
-                        {/* Data rows */}
-                        <div className="overflow-x-auto">
-                          <table className="w-full border-collapse text-xs">
-                            <thead>
-                              <tr className="bg-[#0A52EF]/5 dark:bg-[#0A52EF]/10">
-                                <td className="w-10 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800 font-normal">1</td>
-                                <th className="text-left px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[160px]">DISPLAY</th>
-                                <th className="text-left px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[140px]">LOCATION</th>
-                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[70px]">W (FT)</th>
-                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[70px]">H (FT)</th>
-                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[70px]">PITCH</th>
-                                <th className="text-center px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border min-w-[50px]">QTY</th>
-                                <th className="text-left px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-b border-border min-w-[140px]">NOTES</th>
-                                <th className="w-10 border-b border-border bg-zinc-50 dark:bg-zinc-800" />
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {editableSpecs.map((spec, idx) => (
-                                <tr key={idx} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors group">
-                                  <td className="w-10 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
-                                    {idx + 2}
-                                  </td>
-                                  <td className="px-0 py-0 border-r border-b border-border">
-                                    <input
-                                      type="text"
-                                      value={spec.name}
-                                      onChange={(e) => updateEditableSpec(idx, "name", e.target.value)}
-                                      placeholder="Display name"
-                                      className="w-full px-2 py-1.5 text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell placeholder:text-muted-foreground/40"
-                                    />
-                                  </td>
-                                  <td className="px-0 py-0 border-r border-b border-border">
-                                    <input
-                                      type="text"
-                                      value={spec.location}
-                                      onChange={(e) => updateEditableSpec(idx, "location", e.target.value)}
-                                      placeholder="Location"
-                                      className="w-full px-2 py-1.5 text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell placeholder:text-muted-foreground/40"
-                                    />
-                                  </td>
-                                  <td className="px-0 py-0 border-r border-b border-border">
-                                    <input
-                                      type="number"
-                                      value={spec.widthFt ?? ""}
-                                      onChange={(e) => updateEditableSpec(idx, "widthFt", e.target.value ? parseFloat(e.target.value) : null)}
-                                      className="w-full px-2 py-1.5 text-xs text-right font-mono bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell"
-                                    />
-                                  </td>
-                                  <td className="px-0 py-0 border-r border-b border-border">
-                                    <input
-                                      type="number"
-                                      value={spec.heightFt ?? ""}
-                                      onChange={(e) => updateEditableSpec(idx, "heightFt", e.target.value ? parseFloat(e.target.value) : null)}
-                                      className="w-full px-2 py-1.5 text-xs text-right font-mono bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell"
-                                    />
-                                  </td>
-                                  <td className="px-0 py-0 border-r border-b border-border">
-                                    <input
-                                      type="number"
-                                      value={spec.pixelPitchMm ?? ""}
-                                      onChange={(e) => updateEditableSpec(idx, "pixelPitchMm", e.target.value ? parseFloat(e.target.value) : null)}
-                                      className="w-full px-2 py-1.5 text-xs text-right font-mono bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell"
-                                    />
-                                  </td>
-                                  <td className="px-0 py-0 border-r border-b border-border">
-                                    <input
-                                      type="number"
-                                      value={spec.quantity}
-                                      onChange={(e) => updateEditableSpec(idx, "quantity", parseInt(e.target.value) || 1)}
-                                      min={1}
-                                      className="w-full px-2 py-1.5 text-xs text-center font-mono bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell"
-                                    />
-                                  </td>
-                                  <td className="px-0 py-0 border-b border-border">
-                                    <input
-                                      type="text"
-                                      value={spec.notes ?? ""}
-                                      onChange={(e) => updateEditableSpec(idx, "notes", e.target.value || null)}
-                                      placeholder="Add note..."
-                                      className="w-full px-2 py-1.5 text-xs bg-transparent focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:outline-none cursor-cell text-muted-foreground placeholder:text-muted-foreground/30"
-                                    />
-                                  </td>
-                                  <td className="w-10 border-b border-border bg-zinc-50 dark:bg-zinc-800 text-center">
-                                    <button
-                                      onClick={() => removeEditableSpec(idx)}
-                                      className="text-muted-foreground/40 group-hover:text-red-400 hover:!text-red-500 transition-colors text-sm leading-none"
-                                      title="Remove display"
-                                    >
-                                      ✕
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))}
-                              {/* Add display row */}
-                              <tr
-                                onClick={addEditableSpec}
-                                className="hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 cursor-pointer transition-colors"
-                              >
-                                <td className="w-10 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
-                                  {editableSpecs.length + 2}
-                                </td>
-                                <td colSpan={7} className="px-2 py-1.5 border-b border-border">
-                                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground/60 hover:text-emerald-600 transition-colors">
-                                    <Plus className="w-3 h-3" />
-                                    Add display...
-                                  </span>
-                                </td>
-                                <td className="w-10 border-b border-border bg-zinc-50 dark:bg-zinc-800" />
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-
-                        {editableSpecs.length === 0 && (
-                          <div className="p-8 text-center">
-                            <FileSpreadsheet className="w-10 h-10 mx-auto mb-3 text-muted-foreground/30" />
-                            <p className="text-sm text-muted-foreground">All displays removed</p>
-                            <button onClick={addEditableSpec} className="mt-2 text-xs text-primary hover:underline">
-                              Add a display
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Quote import result */}
-                    {quoteImportResult && (
-                      <div className="bg-muted/50 rounded-lg p-4 text-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                          <span className="font-medium">Quote Imported: {quoteImportResult.filename}</span>
-                        </div>
-                        <div className="flex gap-4 text-muted-foreground">
-                          <span>{quoteImportResult.quotedCount} quoted</span>
-                          <span>{quoteImportResult.missingCount} missing</span>
-                        </div>
-                        {quoteImportResult.warnings?.length > 0 && (
-                          <div className="mt-2 space-y-1">
-                            {quoteImportResult.warnings.map((w: string, i: number) => (
-                              <div key={i} className="flex items-start gap-1.5 text-amber-600">
-                                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
-                                <span className="text-xs">{w}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Loading state */}
-                    {loadingPricing && !pricingPreview && (
-                      <div className="flex items-center justify-center py-12 text-muted-foreground gap-3">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span className="text-sm">Calculating pricing with rate card + quotes...</span>
-                      </div>
-                    )}
-
-                    {/* Excel-style pricing table */}
-                    {pricingPreview && (
-                      <div className="space-y-4">
-                        {/* Summary cards */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                          <div className="bg-muted/50 rounded-lg p-3">
-                            <span className="text-xs text-muted-foreground block">Total Cost</span>
-                            <span className="text-lg font-bold font-mono">{fmtUsd(pricingPreview.summary.totalCost)}</span>
-                          </div>
-                          <div className="bg-muted/50 rounded-lg p-3">
-                            <span className="text-xs text-muted-foreground block">Total Selling</span>
-                            <span className="text-lg font-bold font-mono">{fmtUsd(pricingPreview.summary.totalSellingPrice)}</span>
-                          </div>
-                          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3">
-                            <span className="text-xs text-muted-foreground block">Total Margin</span>
-                            <span className="text-lg font-bold font-mono text-emerald-600">{fmtUsd(pricingPreview.summary.totalMargin)}</span>
-                          </div>
-                          <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3">
-                            <span className="text-xs text-muted-foreground block">Blended Margin</span>
-                            <span className="text-lg font-bold font-mono text-emerald-600">{pricingPreview.summary.blendedMarginPct}%</span>
-                          </div>
-                        </div>
-
-                        {/* Excel-style table */}
-                        <div className="border border-border rounded-lg overflow-hidden">
-                          {/* Column letter header (Excel style) */}
-                          <div className="flex border-b border-border bg-zinc-50 dark:bg-zinc-800">
-                            <div className="w-8 shrink-0 border-r border-border" />
-                            {["A", "B", "C", "D", "E", "F", "G"].map((letter) => (
-                              <div key={letter} className="flex-1 min-w-[90px] px-2 py-0.5 text-center text-[10px] font-medium text-muted-foreground border-r border-border last:border-r-0">
-                                {letter}
-                              </div>
-                            ))}
-                          </div>
-
-                          <table className="w-full border-collapse text-xs">
-                            <thead>
-                              <tr className="bg-[#0A52EF]/5 dark:bg-[#0A52EF]/10">
-                                <th className="w-8 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800 font-normal">1</th>
-                                <th className="text-left px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">DISPLAY</th>
-                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">AREA</th>
-                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">HW COST</th>
-                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">TOTAL COST</th>
-                                <th className="text-right px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">SELL PRICE</th>
-                                <th className="text-center px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-r border-b border-border">MARGIN %</th>
-                                <th className="text-center px-2 py-1.5 font-semibold text-[11px] text-[#0A52EF] border-b border-border">SOURCE</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {pricingPreview.displays.map((d, i) => (
-                                <tr key={i} className="hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
-                                  <td className="w-8 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
-                                    {i + 2}
-                                  </td>
-                                  <td className="px-2 py-1.5 border-r border-b border-border">
-                                    <span className="font-semibold">{d.name}</span>
-                                    {d.matchedProduct && (
-                                      <span className="block text-[10px] text-muted-foreground">
-                                        {d.matchedProduct.manufacturer} {d.matchedProduct.model} ({d.matchedProduct.fitScore}% fit)
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="px-2 py-1.5 text-right font-mono border-r border-b border-border">{d.areaSqFt} sqft</td>
-                                  <td className="px-2 py-1.5 text-right border-r border-b border-border">
-                                    <span className="font-mono">{fmtUsd(d.hardwareCost)}</span>
-                                    {d.costSource === "subcontractor_quote" && d.rateCardEstimate != null && d.rateCardEstimate > 0 && (
-                                      <span className="block mt-0.5">
-                                        <PriceDelta quotePrice={d.hardwareCost} estimatePrice={d.rateCardEstimate} />
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="px-2 py-1.5 text-right font-mono border-r border-b border-border">{fmtUsd(d.totalCost)}</td>
-                                  <td className="px-2 py-1.5 text-right font-mono font-semibold border-r border-b border-border">{fmtUsd(d.totalSellingPrice)}</td>
-                                  <td className="px-2 py-1.5 text-center border-r border-b border-border">
-                                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
-                                      d.blendedMarginPct >= 0.25 ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
-                                      d.blendedMarginPct >= 0.15 ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
-                                      "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                    }`}>
-                                      {(d.blendedMarginPct * 100).toFixed(1)}%
-                                    </span>
-                                  </td>
-                                  <td className="px-2 py-1.5 text-center border-b border-border">
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                      d.costSource === "subcontractor_quote"
-                                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                        : "bg-muted text-muted-foreground"
-                                    }`}>
-                                      {d.costSource === "subcontractor_quote" ? "Quote" : d.costSource === "rate_card" ? "Rate Card" : "Match"}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))}
-                              {/* Totals row */}
-                              <tr className="bg-emerald-50 dark:bg-emerald-900/20 font-semibold">
-                                <td className="w-8 text-center text-[10px] text-muted-foreground border-r border-b border-border bg-zinc-50 dark:bg-zinc-800">
-                                  {pricingPreview.displays.length + 2}
-                                </td>
-                                <td className="px-2 py-2 border-r border-b border-border text-[11px]">
-                                  PROJECT TOTAL ({pricingPreview.summary.displayCount} displays)
-                                </td>
-                                <td className="border-r border-b border-border" />
-                                <td className="border-r border-b border-border" />
-                                <td className="px-2 py-2 text-right font-mono border-r border-b border-border bg-yellow-100 dark:bg-yellow-900/30">
-                                  {fmtUsd(pricingPreview.summary.totalCost)}
-                                </td>
-                                <td className="px-2 py-2 text-right font-mono border-r border-b border-border bg-yellow-100 dark:bg-yellow-900/30">
-                                  {fmtUsd(pricingPreview.summary.totalSellingPrice)}
-                                </td>
-                                <td className="px-2 py-2 text-center border-r border-b border-border bg-yellow-100 dark:bg-yellow-900/30">
-                                  <span className="text-[10px] font-bold">{pricingPreview.summary.blendedMarginPct}%</span>
-                                </td>
-                                <td className="px-2 py-2 text-center border-b border-border text-[10px] text-muted-foreground">
-                                  {pricingPreview.summary.quotedCount}Q / {pricingPreview.summary.rateCardCount}RC
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Empty state — pricing loading */}
-                    {!pricingPreview && !loadingPricing && (
-                      <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
-                        <FileSpreadsheet className="w-12 h-12 opacity-30" />
-                        <p className="text-sm">Pricing is auto-generated from your rate cards</p>
-                        <p className="text-xs">Import supplier quotes above to refine with exact costs</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Sheet tabs (Excel style — matches estimator) */}
-              <div className="flex items-end border-t border-border bg-zinc-50 dark:bg-zinc-800 shrink-0 overflow-x-auto">
-                {[
-                  { id: "displays", label: "LED Displays", color: "#0A52EF", badge: `${result.screens.length}` },
-                  { id: "requirements", label: "Requirements", color: "#F59E0B", badge: criticalReqs > 0 ? `${criticalReqs}` : `${requirements.length}` },
-                  { id: "documents", label: "Page Triage", color: "#6366F1", badge: `${result.triage.length}` },
-                  { id: "estimate", label: "Estimate", color: "#217346", badge: pricingPreview ? fmtUsd(pricingPreview.summary.totalSellingPrice) : undefined },
-                  ...customTabs.map((t) => ({ id: t.id, label: t.name, color: "#8B5CF6", badge: undefined as string | undefined })),
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setResultsTab(tab.id)}
-                    className={`px-3 py-1.5 text-[11px] font-medium border-r border-border whitespace-nowrap transition-colors relative ${
-                      resultsTab === tab.id
-                        ? "bg-white dark:bg-zinc-900 text-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
-                    }`}
-                  >
-                    {resultsTab === tab.id && (
-                      <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ backgroundColor: tab.color }} />
-                    )}
-                    <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: tab.color }} />
-                    {tab.label}
-                    {tab.badge && (
-                      <span className="ml-1.5 text-[10px] text-muted-foreground">{tab.badge}</span>
-                    )}
-                    {tab.id === "estimate" && loadingPricing && <Loader2 className="inline w-3 h-3 ml-1.5 animate-spin" />}
-                  </button>
-                ))}
-                <button
-                  onClick={() => {
-                    const id = `custom-${Date.now()}`;
-                    const name = prompt("Tab name:");
-                    if (!name) return;
-                    setCustomTabs((prev) => [...prev, { id, name, content: "" }]);
-                    setResultsTab(id);
-                  }}
-                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors"
-                  title="Add worksheet"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
-              </div>
+              {/* OLD TAB CONTENT REMOVED — now rendered by WorkbookShell */}
             </div>
 
             {/* Right: PDF split panel */}
