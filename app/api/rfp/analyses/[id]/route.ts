@@ -63,3 +63,20 @@ export async function PATCH(
 
   return NextResponse.json(updated);
 }
+
+/**
+ * DELETE /api/rfp/analyses/:id — Delete an analysis
+ */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  try {
+    await prisma.rfpAnalysis.delete({ where: { id } });
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json({ error: "Analysis not found" }, { status: 404 });
+  }
+}
