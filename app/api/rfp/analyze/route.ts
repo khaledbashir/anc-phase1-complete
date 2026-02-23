@@ -249,6 +249,30 @@ export async function POST(request: NextRequest) {
           message: `Classifying ${ocrResult.totalPages.toLocaleString()} pages...`,
         });
 
+        // 3a: Detect pages with embedded images (scanned drawings)
+        // pdfimages -list gives one line per image with page number
+        const pagesWithImages = new Set<number>();
+        try {
+          const { stdout: imgList } = await execFileAsync(
+            "pdfimages",
+            ["-list", filePath],
+            { timeout: 60_000, maxBuffer: 50 * 1024 * 1024 },
+          );
+          // Output format: "page  num  type  width  height ..."
+          // Skip header lines (first 2), parse page number from each line
+          for (const line of imgList.split("\n").slice(2)) {
+            const match = line.trim().match(/^\s*(\d+)/);
+            if (match) pagesWithImages.add(parseInt(match[1], 10));
+          }
+          console.log(`[Pipeline] pdfimages found images on ${pagesWithImages.size} pages`);
+        } catch (err: any) {
+          console.warn("[Pipeline] pdfimages failed (non-fatal):", err.message);
+        }
+
+        // 3b: Drawing sheet regex — matches AV2.04, TL2.04, E5.01, etc.
+        const DRAWING_SHEET_PATTERN = /\b[A-Z]{1,3}\d+\.\d{2}\b/;
+        const FORCE_VISION_KEYWORDS = ["key plan", "keynotes", "detail", "elevation", "nts", "scale:"];
+
         const classifiedPages: Array<{
           pageNumber: number;
           text: string;
@@ -259,8 +283,14 @@ export async function POST(request: NextRequest) {
 
         for (const page of ocrResult.pages) {
           const text = page.text.toLowerCase();
+          const rawText = page.text; // preserve case for regex
           const textLength = page.text.trim().length;
-          const isDrawing = textLength < 150;
+
+          // Drawing detection: 3 signals (any one triggers)
+          let isDrawing = textLength < 200;                              // Low text = visual page
+          if (!isDrawing && pagesWithImages.has(page.pageNumber)) isDrawing = true; // Embedded images
+          if (!isDrawing && DRAWING_SHEET_PATTERN.test(rawText)) isDrawing = true;  // Sheet number (AV2.04)
+          if (!isDrawing && FORCE_VISION_KEYWORDS.some((k) => text.includes(k))) isDrawing = true; // Drawing keywords
 
           // Count STRONG LED signals (terms that only appear on LED pages)
           let strongLedScore = 0;
