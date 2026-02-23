@@ -670,7 +670,7 @@ function buildDisplayDetails(answers: EstimatorAnswers, calcs: ScreenCalc[]): Sh
             rows.push({
                 cells: [
                     { value: c.name },
-                    { value: d?.locationType || "wall" },
+                    { value: (d?.displayType || "custom").replace(/_/g, " ") },
                     { value: c.widthFt, align: "center" },
                     { value: c.heightFt, align: "center" },
                     { value: Math.round(c.areaSqFt * 100) / 100, align: "center" },
