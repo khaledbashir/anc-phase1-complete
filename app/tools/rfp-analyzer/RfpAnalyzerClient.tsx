@@ -871,7 +871,15 @@ export default function RfpAnalyzerClient() {
                         <span className="text-sm text-muted-foreground">Calculating estimated pricing from rate cards...</span>
                       </div>
                     )}
-                    <SpecsTable specs={result.screens} />
+                    <SpecsTable
+                      specs={result.screens}
+                      editable
+                      onSpecsChange={(updated) => {
+                        // Update result.screens in place for downstream use
+                        result.screens = updated;
+                        setEditableSpecs(updated);
+                      }}
+                    />
                   </div>
                 )}
 
