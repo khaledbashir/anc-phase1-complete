@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, X, Lock, Users as UsersIcon, AlertTriangle } from "lucide-react";
+import { Check, X, Lock, Users as UsersIcon, AlertTriangle, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,6 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { getRoleInfo, getPermissions, type UserRole, type Permission } from "@/lib/rbac";
 import { cn } from "@/lib/utils";
@@ -52,6 +54,35 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [selectedRole, setSelectedRole] = useState<{ userId: string; newRole: UserRole } | null>(null);
   const [isChanging, setIsChanging] = useState(false);
+  // Add user state
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [newUser, setNewUser] = useState({ email: "", name: "", password: "", role: "VIEWER" as UserRole });
+  const [isAdding, setIsAdding] = useState(false);
+
+  const handleAddUser = async () => {
+    if (!newUser.email || !newUser.password) return;
+    setIsAdding(true);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUser),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to create user");
+      }
+      const { user } = await res.json();
+      setUsers(prev => [...prev, { ...user, lastLogin: null }]);
+      toast({ title: "User Created", description: `${user.email} added as ${getRoleInfo(user.role).label}` });
+      setShowAddUser(false);
+      setNewUser({ email: "", name: "", password: "", role: "VIEWER" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Failed", description: error.message });
+    } finally {
+      setIsAdding(false);
+    }
+  };
 
   const allRoles: UserRole[] = ["ADMIN", "ESTIMATOR", "PRODUCT_EXPERT", "PROPOSAL_LEAD", "FINANCE", "VIEWER", "OUTSIDER"];
 
@@ -155,11 +186,17 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
 
       {/* User List Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>User Management</CardTitle>
-          <CardDescription>
-            Manage user roles and permissions. Changes take effect immediately.
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardTitle>User Management</CardTitle>
+            <CardDescription>
+              Manage user roles and permissions. Changes take effect immediately.
+            </CardDescription>
+          </div>
+          <Button onClick={() => setShowAddUser(true)} size="sm" className="shrink-0">
+            <Plus className="w-4 h-4 mr-1" />
+            Add User
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -287,6 +324,84 @@ export default function AdminUsersClient({ initialUsers }: AdminUsersClientProps
           })}
         </div>
       </div>
+
+      {/* Add User Dialog */}
+      <Dialog open={showAddUser} onOpenChange={setShowAddUser}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new user account with email and password login.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label htmlFor="add-name">Name</Label>
+              <Input
+                id="add-name"
+                placeholder="e.g., Natalia Kovaleva"
+                value={newUser.name}
+                onChange={(e) => setNewUser(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-email">Email *</Label>
+              <Input
+                id="add-email"
+                type="email"
+                placeholder="e.g., natalia@anc.com"
+                value={newUser.email}
+                onChange={(e) => setNewUser(prev => ({ ...prev, email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-password">Password *</Label>
+              <Input
+                id="add-password"
+                type="password"
+                placeholder="At least 6 characters"
+                value={newUser.password}
+                onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="add-role">Role</Label>
+              <Select
+                value={newUser.role}
+                onValueChange={(val: UserRole) => setNewUser(prev => ({ ...prev, role: val }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {allRoles.map((role) => {
+                    const info = getRoleInfo(role);
+                    return (
+                      <SelectItem key={role} value={role}>
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-2 h-2 rounded-full", `bg-${info.color}-500`)} />
+                          <span>{info.label}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddUser(false)} disabled={isAdding}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddUser}
+              disabled={isAdding || !newUser.email || !newUser.password || newUser.password.length < 6}
+            >
+              {isAdding ? "Creating..." : "Create User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation Dialog */}
       {selectedRole && (
