@@ -93,8 +93,14 @@ const nextConfig = {
                 fs: false,
                 path: false,
             };
-
         }
+
+        // pdfjs-dist tries to require("canvas") for Node.js — stub it out
+        config.resolve.alias = {
+            ...config.resolve.alias,
+            canvas: false,
+        };
+
         return config;
     },
 };

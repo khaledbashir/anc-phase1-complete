@@ -6,6 +6,9 @@ import { useSession } from "next-auth/react";
 import UploadZone, { type PipelineEvent } from "./_components/UploadZone";
 import SpecsTable from "./_components/SpecsTable";
 import RequirementsTable from "./_components/RequirementsTable";
+import dynamic from "next/dynamic";
+
+const PdfSplitPanel = dynamic(() => import("./_components/PdfSplitPanel"), { ssr: false });
 import type { ExtractedLEDSpec, ExtractedRequirement } from "@/services/rfp/unified/types";
 import {
   RefreshCcw,
@@ -32,6 +35,8 @@ import {
   ChevronRight,
   ChevronDown,
   ArrowRight,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 // ==========================================================================
@@ -130,6 +135,10 @@ export default function RfpAnalyzerClient() {
   const [drawingUpload, setDrawingUpload] = useState<{ uploading: boolean; results: Array<{ filename: string; pages: number }> }>({ uploading: false, results: [] });
   const [quotePreviewOpen, setQuotePreviewOpen] = useState(false);
   const [editableSpecs, setEditableSpecs] = useState<ExtractedLEDSpec[]>([]);
+  // PDF split-panel viewer
+  const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+  const [pdfViewerPage, setPdfViewerPage] = useState<number | null>(null);
+  const [showPdfPanel, setShowPdfPanel] = useState(false);
   // Document browser — category toggles for workspace embedding
   const [enabledCategories, setEnabledCategories] = useState<Set<string>>(new Set());
   const [reEmbedding, setReEmbedding] = useState(false);
@@ -177,6 +186,11 @@ export default function RfpAnalyzerClient() {
     setResult(null);
     setQuoteImportResult(null);
     setPricingPreview(null);
+
+    // Create blob URL for PDF viewer (live session — no persistence needed)
+    if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl);
+    const blobUrl = URL.createObjectURL(files[0]);
+    setPdfBlobUrl(blobUrl);
 
     try {
       const CHUNK_SIZE = 10 * 1024 * 1024;
@@ -785,7 +799,11 @@ export default function RfpAnalyzerClient() {
             )}
 
             {/* ============ TABBED VIEW: Extraction | Pricing ============ */}
-            <div className="bg-white dark:bg-zinc-900 rounded-lg border border-border overflow-hidden shadow-sm">
+            <div className="flex gap-3">
+            {/* Left: Workbook */}
+            <div className={`bg-white dark:bg-zinc-900 rounded-lg border border-border overflow-hidden shadow-sm ${
+              showPdfPanel && pdfBlobUrl ? "flex-1 min-w-0" : "w-full"
+            }`}>
               {/* Excel-style title bar */}
               <div className="flex items-center justify-between px-3 py-1.5 bg-[#217346] text-white text-xs shrink-0">
                 <div className="flex items-center gap-2">
@@ -837,6 +855,20 @@ export default function RfpAnalyzerClient() {
                     {downloading === "creating" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
                     Create Proposal
                   </button>
+                  {pdfBlobUrl && (
+                    <button
+                      onClick={() => setShowPdfPanel(!showPdfPanel)}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium transition-colors ml-1 ${
+                        showPdfPanel
+                          ? "bg-white text-[#217346]"
+                          : "bg-white/20 hover:bg-white/30 text-white"
+                      }`}
+                      title={showPdfPanel ? "Hide PDF" : "Show PDF"}
+                    >
+                      {showPdfPanel ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      PDF
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -878,6 +910,10 @@ export default function RfpAnalyzerClient() {
                         // Update result.screens in place for downstream use
                         result.screens = updated;
                         setEditableSpecs(updated);
+                      }}
+                      onSourceClick={(pg) => {
+                        setPdfViewerPage(pg);
+                        setShowPdfPanel(true);
                       }}
                     />
                   </div>
@@ -1438,6 +1474,18 @@ export default function RfpAnalyzerClient() {
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
+            </div>
+
+            {/* Right: PDF split panel */}
+            {showPdfPanel && pdfBlobUrl && (
+              <div className="w-[420px] shrink-0 rounded-lg border border-border overflow-hidden shadow-sm self-stretch min-h-[500px]">
+                <PdfSplitPanel
+                  pdfUrl={pdfBlobUrl}
+                  activePage={pdfViewerPage}
+                  onClose={() => setShowPdfPanel(false)}
+                />
+              </div>
+            )}
             </div>
 
             {/* Link to saved analysis */}
